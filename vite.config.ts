@@ -54,6 +54,9 @@ export default defineConfig({
   ],
   build: {
     assetsInlineLimit: 0,
+    rollupOptions: {
+      external: ["@shopify/polaris", "@shopify/polaris-icons"]
+    }
   },
   optimizeDeps: {
     include: ["@shopify/app-bridge-react"],
