@@ -12,7 +12,13 @@ import {
 import { CheckIcon } from "@shopify/polaris-icons";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, useSubmit, useNavigation } from "react-router";
-import { authenticate, MONTHLY_PLAN_BASIC, MONTHLY_PLAN_STANDARD, MONTHLY_PLAN_PRO } from "../shopify.server";
+import { authenticate } from "../shopify.server";
+
+// Hardcoded Plan Constants for Client-Side Use
+// We duplicate these here to avoid importing server-side code (shopify.server.ts) into the client bundle
+const PLAN_BASIC = 'Basic';
+const PLAN_STANDARD = 'Standard';
+const PLAN_PRO = 'Pro';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing } = await authenticate.admin(request);
@@ -57,12 +63,12 @@ export default function PlansPage() {
 
   const plans = [
     {
-      name: MONTHLY_PLAN_BASIC,
+      name: PLAN_BASIC,
       price: "$9.90",
       features: ["200 Product Syncs", "Core Localization AI", "Standard Support"],
     },
     {
-      name: MONTHLY_PLAN_STANDARD,
+      name: PLAN_STANDARD,
       price: "$29.90",
       features: [
         "1,000 Product Syncs",
@@ -71,7 +77,7 @@ export default function PlansPage() {
       ],
     },
     {
-      name: MONTHLY_PLAN_PRO,
+      name: PLAN_PRO,
       price: "$69.90",
       features: [
         "10,000 Product Syncs",
