@@ -28,7 +28,10 @@ api_version = "2026-01"
 scopes = "read_products,write_products,read_locales,read_translations,write_translations,read_files"
 
 [auth]
-redirect_urls = [ "https://shopify-translator-api.onrender.com/api/auth/callback" ]
+redirect_urls = [ 
+  "https://shopify-translator-api.onrender.com/api/auth/callback",
+  "https://shopify-translator-ui.onrender.com/auth/callback"
+]
 
 [app_proxy]
 url = "https://shopify-translator-api.onrender.com/api/proxy"
