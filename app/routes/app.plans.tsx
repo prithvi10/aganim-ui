@@ -61,6 +61,7 @@ export default function PlansPage() {
 
   const handleUpgrade = async (plan: string) => {
     try {
+      console.debug("[Plans] Upgrade clicked", { plan });
       const token = await getSessionToken(app);
       console.debug("[Plans] Retrieved session token for billing request");
       const formData = new FormData();
@@ -71,12 +72,22 @@ export default function PlansPage() {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: formData,
       });
       console.debug("[Plans] Billing request sent", { plan, status: resp.status });
       if (!resp.ok) {
         const text = await resp.text();
         console.error("[Plans] Billing request failed", { status: resp.status, body: text });
+        return;
+      }
+
+      // If Remix returns a redirect to Shopify billing, follow it in the browser
+      if (resp.redirected) {
+        console.debug("[Plans] Following redirect to billing confirmation", { url: resp.url });
+        window.location.href = resp.url;
+      } else {
+        console.debug("[Plans] No redirect returned; check server logs for billing.request output");
       }
     } catch (err) {
       console.error("Upgrade request failed:", err);
