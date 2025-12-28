@@ -61,21 +61,26 @@ export default function PlansPage() {
 
   const handleUpgrade = async (plan: string) => {
     try {
-      console.debug("[Plans] Upgrade clicked", { plan });
-      const token = await getSessionToken(app);
-      console.debug("[Plans] Retrieved session token for billing request");
+      console.info("[Plans] Upgrade clicked", { plan });
+      let token: string | null = null;
+      try {
+        token = await getSessionToken(app);
+        console.info("[Plans] Retrieved session token for billing request");
+      } catch (tokenErr) {
+        console.error("[Plans] Failed to get session token, proceeding without token", tokenErr);
+      }
       const formData = new FormData();
       formData.append("plan", plan);
 
       const resp = await fetch("/app/plans", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
         body: formData,
       });
-      console.debug("[Plans] Billing request sent", { plan, status: resp.status });
+      console.info("[Plans] Billing request sent", { plan, status: resp.status });
       if (!resp.ok) {
         const text = await resp.text();
         console.error("[Plans] Billing request failed", { status: resp.status, body: text });
@@ -84,10 +89,10 @@ export default function PlansPage() {
 
       // If Remix returns a redirect to Shopify billing, follow it in the browser
       if (resp.redirected) {
-        console.debug("[Plans] Following redirect to billing confirmation", { url: resp.url });
+        console.info("[Plans] Following redirect to billing confirmation", { url: resp.url });
         window.location.href = resp.url;
       } else {
-        console.debug("[Plans] No redirect returned; check server logs for billing.request output");
+        console.info("[Plans] No redirect returned; check server logs for billing.request output");
       }
     } catch (err) {
       console.error("Upgrade request failed:", err);
