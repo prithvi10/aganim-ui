@@ -8,9 +8,13 @@ generator client {
 // Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+// IMPORTANT:
+// Point this datasource to a separate schema (or separate DB) so we never touch
+// the backend API tables. Set DATABASE_URL_UI to something like:
+//   postgresql://user:pass@host:5432/shopify_translator_db?schema=ui
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL_UI")
 }
 
 model Session {
