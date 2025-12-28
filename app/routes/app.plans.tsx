@@ -13,6 +13,8 @@ import { CheckIcon } from "@shopify/polaris-icons";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, useSubmit, useNavigation } from "react-router";
 import { authenticate } from "../shopify.server";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { getSessionToken } from "@shopify/app-bridge-utils";
 
 // Hardcoded Plan Constants for Client-Side Use
 // We duplicate these here to avoid importing server-side code (shopify.server.ts) into the client bundle
@@ -52,13 +54,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function PlansPage() {
   const { currentPlans } = useLoaderData<typeof loader>();
-  const submit = useSubmit();
   const navigation = useNavigation();
+  const app = useAppBridge();
 
   const isUpgrading = navigation.state === "submitting";
 
-  const handleUpgrade = (plan: string) => {
-    submit({ plan }, { method: "post" });
+  const handleUpgrade = async (plan: string) => {
+    try {
+      const token = await getSessionToken(app);
+      const formData = new FormData();
+      formData.append("plan", plan);
+
+      await fetch("/app/plans", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+    } catch (err) {
+      console.error("Upgrade request failed:", err);
+    }
   };
 
   const plans = [

@@ -24,6 +24,10 @@ const shopify = shopifyApp({
   isEmbeddedApp: true,
   // Use online tokens so embedded admin actions (like billing) have a valid session
   useOnlineTokens: true,
+  future: {
+    expiringOfflineAccessTokens: true,
+    authStrategy: "token-based",
+  },
   billing: {
     [MONTHLY_PLAN_BASIC]: {
       lineItems: [
