@@ -2,7 +2,7 @@
 
 client_id = "315cfaf63c9baf27e4ba9a22b91b168e"
 name = "CrossBorderAgent"
-application_url = "https://shopify-translator-api.onrender.com"
+application_url = "https://shopify-translator-ui.onrender.com"
 embedded = true
 
 [build]
@@ -13,15 +13,15 @@ api_version = "2026-01"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
+  uri = "https://shopify-translator-api.onrender.com/webhooks/app/uninstalled"
 
   [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
-  uri = "/webhooks/app/scopes_update"
+  uri = "https://shopify-translator-api.onrender.com/webhooks/app/scopes_update"
 
   [[webhooks.subscriptions]]
   topics = [ "app_subscriptions/update" ]
-  uri = "/webhooks/subscription-activated"
+  uri = "https://shopify-translator-api.onrender.com/webhooks/subscription-activated"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
