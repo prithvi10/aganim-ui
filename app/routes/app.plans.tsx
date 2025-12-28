@@ -42,7 +42,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (plan) {
     await billing.request({
       plan,
-      isTest: true,
+      isTest: process.env.NODE_ENV !== "production",
       returnUrl: `https://${shop}/admin/apps/cross-border-agent/app`,
     });
   }
