@@ -196,11 +196,11 @@
                       
                       // 2. Perform the content replacement if data exists
                       if (translatedData) {
-                          if (titleElement && translatedData.title) {
-                              titleElement.textContent = translatedData.title; 
-                          }
-                          if (descriptionElement && translatedData.description) {
-                              descriptionElement.innerHTML = translatedData.description; 
+                      if (titleElement && translatedData.title) {
+                          titleElement.textContent = translatedData.title; 
+                      }
+                      if (descriptionElement && translatedData.description) {
+                          descriptionElement.innerHTML = translatedData.description; 
                           }
                           button.textContent = 'Rewrite Complete!';
                           showSuccessToast();
