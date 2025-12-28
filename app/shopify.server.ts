@@ -22,7 +22,8 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   isEmbeddedApp: true,
-  useOnlineTokens: false,
+  // Use online tokens so embedded admin actions (like billing) have a valid session
+  useOnlineTokens: true,
   billing: {
     [MONTHLY_PLAN_BASIC]: {
       lineItems: [
