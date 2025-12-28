@@ -15,12 +15,15 @@ import { useLoaderData, useSubmit, useNavigation } from "react-router";
 import { authenticate } from "../shopify.server";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge-utils";
+import type { ClientApplication } from "@shopify/app-bridge";
+import type { AppBridgeState } from "@shopify/app-bridge";
 
 // Hardcoded Plan Constants for Client-Side Use
 // We duplicate these here to avoid importing server-side code (shopify.server.ts) into the client bundle
-const PLAN_BASIC = 'Basic';
-const PLAN_STANDARD = 'Standard';
-const PLAN_PRO = 'Pro';
+const PLAN_BASIC = 'Basic' as const;
+const PLAN_STANDARD = 'Standard' as const;
+const PLAN_PRO = 'Pro' as const;
+type PlanName = typeof PLAN_BASIC | typeof PLAN_STANDARD | typeof PLAN_PRO;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing } = await authenticate.admin(request);
@@ -39,9 +42,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { billing, session } = await authenticate.admin(request);
   const { shop } = session;
   const formData = await request.formData();
-  const plan = formData.get("plan") as string;
+  const plan = formData.get("plan") as PlanName | null;
 
-  if (plan) {
+  if (plan === PLAN_BASIC || plan === PLAN_STANDARD || plan === PLAN_PRO) {
     await billing.request({
       plan,
       isTest: process.env.NODE_ENV !== "production",
@@ -55,7 +58,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function PlansPage() {
   const { currentPlans } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
-  const app = useAppBridge();
+  // Cast through unknown to satisfy typing differences between ShopifyGlobal and ClientApplication
+  const app = useAppBridge() as unknown as ClientApplication<AppBridgeState>;
 
   const isUpgrading = navigation.state === "submitting";
 
