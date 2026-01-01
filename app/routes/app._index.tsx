@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import { useAppBridge } from "@shopify/app-bridge-react";
-import { TitleBar } from "@shopify/app-bridge/actions";
+import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
   Layout,
@@ -153,19 +152,8 @@ export default function Dashboard() {
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
 
   useEffect(() => {
-    const titleBarOptions = {
-      title: t.title,
-      secondaryActions: [
-        {
-          label: t.toggleLabel,
-          onAction: () => setLang(prev => prev === "en" ? "jp" : "en")
-        }
-      ]
-    };
-    const titleBar = TitleBar.create(app as any, titleBarOptions);
-    return () => {
-       // Cleanup if needed, though usually not strictly required for titlebar in some versions
-    };
+    // If you need more complex actions, you can do it here, 
+    // but the declarative TitleBar component below is preferred in v4.
   }, [app, t.title, t.toggleLabel]);
 
   const usagePercent = Math.min(100, Math.round((usage.used / usage.quota) * 100));
@@ -173,6 +161,11 @@ export default function Dashboard() {
 
   return (
     <Page fullWidth>
+      <TitleBar title={t.title}>
+        <button onClick={() => setLang(prev => prev === "en" ? "jp" : "en")}>
+          {t.toggleLabel}
+        </button>
+      </TitleBar>
 
       <BlockStack gap="500">
         {/* IMPACT SECTION */}
@@ -184,7 +177,7 @@ export default function Dashboard() {
                 <Card>
                   <BlockStack gap="200">
                     <Text as="h2" variant="headingSm" tone="subdued">{t.totalOptimized}</Text>
-                    <Text as="p" variant="heading3xl">{usage.used.toLocaleString()}</Text>
+                    <Text as="p" variant="heading2xl">{usage.used.toLocaleString()}</Text>
                   </BlockStack>
                 </Card>
                </div>
@@ -194,7 +187,7 @@ export default function Dashboard() {
                 <Card>
                   <BlockStack gap="200">
                     <Text as="h2" variant="headingSm" tone="subdued">{t.activeMarkets}</Text>
-                    <Text as="p" variant="heading3xl">{activeMarketsCount}</Text>
+                    <Text as="p" variant="heading2xl">{activeMarketsCount}</Text>
                   </BlockStack>
                 </Card>
                </div>
