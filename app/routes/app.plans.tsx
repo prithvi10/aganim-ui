@@ -48,6 +48,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await billing.request({
       plan,
       isTest: process.env.NODE_ENV !== "production",
+      // Redirect back to the embedded app root
       returnUrl: `https://${shop}/admin/apps/cross-border-agent/app`,
     });
   }
