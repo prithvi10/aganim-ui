@@ -45,8 +45,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const plan = formData.get("plan") as PlanName | null;
   // Build a return URL that works for both classic admin and new admin.shopify.com
   const shopSubdomain = shop.replace(".myshopify.com", "");
-  const adminReturnUrl = `https://admin.shopify.com/store/${shopSubdomain}/apps/cross-border-agent/app`;
-  const classicReturnUrl = `https://${shop}/admin/apps/cross-border-agent/app`;
+  const hostParam = new URL(request.url).searchParams.get("host");
+  const hostSuffix = hostParam ? `?host=${hostParam}` : "";
+  const adminReturnUrl = `https://admin.shopify.com/store/${shopSubdomain}/apps/crossborderagent/app${hostSuffix}`;
+  const classicReturnUrl = `https://${shop}/admin/apps/crossborderagent/app${hostSuffix}`;
 
   if (plan === PLAN_BASIC || plan === PLAN_STANDARD || plan === PLAN_PRO) {
     await billing.request({
