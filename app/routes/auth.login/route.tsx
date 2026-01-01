@@ -17,6 +17,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   const apiInstallUrl = `https://shopify-translator-api.onrender.com/?shop=${encodeURIComponent(shop)}`;
+  console.log("[Auth Login] Redirecting to API installer", { shop, apiInstallUrl });
   throw redirect(apiInstallUrl);
 };
 
