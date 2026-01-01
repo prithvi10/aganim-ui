@@ -74,6 +74,29 @@ const TRANSLATIONS = {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, billing, session } = await authenticate.admin(request);
   const { shop } = session;
+  const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+
+  // Sync the access token to the backend so proxy endpoints have credentials.
+  const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
+  if (tokenSyncSecret && session.accessToken) {
+    try {
+      await fetch(`${backendApiUrl}/api/admin/sync-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Token-Sync-Secret": tokenSyncSecret
+        },
+        body: JSON.stringify({ shop, access_token: session.accessToken })
+      });
+    } catch (e) {
+      console.error("Token sync to backend failed", e);
+    }
+  } else {
+    console.warn("Token sync skipped: missing TOKEN_SYNC_SECRET_UI or session access token", {
+      hasSecret: Boolean(tokenSyncSecret),
+      hasAccessToken: Boolean(session.accessToken)
+    });
+  }
 
   // 1. Fetch Active Markets (Shopify GraphQL)
   let activeMarketsCount = 1;
@@ -96,8 +119,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // 2. Fetch Usage Data (Backend API)
   // Default fallback
   let usage = { used: 0, quota: 1000, planName: "Free" };
-  
-  const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
   try {
     // We need an access token for the backend. 
     // Since we are in the loader (server-side), we might not have a frontend session token easily.
