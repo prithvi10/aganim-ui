@@ -43,13 +43,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop } = session;
   const formData = await request.formData();
   const plan = formData.get("plan") as PlanName | null;
+  // Build a return URL that works for both classic admin and new admin.shopify.com
+  const shopSubdomain = shop.replace(".myshopify.com", "");
+  const adminReturnUrl = `https://admin.shopify.com/store/${shopSubdomain}/apps/cross-border-agent/app`;
+  const classicReturnUrl = `https://${shop}/admin/apps/cross-border-agent/app`;
 
   if (plan === PLAN_BASIC || plan === PLAN_STANDARD || plan === PLAN_PRO) {
     await billing.request({
       plan,
       isTest: process.env.NODE_ENV !== "production",
-      // Redirect back to the embedded app root
-      returnUrl: `https://${shop}/admin/apps/cross-border-agent/app`,
+      // Redirect back to the embedded app root; prefer new admin URL with classic fallback
+      returnUrl: adminReturnUrl,
+      fallbackReturnUrl: classicReturnUrl,
     });
   }
 
