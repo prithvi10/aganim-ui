@@ -10,8 +10,9 @@
     <div style="margin-bottom: 15px;">
         <label style="display: block; margin-bottom: 8px; font-weight: bold;">Target Markets:</label>
         <div id="locale-checklist" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; border: 1px solid #eee; border-radius: 4px; background: #fdfdfd;">
-            <!-- Checkboxes will be populated dynamically -->
+            <span style="grid-column: 1 / -1; color: #666; font-size: 0.9em; padding: 10px;">⏳ Loading markets...</span>
         </div>
+        <div id="locale-error" style="display: none; color: #cc0000; font-size: 0.85em; margin-top: 4px;"></div>
         <div id="bulk-upgrade-msg" style="display: none; margin-top: 8px; font-size: 0.85em; color: #6d7175;">
             ✨ <a href="/admin/apps/cross-border-agent/app/plans" target="_parent" style="color: #008060; text-decoration: none; font-weight: bold;">Upgrade to Pro</a> to select multiple markets at once.
         </div>
@@ -85,16 +86,23 @@
 
       // 0. Fetch Shop Locales on Load
       async function fetchShopLocales() {
+        const checklist = document.getElementById('locale-checklist');
+        const errorDiv = document.getElementById('locale-error');
+        
         try {
+            console.log("[CrossBorder] Fetching locales from proxy...");
             const response = await fetch("/apps/cross-border/shop/locales");
+            
             if (response.ok) {
                 const result = await response.json();
-                if (result.status === 'success' && result.locales) {
+                console.log("[CrossBorder] Locales fetched:", result);
+                
+                if (result.status === 'success' && result.locales && result.locales.length > 0) {
                     currentPlan = result.plan_name || "Free";
                     const isPro = currentPlan === "Pro";
                     
-                    // Clear existing
-                    localeChecklist.innerHTML = '';
+                    // Clear loading state
+                    checklist.innerHTML = '';
                     
                     result.locales.forEach(locale => {
                         if (locale.published) {
@@ -111,7 +119,6 @@
                             checkbox.style.marginRight = '8px';
                             if (locale.primary) checkbox.checked = true;
 
-                            // Disable others if not Pro and one is already checked
                             checkbox.addEventListener('change', () => {
                                 if (!isPro) {
                                     const checked = document.querySelectorAll('.locale-checkbox:checked');
@@ -124,17 +131,27 @@
 
                             label.appendChild(checkbox);
                             label.appendChild(document.createTextNode(locale.name + (locale.primary ? ' (Primary)' : '')));
-                            localeChecklist.appendChild(label);
+                            checklist.appendChild(label);
                         }
                     });
 
                     if (!isPro) {
                         upgradeMsg.style.display = 'block';
                     }
+                } else {
+                    checklist.innerHTML = '<span style="color: #666; padding: 10px;">No published markets found. Please enable markets in Shopify Settings.</span>';
                 }
+            } else {
+                console.error("[CrossBorder] Locale fetch failed status:", response.status);
+                checklist.innerHTML = '';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = `Unable to load markets (Status: ${response.status}). Is the app installed?`;
             }
         } catch (e) {
             console.error("Failed to fetch locales:", e);
+            checklist.innerHTML = '';
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = "Connection error. Please refresh.";
         }
       }
       
