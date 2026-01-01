@@ -1,23 +1,23 @@
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData } from "react-router";
+import { Form, redirect, useActionData, useLoaderData } from "react-router";
 
-import { login } from "../../shopify.server";
-import { loginErrorMessage } from "./error.server";
-
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
-
-  return { errors };
+// Initiate OAuth from the UI, but have Shopify call back to the API so it can store the token.
+export const loader = async (_args: LoaderFunctionArgs) => {
+  return { errors: {} };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
+  const formData = await request.formData();
+  const shop = formData.get("shop")?.toString().trim();
 
-  return {
-    errors,
-  };
+  if (!shop) {
+    return { errors: { shop: "Shop domain is required" } };
+  }
+
+  const apiInstallUrl = `https://shopify-translator-api.onrender.com/?shop=${encodeURIComponent(shop)}`;
+  throw redirect(apiInstallUrl);
 };
 
 export default function Auth() {
