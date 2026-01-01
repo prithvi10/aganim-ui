@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { authenticate } from "../shopify.server";
+import { authenticate, sessionStorage } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -78,7 +78,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Sync the access token to the backend so proxy endpoints have credentials.
   const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
-  if (tokenSyncSecret && session.accessToken) {
+  // Prefer offline session token; fall back to current session token.
+  let tokenToSync: string | undefined = session.accessToken;
+  try {
+    const sessions = await sessionStorage.findSessionsByShop(shop);
+    const offline = sessions?.find((s) => s.isOnline === false && s.accessToken);
+    if (offline?.accessToken) {
+      tokenToSync = offline.accessToken;
+    }
+  } catch (e) {
+    console.error("Failed to load offline session for token sync", e);
+  }
+
+  if (tokenSyncSecret && tokenToSync) {
     try {
       await fetch(`${backendApiUrl}/api/admin/sync-token`, {
         method: "POST",
@@ -86,7 +98,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           "Content-Type": "application/json",
           "X-Token-Sync-Secret": tokenSyncSecret
         },
-        body: JSON.stringify({ shop, access_token: session.accessToken })
+        body: JSON.stringify({ shop, access_token: tokenToSync })
       });
     } catch (e) {
       console.error("Token sync to backend failed", e);
@@ -94,7 +106,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   } else {
     console.warn("Token sync skipped: missing TOKEN_SYNC_SECRET_UI or session access token", {
       hasSecret: Boolean(tokenSyncSecret),
-      hasAccessToken: Boolean(session.accessToken)
+      hasAccessToken: Boolean(tokenToSync)
     });
   }
 
