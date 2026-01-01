@@ -118,62 +118,54 @@ export default function Index() {
   };
 
   return (
-    <s-page heading={strings.title}>
-      <s-button slot="primary-action" onClick={onToggleLang} variant="tertiary">
-        {strings.langToggle}
-      </s-button>
-      <s-text as="p" variant="bodyMd" tone="subdued">
-        {strings.subtitle}
-      </s-text>
+    <s-page>
+      <style>
+        {`
+          .cb-container { max-width: 1200px; margin: 0 auto; padding: 24px; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; color: #1c1c1c; }
+          .cb-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+          .cb-title { font-size: 28px; font-weight: 700; margin: 0; }
+          .cb-sub { font-size: 16px; color: #5c5f62; margin-top: 4px; max-width: 720px; }
+          .cb-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+          .cb-card { background: #fff; border: 1px solid #dfe3e8; border-radius: 12px; padding: 20px; box-shadow: 0 1px 0 rgba(22,29,37,0.05); }
+          .cb-card h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
+          .cb-card p { margin: 4px 0 0; color: #5c5f62; }
+          .cb-usage { margin-top: 12px; }
+          .cb-pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; }
+          .cb-plan { padding: 16px; }
+          .cb-plan header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+          .cb-price { font-size: 20px; font-weight: 700; margin: 4px 0 10px; color: #202223; }
+          .cb-features s-text { display: block; margin: 2px 0; }
+          .cb-support { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+          .cb-usage-meta { display: flex; justify-content: space-between; font-size: 14px; color: #5c5f62; }
+        `}
+      </style>
 
-      <s-layout>
-        <s-layout-section>
-          <s-card rounded="true">
-            <s-text as="h3" variant="headingMd">{strings.usageTitle}</s-text>
-            <s-text as="p" variant="bodyMd" tone="subdued">{used} / {quota} credits</s-text>
-            <div style={{ marginTop: "12px" }}>
+      <div className="cb-container">
+        <div className="cb-hero">
+          <div>
+            <h1 className="cb-title">{strings.title}</h1>
+            <p className="cb-sub">{strings.subtitle}</p>
+          </div>
+          <s-button variant="tertiary" onClick={onToggleLang}>
+            {strings.langToggle}
+          </s-button>
+        </div>
+
+        <div className="cb-grid">
+          <div className="cb-card">
+            <h3>{strings.usageTitle}</h3>
+            <div className="cb-usage-meta">
+              <span>{used} / {quota} credits</span>
+              <span>{percent}%</span>
+            </div>
+            <div className="cb-usage">
               <s-progress-bar progress={percent}></s-progress-bar>
             </div>
-          </s-card>
-        </s-layout-section>
+          </div>
 
-        <s-layout-section variant="oneHalf">
-          <s-card rounded="true">
-            <s-text as="h3" variant="headingMd">{strings.pricingTitle}</s-text>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px", marginTop: "12px" }}>
-              {PLANS.map((plan) => (
-                <s-card key={plan.key} padding="tight" rounded="true" background="surface">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <s-text as="h4" variant="headingMd">
-                      {strings[plan.key]}
-                    </s-text>
-                    {plan.recommended && (
-                      <s-badge tone="info">{strings.recommended}</s-badge>
-                    )}
-                  </div>
-                  <s-text as="p" variant="headingLg" tone="subdued" style={{ marginTop: "4px" }}>
-                    {plan.price}
-                  </s-text>
-                  <s-resource-list>
-                    {plan.features.map((f) => (
-                      <s-resource-item key={f}>
-                        <s-text>{f}</s-text>
-                      </s-resource-item>
-                    ))}
-                  </s-resource-list>
-                  <s-button variant="primary" full-width="true" onClick={() => triggerBilling(plan.key)}>
-                    {strings[plan.key]}
-                  </s-button>
-                </s-card>
-              ))}
-            </div>
-          </s-card>
-        </s-layout-section>
-
-        <s-layout-section>
-          <s-card rounded="true">
-            <s-text as="h3" variant="headingMd">{strings.supportTitle}</s-text>
-            <div style={{ display: "flex", gap: "8px", marginTop: "8px", alignItems: "center" }}>
+          <div className="cb-card">
+            <h3>{strings.supportTitle}</h3>
+            <div className="cb-support">
               <s-button variant="primary" onClick={() => window.open("mailto:support@crossborder.ai", "_blank")}>
                 {strings.supportCta}
               </s-button>
@@ -181,9 +173,34 @@ export default function Index() {
                 {strings.docs}
               </s-button>
             </div>
-          </s-card>
-        </s-layout-section>
-      </s-layout>
+          </div>
+        </div>
+
+        <div className="cb-card" style={{ marginTop: "20px" }}>
+          <h3>{strings.pricingTitle}</h3>
+          <div className="cb-pricing-grid">
+            {PLANS.map((plan) => (
+              <s-card key={plan.key} padding="tight" rounded="true" background="surface" className="cb-plan">
+                <header>
+                  <s-text variant="headingMd">{strings[plan.key]}</s-text>
+                  {plan.recommended && (
+                    <s-badge tone="info">{strings.recommended}</s-badge>
+                  )}
+                </header>
+                <div className="cb-price">{plan.price}</div>
+                <div className="cb-features">
+                  {plan.features.map((f) => (
+                    <s-text key={f}>{f}</s-text>
+                  ))}
+                </div>
+                <s-button variant="primary" full-width="true" onClick={() => triggerBilling(plan.key)}>
+                  {strings[plan.key]}
+                </s-button>
+              </s-card>
+            ))}
+          </div>
+        </div>
+      </div>
     </s-page>
   );
 }
