@@ -16,6 +16,10 @@ import {
   Link,
   Icon,
   Box,
+  SkeletonPage,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  DataTable,
 } from "@shopify/polaris";
 import { CheckIcon, AlertCircleIcon } from "@shopify/polaris-icons";
 
@@ -207,17 +211,47 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Dashboard() {
   const { activeMarketsCount, usage, planName, trialDays, backendError401 } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<Lang>("en");
+  const [isLoading, setIsLoading] = useState(true);
   const app = useAppBridge();
   
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
+
+  useEffect(() => {
+    // Simulate loading for better UX skeleton
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [app]);
 
   useEffect(() => {
     // If you need more complex actions, you can do it here, 
     // but the declarative TitleBar component below is preferred in v4.
   }, [app, t.title, t.toggleLabel]);
 
-  const usagePercent = Math.min(100, Math.round((usage.used / usage.quota) * 100));
+  // Handle derived stats
+  const usedCount = usage?.used || 0;
+  const quotaCount = usage?.quota || 1000;
+  const usagePercent = Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
+
+  if (isLoading) {
+    return (
+        <SkeletonPage primaryAction>
+            <Layout>
+                <Layout.Section>
+                    <Card>
+                        <SkeletonBodyText lines={2} />
+                    </Card>
+                </Layout.Section>
+                <Layout.Section>
+                    <Card>
+                        <SkeletonDisplayText size="medium" />
+                        <SkeletonBodyText lines={4} />
+                    </Card>
+                </Layout.Section>
+            </Layout>
+        </SkeletonPage>
+    );
+  }
 
   return (
     <Page fullWidth>
@@ -249,7 +283,12 @@ export default function Dashboard() {
                 <Card>
                   <BlockStack gap="200">
                     <Text as="h2" variant="headingSm" tone="subdued">{t.totalOptimized}</Text>
-                    <Text as="p" variant="heading2xl">{usage.used.toLocaleString()}</Text>
+                    <Text as="p" variant="heading2xl">{usedCount.toLocaleString()}</Text>
+                    {usedCount === 0 && (
+                        <div style={{marginTop: '4px'}}>
+                            <Button size="micro" url="/products">Optimize your first product</Button>
+                        </div>
+                    )}
                   </BlockStack>
                 </Card>
                </div>
@@ -277,24 +316,25 @@ export default function Dashboard() {
                   )}
                 </InlineStack>
 
-                <Box background="bg-surface-secondary" padding="400" borderRadius="200">
-                  <BlockStack gap="400">
-                     <InlineStack align="space-between">
-                        <Text as="h3" variant="headingLg">{planName}</Text>
-                        <Button url="/app/plans">{t.manageSubscription}</Button>
-                     </InlineStack>
-                     
-                     {/* Benefits Checklist */}
-                     <BlockStack gap="200">
-                        {t.benefits.map((benefit, i) => (
-                          <InlineStack key={i} gap="200" align="center">
-                            <Icon source={CheckIcon} tone="success" />
-                            <Text as="span" variant="bodyMd">{benefit}</Text>
-                          </InlineStack>
-                        ))}
-                     </BlockStack>
-                  </BlockStack>
-                </Box>
+                {/* Benefits Table (Compact) */}
+                <BlockStack gap="300">
+                    <InlineStack align="space-between">
+                       <Text as="h3" variant="headingLg">{planName}</Text>
+                       <Button url="/apps/cross-border/app/plans">{t.manageSubscription}</Button>
+                    </InlineStack>
+                    
+                    {/* Benefits Checklist as Table-like */}
+                    <div style={{ borderTop: '1px solid #e1e3e5', paddingTop: '12px' }}>
+                         <BlockStack gap="200">
+                            {t.benefits.map((benefit, i) => (
+                              <InlineStack key={i} gap="200" align="center">
+                                <Icon source={CheckIcon} tone="success" />
+                                <Text as="span" variant="bodyMd">{benefit}</Text>
+                              </InlineStack>
+                            ))}
+                         </BlockStack>
+                    </div>
+                </BlockStack>
 
                 {/* Usage Progress */}
                 <BlockStack gap="200">
@@ -303,7 +343,7 @@ export default function Dashboard() {
                       {t.usage}
                     </Text>
                     <Text as="span" variant="bodySm" tone="subdued">
-                      {usage.used} / {usage.quota} {t.syncsUsed}
+                      {usedCount} / {quotaCount} {t.syncsUsed}
                     </Text>
                   </InlineStack>
                   <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} size="small" />
@@ -324,8 +364,7 @@ export default function Dashboard() {
                 <InlineStack align="space-between" blockAlign="center">
                    {/* System Health */}
                    <InlineStack gap="200">
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#30c758' }}></div>
-                      <Text as="span" variant="bodySm" tone="subdued">{t.health}</Text>
+                      <Badge tone="success" progress="complete">All Systems Operational</Badge>
                    </InlineStack>
                    
                    {/* Quick Links */}
