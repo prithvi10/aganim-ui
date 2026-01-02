@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs, redirect } from "react-router";
 import { authenticate, sessionStorage } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
@@ -197,6 +197,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
   } catch (e) {
     console.error("Billing check failed", e);
+    // ACTION 3: If billing check fails, it might be a session/token issue.
+    // Redirect to login to refresh the session.
+    throw redirect(`/auth/login?shop=${shop}`);
   }
 
   return {
@@ -320,19 +323,21 @@ export default function Dashboard() {
                 <BlockStack gap="300">
                     <InlineStack align="space-between">
                        <Text as="h3" variant="headingLg">{planName}</Text>
-                       <Button url="/apps/cross-border/app/plans">{t.manageSubscription}</Button>
+                       <Button url="/app/plans">{t.manageSubscription}</Button>
                     </InlineStack>
                     
-                    {/* Benefits Checklist as Table-like */}
-                    <div style={{ borderTop: '1px solid #e1e3e5', paddingTop: '12px' }}>
-                         <BlockStack gap="200">
-                            {t.benefits.map((benefit, i) => (
-                              <InlineStack key={i} gap="200" align="center">
-                                <Icon source={CheckIcon} tone="success" />
-                                <Text as="span" variant="bodyMd">{benefit}</Text>
-                              </InlineStack>
-                            ))}
-                         </BlockStack>
+                    {/* Benefits as DataTable */}
+                    <div style={{ marginTop: '4px' }}>
+                        <DataTable
+                            columnContentTypes={['text', 'text']}
+                            headings={[]}
+                            rows={[
+                                ['Bulk Translation', planName === 'Pro' || planName === 'Growth' ? '✅ Included' : '🔒 Pro Only'],
+                                ['SEO Meta-tag Sync', '✅ Included'],
+                                ['Priority AI Gen', planName === 'Pro' || planName === 'Growth' ? '✅ High' : 'Standard']
+                            ]}
+                            footerContent={null}
+                        />
                     </div>
                 </BlockStack>
 
@@ -347,6 +352,13 @@ export default function Dashboard() {
                     </Text>
                   </InlineStack>
                   <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} size="small" />
+                  
+                  {/* Warning if usage is default fallback */}
+                  {usedCount === 0 && quotaCount === 1000 && !backendError401 && (
+                      <Banner tone="warning">
+                          <p>Live usage sync pending...</p>
+                      </Banner>
+                  )}
                 </BlockStack>
               </BlockStack>
             </Card>
