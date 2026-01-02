@@ -25,7 +25,7 @@ export default function Auth() {
   const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [shop, setShop] = useState("");
-  const { errors } = actionData || loaderData;
+  const { errors = {} } = actionData || loaderData || {};
 
   return (
     <AppProvider embedded={false}>
@@ -39,7 +39,7 @@ export default function Auth() {
             value={shop}
             onChange={(e) => setShop(e.currentTarget.value)}
             autocomplete="on"
-            error={errors.shop}
+            error={errors?.shop}
           ></s-text-field>
           <s-button type="submit">Log in</s-button>
         </s-section>
