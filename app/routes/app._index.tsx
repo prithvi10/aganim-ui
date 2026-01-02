@@ -104,7 +104,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           "Content-Type": "application/json",
           "X-Token-Sync-Secret": tokenSyncSecret
         },
-        body: JSON.stringify({ shop, access_token: tokenToSync })
+        body: JSON.stringify({ 
+          shop, 
+          access_token: tokenToSync,
+          token_type: isOffline ? "offline" : "online"
+        })
       });
     } catch (e) {
       console.error("Token sync to backend failed", e);
@@ -143,6 +147,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // 2. Fetch Usage Data (Backend API)
   // Default fallback
   let usage = { used: 0, quota: 1000, planName: "Free" };
+  let backendError401 = false;
+
   try {
     // We need an access token for the backend. 
     // Since we are in the loader (server-side), we might not have a frontend session token easily.
@@ -158,7 +164,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // We already tried to sync above. If that didn't work, we might need to tell the user to re-auth.
     if (resp.status === 401) {
        console.warn("Backend 401 for usage. Token might be invalid.");
-       // We can throw a response to trigger a boundary or just let it slide for now.
+       backendError401 = true;
     }
 
     if (resp.ok) {
@@ -193,12 +199,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     activeMarketsCount,
     usage,
     planName,
-    trialDays
+    trialDays,
+    backendError401
   };
 };
 
 export default function Dashboard() {
-  const { activeMarketsCount, usage, planName, trialDays } = useLoaderData<typeof loader>();
+  const { activeMarketsCount, usage, planName, trialDays, backendError401 } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<Lang>("en");
   const app = useAppBridge();
   
@@ -221,6 +228,18 @@ export default function Dashboard() {
       </TitleBar>
 
       <BlockStack gap="500">
+        {backendError401 && (
+          <Banner
+            tone="critical"
+            title="Authentication Error"
+            action={{content: 'Refresh Session', url: '/auth/login'}}
+          >
+            <p>
+              We encountered an issue connecting to Shopify. Please refresh your session to restore full functionality.
+            </p>
+          </Banner>
+        )}
+
         {/* IMPACT SECTION */}
         <Layout>
           <Layout.Section>
