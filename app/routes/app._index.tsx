@@ -76,143 +76,157 @@ const TRANSLATIONS = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  // ACTION 2: authenticate first, bail out early if admin/session unavailable
   const { admin, billing, session } = await authenticate.admin(request);
+  if (!admin) {
+    return { isAuthenticating: true };
+  }
   const { shop } = session;
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
 
-  // Sync the access token to the backend so proxy endpoints have credentials.
-  const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
-  // Prefer offline session token; fall back to current session token.
-  let tokenToSync: string | undefined = session.accessToken;
-  let isOffline = false;
-  try {
-    const sessions = await sessionStorage.findSessionsByShop(shop);
-    const offline = sessions?.find((s) => s.isOnline === false && s.accessToken);
-    if (offline?.accessToken) {
-      tokenToSync = offline.accessToken;
-      isOffline = true;
-    }
-  } catch (e) {
-    console.error("Failed to load offline session for token sync", e);
+  // If session has no access token, return loading/authenticating state instead of error/redirect
+  if (!session?.accessToken) {
+    return { isAuthenticating: true };
   }
 
-  // Only sync if we have an offline token or if we are desperate (first install)
-  // But per backend rules, we should prefer offline.
-  console.log(`[Token Sync] Prepared to sync for ${shop}. Is Offline: ${isOffline}. Token prefix: ${tokenToSync?.substring(0, 5)}...`);
-
-  if (tokenSyncSecret && tokenToSync) {
-    try {
-      await fetch(`${backendApiUrl}/api/admin/sync-token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Token-Sync-Secret": tokenSyncSecret
-        },
-        body: JSON.stringify({ 
-          shop, 
-          access_token: tokenToSync,
-          token_type: isOffline ? "offline" : "online"
-        })
-      });
-    } catch (e) {
-      console.error("Token sync to backend failed", e);
-    }
-  } else {
-    console.warn("Token sync skipped: missing TOKEN_SYNC_SECRET_UI or session access token", {
-      hasSecret: Boolean(tokenSyncSecret),
-      hasAccessToken: Boolean(tokenToSync)
-    });
-  }
-
-  // 1. Fetch Active Markets (Shopify GraphQL)
-  let activeMarketsCount = 1;
-  try {
-    const response = await admin.graphql(`
-      query {
-        shopLocales {
-          locale
-          published
-        }
-      }
-    `);
-    const localeData = await response.json();
-    const locales = localeData.data?.shopLocales || [];
-    activeMarketsCount = locales.filter((l: any) => l.published).length;
-  } catch (e: any) {
-    console.error("Failed to fetch locales", e);
-    // If backend returns 401 for locales, it might be due to invalid token.
-    // The UI is making this call via admin.graphql which uses the session token.
-    // If THIS fails, the session is bad.
-    // However, the user's issue was "Unable to load markets (Status: 401)" in the FRONTEND widget, 
-    // which hits the PROXY endpoint. The Proxy endpoint returns 401.
-    // This server-side loader code hits Shopify directly.
-  }
-
-  // 2. Fetch Usage Data (Backend API)
-  // Default fallback
+  // Defaults
+  let activeMarketsCount = 0;
   let usage = { used: 0, quota: 1000, planName: "Free" };
   let backendError401 = false;
-
-  try {
-    // We need an access token for the backend. 
-    // Since we are in the loader (server-side), we might not have a frontend session token easily.
-    // We'll use the session.accessToken (offline token) if the backend accepts it, 
-    // OR just use the session.shop to query a public/protected endpoint.
-    // For now, assuming the backend endpoint accepts the shop param or basic auth, or we just mock it if it fails.
-    // The previous implementation tried fetching /api/admin/usage?shop=...
-    const fetchUrl = `${backendApiUrl}/api/admin/usage?shop=${shop}`;
-    // Note: In a real prod app, secure this call with a shared secret or proper token exchange.
-    const resp = await fetch(fetchUrl);
-    
-    // ACTION 3: If backend returns 401, it means its internal token is bad.
-    // We already tried to sync above. If that didn't work, we might need to tell the user to re-auth.
-    if (resp.status === 401) {
-       console.warn("Backend 401 for usage. Token might be invalid.");
-       backendError401 = true;
-    }
-
-    if (resp.ok) {
-      const data = await resp.json();
-      usage = {
-        used: data.current_usage || 0,
-        quota: data.monthly_token_quota || 1000,
-        planName: data.plan_name || "Free"
-      };
-    }
-  } catch (e) {
-    console.error("Failed to fetch backend usage", e);
-    // Fallback to demo data if backend is unreachable
-    usage = { used: 450, quota: 1000, planName: "Growth Plan" };
-  }
-
-  // 3. Billing Info
   let planName = usage.planName;
   let trialDays = 0;
-  try {
-    const billingCheck = await billing.check();
-    const sub = billingCheck.appSubscriptions[0];
-    if (sub) {
-      planName = sub.name;
-      if (sub.test) trialDays = 4; // Mock trial logic or derive from createdAt
-    }
-  } catch (e) {
-    console.error("Billing check failed", e);
-    // ACTION 3: If billing check fails, it might be a session/token issue.
-    // Redirect to login to refresh the session.
-    throw redirect(`/auth/login?shop=${shop}`);
-  }
 
-  return {
-    activeMarketsCount,
-    usage,
-    planName,
-    trialDays,
-    backendError401
-  };
+  try {
+    // Sync the access token to the backend so proxy endpoints have credentials.
+    const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
+    let tokenToSync: string | undefined = session.accessToken;
+    let isOffline = false;
+    try {
+      const sessions = await sessionStorage.findSessionsByShop(shop);
+      const offline = sessions?.find((s) => s.isOnline === false && s.accessToken);
+      // If current session is online, prioritize offline token if available
+      if (session.isOnline && offline?.accessToken) {
+        tokenToSync = offline.accessToken;
+        isOffline = true;
+      } else if (offline?.accessToken && !session.accessToken) {
+        tokenToSync = offline.accessToken;
+        isOffline = true;
+      }
+    } catch (e) {
+      console.error("Failed to load offline session for token sync", e);
+    }
+
+    if (tokenSyncSecret && tokenToSync) {
+      try {
+        const resp = await fetch(`${backendApiUrl}/api/admin/sync-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Token-Sync-Secret": tokenSyncSecret
+          },
+          body: JSON.stringify({ 
+            shop, 
+            access_token: tokenToSync,
+            token_type: isOffline ? "offline" : "online"
+          })
+        });
+        console.log("[Token Sync] success", { shop, isOffline, status: resp.status });
+      } catch (e) {
+        console.error("Token sync to backend failed", e);
+      }
+    } else {
+      console.warn("Token sync skipped: missing TOKEN_SYNC_SECRET_UI or session access token", {
+        hasSecret: Boolean(tokenSyncSecret),
+        hasAccessToken: Boolean(tokenToSync)
+      });
+    }
+
+    // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
+    if (session.accessToken) {
+      try {
+        const response = await admin.graphql(`
+          query {
+            shopLocales {
+              locale
+              published
+            }
+          }
+        `);
+        const localeData = await response.json();
+        const locales = localeData.data?.shopLocales || [];
+        activeMarketsCount = locales.filter((l: any) => l.published).length;
+      } catch (e: any) {
+        console.error("Failed to fetch locales", e);
+      }
+    }
+
+    // 2. Fetch Usage Data (Backend API)
+    try {
+      const fetchUrl = `${backendApiUrl}/api/admin/usage?shop=${shop}`;
+      const resp = await fetch(fetchUrl);
+      if (resp.status === 401) {
+        console.warn("Backend 401 for usage. Token might be invalid.");
+        backendError401 = true;
+      }
+      if (resp.ok) {
+        const data = await resp.json();
+        usage = {
+          used: data.current_usage || 0,
+          quota: data.monthly_token_quota || 1000,
+          planName: data.plan_name || "Free"
+        };
+      }
+    } catch (e) {
+      console.error("Failed to fetch backend usage", e);
+      usage = { used: 0, quota: 1000, planName: "Free" };
+    }
+
+    // 3. Billing Info - only if we have a token
+    planName = usage.planName;
+    try {
+      const billingCheck = await billing.check();
+      const sub = billingCheck.appSubscriptions[0];
+      if (sub) {
+        planName = sub.name;
+        if (sub.test) trialDays = 4; // Mock trial logic or derive from createdAt
+      }
+    } catch (e) {
+      console.error("Billing check failed", e);
+      // Do not redirect; keep UI in authenticating/loading state
+      return {
+        isAuthenticating: true,
+        activeMarketsCount,
+        usage,
+        planName,
+        trialDays,
+        backendError401
+      };
+    }
+
+    return {
+      activeMarketsCount,
+      usage,
+      planName,
+      trialDays,
+      backendError401,
+      isAuthenticating: false
+    };
+  } catch (e) {
+    console.error("Loader failed", e);
+    // Return loading state instead of throwing/redirecting
+    return {
+      isAuthenticating: true,
+      activeMarketsCount,
+      usage,
+      planName,
+      trialDays,
+      backendError401
+    };
+  }
 };
 
 export default function Dashboard() {
-  const { activeMarketsCount, usage, planName, trialDays, backendError401 } = useLoaderData<typeof loader>();
+  const { activeMarketsCount, usage, planName, trialDays, backendError401, isAuthenticating } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
   const app = useAppBridge();
@@ -236,7 +250,7 @@ export default function Dashboard() {
   const usagePercent = Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
 
-  if (isLoading) {
+  if (isLoading || isAuthenticating) {
     return (
         <SkeletonPage primaryAction>
             <Layout>
