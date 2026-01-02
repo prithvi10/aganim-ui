@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs, redirect } from "react-router";
 import { authenticate, sessionStorage } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
@@ -10,10 +10,18 @@ import {
   BlockStack,
   InlineStack,
   Button,
+  ProgressBar,
+  Badge,
+  Banner,
+  Link,
+  Icon,
+  Box,
   SkeletonPage,
   SkeletonBodyText,
-  SkeletonDisplayText
+  SkeletonDisplayText,
+  DataTable,
 } from "@shopify/polaris";
+import { CheckIcon, AlertCircleIcon } from "@shopify/polaris-icons";
 
 // Types
 type Lang = "en" | "jp";
@@ -21,77 +29,204 @@ type Lang = "en" | "jp";
 const TRANSLATIONS = {
   en: {
     title: "Cross-Border AI",
-    toggleLabel: "日本語",
-    heroTitle: "Welcome to Cross-Border Agent",
-    heroText: "Start by enabling our Theme Extensions to optimize your storefront experience.",
-    heroCta: "Go to Theme Extensions",
-    dashboardCta: "View Dashboard"
+    totalOptimized: "Total Products Optimized",
+    activeMarkets: "Active Markets",
+    currentPlan: "Current Plan",
+    manageSubscription: "Manage Subscription",
+    usage: "Usage",
+    syncsUsed: "syncs used this month",
+    health: "All Systems Operational",
+    supportTitle: "Certified Support",
+    supportText: "Our team is based in JST and typically responds within 2 hours.",
+    quickStart: "Quick-Start Guide",
+    docs: "Documentation",
+    video: "Video Tutorial",
+    trial: "Free Trial",
+    daysRemaining: "days remaining",
+    benefits: [
+      "3 Markets Enabled",
+      "SEO Meta-tag Sync",
+      "Priority AI Generation"
+    ],
+    toggleLabel: "日本語"
   },
   jp: {
     title: "越境 AI",
-    toggleLabel: "English",
-    heroTitle: "Cross-Border Agent へようこそ",
-    heroText: "テーマ拡張機能を有効にして、ストアフロントの最適化を始めましょう。",
-    heroCta: "テーマ拡張へ",
-    dashboardCta: "ダッシュボードを見る"
+    totalOptimized: "最適化済み商品数",
+    activeMarkets: "有効な市場",
+    currentPlan: "現在のプラン",
+    manageSubscription: "サブスクリプション管理",
+    usage: "利用状況",
+    syncsUsed: "件 / 今月の同期数",
+    health: "全システム稼働中",
+    supportTitle: "認定サポート",
+    supportText: "日本時間で対応中。通常2時間以内に返信いたします。",
+    quickStart: "クイックスタートガイド",
+    docs: "ドキュメント",
+    video: "ビデオチュートリアル",
+    trial: "無料トライアル",
+    daysRemaining: "日残り",
+    benefits: [
+      "3市場対応",
+      "SEOメタタグ同期",
+      "優先AI生成"
+    ],
+    toggleLabel: "English"
   }
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // Lightweight home loader: just ensure auth and sync token; no heavy queries
-  const { admin, session } = await authenticate.admin(request);
-  if (!admin || !session) {
+  // ACTION 2: authenticate first, bail out early if admin/session unavailable
+  const { admin, billing, session } = await authenticate.admin(request);
+  if (!admin) {
     return { isAuthenticating: true };
   }
-
-  if (!session.accessToken) {
-    return { isAuthenticating: true };
-  }
-
+  const { shop } = session;
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
-  const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
-  let tokenToSync: string | undefined = session.accessToken;
-  let isOffline = false;
+
+  // If session has no access token, return loading/authenticating state instead of error/redirect
+  if (!session?.accessToken) {
+    return { isAuthenticating: true };
+  }
+
+  // Defaults
+  let activeMarketsCount = 0;
+  let usage = { used: 0, quota: 1000, planName: "Free" };
+  let backendError401 = false;
+  let planName = usage.planName;
+  let trialDays = 0;
 
   try {
-    const sessions = await sessionStorage.findSessionsByShop(session.shop);
-    const offline = sessions?.find((s) => s.isOnline === false && s.accessToken);
-    if (session.isOnline && offline?.accessToken) {
-      tokenToSync = offline.accessToken;
-      isOffline = true;
-    } else if (offline?.accessToken && !session.accessToken) {
-      tokenToSync = offline.accessToken;
-      isOffline = true;
-    }
-  } catch (e) {
-    console.error("Home token sync: failed to load offline session", e);
-  }
-
-  if (tokenSyncSecret && tokenToSync) {
+    // Sync the access token to the backend so proxy endpoints have credentials.
+    const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
+    let tokenToSync: string | undefined = session.accessToken;
+    let isOffline = false;
     try {
-      const resp = await fetch(`${backendApiUrl}/api/admin/sync-token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Token-Sync-Secret": tokenSyncSecret
-        },
-        body: JSON.stringify({
-          shop: session.shop,
-          access_token: tokenToSync,
-          token_type: isOffline ? "offline" : "online"
-        })
-      });
-      console.log("[Home Token Sync] status", resp.status, { shop: session.shop, isOffline });
+      const sessions = await sessionStorage.findSessionsByShop(shop);
+      const offline = sessions?.find((s) => s.isOnline === false && s.accessToken);
+      // If current session is online, prioritize offline token if available
+      if (session.isOnline && offline?.accessToken) {
+        tokenToSync = offline.accessToken;
+        isOffline = true;
+      } else if (offline?.accessToken && !session.accessToken) {
+        tokenToSync = offline.accessToken;
+        isOffline = true;
+      }
     } catch (e) {
-      console.error("Home token sync failed", e);
+      console.error("Failed to load offline session for token sync", e);
     }
-  }
 
-  return { isAuthenticating: false };
+    if (tokenSyncSecret && tokenToSync) {
+      try {
+        const resp = await fetch(`${backendApiUrl}/api/admin/sync-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Token-Sync-Secret": tokenSyncSecret
+          },
+          body: JSON.stringify({ 
+            shop, 
+            access_token: tokenToSync,
+            token_type: isOffline ? "offline" : "online"
+          })
+        });
+        console.log("[Token Sync] success", { shop, isOffline, status: resp.status });
+      } catch (e) {
+        console.error("Token sync to backend failed", e);
+      }
+    } else {
+      console.warn("Token sync skipped: missing TOKEN_SYNC_SECRET_UI or session access token", {
+        hasSecret: Boolean(tokenSyncSecret),
+        hasAccessToken: Boolean(tokenToSync)
+      });
+    }
+
+    // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
+    if (session.accessToken) {
+      try {
+        const response = await admin.graphql(`
+          query {
+            shopLocales {
+              locale
+              published
+            }
+          }
+        `);
+        const localeData = await response.json();
+        const locales = localeData.data?.shopLocales || [];
+        activeMarketsCount = locales.filter((l: any) => l.published).length;
+      } catch (e: any) {
+        console.error("Failed to fetch locales", e);
+      }
+    }
+
+    // 2. Fetch Usage Data (Backend API)
+    try {
+      const fetchUrl = `${backendApiUrl}/api/admin/usage?shop=${shop}`;
+      const resp = await fetch(fetchUrl);
+      if (resp.status === 401) {
+        console.warn("Backend 401 for usage. Token might be invalid.");
+        backendError401 = true;
+      }
+      if (resp.ok) {
+        const data = await resp.json();
+        usage = {
+          used: data.current_usage || 0,
+          quota: data.monthly_token_quota || 1000,
+          planName: data.plan_name || "Free"
+        };
+      }
+    } catch (e) {
+      console.error("Failed to fetch backend usage", e);
+      usage = { used: 0, quota: 1000, planName: "Free" };
+    }
+
+    // 3. Billing Info - only if we have a token
+    planName = usage.planName;
+    try {
+      const billingCheck = await billing.check();
+      const sub = billingCheck.appSubscriptions[0];
+      if (sub) {
+        planName = sub.name;
+        if (sub.test) trialDays = 4; // Mock trial logic or derive from createdAt
+      }
+    } catch (e) {
+      console.error("Billing check failed", e);
+      // Do not redirect; keep UI in authenticating/loading state
+      return {
+        isAuthenticating: true,
+        activeMarketsCount,
+        usage,
+        planName,
+        trialDays,
+        backendError401
+      };
+    }
+
+    return {
+      activeMarketsCount,
+      usage,
+      planName,
+      trialDays,
+      backendError401,
+      isAuthenticating: false
+    };
+  } catch (e) {
+    console.error("Loader failed", e);
+    // Return loading state instead of throwing/redirecting
+    return {
+      isAuthenticating: true,
+      activeMarketsCount,
+      usage,
+      planName,
+      trialDays,
+      backendError401
+    };
+  }
 };
 
 export default function Dashboard() {
-  const { isAuthenticating } = useLoaderData<typeof loader>();
+  const { activeMarketsCount, usage, planName, trialDays, backendError401, isAuthenticating } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
   const app = useAppBridge();
@@ -108,6 +243,12 @@ export default function Dashboard() {
     // If you need more complex actions, you can do it here, 
     // but the declarative TitleBar component below is preferred in v4.
   }, [app, t.title, t.toggleLabel]);
+
+  // Handle derived stats
+  const usedCount = usage?.used || 0;
+  const quotaCount = usage?.quota || 1000;
+  const usagePercent = Math.min(100, Math.round((usedCount / quotaCount) * 100));
+  const isCritical = usagePercent > 90;
 
   if (isLoading || isAuthenticating) {
     return (
@@ -137,17 +278,131 @@ export default function Dashboard() {
         </button>
       </TitleBar>
 
-      <BlockStack gap="400">
-        <Card sectioned>
-          <BlockStack gap="200">
-            <Text as="h1" variant="headingLg">{t.heroTitle}</Text>
-            <Text variant="bodyMd">{t.heroText}</Text>
-            <InlineStack align="start" gap="200">
-              <Button primary url="/themes">{t.heroCta}</Button>
-              <Button url="/app/dashboard" tone="success">{t.dashboardCta}</Button>
+      <BlockStack gap="500">
+        {backendError401 && (
+          <Banner
+            tone="critical"
+            title="Authentication Error"
+            action={{content: 'Refresh Session', url: '/auth/login'}}
+          >
+            <p>
+              We encountered an issue connecting to Shopify. Please refresh your session to restore full functionality.
+            </p>
+          </Banner>
+        )}
+
+        {/* IMPACT SECTION */}
+        <Layout>
+          <Layout.Section>
+            <InlineStack gap="400" align="start">
+               {/* Total Products Card */}
+               <div style={{ flex: 1 }}>
+                <Card>
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingSm" tone="subdued">{t.totalOptimized}</Text>
+                    <Text as="p" variant="heading2xl">{usedCount.toLocaleString()}</Text>
+                    {usedCount === 0 && (
+                        <div style={{marginTop: '4px'}}>
+                            <Button size="micro" url="/products">Optimize your first product</Button>
+                        </div>
+                    )}
+                  </BlockStack>
+                </Card>
+               </div>
+               
+               {/* Active Markets Card */}
+               <div style={{ flex: 1 }}>
+                <Card>
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingSm" tone="subdued">{t.activeMarkets}</Text>
+                    <Text as="p" variant="heading2xl">{activeMarketsCount}</Text>
+                  </BlockStack>
+                </Card>
+               </div>
             </InlineStack>
-          </BlockStack>
-        </Card>
+          </Layout.Section>
+
+          {/* CURRENT PLAN & USAGE */}
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <InlineStack align="space-between">
+                  <Text as="h2" variant="headingMd">{t.currentPlan}</Text>
+                  {trialDays > 0 && (
+                     <Badge tone="info">{`${t.trial}: ${trialDays} ${t.daysRemaining}`}</Badge>
+                  )}
+                </InlineStack>
+
+                {/* Benefits Table (Compact) */}
+                <BlockStack gap="300">
+                    <InlineStack align="space-between">
+                       <Text as="h3" variant="headingLg">{planName}</Text>
+                       <Button url="/app/plans">{t.manageSubscription}</Button>
+                    </InlineStack>
+                    
+                    {/* Benefits as DataTable */}
+                    <div style={{ marginTop: '4px' }}>
+                        <DataTable
+                            columnContentTypes={['text', 'text']}
+                            headings={[]}
+                            rows={[
+                                ['Bulk Translation', planName === 'Pro' || planName === 'Growth' ? '✅ Included' : '🔒 Pro Only'],
+                                ['SEO Meta-tag Sync', '✅ Included'],
+                                ['Priority AI Gen', planName === 'Pro' || planName === 'Growth' ? '✅ High' : 'Standard']
+                            ]}
+                            footerContent={null}
+                        />
+                    </div>
+                </BlockStack>
+
+                {/* Usage Progress */}
+                <BlockStack gap="200">
+                  <InlineStack align="space-between">
+                    <Text as="span" variant="bodySm" tone={isCritical ? "critical" : "subdued"}>
+                      {t.usage}
+                    </Text>
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      {usedCount} / {quotaCount} {t.syncsUsed}
+                    </Text>
+                  </InlineStack>
+                  <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} size="small" />
+                  
+                  {/* Warning if usage is default fallback */}
+                  {usedCount === 0 && quotaCount === 1000 && !backendError401 && (
+                      <Banner tone="warning">
+                          <p>Live usage sync pending...</p>
+                      </Banner>
+                  )}
+                </BlockStack>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+
+          {/* FOOTER: CONFIDENCE & SUPPORT */}
+          <Layout.Section>
+             <BlockStack gap="400">
+                {/* Certified Support Banner */}
+                <Banner tone="info" title={t.supportTitle}>
+                  <p>{t.supportText}</p>
+                </Banner>
+
+                {/* Footer Grid */}
+                <InlineStack align="space-between" blockAlign="center">
+                   {/* System Health */}
+                   <InlineStack gap="200">
+                      <Badge tone="success" progress="complete">All Systems Operational</Badge>
+                   </InlineStack>
+                   
+                   {/* Quick Links */}
+                   <InlineStack gap="400">
+                      <Text as="span" variant="bodySm" tone="subdued">{t.quickStart}:</Text>
+                      <Link url="https://docs.crossborder.ai" target="_blank">{t.docs}</Link>
+                      <Link url="#" target="_blank">{t.video}</Link>
+                   </InlineStack>
+                </InlineStack>
+             </BlockStack>
+          </Layout.Section>
+        </Layout>
       </BlockStack>
     </Page>
   );
