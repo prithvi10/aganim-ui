@@ -80,15 +80,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
   // Prefer offline session token; fall back to current session token.
   let tokenToSync: string | undefined = session.accessToken;
+  let isOffline = false;
   try {
     const sessions = await sessionStorage.findSessionsByShop(shop);
     const offline = sessions?.find((s) => s.isOnline === false && s.accessToken);
     if (offline?.accessToken) {
       tokenToSync = offline.accessToken;
+      isOffline = true;
     }
   } catch (e) {
     console.error("Failed to load offline session for token sync", e);
   }
+
+  // Only sync if we have an offline token or if we are desperate (first install)
+  // But per backend rules, we should prefer offline.
+  console.log(`[Token Sync] Prepared to sync for ${shop}. Is Offline: ${isOffline}. Token prefix: ${tokenToSync?.substring(0, 5)}...`);
 
   if (tokenSyncSecret && tokenToSync) {
     try {
@@ -124,8 +130,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const localeData = await response.json();
     const locales = localeData.data?.shopLocales || [];
     activeMarketsCount = locales.filter((l: any) => l.published).length;
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to fetch locales", e);
+    // If backend returns 401 for locales, it might be due to invalid token.
+    // The UI is making this call via admin.graphql which uses the session token.
+    // If THIS fails, the session is bad.
+    // However, the user's issue was "Unable to load markets (Status: 401)" in the FRONTEND widget, 
+    // which hits the PROXY endpoint. The Proxy endpoint returns 401.
+    // This server-side loader code hits Shopify directly.
   }
 
   // 2. Fetch Usage Data (Backend API)
@@ -141,6 +153,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const fetchUrl = `${backendApiUrl}/api/admin/usage?shop=${shop}`;
     // Note: In a real prod app, secure this call with a shared secret or proper token exchange.
     const resp = await fetch(fetchUrl);
+    
+    // ACTION 3: If backend returns 401, it means its internal token is bad.
+    // We already tried to sync above. If that didn't work, we might need to tell the user to re-auth.
+    if (resp.status === 401) {
+       console.warn("Backend 401 for usage. Token might be invalid.");
+       // We can throw a response to trigger a boundary or just let it slide for now.
+    }
+
     if (resp.ok) {
       const data = await resp.json();
       usage = {
