@@ -104,5 +104,18 @@ export async function getOfflineAdminContext(shop: string) {
  */
 export async function getOfflineGraphqlClient(shop: string) {
   const context = await getOfflineAdminContext(shop);
-  return context ? { client: context.graphql, session: context.session } : null;
+  if (!context) return null;
+
+  // Adapt the callable `admin.graphql` helper into the `{ query({data}) }` shape
+  // used throughout the loaders.
+  const graphqlFn: any = context.graphql;
+  const client = {
+    query: async ({ data }: { data: string }) => {
+      const resp = await graphqlFn(data);
+      const body = await resp.json();
+      return { body };
+    },
+  };
+
+  return { client, session: context.session };
 }
