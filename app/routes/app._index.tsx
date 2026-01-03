@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, type LoaderFunctionArgs, redirect } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { authenticate, sessionStorage } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
@@ -14,14 +14,13 @@ import {
   Badge,
   Banner,
   Link,
-  Icon,
   Box,
   SkeletonPage,
   SkeletonBodyText,
   SkeletonDisplayText,
   DataTable,
+  Spinner,
 } from "@shopify/polaris";
-import { CheckIcon, AlertCircleIcon } from "@shopify/polaris-icons";
 
 // Types
 type Lang = "en" | "jp";
@@ -76,18 +75,15 @@ const TRANSLATIONS = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // ACTION 2: authenticate first, bail out early if admin/session unavailable
   const { admin, billing, session } = await authenticate.admin(request);
-  if (!admin) {
+
+  // Bail out immediately if we cannot authenticate; prevents downstream blank screen
+  if (!admin || !session?.accessToken) {
     return { isAuthenticating: true };
   }
+
   const { shop } = session;
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
-
-  // If session has no access token, return loading/authenticating state instead of error/redirect
-  if (!session?.accessToken) {
-    return { isAuthenticating: true };
-  }
 
   // Defaults
   let activeMarketsCount = 0;
@@ -142,6 +138,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
+    if (!admin || !session.accessToken) {
+      return { isAuthenticating: true };
+    }
+
     if (session.accessToken) {
       try {
         const response = await admin.graphql(`
@@ -161,6 +161,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     // 2. Fetch Usage Data (Backend API)
+    if (!admin || !session.accessToken) {
+      return { isAuthenticating: true };
+    }
+
     try {
       const fetchUrl = `${backendApiUrl}/api/admin/usage?shop=${shop}`;
       const resp = await fetch(fetchUrl);
@@ -183,6 +187,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // 3. Billing Info - only if we have a token
     planName = usage.planName;
+    if (!admin || !session.accessToken) {
+      return { isAuthenticating: true };
+    }
+
     try {
       const billingCheck = await billing.check();
       const sub = billingCheck.appSubscriptions[0];
@@ -191,6 +199,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         if (sub.test) trialDays = 4; // Mock trial logic or derive from createdAt
       }
     } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (message.includes("Missing access token")) {
+        return { isAuthenticating: true };
+      }
+
       console.error("Billing check failed", e);
       // Do not redirect; keep UI in authenticating/loading state
       return {
@@ -226,7 +239,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function Dashboard() {
-  const { activeMarketsCount, usage, planName, trialDays, backendError401, isAuthenticating } = useLoaderData<typeof loader>();
+  const { activeMarketsCount, usage, planName, trialDays = 0, backendError401, isAuthenticating } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
   const app = useAppBridge();
@@ -252,21 +265,24 @@ export default function Dashboard() {
 
   if (isLoading || isAuthenticating) {
     return (
-        <SkeletonPage primaryAction>
-            <Layout>
-                <Layout.Section>
-                    <Card>
-                        <SkeletonBodyText lines={2} />
-                    </Card>
-                </Layout.Section>
-                <Layout.Section>
-                    <Card>
-                        <SkeletonDisplayText size="medium" />
-                        <SkeletonBodyText lines={4} />
-                    </Card>
-                </Layout.Section>
-            </Layout>
-        </SkeletonPage>
+      <SkeletonPage primaryAction>
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <SkeletonBodyText lines={2} />
+            </Card>
+          </Layout.Section>
+          <Layout.Section>
+            <Card>
+              <SkeletonDisplayText size="medium" />
+              <SkeletonBodyText lines={4} />
+            </Card>
+          </Layout.Section>
+        </Layout>
+        <div style={{ padding: "var(--p-space-400)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Spinner accessibilityLabel="Loading dashboard data" size="large" />
+        </div>
+      </SkeletonPage>
     );
   }
 
