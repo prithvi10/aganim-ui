@@ -72,28 +72,25 @@ export const sessionStorage = shopify.sessionStorage;
 
 /**
  * Retrieve an offline session for a shop and return a GraphQL client bound to it.
- * This lets us call Admin APIs without relying on the current online session.
  */
 export async function getOfflineAdminContext(shop: string) {
   if (!shop) return null;
 
   try {
     const sessions = await sessionStorage.findSessionsByShop(shop);
-    const offlineSession = sessions?.find((s) => s.isOnline === false);
-    if (!offlineSession) return null;
-
-    // The GraphQL client can live under either shopify.clients or shopify.api.clients depending on SDK shape
-    const GraphqlClient =
-      (shopify as any)?.clients?.Graphql ||
-      (shopify as any)?.api?.clients?.Graphql;
-
-    if (!GraphqlClient) {
-      console.error("Shopify Graphql client is unavailable on shopify.clients or shopify.api.clients");
+    const offlineSession = sessions?.find((s) => !s.isOnline);
+    
+    if (!offlineSession || !offlineSession.accessToken) {
+      console.error(`No offline session found for shop: ${shop}`);
       return null;
     }
 
-    const graphql = new GraphqlClient({ session: offlineSession });
-    return { session: offlineSession, graphql };
+    // FIX: Access the client via shopify.api.clients (cast to any to bypass strict type check on internal api prop)
+    const client = new (shopify as any).api.clients.Graphql({
+      session: offlineSession,
+    });
+
+    return { session: offlineSession, graphql: client };
   } catch (err) {
     console.error("Failed to build offline admin context", err);
     return null;
@@ -104,28 +101,6 @@ export async function getOfflineAdminContext(shop: string) {
  * Lightweight helper to fetch the offline GraphQL client + session.
  */
 export async function getOfflineGraphqlClient(shop: string) {
-  if (!shop) return null;
-
-  try {
-    const sessions = await sessionStorage.findSessionsByShop(shop);
-    const offlineSession = sessions?.find((s) => s.isOnline === false);
-    if (!offlineSession) return null;
-
-    // Use the configured app instance so the client has proper API config
-    const GraphqlClient =
-      (shopify as any)?.clients?.Graphql ||
-      (shopify as any)?.api?.clients?.Graphql ||
-      null;
-
-    if (!GraphqlClient) {
-      console.error("Shopify Graphql client is unavailable on shopify.clients or shopify.api.clients");
-      return null;
-    }
-
-    const client = new GraphqlClient({ session: offlineSession });
-    return { client, session: offlineSession };
-  } catch (err) {
-    console.error("Failed to build offline GraphQL client", err);
-    return null;
-  }
+  const context = await getOfflineAdminContext(shop);
+  return context ? { client: context.graphql, session: context.session } : null;
 }
