@@ -108,7 +108,7 @@ export async function getOfflineGraphqlClient(shop: string) {
 
   // Adapt the callable `admin.graphql` helper into the `{ query({data}) }` shape
   // used throughout the loaders.
-  const graphqlFn: any = context.graphql;
+  const graphqlFn = context.graphql as (query: string) => Promise<Response>;
   const client = {
     query: async ({ data }: { data: string }) => {
       const resp = await graphqlFn(data);
