@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -86,21 +86,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
   const accessToken = session?.accessToken;
-  const offlineContext = await getOfflineGraphqlClient(shop);
 
-  // If offline token isn't in DB yet (first install / race), avoid crashing and let UI render a syncing state.
-  if (!offlineContext) {
-    return {
-      isSyncing: true,
-      isAuthenticating: false,
-      needsReauth: false,
-      activeMarketsCount: 0,
-      usage: { used: 0, quota: 1000, planName: "Free" },
-      planName: "Free",
-      trialDays: 0,
-      backendError401: false
-    };
-  }
+  // Use the authenticated Admin GraphQL client (online token) for dashboard reads.
+  // This avoids relying on offline "Master Key" access which can 500 if the stored offline session is stale/invalid.
+  const graphqlClient: any = {
+    query: async ({ data }: { data: string }) => {
+      const resp = await admin.graphql(data);
+      return { body: await resp.json() };
+    }
+  };
 
   // Defaults
   let activeMarketsCount = 0;
@@ -129,7 +123,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           body: JSON.stringify({ 
             shop, 
             access_token: tokenToSync,
-            token_type: isOffline ? "offline" : "online"
+            token_type: isOffline ? "offline" : "online",
+            force: true
           })
         });
         console.log("[Token Sync] success", { shop, isOffline, status: resp.status });
@@ -145,7 +140,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
     // Fetch locales only if offline token already exists
-    const graphqlClient: any = offlineContext?.client;
     if (graphqlClient?.query) {
       try {
         const localeResponse = await graphqlClient.query({
@@ -190,8 +184,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           isSyncing = true;
         }
       }
-    } else {
-      needsReauth = true;
     }
 
     // 2. Fetch Usage Data (Backend API)
