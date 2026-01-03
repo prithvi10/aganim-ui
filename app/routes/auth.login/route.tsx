@@ -1,14 +1,18 @@
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { useState } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { Form, redirect, useActionData, useLoaderData } from "react-router";
 
+type AuthErrors = { shop?: string };
+type LoaderData = { errors: AuthErrors };
+type ActionData = { errors?: AuthErrors };
+
 // Initiate OAuth from the UI, but have Shopify call back to the API so it can store the token.
-export const loader = async (_args: LoaderFunctionArgs) => {
+export const loader = async (): Promise<LoaderData> => {
   return { errors: {} };
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs): Promise<ActionData> => {
   const formData = await request.formData();
   const shop = formData.get("shop")?.toString().trim();
 
@@ -22,10 +26,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Auth() {
-  const loaderData = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
+  const loaderData = useLoaderData<LoaderData>();
+  const actionData = useActionData<ActionData>();
   const [shop, setShop] = useState("");
-  const { errors = {} } = actionData || loaderData || {};
+  const errors = actionData?.errors ?? loaderData.errors;
 
   return (
     <AppProvider embedded={false}>
@@ -39,7 +43,7 @@ export default function Auth() {
             value={shop}
             onChange={(e) => setShop(e.currentTarget.value)}
             autocomplete="on"
-            error={errors?.shop}
+            error={errors.shop}
           ></s-text-field>
           <s-button type="submit">Log in</s-button>
         </s-section>

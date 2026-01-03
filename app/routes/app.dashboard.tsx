@@ -73,9 +73,6 @@ const TRANSLATIONS = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const url = new URL(request.url);
-  const shopFromQuery = url.searchParams.get("shop") || undefined;
-
   // Always trigger auth first so OAuth can store/refresh tokens
   const { admin, session } = await authenticate.admin(request);
   if (!admin || !session?.accessToken) {
@@ -86,6 +83,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
   const accessToken = session?.accessToken;
+
+  type ShopLocale = { locale: string; name: string; primary: boolean; published: boolean };
+  type Usage = { used: number; quota: number; planName: string };
+
+  type ShopifyGraphqlBody = {
+    data?: {
+      shopLocales?: ShopLocale[];
+      currentAppInstallation?: {
+        activeSubscriptions?: Array<{ name: string; status: string; test: boolean }>;
+      };
+    };
+    errors?: unknown;
+  };
+
+  type ShopifyGraphqlHttpError = Error & { status?: number; body?: unknown };
 
   // IMPORTANT:
   // Using `admin.graphql()` in loaders can trigger a 302 to `/auth/session-token` when the session-token
@@ -102,30 +114,30 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       body: JSON.stringify({ query }),
     });
 
-    const body = await resp.json().catch(() => ({}));
+    const body = (await resp.json().catch(() => ({}))) as unknown;
     if (!resp.ok) {
-      const err: any = new Error("Shopify GraphQL request failed");
+      const err: ShopifyGraphqlHttpError = new Error("Shopify GraphQL request failed");
       err.status = resp.status;
       err.body = body;
       throw err;
     }
-    return { body };
+    return { body: body as ShopifyGraphqlBody };
   }
 
   // Defaults
   let activeMarketsCount = 0;
-  let usage = { used: 0, quota: 1000, planName: "Free" };
+  let usage: Usage = { used: 0, quota: 1000, planName: "Free" };
   let backendError401 = false;
   let planName = usage.planName;
   let trialDays = 0;
-  let needsReauth = false;
-  let locales: any[] = [];
-  let isSyncing = false;
+  const needsReauth = false;
+  let locales: ShopLocale[] = [];
+  const isSyncing = false;
 
   try {
     // Sync the access token to the backend so proxy endpoints have credentials.
     const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
-    let tokenToSync: string | undefined = accessToken;
+    const tokenToSync: string | undefined = accessToken;
     const isOffline = Boolean(session && session.isOnline === false);
 
     if (tokenSyncSecret && tokenToSync) {
@@ -167,11 +179,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           }
         }
       `);
-      locales = (localeResponse as any).body?.data?.shopLocales || [];
-      activeMarketsCount = locales.filter((l: any) => l.published).length;
-    } catch (e: any) {
+      locales = localeResponse.body?.data?.shopLocales || [];
+      activeMarketsCount = locales.filter((l) => l.published).length;
+    } catch (e: unknown) {
       console.error("Failed to fetch locales", e);
-      if (e?.status === 401) {
+      const err = e as ShopifyGraphqlHttpError;
+      if (err?.status === 401) {
         // Token stored in UI session is invalid; ask user to refresh session.
         backendError401 = true;
       }
@@ -212,7 +225,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           }
         }
       `);
-      const activeSubs = (billingResponse as any).body?.data?.currentAppInstallation?.activeSubscriptions || [];
+      const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
       const sub = activeSubs[0];
       if (sub) {
         planName = sub.name;

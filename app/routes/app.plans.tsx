@@ -11,7 +11,7 @@ import {
 } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useLoaderData, useSubmit, useNavigation } from "react-router";
+import { useLoaderData, useNavigation } from "react-router";
 import { authenticate } from "../shopify.server";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge-utils";
@@ -48,15 +48,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const hostParam = new URL(request.url).searchParams.get("host");
   const hostSuffix = hostParam ? `?host=${hostParam}` : "";
   const adminReturnUrl = `https://admin.shopify.com/store/${shopSubdomain}/apps/crossborderagent/app${hostSuffix}`;
-  const classicReturnUrl = `https://${shop}/admin/apps/crossborderagent/app${hostSuffix}`;
 
   if (plan === PLAN_BASIC || plan === PLAN_STANDARD || plan === PLAN_PRO) {
     await billing.request({
       plan,
       isTest: process.env.NODE_ENV !== "production",
-      // Redirect back to the embedded app root; prefer new admin URL with classic fallback
+      // Redirect back to the embedded app root; prefer new admin URL
       returnUrl: adminReturnUrl,
-      fallbackReturnUrl: classicReturnUrl,
     });
   }
 
