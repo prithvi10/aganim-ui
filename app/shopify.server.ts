@@ -83,7 +83,14 @@ export async function getOfflineAdminContext(shop: string) {
     const offlineSession = sessions?.find((s) => s.isOnline === false);
     if (!offlineSession) return null;
 
-    const graphql = new shopify.clients.Graphql({ session: offlineSession });
+    // The GraphQL client lives under shopify.api.clients in this SDK
+    const GraphqlClient = shopify.api?.clients?.Graphql;
+    if (!GraphqlClient) {
+      console.error("Shopify Graphql client is unavailable on shopify.api.clients");
+      return null;
+    }
+
+    const graphql = new GraphqlClient({ session: offlineSession });
     return { session: offlineSession, graphql };
   } catch (err) {
     console.error("Failed to build offline admin context", err);
