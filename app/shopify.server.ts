@@ -25,8 +25,7 @@ const shopify = shopifyApp({
   // Use online tokens so embedded admin actions (like billing) have a valid session
   useOnlineTokens: true,
   future: {
-    expiringOfflineAccessTokens: true,
-    authStrategy: "token-based",
+    expiringOfflineAccessTokens: true
   },
   billing: {
     [MONTHLY_PLAN_BASIC]: {
@@ -83,10 +82,13 @@ export async function getOfflineAdminContext(shop: string) {
     const offlineSession = sessions?.find((s) => s.isOnline === false);
     if (!offlineSession) return null;
 
-    // The GraphQL client lives under shopify.api.clients in this SDK
-    const GraphqlClient = shopify.api?.clients?.Graphql;
+    // The GraphQL client can live under either shopify.clients or shopify.api.clients depending on SDK shape
+    const GraphqlClient =
+      (shopify as any)?.clients?.Graphql ||
+      (shopify as any)?.api?.clients?.Graphql;
+
     if (!GraphqlClient) {
-      console.error("Shopify Graphql client is unavailable on shopify.api.clients");
+      console.error("Shopify Graphql client is unavailable on shopify.clients or shopify.api.clients");
       return null;
     }
 
@@ -94,6 +96,31 @@ export async function getOfflineAdminContext(shop: string) {
     return { session: offlineSession, graphql };
   } catch (err) {
     console.error("Failed to build offline admin context", err);
+    return null;
+  }
+}
+
+/**
+ * Lightweight helper to fetch the offline GraphQL client + session.
+ */
+export async function getOfflineGraphqlClient(shop: string) {
+  if (!shop) return null;
+
+  try {
+    const sessions = await sessionStorage.findSessionsByShop(shop);
+    const offlineSession = sessions?.find((s) => s.isOnline === false);
+    if (!offlineSession) return null;
+
+    const GraphqlClient = (shopify as any)?.clients?.Graphql;
+    if (!GraphqlClient) {
+      console.error("Shopify Graphql client is unavailable on shopify.clients");
+      return null;
+    }
+
+    const client = new GraphqlClient({ session: offlineSession });
+    return { client, session: offlineSession };
+  } catch (err) {
+    console.error("Failed to build offline GraphQL client", err);
     return null;
   }
 }
