@@ -21,7 +21,6 @@ import {
   Spinner,
 } from "@shopify/polaris";
 
-// Types
 type Lang = "en" | "jp";
 
 const TRANSLATIONS = {
@@ -209,7 +208,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
 
       console.error("Billing check failed", e);
-      // Do not redirect; keep UI in authenticating/loading state
       return {
         isAuthenticating: true,
         activeMarketsCount,
@@ -232,7 +230,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     };
   } catch (e) {
     console.error("Loader failed", e);
-    // Return loading state instead of throwing/redirecting
     return {
       isAuthenticating: true,
       activeMarketsCount,
@@ -254,17 +251,13 @@ export default function Dashboard() {
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
 
   useEffect(() => {
-    // Simulate loading for better UX skeleton
     const timer = setTimeout(() => setIsLoading(false), 500);
     return () => clearTimeout(timer);
   }, [app]);
 
   useEffect(() => {
-    // If you need more complex actions, you can do it here, 
-    // but the declarative TitleBar component below is preferred in v4.
   }, [app, t.title, t.toggleLabel]);
 
-  // Handle derived stats
   const usedCount = usage?.used || 0;
   const quotaCount = usage?.quota || 1000;
   const usagePercent = Math.min(100, Math.round((usedCount / quotaCount) * 100));
@@ -328,11 +321,9 @@ export default function Dashboard() {
           </Banner>
         )}
 
-        {/* IMPACT SECTION */}
         <Layout>
           <Layout.Section>
             <InlineStack gap="400" align="start">
-               {/* Total Products Card */}
                <div style={{ flex: 1 }}>
                 <Card>
                   <div style={{ padding: "var(--p-space-400)" }}>
@@ -349,7 +340,6 @@ export default function Dashboard() {
                 </Card>
                </div>
                
-               {/* Active Markets Card */}
                <div style={{ flex: 1 }}>
                 <Card>
                   <div style={{ padding: "var(--p-space-400)" }}>
@@ -360,10 +350,24 @@ export default function Dashboard() {
                   </div>
                 </Card>
                </div>
+               
+               <div style={{ flex: 1 }}>
+                <Card>
+                  <div style={{ padding: "var(--p-space-400)" }}>
+                    <BlockStack gap="200">
+                      <Text as="h2" variant="headingSm" tone="subdued">Tokens Used</Text>
+                      <InlineStack align="space-between">
+                        <Text as="p" variant="headingMd">{usedCount} / {quotaCount}</Text>
+                        <Badge tone={isCritical ? "critical" : "success"}>{usagePercent}%</Badge>
+                      </InlineStack>
+                      <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} />
+                    </BlockStack>
+                  </div>
+                </Card>
+               </div>
             </InlineStack>
           </Layout.Section>
 
-          {/* CURRENT PLAN & USAGE */}
           <Layout.Section>
             <Card>
               <div style={{ padding: "var(--p-space-400)" }}>
@@ -394,19 +398,17 @@ export default function Dashboard() {
                     </div>
                   </BlockStack>
 
-                {/* Usage Progress */}
                   <BlockStack gap="200">
                     <InlineStack align="space-between">
-                      <Text as="span" variant="bodySm" tone={isCritical ? "critical" : "subdued"}>
+                      <Text as="span" variant="bodySm" tone={usagePercent > 90 ? "critical" : "subdued"}>
                         {t.usage}
                       </Text>
                       <Text as="span" variant="bodySm" tone="subdued">
                         {usedCount} / {quotaCount} {t.syncsUsed}
                       </Text>
                     </InlineStack>
-                    <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} size="small" />
+                    <ProgressBar progress={usagePercent} tone={usagePercent > 90 ? "critical" : "highlight"} size="small" />
                     
-                    {/* Warning if usage is default fallback */}
                     {usedCount === 0 && quotaCount === 1000 && !backendError401 && (
                         <Banner tone="warning">
                             <p>Live usage sync pending...</p>
@@ -418,22 +420,17 @@ export default function Dashboard() {
             </Card>
           </Layout.Section>
 
-          {/* FOOTER: CONFIDENCE & SUPPORT */}
           <Layout.Section>
              <BlockStack gap="400">
-                {/* Certified Support Banner */}
                 <Banner tone="info" title={t.supportTitle}>
                   <p>{t.supportText}</p>
                 </Banner>
 
-                {/* Footer Grid */}
                 <InlineStack align="space-between" blockAlign="center">
-                   {/* System Health */}
                    <InlineStack gap="200">
                       <Badge tone="success" progress="complete">All Systems Operational</Badge>
                    </InlineStack>
                    
-                   {/* Quick Links */}
                    <InlineStack gap="400">
                       <Text as="span" variant="bodySm" tone="subdued">{t.quickStart}:</Text>
                       <Link url="https://docs.crossborder.ai" target="_blank">{t.docs}</Link>
@@ -447,3 +444,4 @@ export default function Dashboard() {
     </Page>
   );
 }
+

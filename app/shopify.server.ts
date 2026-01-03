@@ -80,8 +80,8 @@ export async function getOfflineAdminContext(shop: string) {
   try {
     // Ensure we actually have a stored offline session; otherwise, bail quietly
     const sessions = await sessionStorage.findSessionsByShop(shop);
-    const hasOffline = sessions?.some((s) => s.isOnline === false);
-    if (!hasOffline) {
+    const offlineSession = sessions?.find((s) => s.isOnline === false && s.accessToken);
+    if (!offlineSession) {
       return null;
     }
 
