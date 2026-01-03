@@ -1,5 +1,5 @@
 import { Page, Layout, Card, Text, BlockStack, ActionList, Button } from "@shopify/polaris";
-import type { LoaderFunctionArgs } from "react-router";
+import { useLocation, type LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -8,6 +8,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function LandingPage() {
+  const location = useLocation();
+  const dashboardUrl = `/app/dashboard${location.search || ""}`;
+
   return (
     <Page title="Cross-Border AI Directory">
       <Layout>
@@ -16,7 +19,7 @@ export default function LandingPage() {
             <BlockStack gap="400">
               <Text as="h2" variant="headingMd">Get Started</Text>
               <Text as="p">Select an area to optimize your store for global markets.</Text>
-              <Button variant="primary" url="/app/dashboard">Open Dashboard</Button>
+              <Button variant="primary" url={dashboardUrl}>Open Dashboard</Button>
             </BlockStack>
           </Card>
         </Layout.Section>
