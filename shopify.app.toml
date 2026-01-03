@@ -2,7 +2,7 @@
 
 client_id = "315cfaf63c9baf27e4ba9a22b91b168e"
 name = "CrossBorderAgent"
-application_url = "https://shopify-translator-ui.onrender.com"
+application_url = "https://shopify-translator-ui.onrender.com/app"
 embedded = true
 
 [build]
