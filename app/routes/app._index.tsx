@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { authenticate, sessionStorage } from "../shopify.server";
+import { authenticate, getOfflineAdminContext } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -14,7 +14,6 @@ import {
   Badge,
   Banner,
   Link,
-  Box,
   SkeletonPage,
   SkeletonBodyText,
   SkeletonDisplayText,
@@ -75,7 +74,7 @@ const TRANSLATIONS = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin, billing, session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   // Bail out immediately if we cannot authenticate; prevents downstream blank screen
   if (!admin || !session?.accessToken) {
@@ -84,6 +83,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const { shop } = session;
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+  const offlineContext = await getOfflineAdminContext(shop);
+  const offlineSession = offlineContext?.session;
+
+  if (!offlineContext || !offlineSession) {
+    return { isAuthenticating: true };
+  }
 
   // Defaults
   let activeMarketsCount = 0;
@@ -95,22 +100,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     // Sync the access token to the backend so proxy endpoints have credentials.
     const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
-    let tokenToSync: string | undefined = session.accessToken;
-    let isOffline = false;
-    try {
-      const sessions = await sessionStorage.findSessionsByShop(shop);
-      const offline = sessions?.find((s) => s.isOnline === false && s.accessToken);
-      // If current session is online, prioritize offline token if available
-      if (session.isOnline && offline?.accessToken) {
-        tokenToSync = offline.accessToken;
-        isOffline = true;
-      } else if (offline?.accessToken && !session.accessToken) {
-        tokenToSync = offline.accessToken;
-        isOffline = true;
-      }
-    } catch (e) {
-      console.error("Failed to load offline session for token sync", e);
-    }
+    let tokenToSync: string | undefined = offlineSession.accessToken || session.accessToken;
+    const isOffline = Boolean(offlineSession && offlineSession.accessToken);
 
     if (tokenSyncSecret && tokenToSync) {
       try {
@@ -138,33 +129,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
-    if (!admin || !session.accessToken) {
-      return { isAuthenticating: true };
-    }
-
-    if (session.accessToken) {
-      try {
-        const response = await admin.graphql(`
+    try {
+      const localeResponse = await offlineContext.graphql.query({
+        data: `
           query {
             shopLocales {
               locale
+              name
+              primary
               published
             }
           }
-        `);
-        const localeData = await response.json();
-        const locales = localeData.data?.shopLocales || [];
-        activeMarketsCount = locales.filter((l: any) => l.published).length;
-      } catch (e: any) {
-        console.error("Failed to fetch locales", e);
-      }
+        `,
+      });
+      const locales = localeResponse.body?.data?.shopLocales || [];
+      activeMarketsCount = locales.filter((l: any) => l.published).length;
+    } catch (e: any) {
+      console.error("Failed to fetch locales", e);
     }
 
     // 2. Fetch Usage Data (Backend API)
-    if (!admin || !session.accessToken) {
-      return { isAuthenticating: true };
-    }
-
     try {
       const fetchUrl = `${backendApiUrl}/api/admin/usage?shop=${shop}`;
       const resp = await fetch(fetchUrl);
@@ -187,13 +171,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // 3. Billing Info - only if we have a token
     planName = usage.planName;
-    if (!admin || !session.accessToken) {
-      return { isAuthenticating: true };
-    }
-
     try {
-      const billingCheck = await billing.check();
-      const sub = billingCheck.appSubscriptions[0];
+      const billingResponse = await offlineContext.graphql.query({
+        data: `
+          query {
+            currentAppInstallation {
+              activeSubscriptions {
+                name
+                status
+                test
+              }
+            }
+          }
+        `,
+      });
+      const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
+      const sub = activeSubs[0];
       if (sub) {
         planName = sub.name;
         if (sub.test) trialDays = 4; // Mock trial logic or derive from createdAt

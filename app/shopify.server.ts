@@ -70,3 +70,23 @@ export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
+
+/**
+ * Retrieve an offline session for a shop and return a GraphQL client bound to it.
+ * This lets us call Admin APIs without relying on the current online session.
+ */
+export async function getOfflineAdminContext(shop: string) {
+  if (!shop) return null;
+
+  try {
+    const sessions = await sessionStorage.findSessionsByShop(shop);
+    const offlineSession = sessions?.find((s) => s.isOnline === false);
+    if (!offlineSession) return null;
+
+    const graphql = new shopify.clients.Graphql({ session: offlineSession });
+    return { session: offlineSession, graphql };
+  } catch (err) {
+    console.error("Failed to build offline admin context", err);
+    return null;
+  }
+}
