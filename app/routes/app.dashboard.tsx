@@ -358,7 +358,7 @@ export default function Dashboard() {
                       <Text as="h2" variant="headingSm" tone="subdued">Tokens Used</Text>
                       <InlineStack align="space-between">
                         <Text as="p" variant="headingMd">{usedCount} / {quotaCount}</Text>
-                        <Badge tone={isCritical ? "critical" : "success"}>{usagePercent}%</Badge>
+                        <Badge tone={isCritical ? "critical" : "success"}>{`${usagePercent}%`}</Badge>
                       </InlineStack>
                       <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} />
                     </BlockStack>
