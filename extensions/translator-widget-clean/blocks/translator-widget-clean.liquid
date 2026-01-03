@@ -38,6 +38,7 @@
     // after DOMContentLoaded has already fired. Run immediately in that case.
     (function initCrossBorderWidget() {
       function run() {
+      console.log("[CrossBorder] Widget init");
       
       const TITLE_SELECTOR = 'div.product__title h1';
       const DESCRIPTION_SELECTOR = '.product__description.rte';
@@ -46,7 +47,7 @@
       const errorBox = document.getElementById('agent-error');
       const loadingDiv = document.getElementById('agent-loading');
       const loadingMessage = document.getElementById('loading-message');
-      const localeChecklist = document.getElementById('locale-checklist');
+      const checklist = document.getElementById('locale-checklist');
       const upgradeMsg = document.getElementById('bulk-upgrade-msg');
 
       let currentPlan = "Free";
@@ -92,8 +93,6 @@
           }, 4000);
       }
 
-      const checklist = document.getElementById('locale-checklist');
-      const upgradeMsg = document.getElementById('bulk-upgrade-msg');
       const refreshPlanContainer = document.getElementById('refresh-plan-container');
       const refreshPlanBtn = document.getElementById('refresh-plan-btn');
 
