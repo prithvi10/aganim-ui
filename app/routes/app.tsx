@@ -15,10 +15,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // (so theme App Proxy endpoints can work even before the user opens /app/dashboard).
   try {
     const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
-    const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
+    const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
     const shop = session.shop;
 
-    if (tokenSyncSecret && shop) {
+    if (!tokenSyncSecret) {
+      console.warn("[Token Sync] Skipped: missing TOKEN_SYNC_SECRET_UI (must match backend TOKEN_SYNC_SECRET)");
+    } else if (!shop) {
+      console.warn("[Token Sync] Skipped: missing shop on session");
+    } else {
       // Prefer offline token if present, otherwise use current online token.
       let tokenToSync: string | undefined = session.accessToken;
       let tokenType: "offline" | "online" = "online";
@@ -35,7 +39,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
 
       if (tokenToSync) {
-        await fetch(`${backendApiUrl}/api/admin/sync-token`, {
+        const resp = await fetch(`${backendApiUrl}/api/admin/sync-token`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -47,6 +51,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             token_type: tokenType,
           }),
         });
+
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => "");
+          console.error("[Token Sync] Failed", { status: resp.status, body: text });
+        } else {
+          console.log("[Token Sync] OK", { shop, tokenType, status: resp.status });
+        }
       }
     }
   } catch (e) {
