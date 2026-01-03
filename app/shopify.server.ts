@@ -74,22 +74,27 @@ export const sessionStorage = shopify.sessionStorage;
  * Retrieve an offline session for a shop and return a GraphQL client bound to it.
  * Uses the unauthenticated.admin helper to get a Master Key session (offline token).
  */
+// shopify.server.ts
+
 export async function getOfflineAdminContext(shop: string) {
   if (!shop) return null;
 
   try {
-    // Ensure we actually have a stored offline session; otherwise, bail quietly
+    // CRITICAL: Check Prisma first. findSessionsByShop returns an array.
     const sessions = await sessionStorage.findSessionsByShop(shop);
-    const offlineSession = sessions?.find((s) => s.isOnline === false && s.accessToken);
-    if (!offlineSession) {
+    const offlineSession = sessions?.find((s) => s.isOnline === false);
+
+    // If no session exists in DB yet, return null gracefully instead of 500
+    if (!offlineSession || !offlineSession.accessToken) {
+      console.log(`[Auth] No offline session found in DB for ${shop}`);
       return null;
     }
 
-    // Uses the stored offline token from DB automatically
+    // Now it is safe to get the unauthenticated context
     const { admin, session } = await shopify.unauthenticated.admin(shop);
-    return { graphql: admin.graphql, session };
+    return { session, graphql: admin.graphql };
   } catch (err) {
-    console.error(`❌ Master Key fetch failed for ${shop}:`, err);
+    console.error("Master Key fetch failed (handled):", err);
     return null;
   }
 }
