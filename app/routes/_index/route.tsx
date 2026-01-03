@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { redirect, Form, useLoaderData } from "react-router";
 
-import shopify, { login, getOfflineGraphqlClient } from "../../shopify.server";
+import shopify, { login, getOfflineAdminContext } from "../../shopify.server";
 
 import styles from "./styles.module.css";
 
@@ -11,21 +11,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (shop) {
     try {
-      const offlineContext = await getOfflineGraphqlClient(shop);
-      if (offlineContext?.client) {
+      const offlineContext = await getOfflineAdminContext(shop);
+      if (offlineContext?.graphql && offlineContext?.session) {
         // Warm the offline client with locales + billing to mirror dashboard behavior
-        await offlineContext.client.query({
-          data: `
-            query {
-              shopLocales {
-                locale
-                name
-                primary
-                published
-              }
+        await offlineContext.graphql(`
+          query {
+            shopLocales {
+              locale
+              name
+              primary
+              published
             }
-          `,
-        });
+          }
+        `);
 
         const billingApi = (shopify as any)?.billing;
         if (billingApi?.check) {
