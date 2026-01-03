@@ -111,13 +111,33 @@ export async function getOfflineGraphqlClient(shop: string) {
     const offlineSession = sessions?.find((s) => s.isOnline === false);
     if (!offlineSession) return null;
 
-    const GraphqlClient = (shopify as any)?.clients?.Graphql;
-    if (!GraphqlClient) {
-      console.error("Shopify Graphql client is unavailable on shopify.clients");
+    const GraphqlClient =
+      (shopify as any)?.clients?.Graphql ||
+      (shopify as any)?.api?.clients?.Graphql;
+
+    let FinalGraphqlClient = GraphqlClient;
+
+    // Final fallback: dynamic import from Shopify API package to avoid bundler tree-shake issues
+    if (!FinalGraphqlClient) {
+      try {
+        const mod = await import("@shopify/shopify-api");
+        FinalGraphqlClient =
+          (mod as any).GraphqlClient || // newer versions
+          (mod as any).clients?.Graphql || // configured export shape
+          (mod as any).Graphql || // legacy named export
+          (mod as any).default?.Graphql || // default export with clients
+          null;
+      } catch (err) {
+        console.error("Dynamic import for Shopify Graphql client failed", err);
+      }
+    }
+
+    if (!FinalGraphqlClient) {
+      console.error("Shopify Graphql client is unavailable on shopify.clients or shopify.api.clients");
       return null;
     }
 
-    const client = new GraphqlClient({ session: offlineSession });
+    const client = new FinalGraphqlClient({ session: offlineSession });
     return { client, session: offlineSession };
   } catch (err) {
     console.error("Failed to build offline GraphQL client", err);
