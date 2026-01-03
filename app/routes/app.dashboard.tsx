@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { authenticate } from "../shopify.server";
+import { authenticate, apiVersion } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -87,14 +87,30 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
   const accessToken = session?.accessToken;
 
-  // Use the authenticated Admin GraphQL client (online token) for dashboard reads.
-  // This avoids relying on offline "Master Key" access which can 500 if the stored offline session is stale/invalid.
-  const graphqlClient: any = {
-    query: async ({ data }: { data: string }) => {
-      const resp = await admin.graphql(data);
-      return { body: await resp.json() };
+  // IMPORTANT:
+  // Using `admin.graphql()` in loaders can trigger a 302 to `/auth/session-token` when the session-token
+  // header/cookies are missing. For data reads, call Shopify directly with the session access token.
+  async function shopifyGraphql(query: string) {
+    const version = String(apiVersion);
+    const endpoint = `https://${shop}/admin/api/${version}/graphql.json`;
+    const resp = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": accessToken,
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    const body = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      const err: any = new Error("Shopify GraphQL request failed");
+      err.status = resp.status;
+      err.body = body;
+      throw err;
     }
-  };
+    return { body };
+  }
 
   // Defaults
   let activeMarketsCount = 0;
@@ -140,49 +156,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
     // Fetch locales only if offline token already exists
-    if (graphqlClient?.query) {
-      try {
-        const localeResponse = await graphqlClient.query({
-          data: `
-            query {
-              shopLocales {
-                locale
-                name
-                primary
-                published
-              }
-            }
-          `,
-        });
-        locales = localeResponse.body?.data?.shopLocales || [];
-        activeMarketsCount = locales.filter((l: any) => l.published).length;
-      } catch (e: any) {
-        console.error("Failed to fetch locales", e);
-        const msg = e instanceof Error ? e.message : String(e);
-        if (msg.includes("Unauthorized") || e?.response?.code === 401) {
-          // If the offline token is invalid, force-sync the current online token to the backend
-          // so App Proxy locales can start working immediately.
-          try {
-            if (tokenSyncSecret && accessToken) {
-              await fetch(`${backendApiUrl}/api/admin/sync-token`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-Token-Sync-Secret": tokenSyncSecret
-                },
-                body: JSON.stringify({
-                  shop,
-                  access_token: accessToken,
-                  token_type: "online",
-                  force: true
-                })
-              });
-            }
-          } catch (syncErr) {
-            console.error("Token force-sync failed", syncErr);
+    try {
+      const localeResponse = await shopifyGraphql(`
+        query {
+          shopLocales {
+            locale
+            name
+            primary
+            published
           }
-          isSyncing = true;
         }
+      `);
+      locales = (localeResponse as any).body?.data?.shopLocales || [];
+      activeMarketsCount = locales.filter((l: any) => l.published).length;
+    } catch (e: any) {
+      console.error("Failed to fetch locales", e);
+      if (e?.status === 401) {
+        // Token stored in UI session is invalid; ask user to refresh session.
+        backendError401 = true;
       }
     }
 
@@ -210,28 +201,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // 3. Billing Info - only if we have a token
     planName = usage.planName;
     try {
-      if (graphqlClient?.query) {
-        const billingResponse = await graphqlClient.query({
-          data: `
-            query {
-              currentAppInstallation {
-                activeSubscriptions {
-                  name
-                  status
-                  test
-                }
-              }
+      const billingResponse = await shopifyGraphql(`
+        query {
+          currentAppInstallation {
+            activeSubscriptions {
+              name
+              status
+              test
             }
-          `,
-        });
-        const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
-        const sub = activeSubs[0];
-        if (sub) {
-          planName = sub.name;
-          if (sub.test) trialDays = 4; // Mock trial logic or derive from createdAt
+          }
         }
-      } else {
-        needsReauth = true;
+      `);
+      const activeSubs = (billingResponse as any).body?.data?.currentAppInstallation?.activeSubscriptions || [];
+      const sub = activeSubs[0];
+      if (sub) {
+        planName = sub.name;
+        if (sub.test) trialDays = 4; // Mock trial logic or derive from createdAt
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -240,37 +225,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
 
       console.error("Billing check failed", e);
-      if (message.includes("Unauthorized") || (e as any)?.response?.code === 401) {
-        try {
-          if (tokenSyncSecret && accessToken) {
-            await fetch(`${backendApiUrl}/api/admin/sync-token`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Token-Sync-Secret": tokenSyncSecret
-              },
-              body: JSON.stringify({
-                shop,
-                access_token: accessToken,
-                token_type: "online",
-                force: true
-              })
-            });
-          }
-        } catch (syncErr) {
-          console.error("Token force-sync failed", syncErr);
-        }
-        return {
-          isSyncing: true,
-          isAuthenticating: false,
-          needsReauth: false,
-          activeMarketsCount,
-          usage,
-          planName,
-          trialDays,
-          backendError401: false
-        };
-      }
       return {
         isAuthenticating: true,
         activeMarketsCount,
