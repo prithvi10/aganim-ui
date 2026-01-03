@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { redirect, Form, useLoaderData } from "react-router";
 
-import shopify, { login, getOfflineAdminContext } from "../../shopify.server";
+import shopify, { login, getOfflineGraphqlClient } from "../../shopify.server";
 
 import styles from "./styles.module.css";
 
@@ -11,10 +11,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (shop) {
     try {
-      const offlineContext = await getOfflineAdminContext(shop);
-      if (offlineContext?.session) {
+      const offlineContext = await getOfflineGraphqlClient(shop);
+      if (offlineContext?.client) {
         // Warm the offline client with locales + billing to mirror dashboard behavior
-        await offlineContext.graphql.query({
+        await offlineContext.client.query({
           data: `
             query {
               shopLocales {
@@ -27,10 +27,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           `,
         });
 
-        await shopify.billing.check({ session: offlineContext.session });
+        const billingApi = (shopify as any)?.billing;
+        if (billingApi?.check) {
+          await billingApi.check({ session: offlineContext.session });
+        }
+      } else {
+        return { needsReauth: true };
       }
     } catch (err) {
       console.error("Landing loader offline admin prefetch failed", err);
+      return { needsReauth: true };
     }
 
     throw redirect(`/app?${url.searchParams.toString()}`);

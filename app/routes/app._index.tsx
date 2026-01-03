@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { authenticate, getOfflineAdminContext } from "../shopify.server";
+import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -78,16 +78,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Bail out immediately if we cannot authenticate; prevents downstream blank screen
   if (!admin || !session?.accessToken) {
-    return { isAuthenticating: true };
+    return { isAuthenticating: true, needsReauth: true };
   }
 
   const { shop } = session;
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
-  const offlineContext = await getOfflineAdminContext(shop);
+  const offlineContext = await getOfflineGraphqlClient(shop);
   const offlineSession = offlineContext?.session;
 
   if (!offlineContext || !offlineSession) {
-    return { isAuthenticating: true };
+    return { isAuthenticating: true, needsReauth: true };
   }
 
   // Defaults
@@ -96,6 +96,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let backendError401 = false;
   let planName = usage.planName;
   let trialDays = 0;
+  let needsReauth = false;
 
   try {
     // Sync the access token to the backend so proxy endpoints have credentials.
@@ -130,7 +131,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
     try {
-      const localeResponse = await offlineContext.graphql.query({
+      const localeResponse = await offlineContext.client.query({
         data: `
           query {
             shopLocales {
@@ -172,7 +173,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // 3. Billing Info - only if we have a token
     planName = usage.planName;
     try {
-      const billingResponse = await offlineContext.graphql.query({
+      const billingResponse = await offlineContext.client.query({
         data: `
           query {
             currentAppInstallation {
@@ -194,7 +195,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       if (message.includes("Missing access token")) {
-        return { isAuthenticating: true };
+        return { isAuthenticating: true, needsReauth: true };
       }
 
       console.error("Billing check failed", e);
@@ -205,7 +206,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         usage,
         planName,
         trialDays,
-        backendError401
+        backendError401,
+        needsReauth: true
       };
     }
 
@@ -215,7 +217,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       planName,
       trialDays,
       backendError401,
-      isAuthenticating: false
+      isAuthenticating: false,
+      needsReauth
     };
   } catch (e) {
     console.error("Loader failed", e);
@@ -226,13 +229,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       usage,
       planName,
       trialDays,
-      backendError401
+      backendError401,
+      needsReauth: true
     };
   }
 };
 
 export default function Dashboard() {
-  const { activeMarketsCount, usage, planName, trialDays = 0, backendError401, isAuthenticating } = useLoaderData<typeof loader>();
+  const { activeMarketsCount, usage, planName, trialDays = 0, backendError401, isAuthenticating, needsReauth } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
   const app = useAppBridge();
@@ -255,6 +259,20 @@ export default function Dashboard() {
   const quotaCount = usage?.quota || 1000;
   const usagePercent = Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
+
+  if (needsReauth) {
+    return (
+      <Page>
+        <Layout>
+          <Layout.Section>
+            <Banner tone="warning" title="Reconnect needed">
+              <p>Please reinstall or reauthorize the app to restore offline access.</p>
+            </Banner>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
+  }
 
   if (isLoading || isAuthenticating) {
     return (
