@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
+import { authenticate, getOfflineAdminContext } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -74,21 +74,40 @@ const TRANSLATIONS = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
+  const url = new URL(request.url);
+  const shopFromQuery = url.searchParams.get("shop") || undefined;
+  let shop = shopFromQuery;
+  let session: any = null;
+  let graphql: any = null;
+  let needsReauth = false;
 
-  // Bail out immediately if we cannot authenticate; prevents downstream blank screen
-  if (!admin || !session?.accessToken) {
-    return { isAuthenticating: true, needsReauth: true };
+  // Try Master Key offline context first (no redirects)
+  try {
+    if (shopFromQuery) {
+      const offline = await getOfflineAdminContext(shopFromQuery);
+      if (offline?.graphql && offline.session) {
+        graphql = offline.graphql;
+        session = offline.session;
+        shop = shopFromQuery;
+      }
+    }
+  } catch (e) {
+    console.error("Offline admin context fetch failed", e);
   }
 
-  const { shop } = session;
+  // Fallback: authenticated admin (may redirect) only if offline context missing
+  if (!graphql || !session) {
+    const authenticated = await authenticate.admin(request);
+    if (!authenticated?.admin || !authenticated?.session?.accessToken) {
+      return { isAuthenticating: true, needsReauth: true };
+    }
+    graphql = authenticated.admin.graphql;
+    session = authenticated.session;
+    shop = authenticated.session.shop;
+  }
+
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
-  const offlineContext = await getOfflineGraphqlClient(shop);
-  const offlineSession = offlineContext?.session;
-
-  if (!offlineContext || !offlineSession) {
-    return { isAuthenticating: true, needsReauth: true };
-  }
+  const accessToken = session?.accessToken;
 
   // Defaults
   let activeMarketsCount = 0;
@@ -96,13 +115,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let backendError401 = false;
   let planName = usage.planName;
   let trialDays = 0;
-  let needsReauth = false;
 
   try {
     // Sync the access token to the backend so proxy endpoints have credentials.
     const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
-    let tokenToSync: string | undefined = offlineSession.accessToken || session.accessToken;
-    const isOffline = Boolean(offlineSession && offlineSession.accessToken);
+    let tokenToSync: string | undefined = accessToken;
+    const isOffline = Boolean(session && session.isOnline === false);
 
     if (tokenSyncSecret && tokenToSync) {
       try {
@@ -131,19 +149,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
     try {
-      const localeResponse = await offlineContext.client.query({
-        data: `
-          query {
-            shopLocales {
-              locale
-              name
-              primary
-              published
-            }
+      const localeResponse = await graphql(`
+        query {
+          shopLocales {
+            locale
+            name
+            primary
+            published
           }
-        `,
-      });
-      const locales = localeResponse.body?.data?.shopLocales || [];
+        }
+      `);
+      const localeData = await localeResponse.json();
+      const locales = localeData?.data?.shopLocales || [];
       activeMarketsCount = locales.filter((l: any) => l.published).length;
     } catch (e: any) {
       console.error("Failed to fetch locales", e);
@@ -173,20 +190,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // 3. Billing Info - only if we have a token
     planName = usage.planName;
     try {
-      const billingResponse = await offlineContext.client.query({
-        data: `
-          query {
-            currentAppInstallation {
-              activeSubscriptions {
-                name
-                status
-                test
-              }
+      const billingResponse = await graphql(`
+        query {
+          currentAppInstallation {
+            activeSubscriptions {
+              name
+              status
+              test
             }
           }
-        `,
-      });
-      const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
+        }
+      `);
+      const billingData = await billingResponse.json();
+      const activeSubs = billingData?.data?.currentAppInstallation?.activeSubscriptions || [];
       const sub = activeSubs[0];
       if (sub) {
         planName = sub.name;

@@ -72,27 +72,17 @@ export const sessionStorage = shopify.sessionStorage;
 
 /**
  * Retrieve an offline session for a shop and return a GraphQL client bound to it.
+ * Uses the unauthenticated.admin helper to get a Master Key session (offline token).
  */
 export async function getOfflineAdminContext(shop: string) {
   if (!shop) return null;
 
   try {
-    const sessions = await sessionStorage.findSessionsByShop(shop);
-    const offlineSession = sessions?.find((s) => !s.isOnline);
-    
-    if (!offlineSession || !offlineSession.accessToken) {
-      console.error(`No offline session found for shop: ${shop}`);
-      return null;
-    }
-
-    // FIX: Access the client via shopify.api.clients (cast to any to bypass strict type check on internal api prop)
-    const client = new (shopify as any).api.clients.Graphql({
-      session: offlineSession,
-    });
-
-    return { session: offlineSession, graphql: client };
+    // Uses the stored offline token from DB automatically
+    const { admin, session } = await shopify.unauthenticated.admin(shop);
+    return { graphql: admin.graphql, session };
   } catch (err) {
-    console.error("Failed to build offline admin context", err);
+    console.error(`❌ Master Key fetch failed for ${shop}:`, err);
     return null;
   }
 }
