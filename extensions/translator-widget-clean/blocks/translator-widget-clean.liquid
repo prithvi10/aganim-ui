@@ -34,7 +34,10 @@
   </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    // In Shopify theme editor / dynamic section rendering, this script can be injected
+    // after DOMContentLoaded has already fired. Run immediately in that case.
+    (function initCrossBorderWidget() {
+      function run() {
       
       const TITLE_SELECTOR = 'div.product__title h1';
       const DESCRIPTION_SELECTOR = '.product__description.rte';
@@ -288,7 +291,14 @@
               }
           });
       }
-    }); 
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+      } else {
+        run();
+      }
+    })();
   </script>
 {% endif %}
 
