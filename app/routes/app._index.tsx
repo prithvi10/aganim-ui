@@ -1,6 +1,6 @@
 // app/routes/app._index.tsx
 import { Page, Layout, Card, Text, BlockStack, ActionList, Button } from "@shopify/polaris";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {

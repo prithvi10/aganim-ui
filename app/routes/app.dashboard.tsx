@@ -79,7 +79,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Always trigger auth first so OAuth can store/refresh tokens
   const { admin, session } = await authenticate.admin(request);
   if (!admin || !session?.accessToken) {
-    return { isAuthenticating: true, needsReauth: true };
+    return { isAuthenticating: true, needsReauth: true, isSyncing: false };
   }
 
   const shop = session.shop;
@@ -87,6 +87,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
   const accessToken = session?.accessToken;
   const offlineContext = await getOfflineGraphqlClient(shop);
+
+  // If offline token isn't in DB yet (first install / race), avoid crashing and let UI render a syncing state.
+  if (!offlineContext) {
+    return {
+      isSyncing: true,
+      isAuthenticating: false,
+      needsReauth: false,
+      activeMarketsCount: 0,
+      usage: { used: 0, quota: 1000, planName: "Free" },
+      planName: "Free",
+      trialDays: 0,
+      backendError401: false
+    };
+  }
 
   // Defaults
   let activeMarketsCount = 0;
@@ -96,6 +110,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let trialDays = 0;
   let needsReauth = false;
   let locales: any[] = [];
+  let isSyncing = false;
 
   try {
     // Sync the access token to the backend so proxy endpoints have credentials.
@@ -226,7 +241,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       trialDays,
       backendError401,
       isAuthenticating: false,
-      needsReauth
+      needsReauth,
+      isSyncing
     };
   } catch (e) {
     console.error("Loader failed", e);
@@ -237,13 +253,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       planName,
       trialDays,
       backendError401,
-      needsReauth: true
+      needsReauth: true,
+      isSyncing: false
     };
   }
 };
 
 export default function Dashboard() {
-  const { activeMarketsCount, usage, planName, trialDays = 0, backendError401, isAuthenticating, needsReauth } = useLoaderData<typeof loader>();
+  const { activeMarketsCount, usage, planName, trialDays = 0, backendError401, isAuthenticating, needsReauth, isSyncing } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
   const app = useAppBridge();
@@ -270,6 +287,20 @@ export default function Dashboard() {
           <Layout.Section>
             <Banner tone="warning" title="Reconnect needed">
               <p>Please reinstall or reauthorize the app to restore offline access.</p>
+            </Banner>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
+  }
+
+  if (isSyncing) {
+    return (
+      <Page>
+        <Layout>
+          <Layout.Section>
+            <Banner tone="info" title="Preparing your data...">
+              <p>We’re finalizing your store’s access token. This usually takes a moment—please refresh in a few seconds.</p>
             </Banner>
           </Layout.Section>
         </Layout>
