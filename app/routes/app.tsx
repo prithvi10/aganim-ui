@@ -23,20 +23,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     } else if (!shop) {
       console.warn("[Token Sync] Skipped: missing shop on session");
     } else {
-      // Prefer offline token if present, otherwise use current online token.
-      let tokenToSync: string | undefined = session.accessToken;
-      let tokenType: "offline" | "online" = "online";
-
-      try {
-        const sessions = await sessionStorage.findSessionsByShop(shop);
-        const offline = sessions?.find((s) => s.isOnline === false && s.accessToken);
-        if (offline?.accessToken) {
-          tokenToSync = offline.accessToken;
-          tokenType = "offline";
-        }
-      } catch (e) {
-        console.error("[Token Sync] Failed to load offline session", e);
-      }
+      // For theme/app-proxy reliability: sync the CURRENT online token.
+      // Offline tokens can be missing/invalid right after install or after reinstall; forcing online fixes immediate storefront access.
+      const tokenToSync: string | undefined = session.accessToken;
+      const tokenType: "offline" | "online" = "online";
 
       if (tokenToSync) {
         const resp = await fetch(`${backendApiUrl}/api/admin/sync-token`, {
@@ -49,6 +39,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             shop,
             access_token: tokenToSync,
             token_type: tokenType,
+            force: true
           }),
         });
 

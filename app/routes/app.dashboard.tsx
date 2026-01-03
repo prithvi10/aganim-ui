@@ -114,7 +114,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   try {
     // Sync the access token to the backend so proxy endpoints have credentials.
-    const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI;
+    const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
     let tokenToSync: string | undefined = accessToken;
     const isOffline = Boolean(session && session.isOnline === false);
 
@@ -164,6 +164,31 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         activeMarketsCount = locales.filter((l: any) => l.published).length;
       } catch (e: any) {
         console.error("Failed to fetch locales", e);
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.includes("Unauthorized") || e?.response?.code === 401) {
+          // If the offline token is invalid, force-sync the current online token to the backend
+          // so App Proxy locales can start working immediately.
+          try {
+            if (tokenSyncSecret && accessToken) {
+              await fetch(`${backendApiUrl}/api/admin/sync-token`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Token-Sync-Secret": tokenSyncSecret
+                },
+                body: JSON.stringify({
+                  shop,
+                  access_token: accessToken,
+                  token_type: "online",
+                  force: true
+                })
+              });
+            }
+          } catch (syncErr) {
+            console.error("Token force-sync failed", syncErr);
+          }
+          isSyncing = true;
+        }
       }
     } else {
       needsReauth = true;
@@ -223,6 +248,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
 
       console.error("Billing check failed", e);
+      if (message.includes("Unauthorized") || (e as any)?.response?.code === 401) {
+        try {
+          if (tokenSyncSecret && accessToken) {
+            await fetch(`${backendApiUrl}/api/admin/sync-token`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Token-Sync-Secret": tokenSyncSecret
+              },
+              body: JSON.stringify({
+                shop,
+                access_token: accessToken,
+                token_type: "online",
+                force: true
+              })
+            });
+          }
+        } catch (syncErr) {
+          console.error("Token force-sync failed", syncErr);
+        }
+        return {
+          isSyncing: true,
+          isAuthenticating: false,
+          needsReauth: false,
+          activeMarketsCount,
+          usage,
+          planName,
+          trialDays,
+          backendError401: false
+        };
+      }
       return {
         isAuthenticating: true,
         activeMarketsCount,
