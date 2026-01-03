@@ -167,7 +167,11 @@
                 console.error("[CrossBorder] Locale fetch failed status:", response.status);
                 checklist.innerHTML = '';
                 errorDiv.style.display = 'block';
-                errorDiv.textContent = `Unable to load markets (Status: ${response.status}). Is the app installed?`;
+                if (response.status === 401) {
+                    errorDiv.textContent = "Please log in to the app to sync your markets.";
+                } else {
+                    errorDiv.textContent = `Unable to load markets (Status: ${response.status}). Is the app installed?`;
+                }
             }
         } catch (e) {
             console.error("Failed to fetch locales:", e);
