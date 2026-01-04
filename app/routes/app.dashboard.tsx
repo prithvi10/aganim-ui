@@ -135,37 +135,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const isSyncing = false;
 
   try {
-    // Sync the access token to the backend so proxy endpoints have credentials.
-    const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
-    const tokenToSync: string | undefined = accessToken;
-    const isOffline = Boolean(session && session.isOnline === false);
-
-    if (tokenSyncSecret && tokenToSync) {
-      try {
-        const resp = await fetch(`${backendApiUrl}/api/admin/sync-token`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Token-Sync-Secret": tokenSyncSecret
-          },
-          body: JSON.stringify({ 
-            shop, 
-            access_token: tokenToSync,
-            token_type: isOffline ? "offline" : "online",
-            force: true
-          })
-        });
-        console.log("[Token Sync] success", { shop, isOffline, status: resp.status });
-      } catch (e) {
-        console.error("Token sync to backend failed", e);
-      }
-    } else {
-      console.warn("Token sync skipped: missing TOKEN_SYNC_SECRET_UI or session access token", {
-        hasSecret: Boolean(tokenSyncSecret),
-        hasAccessToken: Boolean(tokenToSync)
-      });
-    }
-
     // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
     // Fetch locales only if offline token already exists
     try {
