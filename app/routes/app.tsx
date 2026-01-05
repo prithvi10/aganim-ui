@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useRouteError, redirect } from "react-router"; // Added redirect
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
@@ -9,27 +9,42 @@ import "@shopify/polaris/build/esm/styles.css";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  let session;
 
-  // Token handshake: sync a token to the backend as soon as the embedded app loads
-  // (so theme App Proxy endpoints can work even before the user opens /app/dashboard).
+  // 1. SAFE AUTHENTICATION
+  try {
+    const authResult = await authenticate.admin(request);
+    session = authResult.session;
+  } catch (error) {
+    // If it's a Response (like a 302 Redirect), let Remix handle it
+    if (error instanceof Response) {
+      // If Shopify throws a 401 Unauthorized here, we MUST redirect to login manually
+      if (error.status === 401 || error.status === 403) {
+        const url = new URL(request.url);
+        const shop = url.searchParams.get("shop");
+        if (shop) {
+            console.log("[Layout] 🛡️ 401/403 detected in Layout. Redirecting to login.");
+            throw redirect(`/auth/login?shop=${shop}`);
+        }
+      }
+      throw error;
+    }
+    throw error;
+  }
+
+  // 2. Token Handshake (Your existing logic)
   try {
     const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
     const tokenSyncSecret = process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
     const shop = session.shop;
 
-    if (!tokenSyncSecret) {
-      console.warn("[Token Sync] Skipped: missing TOKEN_SYNC_SECRET_UI (must match backend TOKEN_SYNC_SECRET)");
-    } else if (!shop) {
-      console.warn("[Token Sync] Skipped: missing shop on session");
-    } else {
-      // For theme/app-proxy reliability: sync the CURRENT online token.
-      // Offline tokens can be missing/invalid right after install or after reinstall; forcing online fixes immediate storefront access.
-      const tokenToSync: string | undefined = session.accessToken;
-      const tokenType: "offline" | "online" = "online";
-
+    if (tokenSyncSecret && shop) {
+      const tokenToSync = session.accessToken;
+      // Use fire-and-forget style (don't await) to speed up UI load, 
+      // OR keep await if you need it strictly synced before render.
+      // Keeping your logic but wrapped safely:
       if (tokenToSync) {
-        const resp = await fetch(`${backendApiUrl}/api/admin/sync-token`, {
+         fetch(`${backendApiUrl}/api/admin/sync-token`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -38,24 +53,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           body: JSON.stringify({
             shop,
             access_token: tokenToSync,
-            token_type: tokenType,
+            token_type: "online",
             force: true
           }),
-        });
-
-        if (!resp.ok) {
-          const text = await resp.text().catch(() => "");
-          console.error("[Token Sync] Failed", { status: resp.status, body: text });
-        } else {
-          console.log("[Token Sync] OK", { shop, tokenType, status: resp.status });
-        }
+        }).catch(err => console.error("[Token Sync] Async fail", err));
       }
     }
   } catch (e) {
     console.error("[Token Sync] Failed", e);
   }
 
-  // eslint-disable-next-line no-undef
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
 
