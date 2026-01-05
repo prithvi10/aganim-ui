@@ -7,36 +7,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = url.searchParams.get("shop");
   console.log(`[🔍 Trail] Landing Page Loader hit. Shop param: ${shop}`);
 
-  try {
-    // 1. Attempt Authentication
+  // 1. Attempt Authentication
+    // FIX: Allow authenticate.admin to handle 401s naturally.
+    // We removed the manual try/catch that was forcing a redirect to /auth/login,
+    // as this breaks the standard App Bridge re-authentication flow.
     const { session } = await authenticate.admin(request);
     console.log(`[🔍 Trail] ✅ Authentication Success! Session Shop: ${session.shop}`);
     return { shop: session.shop };
 
-  } catch (error) {
-    // 2. Intercept Authentication Failures
-    if (error instanceof Response) {
-      const status = error.status;
-      console.log(`[🔍 Trail] ⚠️ Auth Response Caught. Status: ${status}`);
-
-      // CRITICAL FIX: If Shopify throws a 401 (Unauthorized), we MUST force a login.
-      // Re-throwing the 401 here causes the iframe to hang/loop.
-      if (status === 401 || status === 403) {
-        if (shop) {
-          console.log(`[🔍 Trail] 🛡️ 401 Detected. Forcing manual redirect to /auth/login`);
-          throw redirect(`/auth/login?shop=${shop}`);
-        }
-      }
-      
-      // If it's a 302 (Redirect), let Remix handle it normally (this starts OAuth)
-      throw error;
-    }
-    
-    // 3. Handle unexpected errors
-    console.error(`[🔍 Trail] 💥 Unexpected Error:`, error);
-    if (shop) throw redirect(`/auth/login?shop=${shop}`);
-    throw error;
-  }
+  /* 
+   * REMOVED: Manual try/catch block.
+   * Reason: Catching 401s here and redirecting to /auth/login prevents App Bridge
+   * from handling the re-auth headers correctly, causing "Refused to display" errors.
+   */
 };
 
 export default function LandingPage() {

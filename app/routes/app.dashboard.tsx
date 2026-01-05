@@ -221,6 +221,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     };
 
   } catch (e) {
+    // FIX: If the error is a Response (redirect), we MUST re-throw it
+    // so the browser follows the redirect (e.g. to Shopify OAuth).
+    if (e instanceof Response) {
+      throw e;
+    }
+
     console.error("Dashboard Loader Failed", e);
     // Return a safe fallback state instead of crashing
     return {
