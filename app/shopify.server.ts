@@ -1,4 +1,17 @@
 import "@shopify/shopify-app-react-router/adapters/node";
+// ----------------------------------------------------------------------
+// ✅ FIX: Add this patch to prevent "Do not know how to serialize a BigInt"
+// This prevents the app from crashing silently (Blank Screen).
+// ----------------------------------------------------------------------
+declare global {
+  interface BigInt {
+    toJSON(): string;
+  }
+}
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+// ----------------------------------------------------------------------
 import {
   ApiVersion,
   AppDistribution,
@@ -31,6 +44,7 @@ const SHOPIFY_APP_URL = (() => {
 console.log("[Init] Initializing Shopify App Server...");
 console.log(`[Init] Prisma Client Status: ${prisma ? 'Connected' : 'Missing'}`);
 const storage = new PrismaSessionStorage(prisma);
+
 
 const shopify = shopifyApp({
   apiKey: SHOPIFY_API_KEY,
