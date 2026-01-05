@@ -1,5 +1,5 @@
 import { Page, Layout, Card, Text, BlockStack, Button, ActionList } from "@shopify/polaris";
-import { type LoaderFunctionArgs } from "react-router";
+import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 
 // Simplified loader - just gets the shop param for constructing links if needed,
 // but skips the heavy authentication check to avoid loops.
@@ -11,6 +11,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function LandingPage() {
+  const { shop } = useLoaderData<typeof loader>();
+  const shopSlug = shop.replace(".myshopify.com", "");
+  const themeEditorUrl = shopSlug
+    ? `https://admin.shopify.com/store/${shopSlug}/themes/current/editor`
+    : "https://admin.shopify.com/";
+
   return (
     <Page title="Cross-Border AI">
       <Layout>
@@ -39,7 +45,7 @@ export default function LandingPage() {
             <ActionList
               items={[
                 {content: 'Manage Plans', url: '/app/plans'},
-                {content: 'Extension Settings (Theme Editor)', url: 'https://admin.shopify.com/store/test-crossborder-connect-new/themes/current/editor', target: '_blank', external: true}
+                {content: 'Extension Settings (Theme Editor)', url: themeEditorUrl, target: '_blank', external: true}
               ]}
             />
           </Card>

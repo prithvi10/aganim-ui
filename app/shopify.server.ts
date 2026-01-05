@@ -37,8 +37,20 @@ const SHOPIFY_APP_URL_RAW = requireEnv("SHOPIFY_APP_URL");
 requireEnv("DATABASE_URL_UI");
 
 const SHOPIFY_APP_URL = (() => {
-  try { return new URL(SHOPIFY_APP_URL_RAW).origin; } 
-  catch { throw new Error(`[Config] Invalid SHOPIFY_APP_URL: ${SHOPIFY_APP_URL_RAW}`); }
+  try {
+    const u = new URL(SHOPIFY_APP_URL_RAW);
+    // IMPORTANT: appUrl must be the ORIGIN only (no path/query/hash) or embedded auth can loop/401.
+    if (u.pathname !== "/" || u.search || u.hash) {
+      throw new Error(
+        `[Config] SHOPIFY_APP_URL must be an origin (e.g. https://shopify-translator-ui.onrender.com) but got: ${SHOPIFY_APP_URL_RAW}`
+      );
+    }
+    return u.origin;
+  } catch (e: any) {
+    throw new Error(
+      `[Config] Invalid SHOPIFY_APP_URL: ${SHOPIFY_APP_URL_RAW}. ${e?.message ?? ""}`.trim()
+    );
+  }
 })();
 // 1. Force Log to check DB connection
 console.log("[Init] Initializing Shopify App Server...");
@@ -56,7 +68,8 @@ const shopify = shopifyApp({
   sessionStorage: storage, // Using the Prisma storage explicitly
   distribution: AppDistribution.AppStore,
   isEmbeddedApp: true,
-  useOnlineTokens: true,
+  // Prefer offline tokens for server-to-server + theme widget operations
+  useOnlineTokens: false,
   future: {
     // FIX 1: Disable expiring offline tokens to prevent random 401s
     expiringOfflineAccessTokens: false, 
