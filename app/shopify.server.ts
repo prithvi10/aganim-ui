@@ -34,7 +34,6 @@ function requireEnv(name: string): string {
 const SHOPIFY_API_KEY = requireEnv("SHOPIFY_API_KEY");
 const SHOPIFY_API_SECRET = requireEnv("SHOPIFY_API_SECRET");
 const SHOPIFY_APP_URL_RAW = requireEnv("SHOPIFY_APP_URL");
- encourages
 const SCOPES_RAW = requireEnv("SCOPES");
 requireEnv("DATABASE_URL_UI");
 
