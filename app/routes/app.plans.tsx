@@ -10,9 +10,10 @@ import {
   ExceptionList,
 } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
-import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
 import { useLoaderData, useNavigation } from "react-router";
 import { authenticate } from "../shopify.server";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge-utils";
 import type { ClientApplication } from "@shopify/app-bridge";
@@ -59,6 +60,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   return null;
+};
+
+export const headers: HeadersFunction = (headersArgs) => {
+  return boundary.headers(headersArgs);
 };
 
 export default function PlansPage() {
