@@ -23,7 +23,20 @@ function requireEnv(name: string): string {
 
 const SHOPIFY_API_KEY = requireEnv("SHOPIFY_API_KEY");
 const SHOPIFY_API_SECRET = requireEnv("SHOPIFY_API_SECRET");
-const SHOPIFY_APP_URL = requireEnv("SHOPIFY_APP_URL");
+const SHOPIFY_APP_URL_RAW = requireEnv("SHOPIFY_APP_URL");
+// Prisma datasource uses DATABASE_URL_UI (see prisma/schema.prisma)
+requireEnv("DATABASE_URL_UI");
+
+// shopifyApp expects an app "base URL". If SHOPIFY_APP_URL includes a path like `/app`,
+// normalize it down to origin to avoid callback/redirect mismatches (e.g. `/auth/*`).
+const SHOPIFY_APP_URL = (() => {
+  try {
+    return new URL(SHOPIFY_APP_URL_RAW).origin;
+  } catch {
+    // If someone sets a bare host without protocol, fail clearly.
+    throw new Error(`[Config] Invalid SHOPIFY_APP_URL: ${SHOPIFY_APP_URL_RAW}`);
+  }
+})();
 
 const shopify = shopifyApp({
   apiKey: SHOPIFY_API_KEY,
