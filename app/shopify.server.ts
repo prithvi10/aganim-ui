@@ -72,51 +72,76 @@ export const sessionStorage = shopify.sessionStorage;
  * Retrieve an offline session for a shop.
  */
 export async function getOfflineAdminContext(shop: string) {
-  if (!shop) return null;
+  console.log(`[🔍 Trail] getOfflineAdminContext called for shop: ${shop}`);
+
+  if (!shop) {
+    console.log(`[🔍 Trail] ❌ Missing shop parameter. Returning null.`);
+    return null;
+  }
 
   try {
+    // 1. Check DB for session
+    console.log(`[🔍 Trail] Searching Prisma for offline session...`);
     const sessions = await sessionStorage.findSessionsByShop(shop);
-    // FIX 2: Sort by date to get the most recent offline session if multiple exist
-    const offlineSession = sessions
-      ?.filter((s) => s.isOnline === false)
-      .sort((a, b) => (b.expires?.getTime() ?? 0) - (a.expires?.getTime() ?? 0))[0];
+    console.log(`[🔍 Trail] Found ${sessions.length} total sessions for ${shop}`);
 
-    if (!offlineSession || !offlineSession.accessToken) {
-      console.log(`[Auth] No offline session found in DB for ${shop}`);
+    // Filter for offline
+    const offlineSession = sessions?.find((s) => s.isOnline === false);
+    
+    if (!offlineSession) {
+      console.log(`[🔍 Trail] ❌ No OFFLINE session found in DB.`);
       return null;
     }
 
+    if (!offlineSession.accessToken) {
+      console.log(`[🔍 Trail] ❌ Offline session exists but has NO Access Token.`);
+      return null;
+    }
+
+    console.log(`[🔍 Trail] ✅ Valid Offline Session found. Token starts with: ${offlineSession.accessToken.substring(0, 10)}...`);
+
+    // 2. Validate with Shopify Helper
+    console.log(`[🔍 Trail] Calling shopify.unauthenticated.admin()...`);
     const { admin, session } = await shopify.unauthenticated.admin(shop);
+    
+    console.log(`[🔍 Trail] ✅ Unauthenticated Admin Context created successfully.`);
     return { session, graphql: admin.graphql };
-  } catch (err) {
-    console.error("Master Key fetch failed (handled):", err);
+
+  } catch (err: any) {
+    console.error(`[🔍 Trail] 💥 CRITICAL ERROR in getOfflineAdminContext:`, err.message);
+    if (err.response) {
+      console.error(`[🔍 Trail] Response Status: ${err.response.status}`);
+    }
     return null;
   }
 }
 
-/**
- * Helper to fetch offline client AND handle 401s gracefully.
- */
 export async function getOfflineGraphqlClient(shop: string) {
+  console.log(`[🔍 Trail] getOfflineGraphqlClient wrapper called.`);
   const context = await getOfflineAdminContext(shop);
-  if (!context) return null;
+  
+  if (!context) {
+    console.log(`[🔍 Trail] ❌ Context is null. Returning null client.`);
+    return null;
+  }
 
   const graphqlFn = context.graphql;
 
-  // FIX 3: Safe Wrapper that swallows 401s
   const client = {
     query: async ({ data }: { data: string }) => {
       try {
+        console.log(`[🔍 Trail] 📡 Sending GraphQL Request (Offline Client)...`);
         const resp = await graphqlFn(data);
         const body = await resp.json();
+        console.log(`[🔍 Trail] ✅ GraphQL Request Success.`);
         return { body };
       } catch (error: any) {
-        // If the token is invalid (401), we return NULL so the Loader knows to re-auth
+        console.error(`[🔍 Trail] ⚠️ GraphQL Request FAILED.`);
         if (error?.response?.code === 401 || error?.message?.includes("Unauthorized")) {
-          console.warn(`[GraphQL] 401 Unauthorized for ${shop}. Token is dead.`);
-          return null; // The loader will see this null body and trigger re-auth
+           console.warn(`[🔍 Trail] 🛑 401 Unauthorized detected. Token is likely expired.`);
+           return null;
         }
-        throw error; // Throw other errors (syntax, server, etc.)
+        throw error;
       }
     },
   };
