@@ -8,7 +8,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = url.searchParams.get("shop");
 
   if (shop) {
-    throw redirect(`/auth/login?shop=${encodeURIComponent(shop)}`);
+    // IMPORTANT:
+    // Shopify loads the app at the configured application_url. In our config, that is the ORIGIN,
+    // so embedded loads land on `/`. We must redirect into our embedded app shell route (`/app`)
+    // and preserve all query params (host, embedded, etc).
+    url.pathname = "/app";
+    throw redirect(`${url.pathname}${url.search}`);
   }
 
   return { showForm: true };

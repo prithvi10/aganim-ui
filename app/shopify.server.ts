@@ -34,6 +34,8 @@ function requireEnv(name: string): string {
 const SHOPIFY_API_KEY = requireEnv("SHOPIFY_API_KEY");
 const SHOPIFY_API_SECRET = requireEnv("SHOPIFY_API_SECRET");
 const SHOPIFY_APP_URL_RAW = requireEnv("SHOPIFY_APP_URL");
+ encourages
+const SCOPES_RAW = requireEnv("SCOPES");
 requireEnv("DATABASE_URL_UI");
 
 const SHOPIFY_APP_URL = (() => {
@@ -52,6 +54,11 @@ const SHOPIFY_APP_URL = (() => {
     );
   }
 })();
+
+// Helpful startup diagnostics (do NOT log secrets)
+console.log(`[Init] SHOPIFY_APP_URL: ${SHOPIFY_APP_URL}`);
+console.log(`[Init] SHOPIFY_API_KEY: ${SHOPIFY_API_KEY.slice(0, 6)}…`);
+console.log(`[Init] SCOPES: ${SCOPES_RAW}`);
 // 1. Force Log to check DB connection
 console.log("[Init] Initializing Shopify App Server...");
 console.log(`[Init] Prisma Client Status: ${prisma ? 'Connected' : 'Missing'}`);
@@ -62,7 +69,7 @@ const shopify = shopifyApp({
   apiKey: SHOPIFY_API_KEY,
   apiSecretKey: SHOPIFY_API_SECRET,
   apiVersion: ApiVersion.October24, // Use a standard, valid version
-  scopes: process.env.SCOPES?.split(","),
+  scopes: SCOPES_RAW.split(",").map((s) => s.trim()).filter(Boolean),
   appUrl: SHOPIFY_APP_URL,
   authPathPrefix: "/auth",
   sessionStorage: storage, // Using the Prisma storage explicitly
@@ -95,6 +102,43 @@ const shopify = shopifyApp({
         console.log(`[Hook] Token Type: ${session.isOnline ? "Online" : "Offline"}`);
         // This confirms the "save" happened before the redirect
         await storage.storeSession(session); 
+
+        // 3. Sync token to backend immediately so the Theme App Proxy / widget can work.
+        // The widget calls the API directly via app proxy, so the API must have a stored token.
+        try {
+          const backendApiUrl =
+            process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+          const tokenSyncSecret =
+            process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
+
+          if (!tokenSyncSecret) {
+            console.warn("[Hook] TOKEN_SYNC_SECRET_UI (or TOKEN_SYNC_SECRET) not set; skipping backend token sync.");
+            return;
+          }
+
+          if (!session?.accessToken) {
+            console.warn("[Hook] No accessToken present on session; skipping backend token sync.");
+            return;
+          }
+
+          const tokenType = session.isOnline ? "online" : "offline";
+          await fetch(`${backendApiUrl}/api/admin/sync-token`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Token-Sync-Secret": tokenSyncSecret,
+            },
+            body: JSON.stringify({
+              shop: session.shop,
+              access_token: session.accessToken,
+              token_type: tokenType,
+              force: true,
+            }),
+          });
+          console.log(`[Hook] ✅ Synced ${tokenType} token to backend for shop=${session.shop}`);
+        } catch (e) {
+          console.error("[Hook] Backend token sync failed", e);
+        }
       },
     },
   });
