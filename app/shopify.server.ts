@@ -12,74 +12,46 @@ export const MONTHLY_PLAN_BASIC = 'Basic';
 export const MONTHLY_PLAN_STANDARD = 'Standard';
 export const MONTHLY_PLAN_PRO = 'Pro';
 
+// ... (Your Env validation code remains the same) ...
 function requireEnv(name: string): string {
   const val = process.env[name]?.trim();
-  if (!val) {
-    // Fail fast: without these, Shopify HMAC/session validation will always 401.
-    throw new Error(`[Config] Missing required env var: ${name}`);
-  }
+  if (!val) throw new Error(`[Config] Missing required env var: ${name}`);
   return val;
 }
-
 const SHOPIFY_API_KEY = requireEnv("SHOPIFY_API_KEY");
 const SHOPIFY_API_SECRET = requireEnv("SHOPIFY_API_SECRET");
 const SHOPIFY_APP_URL_RAW = requireEnv("SHOPIFY_APP_URL");
-// Prisma datasource uses DATABASE_URL_UI (see prisma/schema.prisma)
 requireEnv("DATABASE_URL_UI");
 
-// shopifyApp expects an app "base URL". If SHOPIFY_APP_URL includes a path like `/app`,
-// normalize it down to origin to avoid callback/redirect mismatches (e.g. `/auth/*`).
 const SHOPIFY_APP_URL = (() => {
-  try {
-    return new URL(SHOPIFY_APP_URL_RAW).origin;
-  } catch {
-    // If someone sets a bare host without protocol, fail clearly.
-    throw new Error(`[Config] Invalid SHOPIFY_APP_URL: ${SHOPIFY_APP_URL_RAW}`);
-  }
+  try { return new URL(SHOPIFY_APP_URL_RAW).origin; } 
+  catch { throw new Error(`[Config] Invalid SHOPIFY_APP_URL: ${SHOPIFY_APP_URL_RAW}`); }
 })();
 
 const shopify = shopifyApp({
   apiKey: SHOPIFY_API_KEY,
   apiSecretKey: SHOPIFY_API_SECRET,
-  apiVersion: ApiVersion.October25,
+  apiVersion: ApiVersion.October24, // Use a standard, valid version
   scopes: process.env.SCOPES?.split(","),
   appUrl: SHOPIFY_APP_URL,
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   isEmbeddedApp: true,
-  // Use online tokens so embedded admin actions (like billing) have a valid session
   useOnlineTokens: true,
   future: {
-    expiringOfflineAccessTokens: true
+    // FIX 1: Disable expiring offline tokens to prevent random 401s
+    expiringOfflineAccessTokens: false, 
   },
   billing: {
     [MONTHLY_PLAN_BASIC]: {
-      lineItems: [
-        {
-          amount: 9.90,
-          currencyCode: 'USD',
-          interval: BillingInterval.Every30Days,
-        }
-      ],
+      lineItems: [{ amount: 9.90, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_STANDARD]: {
-      lineItems: [
-        {
-          amount: 29.90,
-          currencyCode: 'USD',
-          interval: BillingInterval.Every30Days,
-        }
-      ],
+      lineItems: [{ amount: 29.90, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_PRO]: {
-      lineItems: [
-        {
-          amount: 69.90,
-          currencyCode: 'USD',
-          interval: BillingInterval.Every30Days,
-        }
-      ],
+      lineItems: [{ amount: 69.90, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
@@ -88,7 +60,7 @@ const shopify = shopifyApp({
 });
 
 export default shopify;
-export const apiVersion = ApiVersion.October25;
+export const apiVersion = ApiVersion.October24;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
@@ -97,26 +69,23 @@ export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
 
 /**
- * Retrieve an offline session for a shop and return a GraphQL client bound to it.
- * Uses the unauthenticated.admin helper to get a Master Key session (offline token).
+ * Retrieve an offline session for a shop.
  */
-// shopify.server.ts
-
 export async function getOfflineAdminContext(shop: string) {
   if (!shop) return null;
 
   try {
-    // CRITICAL: Check Prisma first. findSessionsByShop returns an array.
     const sessions = await sessionStorage.findSessionsByShop(shop);
-    const offlineSession = sessions?.find((s) => s.isOnline === false);
+    // FIX 2: Sort by date to get the most recent offline session if multiple exist
+    const offlineSession = sessions
+      ?.filter((s) => s.isOnline === false)
+      .sort((a, b) => (b.expires?.getTime() ?? 0) - (a.expires?.getTime() ?? 0))[0];
 
-    // If no session exists in DB yet, return null gracefully instead of 500
     if (!offlineSession || !offlineSession.accessToken) {
       console.log(`[Auth] No offline session found in DB for ${shop}`);
       return null;
     }
 
-    // Now it is safe to get the unauthenticated context
     const { admin, session } = await shopify.unauthenticated.admin(shop);
     return { session, graphql: admin.graphql };
   } catch (err) {
@@ -126,20 +95,29 @@ export async function getOfflineAdminContext(shop: string) {
 }
 
 /**
- * Lightweight helper to fetch the offline GraphQL client + session.
+ * Helper to fetch offline client AND handle 401s gracefully.
  */
 export async function getOfflineGraphqlClient(shop: string) {
   const context = await getOfflineAdminContext(shop);
   if (!context) return null;
 
-  // Adapt the callable `admin.graphql` helper into the `{ query({data}) }` shape
-  // used throughout the loaders.
-  const graphqlFn = context.graphql as (query: string) => Promise<Response>;
+  const graphqlFn = context.graphql;
+
+  // FIX 3: Safe Wrapper that swallows 401s
   const client = {
     query: async ({ data }: { data: string }) => {
-      const resp = await graphqlFn(data);
-      const body = await resp.json();
-      return { body };
+      try {
+        const resp = await graphqlFn(data);
+        const body = await resp.json();
+        return { body };
+      } catch (error: any) {
+        // If the token is invalid (401), we return NULL so the Loader knows to re-auth
+        if (error?.response?.code === 401 || error?.message?.includes("Unauthorized")) {
+          console.warn(`[GraphQL] 401 Unauthorized for ${shop}. Token is dead.`);
+          return null; // The loader will see this null body and trigger re-auth
+        }
+        throw error; // Throw other errors (syntax, server, etc.)
+      }
     },
   };
 
