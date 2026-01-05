@@ -1,4 +1,4 @@
-import { Page, Layout, Card, Text, BlockStack, Button, ActionList } from "@shopify/polaris";
+import { Page, Layout, Card, Text, BlockStack, Button } from "@shopify/polaris";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 
 // Simplified loader - just gets the shop param for constructing links if needed,
@@ -35,19 +35,32 @@ export default function LandingPage() {
                   but simplifying the main flow to avoid the auth loop.
                 */}
                 <Button variant="plain" url="/app/dashboard">Go to Dashboard (Advanced)</Button>
+                <Button
+                  onClick={() => {
+                    // Shopify admin cannot be iframed; escape the embedded iframe.
+                    window.open(themeEditorUrl, "_top");
+                  }}
+                >
+                  Open Theme Editor (Widget Settings)
+                </Button>
               </BlockStack>
             </BlockStack>
           </Card>
         </Layout.Section>
         
         <Layout.AnnotatedSection title="Quick Actions" description="Jump straight to key features.">
-           <Card>
-            <ActionList
-              items={[
-                {content: 'Manage Plans', url: '/app/plans'},
-                {content: 'Extension Settings (Theme Editor)', url: themeEditorUrl, target: '_blank', external: true}
-              ]}
-            />
+          <Card>
+            <BlockStack gap="200">
+              <Button url="/app/plans">Manage Plans</Button>
+              <Button
+                onClick={() => {
+                  // Shopify admin cannot be iframed; escape the embedded iframe.
+                  window.open(themeEditorUrl, "_top");
+                }}
+              >
+                Extension Settings (Theme Editor)
+              </Button>
+            </BlockStack>
           </Card>
         </Layout.AnnotatedSection>
       </Layout>
