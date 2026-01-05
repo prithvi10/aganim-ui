@@ -27,6 +27,10 @@ const SHOPIFY_APP_URL = (() => {
   try { return new URL(SHOPIFY_APP_URL_RAW).origin; } 
   catch { throw new Error(`[Config] Invalid SHOPIFY_APP_URL: ${SHOPIFY_APP_URL_RAW}`); }
 })();
+// 1. Force Log to check DB connection
+console.log("[Init] Initializing Shopify App Server...");
+console.log(`[Init] Prisma Client Status: ${prisma ? 'Connected' : 'Missing'}`);
+const storage = new PrismaSessionStorage(prisma);
 
 const shopify = shopifyApp({
   apiKey: SHOPIFY_API_KEY,
@@ -35,7 +39,7 @@ const shopify = shopifyApp({
   scopes: process.env.SCOPES?.split(","),
   appUrl: SHOPIFY_APP_URL,
   authPathPrefix: "/auth",
-  sessionStorage: new PrismaSessionStorage(prisma),
+  sessionStorage: storage, // Using the Prisma storage explicitly
   distribution: AppDistribution.AppStore,
   isEmbeddedApp: true,
   useOnlineTokens: true,
@@ -57,7 +61,16 @@ const shopify = shopifyApp({
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
-});
+    hooks: {
+      afterAuth: async ({ session }) => {
+        // 2. Add a hook to log EXACTLY when a session is saved
+        console.log(`[Hook] afterAuth: Session created for shop: ${session.shop}`);
+        console.log(`[Hook] Token Type: ${session.isOnline ? "Online" : "Offline"}`);
+        // This confirms the "save" happened before the redirect
+        await storage.storeSession(session); 
+      },
+    },
+  });
 
 export default shopify;
 export const apiVersion = ApiVersion.October24;
@@ -115,6 +128,8 @@ export async function getOfflineAdminContext(shop: string) {
     return null;
   }
 }
+
+
 
 export async function getOfflineGraphqlClient(shop: string) {
   console.log(`[🔍 Trail] getOfflineGraphqlClient wrapper called.`);

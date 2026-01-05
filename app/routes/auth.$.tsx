@@ -1,30 +1,43 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { authenticate } from "../shopify.server";
+import { authenticate, sessionStorage } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  console.log("[🔍 Trail] 📥 Auth Callback Hit! Exchanging codes...");
-  
+  console.log("[🔍 Trail] 📥 Auth Callback Hit! Processing...");
+
   try {
-    // This completes OAuth and saves the session.
-    // SUCCESS BEHAVIOR: It THROWS a response (Redirect or 200 OK script) to the browser.
+    // 1. Complete the OAuth Handshake
     await authenticate.admin(request);
     
-    // This line is rarely reached because the line above throws.
-    return null; 
+    // Code below is usually unreachable because authenticate() throws a redirect.
+    return null;
+
   } catch (error) {
-    // 1. Check if the "error" is actually a Successful Remix Response
+    // 2. Intercept the Success Response
     if (error instanceof Response) {
-      const status = error.status;
-      // Status 200 = OK (Exit Iframe Script), 302 = Redirect
-      if (status === 200 || status === 302) {
-         console.log(`[🔍 Trail] ✅ Auth Success! Shopify is redirecting via (Status: ${status}).`);
-         // We must THROW this response so the browser receives it and moves to the app.
-         throw error;
+      const url = new URL(request.url);
+      const shop = url.searchParams.get("shop");
+      
+      if (shop) {
+        // 3. PROOF OF LIFE: Check DB immediately
+        console.log(`[🔍 Trail] 🕵️ Checking DB for session: ${shop}...`);
+        const sessions = await sessionStorage.findSessionsByShop(shop);
+        
+        if (sessions.length === 0) {
+            console.error("[🔍 Trail] 🚨 CRITICAL FAILURE: Auth succeeded but NO session found in DB!");
+            console.error("[🔍 Trail] 🚨 Check your Prisma Schema and Database Connection.");
+        } else {
+            console.log(`[🔍 Trail] ✅ SUCCESS: Found ${sessions.length} sessions in DB.`);
+            const offline = sessions.find(s => !s.isOnline);
+            console.log(`[🔍 Trail] 🔑 Offline Token Status: ${offline ? "Present" : "MISSING"}`);
+        }
       }
+      
+      // 4. Proceed with the redirect
+      throw error;
     }
     
-    // 2. Real Errors (DB connection failed, Invalid secrets, etc.)
-    console.error("[🔍 Trail] 💥 CRITICAL: Real Auth Callback Error:", error);
+    // Real errors
+    console.error("[🔍 Trail] 💥 Auth Error:", error);
     throw error;
   }
 };
