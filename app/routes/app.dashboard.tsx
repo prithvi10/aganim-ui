@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Page,
   Layout,
@@ -240,6 +241,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       isSyncing: false
     };
   }
+};
+
+export const headers: HeadersFunction = (headersArgs) => {
+  return boundary.headers(headersArgs);
 };
 
 export default function Dashboard() {
