@@ -169,10 +169,26 @@
                 console.error("[CrossBorder] Locale fetch failed status:", response.status);
                 checklist.innerHTML = '';
                 errorDiv.style.display = 'block';
+                let detail = "";
+                try {
+                    const errJson = await response.json();
+                    detail = errJson?.detail || "";
+                } catch (_) {
+                    // ignore
+                }
+
                 if (response.status === 401) {
-                    errorDiv.textContent = "Please log in to the app to sync your markets.";
+                    // Distinguish between "shop not authenticated" vs "invalid proxy signature"
+                    if ((detail || "").toLowerCase().includes("invalid signature")) {
+                        errorDiv.textContent = "Widget authentication error (invalid app proxy signature). Please verify the app proxy settings and app secret.";
+                    } else {
+                        // Provide an admin link (admin pages cannot be iframed; open in top window)
+                        const shopSlug = "{{ shop.permanent_domain | replace: '.myshopify.com', '' }}";
+                        const adminAppUrl = `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app`;
+                        errorDiv.innerHTML = `Please open the app in Shopify Admin to sync your markets. <a href="${adminAppUrl}" target="_top" style="color:#008060;text-decoration:underline;">Open app</a>`;
+                    }
                 } else {
-                    errorDiv.textContent = `Unable to load markets (Status: ${response.status}). Is the app installed?`;
+                    errorDiv.textContent = `Unable to load markets (Status: ${response.status}). ${detail ? `(${detail})` : "Is the app installed?"}`;
                 }
             }
         } catch (e) {
