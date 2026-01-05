@@ -63,20 +63,47 @@ const TRANSLATIONS = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  console.log(`[🔍 Trail] --------------------------------------------------`);
+  console.log(`[🔍 Trail] DASHBOARD LOADER STARTED`);
   const url = new URL(request.url);
   const shopParam = url.searchParams.get("shop");
+  console.log(`[🔍 Trail] Shop Param from URL: ${shopParam}`);
   
   // 1. Try to get the "Master Key" (Offline Client) first.
   //    This avoids the 302 redirect loop by talking server-to-server.
+  console.log(`[🔍 Trail] Step 1: Requesting Master Key context...`);
   let offlineContext = shopParam ? await getOfflineGraphqlClient(shopParam) : null;
 
   // 2. SELF-HEALING: If no Master Key exists, we MUST trigger standard auth to create one.
-  if (!offlineContext) {
-    console.log("[Dashboard] No offline token found. Triggering repair...");
-    return await authenticate.admin(request);
+  let client;
+  let session;
+
+  if (offlineContext) {
+    console.log(`[🔍 Trail] ✅ Master Key Acquired. Proceeding to Data Fetch.`);
+    client = offlineContext.client;
+    session = offlineContext.session;
+  } else {
+    console.log(`[🔍 Trail] 🛑 Master Key returned NULL.`);
+    console.log(`[🔍 Trail] 🚑 TRIGGERING SELF-HEALING: Calling authenticate.admin()...`);
+    // This will throw a redirect if not authenticated
+    const { admin, session: onlineSession } = await authenticate.admin(request);
+    session = onlineSession;
+    
+    // Adapt standard admin.graphql to match our custom client interface
+    client = {
+      query: async ({ data }: { data: string }) => {
+        try {
+          const response = await admin.graphql(data);
+          const body = await response.json();
+          return { body };
+        } catch (error) {
+          console.error("[Dashboard] Online client query failed", error);
+          return null;
+        }
+      }
+    };
   }
 
-  const { client, session } = offlineContext;
   const shop = session.shop;
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
 
@@ -105,15 +132,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     
     // The client.query wrapper in shopify.server.ts handles 401s by returning null
     const localeResponse = await client.query({ data: localeQuery });
-
+    console.log(`[🔍 Trail] ✅ Locale Response received. Status: ${localeResponse ? "OK" : "NULL"}`);
     if (!localeResponse) {
+      console.warn(`[🔍 Trail] 🛑 Locale Fetch returned NULL (401 caught by wrapper).`);
+      console.warn(`[🔍 Trail] 🚑 TRIGGERING RE-AUTH (Self-Healing)...`);
       console.warn("[Dashboard] Master Key is dead (401). Triggering re-auth.");
-      return await authenticate.admin(request);
+      await authenticate.admin(request);
+      return {
+        activeMarketsCount: 0,
+        usage: { used: 0, quota: 1000, planName: "Free" },
+        planName: "Free",
+        trialDays: 0,
+        backendError401: false,
+        isAuthenticating: false,
+        needsReauth: true,
+        isSyncing: false
+      };
     }
-
+    console.log(`[🔍 Trail] ✅ Locales Fetched Successfully. Count: ${localeResponse.body?.data?.shopLocales?.length}`);
     const locales = localeResponse.body?.data?.shopLocales || [];
     activeMarketsCount = locales.filter((l: any) => l.published).length;
-
+    console.log(`[🔍 Trail] ✅ Active Markets Count: ${activeMarketsCount}`);
     // B. Fetch Billing/Plan
     const billingQuery = `
       query {
@@ -129,7 +168,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     
     // Double check token health
     if (!billingResponse) {
-      return await authenticate.admin(request);
+      await authenticate.admin(request);
+      return {
+        activeMarketsCount: 0,
+        usage: { used: 0, quota: 1000, planName: "Free" },
+        planName: "Free",
+        trialDays: 0,
+        backendError401: false,
+        isAuthenticating: false,
+        needsReauth: true,
+        isSyncing: false
+      };
     }
 
     const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
