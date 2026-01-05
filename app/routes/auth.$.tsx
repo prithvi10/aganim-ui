@@ -1,14 +1,17 @@
-
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import { boundary } from "@shopify/shopify-app-react-router/server";
 
-// Standard Shopify auth flow for the UI: let authenticate.admin handle OAuth and session setup.
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return null;
-};
-
-export const headers: HeadersFunction = (headersArgs) => {
-  return boundary.headers(headersArgs);
+  console.log("[🔍 Trail] 📥 Auth Callback Hit! Shopify returned the user.");
+  
+  try {
+    // This function completes the OAuth flow and SAVES the session to Prisma
+    await authenticate.admin(request);
+    
+    console.log("[🔍 Trail] ✅ Session Saved to DB. Redirecting to App...");
+    return null; 
+  } catch (error) {
+    console.error("[🔍 Trail] 💥 Auth Callback Failed:", error);
+    throw error;
+  }
 };
