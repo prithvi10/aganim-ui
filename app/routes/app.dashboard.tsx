@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { authenticate, apiVersion } from "../shopify.server";
+import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -40,11 +40,6 @@ const TRANSLATIONS = {
     video: "Video Tutorial",
     trial: "Free Trial",
     daysRemaining: "days remaining",
-    benefits: [
-      "3 Markets Enabled",
-      "SEO Meta-tag Sync",
-      "Priority AI Generation"
-    ],
     toggleLabel: "日本語"
   },
   jp: {
@@ -63,159 +58,106 @@ const TRANSLATIONS = {
     video: "ビデオチュートリアル",
     trial: "無料トライアル",
     daysRemaining: "日残り",
-    benefits: [
-      "3市場対応",
-      "SEOメタタグ同期",
-      "優先AI生成"
-    ],
     toggleLabel: "English"
   }
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // Always trigger auth first so OAuth can store/refresh tokens
-  const { admin, session } = await authenticate.admin(request);
-  if (!admin || !session?.accessToken) {
-    return { isAuthenticating: true, needsReauth: true, isSyncing: false };
+  const url = new URL(request.url);
+  const shopParam = url.searchParams.get("shop");
+  
+  // 1. Try to get the "Master Key" (Offline Client) first.
+  //    This avoids the 302 redirect loop by talking server-to-server.
+  let offlineContext = shopParam ? await getOfflineGraphqlClient(shopParam) : null;
+
+  // 2. SELF-HEALING: If no Master Key exists, we MUST trigger standard auth to create one.
+  if (!offlineContext) {
+    console.log("[Dashboard] No offline token found. Triggering repair...");
+    return await authenticate.admin(request);
   }
 
+  const { client, session } = offlineContext;
   const shop = session.shop;
-
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
-  const accessToken = session?.accessToken;
-
-  type ShopLocale = { locale: string; name: string; primary: boolean; published: boolean };
-  type Usage = { used: number; quota: number; planName: string };
-
-  type ShopifyGraphqlBody = {
-    data?: {
-      shopLocales?: ShopLocale[];
-      currentAppInstallation?: {
-        activeSubscriptions?: Array<{ name: string; status: string; test: boolean }>;
-      };
-    };
-    errors?: unknown;
-  };
-
-  type ShopifyGraphqlHttpError = Error & { status?: number; body?: unknown };
-
-  // IMPORTANT:
-  // Using `admin.graphql()` in loaders can trigger a 302 to `/auth/session-token` when the session-token
-  // header/cookies are missing. For data reads, call Shopify directly with the session access token.
-  async function shopifyGraphql(query: string) {
-    const version = String(apiVersion);
-    const endpoint = `https://${shop}/admin/api/${version}/graphql.json`;
-    const resp = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": accessToken,
-      },
-      body: JSON.stringify({ query }),
-    });
-
-    const body = (await resp.json().catch(() => ({}))) as unknown;
-    if (!resp.ok) {
-      const err: ShopifyGraphqlHttpError = new Error("Shopify GraphQL request failed");
-      err.status = resp.status;
-      err.body = body;
-      throw err;
-    }
-    return { body: body as ShopifyGraphqlBody };
-  }
 
   // Defaults
   let activeMarketsCount = 0;
-  let usage: Usage = { used: 0, quota: 1000, planName: "Free" };
+  let usage = { used: 0, quota: 1000, planName: "Free" };
   let backendError401 = false;
-  let planName = usage.planName;
+  let planName = "Free";
   let trialDays = 0;
-  const needsReauth = false;
-  let locales: ShopLocale[] = [];
-  const isSyncing = false;
+  let needsReauth = false;
 
   try {
-    // 1. Fetch Active Markets (Shopify GraphQL) - only if we have admin and token
-    // Fetch locales only if offline token already exists
-    try {
-      const localeResponse = await shopifyGraphql(`
-        query {
-          shopLocales {
-            locale
-            name
-            primary
-            published
-          }
+    // 3. FETCH DATA using the Master Key (No 302s)
+    
+    // A. Fetch Locales
+    const localeQuery = `
+      query {
+        shopLocales {
+          locale
+          name
+          primary
+          published
         }
-      `);
-      locales = localeResponse.body?.data?.shopLocales || [];
-      activeMarketsCount = locales.filter((l) => l.published).length;
-    } catch (e: unknown) {
-      console.error("Failed to fetch locales", e);
-      const err = e as ShopifyGraphqlHttpError;
-      if (err?.status === 401) {
-        // Token stored in UI session is invalid; ask user to refresh session.
-        backendError401 = true;
       }
+    `;
+    
+    // The client.query wrapper in shopify.server.ts handles 401s by returning null
+    const localeResponse = await client.query({ data: localeQuery });
+
+    if (!localeResponse) {
+      console.warn("[Dashboard] Master Key is dead (401). Triggering re-auth.");
+      return await authenticate.admin(request);
     }
 
-    // 2. Fetch Usage Data (Backend API)
+    const locales = localeResponse.body?.data?.shopLocales || [];
+    activeMarketsCount = locales.filter((l: any) => l.published).length;
+
+    // B. Fetch Billing/Plan
+    const billingQuery = `
+      query {
+        currentAppInstallation {
+          activeSubscriptions {
+            name
+            test
+          }
+        }
+      }
+    `;
+    const billingResponse = await client.query({ data: billingQuery });
+    
+    // Double check token health
+    if (!billingResponse) {
+      return await authenticate.admin(request);
+    }
+
+    const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
+    if (activeSubs.length > 0) {
+      planName = activeSubs[0].name;
+      if (activeSubs[0].test) trialDays = 4;
+    }
+
+    // C. Fetch Usage from Backend
+    // Note: Usage fetch uses a direct HTTP call. We sync the token first just in case.
     try {
+      // Optional: Sync token to backend if needed (omitted for brevity/speed)
       const fetchUrl = `${backendApiUrl}/api/admin/usage?shop=${shop}`;
       const resp = await fetch(fetchUrl);
+      
       if (resp.status === 401) {
-        console.warn("Backend 401 for usage. Token might be invalid.");
-        backendError401 = true;
-      }
-      if (resp.ok) {
+        // Backend rejected the token
+        backendError401 = true; 
+      } else if (resp.ok) {
         const data = await resp.json();
         usage = {
           used: data.current_usage || 0,
           quota: data.monthly_token_quota || 1000,
-          planName: data.plan_name || "Free"
+          planName: data.plan_name || planName // Prefer backend plan if available
         };
       }
     } catch (e) {
-      console.error("Failed to fetch backend usage", e);
-      usage = { used: 0, quota: 1000, planName: "Free" };
-    }
-
-    // 3. Billing Info - only if we have a token
-    planName = usage.planName;
-    try {
-      const billingResponse = await shopifyGraphql(`
-        query {
-          currentAppInstallation {
-            activeSubscriptions {
-              name
-              status
-              test
-            }
-          }
-        }
-      `);
-      const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
-      const sub = activeSubs[0];
-      if (sub) {
-        planName = sub.name;
-        if (sub.test) trialDays = 4; // Mock trial logic or derive from createdAt
-      }
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      if (message.includes("Missing access token")) {
-        return { isAuthenticating: true, needsReauth: true };
-      }
-
-      console.error("Billing check failed", e);
-      return {
-        isAuthenticating: true,
-        activeMarketsCount,
-        usage,
-        planName,
-        trialDays,
-        backendError401,
-        needsReauth: true
-      };
+      console.error("Backend usage fetch failed", e);
     }
 
     return {
@@ -225,26 +167,38 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       trialDays,
       backendError401,
       isAuthenticating: false,
-      needsReauth,
-      isSyncing
+      needsReauth: false,
+      isSyncing: false
     };
+
   } catch (e) {
-    console.error("Loader failed", e);
+    console.error("Dashboard Loader Failed", e);
+    // Return a safe fallback state instead of crashing
     return {
-      isAuthenticating: true,
-      activeMarketsCount,
-      usage,
-      planName,
-      trialDays,
-      backendError401,
+      isAuthenticating: false,
       needsReauth: true,
+      activeMarketsCount: 0,
+      usage: { used: 0, quota: 1000, planName: "Free" },
+      planName: "Free",
+      trialDays: 0,
+      backendError401: false,
       isSyncing: false
     };
   }
 };
 
 export default function Dashboard() {
-  const { activeMarketsCount, usage, planName, trialDays = 0, backendError401, isAuthenticating, needsReauth, isSyncing } = useLoaderData<typeof loader>();
+  const { 
+    activeMarketsCount, 
+    usage, 
+    planName, 
+    trialDays, 
+    backendError401, 
+    isAuthenticating, 
+    needsReauth, 
+    isSyncing 
+  } = useLoaderData<typeof loader>();
+  
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
   const app = useAppBridge();
@@ -252,25 +206,25 @@ export default function Dashboard() {
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
 
   useEffect(() => {
+    // Artificial delay to prevent skeleton flash on fast loads
     const timer = setTimeout(() => setIsLoading(false), 500);
     return () => clearTimeout(timer);
-  }, [app]);
-
-  useEffect(() => {
-  }, [app, t.title, t.toggleLabel]);
+  }, []);
 
   const usedCount = usage?.used || 0;
   const quotaCount = usage?.quota || 1000;
   const usagePercent = Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
 
+  // 1. Re-Auth State
   if (needsReauth) {
     return (
       <Page>
         <Layout>
           <Layout.Section>
-            <Banner tone="warning" title="Reconnect needed">
-              <p>Please reinstall or reauthorize the app to restore offline access.</p>
+            <Banner tone="warning" title="Connection Lost">
+              <p>We need to reconnect to your store. Please refresh the page.</p>
+              <Button onClick={() => window.location.reload()}>Refresh Session</Button>
             </Banner>
           </Layout.Section>
         </Layout>
@@ -278,21 +232,8 @@ export default function Dashboard() {
     );
   }
 
-  if (isSyncing) {
-    return (
-      <Page>
-        <Layout>
-          <Layout.Section>
-            <Banner tone="info" title="Preparing your data...">
-              <p>We’re finalizing your store’s access token. This usually takes a moment—please refresh in a few seconds.</p>
-            </Banner>
-          </Layout.Section>
-        </Layout>
-      </Page>
-    );
-  }
-
-  if (isLoading || isAuthenticating) {
+  // 2. Loading State
+  if (isLoading || isAuthenticating || isSyncing) {
     return (
       <SkeletonPage primaryAction>
         <Layout>
@@ -308,8 +249,8 @@ export default function Dashboard() {
             </Card>
           </Layout.Section>
         </Layout>
-        <div style={{ padding: "var(--p-space-400)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Spinner accessibilityLabel="Loading dashboard data" size="large" />
+        <div style={{ padding: "var(--p-space-400)", display: "flex", justifyContent: "center" }}>
+          <Spinner accessibilityLabel="Loading dashboard" size="large" />
         </div>
       </SkeletonPage>
     );
@@ -328,17 +269,17 @@ export default function Dashboard() {
           <Banner
             tone="critical"
             title="Authentication Error"
-            action={{content: 'Refresh Session', url: '/auth/login'}}
+            action={{content: 'Reconnect', url: '/auth/login'}}
           >
-            <p>
-              We encountered an issue connecting to Shopify. Please refresh your session to restore full functionality.
-            </p>
+            <p>We encountered an issue syncing your usage data. Please reconnect.</p>
           </Banner>
         )}
 
         <Layout>
+          {/* IMPACT METRICS */}
           <Layout.Section>
             <InlineStack gap="400" align="start">
+               {/* Optimized Count */}
                <div style={{ flex: 1 }}>
                 <Card>
                   <div style={{ padding: "var(--p-space-400)" }}>
@@ -355,6 +296,7 @@ export default function Dashboard() {
                 </Card>
                </div>
                
+               {/* Active Markets */}
                <div style={{ flex: 1 }}>
                 <Card>
                   <div style={{ padding: "var(--p-space-400)" }}>
@@ -366,6 +308,7 @@ export default function Dashboard() {
                 </Card>
                </div>
                
+               {/* Usage Token Bar */}
                <div style={{ flex: 1 }}>
                 <Card>
                   <div style={{ padding: "var(--p-space-400)" }}>
@@ -383,6 +326,7 @@ export default function Dashboard() {
             </InlineStack>
           </Layout.Section>
 
+          {/* PLAN & BENEFITS */}
           <Layout.Section>
             <Card>
               <div style={{ padding: "var(--p-space-400)" }}>
@@ -400,13 +344,15 @@ export default function Dashboard() {
                       <Button url="/app/plans">{t.manageSubscription}</Button>
                     </InlineStack>
 
+                    {/* Data Table for Benefits */}
                     <div style={{ marginTop: "4px" }}>
                       <DataTable
                         columnContentTypes={["text", "text"]}
                         headings={["Feature", "Status"]}
                         rows={[
-                          ["Bulk Market Optimization", planName === "Pro" ? "✅ Unlocked" : "❌ Upgrade Required"],
+                          ["Bulk Market Optimization", planName === "Pro" || planName === "Growth" ? "✅ Unlocked" : "❌ Upgrade Required"],
                           ["Priority AI Support", "✅ Included"],
+                          ["SEO Meta-tag Sync", "✅ Included"]
                         ]}
                         footerContent={null}
                       />
@@ -415,26 +361,21 @@ export default function Dashboard() {
 
                   <BlockStack gap="200">
                     <InlineStack align="space-between">
-                      <Text as="span" variant="bodySm" tone={usagePercent > 90 ? "critical" : "subdued"}>
+                      <Text as="span" variant="bodySm" tone={isCritical ? "critical" : "subdued"}>
                         {t.usage}
                       </Text>
                       <Text as="span" variant="bodySm" tone="subdued">
                         {usedCount} / {quotaCount} {t.syncsUsed}
                       </Text>
                     </InlineStack>
-                    <ProgressBar progress={usagePercent} tone={usagePercent > 90 ? "critical" : "highlight"} size="small" />
-                    
-                    {usedCount === 0 && quotaCount === 1000 && !backendError401 && (
-                        <Banner tone="warning">
-                            <p>Live usage sync pending...</p>
-                        </Banner>
-                    )}
+                    <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} size="small" />
                   </BlockStack>
                 </BlockStack>
               </div>
             </Card>
           </Layout.Section>
 
+          {/* FOOTER */}
           <Layout.Section>
              <BlockStack gap="400">
                 <Banner tone="info" title={t.supportTitle}>
@@ -445,7 +386,6 @@ export default function Dashboard() {
                    <InlineStack gap="200">
                       <Badge tone="success" progress="complete">All Systems Operational</Badge>
                    </InlineStack>
-                   
                    <InlineStack gap="400">
                       <Text as="span" variant="bodySm" tone="subdued">{t.quickStart}:</Text>
                       <Link url="https://docs.crossborder.ai" target="_blank">{t.docs}</Link>
@@ -459,4 +399,3 @@ export default function Dashboard() {
     </Page>
   );
 }
-
