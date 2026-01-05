@@ -36,6 +36,26 @@ shopify app init --template=https://github.com/Shopify/shopify-app-template-reac
 shopify app dev
 ```
 
+#### Local Postgres (required for Prisma session storage)
+
+This app uses Postgres for Prisma session storage and requires `DATABASE_URL_UI`.
+
+1. Start Postgres via Docker:
+
+```shell
+docker compose up -d
+```
+
+2. Create a local `.env`:
+
+- Copy `env.example` to `.env` and adjust if needed.
+
+3. Run:
+
+```shell
+shopify app dev
+```
+
 Press P to open the URL to your app. Once you click install, you can start development.
 
 Local development is powered by [the Shopify CLI](https://shopify.dev/docs/apps/tools/cli). It logs into your partners account, connects to an app, provides environment variables, updates remote config, creates a tunnel and provides commands to generate extensions.
