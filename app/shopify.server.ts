@@ -12,12 +12,25 @@ export const MONTHLY_PLAN_BASIC = 'Basic';
 export const MONTHLY_PLAN_STANDARD = 'Standard';
 export const MONTHLY_PLAN_PRO = 'Pro';
 
+function requireEnv(name: string): string {
+  const val = process.env[name]?.trim();
+  if (!val) {
+    // Fail fast: without these, Shopify HMAC/session validation will always 401.
+    throw new Error(`[Config] Missing required env var: ${name}`);
+  }
+  return val;
+}
+
+const SHOPIFY_API_KEY = requireEnv("SHOPIFY_API_KEY");
+const SHOPIFY_API_SECRET = requireEnv("SHOPIFY_API_SECRET");
+const SHOPIFY_APP_URL = requireEnv("SHOPIFY_APP_URL");
+
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiKey: SHOPIFY_API_KEY,
+  apiSecretKey: SHOPIFY_API_SECRET,
   apiVersion: ApiVersion.October25,
   scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
+  appUrl: SHOPIFY_APP_URL,
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
