@@ -1,7 +1,7 @@
 api_version = "2025-07"
 [[extensions]]
 type = "ui_extension"
-name = "product-ai-action"
+name = "t:name"
 handle = "product-ai-action"
 uid = "57db63ef-b7d1-405e-13cf-31dc7fda86eb7a7c6ada"
 
