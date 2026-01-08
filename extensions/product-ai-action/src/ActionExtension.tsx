@@ -376,7 +376,7 @@ function Extension() {
   return (
     <AdminAction>
       <BlockStack gap="base">
-        <Heading>✨ 越境 AI / Cross-Border AI</Heading>
+        <Heading>越境 AI / Cross-Border AI</Heading>
         <Text>
           商品情報を世界に通用するマーケティング文に変換します。 (Transform product
           info into a world-class marketing copy.)
@@ -425,7 +425,6 @@ function Extension() {
           {/* Upgrade Banner for Free Users */}
           {!isPro && (
             <Banner tone="warning">
-              ✨{' '}
               {plansUrl ? (
                 <Link href={plansUrl} target="_blank">
                   Upgrade to Pro

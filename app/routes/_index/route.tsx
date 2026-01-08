@@ -25,6 +25,11 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
+        <img
+          src="/Icon-final.png"
+          alt="越境 AI / Cross-Border AI"
+          style={{ width: 72, height: 72, marginBottom: 16 }}
+        />
         <h1 className={styles.heading}>A short heading about [your app]</h1>
         <p className={styles.text}>
           A tagline about [your app] that describes your value proposition.
