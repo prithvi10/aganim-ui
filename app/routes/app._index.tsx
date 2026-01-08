@@ -41,6 +41,18 @@ export default function LandingPage() {
           <Card>
             <div style={{ padding: "var(--p-space-500)" }}>
               <BlockStack gap="400">
+                <InlineStack align="start" gap="400">
+                  <img
+                    src="/Icon-final.png"
+                    alt="越境 AI / Cross-Border AI"
+                    style={{ width: 56, height: 56 }}
+                  />
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingXl">
+                      越境 AI / Cross-Border AI
+                    </Text>
+                  </BlockStack>
+                </InlineStack>
                 <InlineStack align="end">
                   <Button
                     variant="plain"
@@ -50,7 +62,7 @@ export default function LandingPage() {
                   </Button>
                 </InlineStack>
 
-                <Text as="h2" variant="headingXl">
+                <Text as="p" variant="bodyMd">
                   {t.welcome}
                 </Text>
 

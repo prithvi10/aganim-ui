@@ -2,7 +2,10 @@
   {% comment %} This is a simplified check. A more secure check might verify staff login status if available {% endcomment %}
 
   <div class="agent-rewriter-container" style="padding: 20px; border: 1px solid #e1e3e5; border-radius: 8px; margin: 20px 0;">
-    <h3>✨ 越境 AI / Cross-Border AI</h3>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom: 8px;">
+      <img src="{{ 'app-icon.png' | asset_url }}" alt="越境 AI / Cross-Border AI" width="28" height="28" style="width:28px;height:28px;" />
+      <h3 style="margin:0;">越境 AI / Cross-Border AI</h3>
+    </div>
     <p>商品情報を世界に通用するマーケティング文に変換します。 (Transform product info into a world-class marketing copy.)</p>
     
     <textarea id="agent-input" rows="4" style="width: 100%; margin-bottom: 10px; padding: 10px;">{{ product.description | escape }}</textarea>
@@ -14,7 +17,7 @@
         </div>
         <div id="locale-error" style="display: none; color: #cc0000; font-size: 0.85em; margin-top: 4px;"></div>
         <div id="bulk-upgrade-msg" style="display: none; margin-top: 8px; font-size: 0.85em; color: #6d7175;">
-            ✨ <a href="https://admin.shopify.com/store/{{ shop.permanent_domain | replace: '.myshopify.com', '' }}/apps/crossborderagent/app/plans" target="_top" style="color: #008060; text-decoration: none; font-weight: bold;">Upgrade to Pro</a> to select multiple markets at once.
+            <a href="https://admin.shopify.com/store/{{ shop.permanent_domain | replace: '.myshopify.com', '' }}/apps/crossborderagent/app/plans" target="_top" style="color: #008060; text-decoration: none; font-weight: bold;">Upgrade to Pro</a> to select multiple markets at once.
         </div>
         <div id="refresh-plan-container" style="display: none; margin-top: 8px;">
             <button id="refresh-plan-btn" type="button" style="background: none; border: none; padding: 0; color: #008060; text-decoration: underline; cursor: pointer; font-size: 0.85em;">
