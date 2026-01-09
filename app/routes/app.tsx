@@ -2,7 +2,7 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server"; // Standard Shopify Boundary
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
+import { AppProvider as PolarisAppProvider, Frame } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
 
@@ -48,12 +48,15 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <PolarisAppProvider i18n={enTranslations}>
-        <s-app-nav>
-          <s-link href="/app">Home</s-link>
-          <s-link href="/app/plans">Plans</s-link>
-          <s-link href="/app/dashboard">Dashboard</s-link>
-        </s-app-nav>
-        <Outlet />
+        <Frame>
+          <s-app-nav>
+            <s-link href="/app">Home</s-link>
+            <s-link href="/app/plans">Plans</s-link>
+            <s-link href="/app/rewriter">Rewriter</s-link>
+            <s-link href="/app/dashboard">Dashboard</s-link>
+          </s-app-nav>
+          <Outlet />
+        </Frame>
       </PolarisAppProvider>
     </AppProvider>
   );

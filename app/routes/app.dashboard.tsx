@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
+import { trail, trailWarn } from "../utils/trail";
 import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
@@ -64,15 +65,15 @@ const TRANSLATIONS = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  console.log(`[🔍 Trail] --------------------------------------------------`);
-  console.log(`[🔍 Trail] DASHBOARD LOADER STARTED`);
+  trail(`[🔍 Trail] --------------------------------------------------`);
+  trail(`[🔍 Trail] DASHBOARD LOADER STARTED`);
   const url = new URL(request.url);
   const shopParam = url.searchParams.get("shop");
-  console.log(`[🔍 Trail] Shop Param from URL: ${shopParam}`);
+  trail(`[🔍 Trail] Shop Param from URL: ${shopParam}`);
   
   // 1. Try to get the "Master Key" (Offline Client) first.
   //    This avoids the 302 redirect loop by talking server-to-server.
-  console.log(`[🔍 Trail] Step 1: Requesting Master Key context...`);
+  trail(`[🔍 Trail] Step 1: Requesting Master Key context...`);
   let offlineContext = shopParam ? await getOfflineGraphqlClient(shopParam) : null;
 
   // 2. SELF-HEALING: If no Master Key exists, we MUST trigger standard auth to create one.
@@ -80,12 +81,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let session;
 
   if (offlineContext) {
-    console.log(`[🔍 Trail] ✅ Master Key Acquired. Proceeding to Data Fetch.`);
+    trail(`[🔍 Trail] ✅ Master Key Acquired. Proceeding to Data Fetch.`);
     client = offlineContext.client;
     session = offlineContext.session;
   } else {
-    console.log(`[🔍 Trail] 🛑 Master Key returned NULL.`);
-    console.log(`[🔍 Trail] 🚑 TRIGGERING SELF-HEALING: Calling authenticate.admin()...`);
+    trail(`[🔍 Trail] 🛑 Master Key returned NULL.`);
+    trail(`[🔍 Trail] 🚑 TRIGGERING SELF-Healing: Calling authenticate.admin()...`);
     // This will throw a redirect if not authenticated
     const { admin, session: onlineSession } = await authenticate.admin(request);
     session = onlineSession;
@@ -133,10 +134,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     
     // The client.query wrapper in shopify.server.ts handles 401s by returning null
     const localeResponse = await client.query({ data: localeQuery });
-    console.log(`[🔍 Trail] ✅ Locale Response received. Status: ${localeResponse ? "OK" : "NULL"}`);
+    trail(`[🔍 Trail] ✅ Locale Response received. Status: ${localeResponse ? "OK" : "NULL"}`);
     if (!localeResponse) {
-      console.warn(`[🔍 Trail] 🛑 Locale Fetch returned NULL (401 caught by wrapper).`);
-      console.warn(`[🔍 Trail] 🚑 TRIGGERING RE-AUTH (Self-Healing)...`);
+      trailWarn(`[🔍 Trail] 🛑 Locale Fetch returned NULL (401 caught by wrapper).`);
+      trailWarn(`[🔍 Trail] 🚑 TRIGGERING RE-AUTH (Self-Healing)...`);
       console.warn("[Dashboard] Master Key is dead (401). Triggering re-auth.");
       await authenticate.admin(request);
       return {
@@ -150,10 +151,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         isSyncing: false
       };
     }
-    console.log(`[🔍 Trail] ✅ Locales Fetched Successfully. Count: ${localeResponse.body?.data?.shopLocales?.length}`);
+    trail(`[🔍 Trail] ✅ Locales Fetched Successfully. Count: ${localeResponse.body?.data?.shopLocales?.length}`);
     const locales = localeResponse.body?.data?.shopLocales || [];
     activeMarketsCount = locales.filter((l: any) => l.published).length;
-    console.log(`[🔍 Trail] ✅ Active Markets Count: ${activeMarketsCount}`);
+    trail(`[🔍 Trail] ✅ Active Markets Count: ${activeMarketsCount}`);
     // B. Fetch Billing/Plan
     const billingQuery = `
       query {

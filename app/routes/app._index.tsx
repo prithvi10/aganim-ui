@@ -36,6 +36,10 @@ export default function LandingPage() {
     ? `https://admin.shopify.com/store/${shopSlug}/products`
     : "https://admin.shopify.com/";
 
+  const workspaceUrl = shopSlug
+    ? `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/rewriter`
+    : "https://admin.shopify.com/";
+
   const t = useMemo(() => {
     return lang === "jp"
       ? {
@@ -45,9 +49,11 @@ export default function LandingPage() {
             "商品情報を世界に通用するマーケティング文に変換します。",
           welcome: "ようこそ",
           howTo: "使い方（準備中）",
+          openWorkspace: "ワークスペースを開く（リライター）",
           openThemeEditor: "テーマエディタを開く（ウィジェット設定）",
           openProductRewriter: "商品リライターを開く",
           openBulkRewriter: "一括リライトを開く",
+          noteWorkspace: "※ ここからリライターのワークスペースを開きます。",
           noteProductId: "※ いまはデモとして Product ID=123 を開きます。",
           noteBulk: "※ 一括リライトは準備中（いまは商品一覧を開きます）。",
         }
@@ -58,9 +64,11 @@ export default function LandingPage() {
             "Transform product info into a world-class marketing copy.",
           welcome: "Welcome",
           howTo: "How to use (coming soon)",
+          openWorkspace: "Open Rewriter Workspace",
           openThemeEditor: "Open Theme Editor (Widget Settings)",
           openProductRewriter: "Open Product Rewriter",
           openBulkRewriter: "Open Bulk Rewriter",
+          noteWorkspace: "Opens the Rewriter workspace (side-by-side editor).",
           noteProductId: "Note: currently opens a demo Product ID=123.",
           noteBulk: "Note: bulk rewrite is not implemented yet (opens Products list).",
         };
@@ -112,6 +120,17 @@ export default function LandingPage() {
                   </div>
 
                   <BlockStack gap="200">
+                    <Button
+                      onClick={() => {
+                        window.open(workspaceUrl, "_top");
+                      }}
+                    >
+                      {t.openWorkspace}
+                    </Button>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t.noteWorkspace}
+                    </Text>
+
                     <Button
                       onClick={() => {
                         // Shopify admin cannot be iframed; escape the embedded iframe.
