@@ -20,6 +20,7 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 import { BillingInterval } from "@shopify/shopify-app-react-router/server";
+import { trail, trailError, trailWarn } from "./utils/trail";
 
 export const MONTHLY_PLAN_BASIC = 'Basic';
 export const MONTHLY_PLAN_STANDARD = 'Standard';
@@ -155,45 +156,47 @@ export const sessionStorage = shopify.sessionStorage;
  * Retrieve an offline session for a shop.
  */
 export async function getOfflineAdminContext(shop: string) {
-  console.log(`[🔍 Trail] getOfflineAdminContext called for shop: ${shop}`);
+  trail(`[🔍 Trail] getOfflineAdminContext called for shop: ${shop}`);
 
   if (!shop) {
-    console.log(`[🔍 Trail] ❌ Missing shop parameter. Returning null.`);
+    trail(`[🔍 Trail] ❌ Missing shop parameter. Returning null.`);
     return null;
   }
 
   try {
     // 1. Check DB for session
-    console.log(`[🔍 Trail] Searching Prisma for offline session...`);
+    trail(`[🔍 Trail] Searching Prisma for offline session...`);
     const sessions = await sessionStorage.findSessionsByShop(shop);
-    console.log(`[🔍 Trail] Found ${sessions.length} total sessions for ${shop}`);
+    trail(`[🔍 Trail] Found ${sessions.length} total sessions for ${shop}`);
 
     // Filter for offline
     const offlineSession = sessions?.find((s) => s.isOnline === false);
     
     if (!offlineSession) {
-      console.log(`[🔍 Trail] ❌ No OFFLINE session found in DB.`);
+      trail(`[🔍 Trail] ❌ No OFFLINE session found in DB.`);
       return null;
     }
 
     if (!offlineSession.accessToken) {
-      console.log(`[🔍 Trail] ❌ Offline session exists but has NO Access Token.`);
+      trail(`[🔍 Trail] ❌ Offline session exists but has NO Access Token.`);
       return null;
     }
 
-    console.log(`[🔍 Trail] ✅ Valid Offline Session found. Token starts with: ${offlineSession.accessToken.substring(0, 10)}...`);
+    trail(
+      `[🔍 Trail] ✅ Valid Offline Session found. Token starts with: ${offlineSession.accessToken.substring(0, 10)}...`,
+    );
 
     // 2. Validate with Shopify Helper
-    console.log(`[🔍 Trail] Calling shopify.unauthenticated.admin()...`);
+    trail(`[🔍 Trail] Calling shopify.unauthenticated.admin()...`);
     const { admin, session } = await shopify.unauthenticated.admin(shop);
     
-    console.log(`[🔍 Trail] ✅ Unauthenticated Admin Context created successfully.`);
+    trail(`[🔍 Trail] ✅ Unauthenticated Admin Context created successfully.`);
     return { session, graphql: admin.graphql };
 
   } catch (err: any) {
-    console.error(`[🔍 Trail] 💥 CRITICAL ERROR in getOfflineAdminContext:`, err.message);
+    trailError(`[🔍 Trail] 💥 CRITICAL ERROR in getOfflineAdminContext:`, err.message);
     if (err.response) {
-      console.error(`[🔍 Trail] Response Status: ${err.response.status}`);
+      trailError(`[🔍 Trail] Response Status: ${err.response.status}`);
     }
     return null;
   }
@@ -202,11 +205,11 @@ export async function getOfflineAdminContext(shop: string) {
 
 
 export async function getOfflineGraphqlClient(shop: string) {
-  console.log(`[🔍 Trail] getOfflineGraphqlClient wrapper called.`);
+  trail(`[🔍 Trail] getOfflineGraphqlClient wrapper called.`);
   const context = await getOfflineAdminContext(shop);
   
   if (!context) {
-    console.log(`[🔍 Trail] ❌ Context is null. Returning null client.`);
+    trail(`[🔍 Trail] ❌ Context is null. Returning null client.`);
     return null;
   }
 
@@ -215,15 +218,15 @@ export async function getOfflineGraphqlClient(shop: string) {
   const client = {
     query: async ({ data }: { data: string }) => {
       try {
-        console.log(`[🔍 Trail] 📡 Sending GraphQL Request (Offline Client)...`);
+        trail(`[🔍 Trail] 📡 Sending GraphQL Request (Offline Client)...`);
         const resp = await graphqlFn(data);
         const body = await resp.json();
-        console.log(`[🔍 Trail] ✅ GraphQL Request Success.`);
+        trail(`[🔍 Trail] ✅ GraphQL Request Success.`);
         return { body };
       } catch (error: any) {
-        console.error(`[🔍 Trail] ⚠️ GraphQL Request FAILED.`);
+        trailError(`[🔍 Trail] ⚠️ GraphQL Request FAILED.`);
         if (error?.response?.code === 401 || error?.message?.includes("Unauthorized")) {
-           console.warn(`[🔍 Trail] 🛑 401 Unauthorized detected. Token is likely expired.`);
+           trailWarn(`[🔍 Trail] 🛑 401 Unauthorized detected. Token is likely expired.`);
            return null;
         }
         throw error;

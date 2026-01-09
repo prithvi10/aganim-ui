@@ -4,15 +4,16 @@ import { Form, useActionData, useLoaderData } from "react-router";
 import { AppProvider, Page, Card, Text, BlockStack, TextField, Button, Banner } from "@shopify/polaris";
 import { login } from "../shopify.server";
 import { loginErrorMessage } from "./login";
+import { trail } from "../utils/trail";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  console.log("[🔍 Trail] 🔑 Login Page Loader Hit");
+  trail("[🔍 Trail] 🔑 Login Page Loader Hit");
   const errors = loginErrorMessage(await login(request));
   return { errors };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  console.log("[🔍 Trail] 🚀 Login Form Submitted");
+  trail("[🔍 Trail] 🚀 Login Form Submitted");
   const errors = loginErrorMessage(await login(request));
   return { errors };
 };
