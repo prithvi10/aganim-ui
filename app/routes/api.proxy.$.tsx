@@ -15,6 +15,7 @@ function filterForwardHeaders(headers: Headers): Headers {
     "content-type",
     "accept",
     "accept-language",
+    "authorization",
     "user-agent",
     "x-shopify-shop-domain",
   ]);
