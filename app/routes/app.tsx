@@ -53,6 +53,7 @@ export default function App() {
             <s-link href="/app">Home</s-link>
             <s-link href="/app/plans">Plans</s-link>
             <s-link href="/app/rewriter">Rewriter</s-link>
+            <s-link href="/app/marketing">Marketing</s-link>
             <s-link href="/app/dashboard">Dashboard</s-link>
           </s-app-nav>
           <Outlet />
