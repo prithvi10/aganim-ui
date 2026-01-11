@@ -57,6 +57,7 @@ type LoaderData = {
   } | null;
   translationsByLocale: Record<string, {title?: string; descriptionHtml?: string}>;
   backendApiUrl: string;
+  didSelfHeal?: boolean;
 };
 
 function firstOrNull<T>(arr: T[]): T | null {
@@ -147,7 +148,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     !localesRes?.data ||
     !productsRes?.data;
 
+  let didSelfHeal = false;
   if (missingData && usingOfflineClient) {
+    didSelfHeal = true;
     const {admin, session} = await authenticate.admin(request);
     sessionShop = session.shop;
     graphqlQuery = async (query, variables) => {
@@ -259,6 +262,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     selectedProduct,
     translationsByLocale,
     backendApiUrl,
+    didSelfHeal,
   } satisfies LoaderData;
 };
 
@@ -447,7 +451,15 @@ function RichTextEditor({
 }
 
 export default function RewriterWorkspace() {
-  const {planName, primaryLocale, locales, products, selectedProduct, translationsByLocale} =
+  const {
+    planName,
+    primaryLocale,
+    locales,
+    products,
+    selectedProduct,
+    translationsByLocale,
+    didSelfHeal,
+  } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -471,6 +483,7 @@ export default function RewriterWorkspace() {
   const saveFetcher = useFetcher<typeof action>();
 
   const [toastContent, setToastContent] = useState<string | null>(null);
+  const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
 
   const isPro = planName === 'Pro' || planName === 'Growth';
 
@@ -749,6 +762,20 @@ export default function RewriterWorkspace() {
       </Box>
       {toastContent ? (
         <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
+      ) : null}
+      {showSelfHealBanner ? (
+        <Box paddingInline="400" paddingBlockEnd="400">
+          <Banner
+            tone="info"
+            onDismiss={() => setShowSelfHealBanner(false)}
+            title="Reconnected to Shopify—retrying…"
+          >
+            <p>
+              We refreshed your Shopify session because the previous one was expired. If
+              something looks missing, wait a second and refresh this page.
+            </p>
+          </Banner>
+        </Box>
       ) : null}
       <Layout>
         <Layout.Section variant="oneThird">
