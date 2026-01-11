@@ -134,11 +134,40 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
         }
       }`;
 
-  const [planRes, localesRes, productsRes] = await Promise.all([
+  let [planRes, localesRes, productsRes] = await Promise.all([
     graphqlQuery(planQuery),
     graphqlQuery(localesQuery),
     graphqlQuery(productsQuery, usingOfflineClient ? undefined : {first: 50}),
   ]);
+
+  // SELF-HEALING: if offline token is expired, the offline wrapper returns null bodies.
+  // In that case, force standard auth to mint a fresh session and retry with an online client.
+  const missingData =
+    !planRes?.data ||
+    !localesRes?.data ||
+    !productsRes?.data;
+
+  if (missingData && usingOfflineClient) {
+    const {admin, session} = await authenticate.admin(request);
+    sessionShop = session.shop;
+    graphqlQuery = async (query, variables) => {
+      const resp = await admin.graphql(query, {variables});
+      return await resp.json();
+    };
+
+    [planRes, localesRes, productsRes] = await Promise.all([
+      graphqlQuery(planQuery),
+      graphqlQuery(localesQuery),
+      graphqlQuery(
+        `query Products($first: Int!) {
+          products(first: $first, sortKey: TITLE) {
+            edges { node { id title } }
+          }
+        }`,
+        {first: 50},
+      ),
+    ]);
+  }
 
   const subs: {name: string; status?: string}[] =
     planRes?.data?.appInstallation?.activeSubscriptions ?? [];

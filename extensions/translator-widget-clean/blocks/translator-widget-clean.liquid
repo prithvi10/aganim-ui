@@ -112,7 +112,13 @@
         
         try {
             console.log("[CrossBorder] Fetching locales from proxy...");
-            const response = await fetch("/apps/cross-border/shop/locales" + (forceRefresh ? "?refresh=true" : ""));
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+            const response = await fetch("/apps/cross-border/shop/locales" + (forceRefresh ? "?refresh=true" : ""), {
+              signal: controller.signal,
+              cache: "no-store",
+            });
+            clearTimeout(timeoutId);
             
             if (response.ok) {
                 const result = await response.json();
@@ -170,7 +176,7 @@
                 }
             } else {
                 console.error("[CrossBorder] Locale fetch failed status:", response.status);
-                checklist.innerHTML = '';
+                checklist.innerHTML = '<span style="grid-column: 1 / -1; color: #666; font-size: 0.9em; padding: 10px;">Unable to load markets.</span>';
                 errorDiv.style.display = 'block';
                 let detail = "";
                 try {
@@ -196,9 +202,13 @@
             }
         } catch (e) {
             console.error("Failed to fetch locales:", e);
-            checklist.innerHTML = '';
+            checklist.innerHTML = '<span style="grid-column: 1 / -1; color: #666; font-size: 0.9em; padding: 10px;">Unable to load markets.</span>';
             errorDiv.style.display = 'block';
-            errorDiv.textContent = "Connection error. Please refresh.";
+            if (e && e.name === 'AbortError') {
+              errorDiv.textContent = "Timeout loading markets. Please verify App Proxy config and try again.";
+            } else {
+              errorDiv.textContent = "Connection error. Please refresh.";
+            }
         }
       }
       
