@@ -11,13 +11,9 @@ import {
 } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
-import { useLoaderData, useNavigation } from "react-router";
+import { Form, useLoaderData, useNavigation } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { useAppBridge } from "@shopify/app-bridge-react";
-import { getSessionToken } from "@shopify/app-bridge-utils";
-import type { ClientApplication } from "@shopify/app-bridge";
-import type { AppBridgeState } from "@shopify/app-bridge";
 
 // Hardcoded Plan Constants for Client-Side Use
 // We duplicate these here to avoid importing server-side code (shopify.server.ts) into the client bundle
@@ -69,50 +65,8 @@ export const headers: HeadersFunction = (headersArgs) => {
 export default function PlansPage() {
   const { currentPlans } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
-  // Cast through unknown to satisfy typing differences between ShopifyGlobal and ClientApplication
-  const app = useAppBridge() as unknown as ClientApplication<AppBridgeState>;
 
   const isUpgrading = navigation.state === "submitting";
-
-  const handleUpgrade = async (plan: string) => {
-    try {
-      console.info("[Plans] Upgrade clicked", { plan });
-      let token: string | null = null;
-      try {
-        token = await getSessionToken(app);
-        console.info("[Plans] Retrieved session token for billing request");
-      } catch (tokenErr) {
-        console.error("[Plans] Failed to get session token, proceeding without token", tokenErr);
-      }
-      const formData = new FormData();
-      formData.append("plan", plan);
-
-      const resp = await fetch("/app/plans", {
-        method: "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        credentials: "include",
-        body: formData,
-      });
-      console.info("[Plans] Billing request sent", { plan, status: resp.status });
-      if (!resp.ok) {
-        const text = await resp.text();
-        console.error("[Plans] Billing request failed", { status: resp.status, body: text });
-        return;
-      }
-
-      // If Remix returns a redirect to Shopify billing, follow it in the browser
-      if (resp.redirected) {
-        console.info("[Plans] Following redirect to billing confirmation", { url: resp.url });
-        window.location.href = resp.url;
-      } else {
-        console.info("[Plans] No redirect returned; check server logs for billing.request output");
-      }
-    } catch (err) {
-      console.error("Upgrade request failed:", err);
-    }
-  };
 
   const plans = [
     {
@@ -176,15 +130,20 @@ export default function PlansPage() {
                       ))}
                     </BlockStack>
 
-                    <Button
-                      variant="primary"
-                      fullWidth
-                      loading={isUpgrading}
-                      disabled={currentPlans.some(sub => sub.name === plan.name)}
-                      onClick={() => handleUpgrade(plan.name)}
-                    >
-                      {currentPlans.some(sub => sub.name === plan.name) ? "Current Plan" : "Upgrade"}
-                    </Button>
+                    <Form method="post">
+                      <input type="hidden" name="plan" value={plan.name} />
+                      <Button
+                        variant="primary"
+                        fullWidth
+                        submit
+                        loading={isUpgrading}
+                        disabled={currentPlans.some((sub) => sub.name === plan.name)}
+                      >
+                        {currentPlans.some((sub) => sub.name === plan.name)
+                          ? "Current Plan"
+                          : "Upgrade"}
+                      </Button>
+                    </Form>
                   </BlockStack>
                 </Card>
               </Box>
