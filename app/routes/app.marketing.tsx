@@ -288,6 +288,9 @@ export default function MarketingWorkspace() {
   const [seasonalLoading, setSeasonalLoading] = useState(false);
   const [seasonalError, setSeasonalError] = useState<string | null>(null);
   const [holidayInfo, setHolidayInfo] = useState<any | null>(null);
+  const [seasonalCaptionLoading, setSeasonalCaptionLoading] = useState(false);
+  const [seasonalCaptionError, setSeasonalCaptionError] = useState<string | null>(null);
+  const [seasonalCaption, setSeasonalCaption] = useState<string>('');
 
   const [toastContent, setToastContent] = useState<string | null>(null);
 
@@ -416,6 +419,31 @@ export default function MarketingWorkspace() {
       setSeasonalLoading(false);
     }
   }, [callAgent]);
+
+  const generateSeasonalCaption = useCallback(async () => {
+    if (!selectedProduct?.id) return;
+    setSeasonalCaptionLoading(true);
+    setSeasonalCaptionError(null);
+    try {
+      const result = await callAgent(
+        'seasonal_campaign_caption',
+        {
+          id: selectedProduct.id,
+          title: selectedProduct.title,
+          category: selectedProduct.productType,
+          productType: selectedProduct.productType,
+          tags: selectedProduct.tags,
+        },
+        {current_date: new Date().toISOString()},
+      );
+      const text = String(result?.data?.metadata?.copy_text || result?.data?.text || '');
+      setSeasonalCaption(text);
+    } catch (e: any) {
+      setSeasonalCaptionError(e?.message ?? 'Failed to generate seasonal caption.');
+    } finally {
+      setSeasonalCaptionLoading(false);
+    }
+  }, [callAgent, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
   // Run both panels when product changes
   useEffect(() => {
@@ -751,6 +779,46 @@ export default function MarketingWorkspace() {
                       </Button>
                     ) : null}
                   </InlineStack>
+
+                  <Divider />
+
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h3" variant="headingSm">
+                      Seasonal caption
+                    </Text>
+                    <InlineStack gap="200">
+                      <Button onClick={generateSeasonalCaption} disabled={!selectedProduct?.id}>
+                        {seasonalCaptionLoading ? 'Generating…' : 'Generate caption'}
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(seasonalCaption || '');
+                            setToastContent('Caption copied.');
+                          } catch {
+                            setToastContent('Copy failed (clipboard not available).');
+                          }
+                        }}
+                        disabled={!seasonalCaption}
+                        variant="secondary"
+                      >
+                        Copy
+                      </Button>
+                    </InlineStack>
+                  </InlineStack>
+
+                  {seasonalCaptionError ? <Banner tone="critical">{seasonalCaptionError}</Banner> : null}
+                  {seasonalCaption ? (
+                    <Card>
+                      <Box padding="300">
+                        <Text as="p">{seasonalCaption}</Text>
+                      </Box>
+                    </Card>
+                  ) : (
+                    <Text as="p" tone="subdued">
+                      Generate an Instagram-ready caption tied to the upcoming holiday.
+                    </Text>
+                  )}
                 </BlockStack>
               </Box>
             </Card>
