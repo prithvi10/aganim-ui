@@ -40,9 +40,16 @@ function Extension() {
     };
   }, [api]);
 
-  const workspaceUrl = useMemo(() => {
+  const rewriterUrl = useMemo(() => {
     if (!shopSlug) return '';
     const base = `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/rewriter`;
+    if (!productGid) return base;
+    return `${base}?productId=${encodeURIComponent(productGid)}`;
+  }, [productGid, shopSlug]);
+
+  const marketingUrl = useMemo(() => {
+    if (!shopSlug) return '';
+    const base = `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/marketing`;
     if (!productGid) return base;
     return `${base}?productId=${encodeURIComponent(productGid)}`;
   }, [productGid, shopSlug]);
@@ -50,26 +57,32 @@ function Extension() {
   return (
     <AdminAction>
       <BlockStack gap="base">
-        <Heading>越境 AI / Cross-Border AI</Heading>
+        <Heading>Cross-Border AI</Heading>
         <Text>
-          This action opens the Rewriter workspace (side-by-side review) instead
-          of rewriting inside the product page.
+          Open a dedicated workspace page (Rewriter or Marketing) instead of running complex flows inside this overlay.
         </Text>
 
-        {!productGid ? (
-          <Banner tone="warning">No product selected.</Banner>
-        ) : null}
-
+        {!productGid ? <Banner tone="warning">No product selected.</Banner> : null}
         {error ? <Banner tone="critical">{error}</Banner> : null}
 
         <Button
           variant="primary"
-          href={workspaceUrl || undefined}
+          href={rewriterUrl || undefined}
           target="_self"
           onPress={() => api.close()}
-          disabled={!workspaceUrl}
+          disabled={!rewriterUrl}
         >
-          Open Workspace
+          Open Rewriter
+        </Button>
+
+        <Button
+          variant="secondary"
+          href={marketingUrl || undefined}
+          target="_self"
+          onPress={() => api.close()}
+          disabled={!marketingUrl}
+        >
+          Open Marketing
         </Button>
 
         <Button variant="tertiary" onPress={() => api.close()}>
