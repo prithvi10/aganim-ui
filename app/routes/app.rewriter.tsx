@@ -13,6 +13,7 @@ import {
   Text,
   TextField,
   Button,
+  ButtonGroup,
   Divider,
   Box,
   Banner,
@@ -22,11 +23,24 @@ import {
   Toast,
   Tabs,
   Spinner,
+  Tooltip,
+  Icon,
+  Select,
 } from '@shopify/polaris';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useAppBridge} from '@shopify/app-bridge-react';
 import type {ClientApplication} from '@shopify/app-bridge/client';
 import {getSessionToken} from '@shopify/app-bridge/utilities';
+import {
+  CheckIcon,
+  LightbulbIcon,
+  LinkIcon,
+  ListBulletedIcon,
+  ListNumberedIcon,
+  TextBoldIcon,
+  TextItalicIcon,
+  TextUnderlineIcon,
+} from '@shopify/polaris-icons';
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 
@@ -54,6 +68,7 @@ type LoaderData = {
     title: string;
     descriptionHtml: string;
     productType: string;
+    culturalContext?: {value?: string | null} | null;
   } | null;
   translationsByLocale: Record<string, {title?: string; descriptionHtml?: string}>;
   backendApiUrl: string;
@@ -203,6 +218,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               title
               descriptionHtml
               productType
+              culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { value }
             }
           }`,
         )
@@ -213,6 +229,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               title
               descriptionHtml
               productType
+              culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { value }
             }
           }`,
           {id: selectedProductId},
@@ -272,6 +289,41 @@ export const action = async ({request}: ActionFunctionArgs) => {
 
   // Ensure the request is an authenticated embedded-app request.
   const {admin} = await authenticate.admin(request);
+
+  if (intent === 'set_cultural_context') {
+    const productId = String(formData.get('productId') || '');
+    const value = String(formData.get('value') || '');
+    if (!productId) return {ok: false, error: 'Missing productId'};
+    if (!value.trim()) return {ok: false, error: 'Missing value'};
+
+    const resp = await admin.graphql(
+      `mutation SetMetafields($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields { id key namespace value }
+          userErrors { field message }
+        }
+      }`,
+      {
+        variables: {
+          metafields: [
+            {
+              ownerId: productId,
+              namespace: 'crossborderagent',
+              key: 'cultural_context',
+              type: 'multi_line_text_field',
+              value,
+            },
+          ],
+        },
+      },
+    );
+    const body = await resp.json();
+    const errs = body?.data?.metafieldsSet?.userErrors ?? [];
+    if (errs.length > 0) {
+      return {ok: false, error: errs[0]?.message ?? 'Failed to set metafield'};
+    }
+    return {ok: true};
+  }
 
   if (intent === 'save') {
     const productId = String(formData.get('productId') || '');
@@ -384,6 +436,7 @@ function RichTextEditor({
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [blockType, setBlockType] = useState<'p' | 'h2' | 'h3'>('p');
 
   // Keep the editor showing rendered HTML without forcing cursor jumps while typing.
   useEffect(() => {
@@ -406,46 +459,128 @@ function RichTextEditor({
     [onChange],
   );
 
+  const applyBlockType = useCallback(
+    (next: 'p' | 'h2' | 'h3') => {
+      setBlockType(next);
+      // Make Enter create <p> blocks (closer to Shopify’s editor behavior).
+      try {
+        // eslint-disable-next-line deprecation/deprecation
+        document.execCommand('defaultParagraphSeparator', false, 'p');
+      } catch {
+        // no-op
+      }
+      // Apply format block to current selection.
+      const tag = next === 'p' ? 'p' : next;
+      exec('formatBlock', tag);
+    },
+    [exec],
+  );
+
+  const insertLink = useCallback(() => {
+    const url = window.prompt('Enter URL');
+    if (!url) return;
+    exec('createLink', url);
+  }, [exec]);
+
   return (
     <BlockStack gap="200">
       <Text as="p" variant="bodySm" tone="subdued">
         {label}
       </Text>
 
-      <InlineStack gap="100">
-        <Button size="micro" onClick={() => exec('bold')}>
-          Bold
-        </Button>
-        <Button size="micro" onClick={() => exec('italic')}>
-          Italic
-        </Button>
-        <Button size="micro" onClick={() => exec('insertUnorderedList')}>
-          Bullets
-        </Button>
-        <Button size="micro" onClick={() => exec('insertOrderedList')}>
-          Numbered
-        </Button>
-      </InlineStack>
+      {/* Shopify-like typography for headings/lists inside the editor surface */}
+      <style>
+        {`
+          .shopifyRte h2 { font-size: 28px; line-height: 34px; font-weight: 700; margin: 0 0 14px; }
+          .shopifyRte h3 { font-size: 22px; line-height: 28px; font-weight: 700; margin: 18px 0 10px; }
+          .shopifyRte h4 { font-size: 18px; line-height: 24px; font-weight: 650; margin: 14px 0 8px; }
+          .shopifyRte p  { margin: 0 0 12px; }
+          .shopifyRte ul, .shopifyRte ol { margin: 0 0 12px 20px; padding: 0; }
+          .shopifyRte li { margin: 4px 0; }
+          .shopifyRte hr { margin: 16px 0; }
+        `}
+      </style>
 
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        onInput={() => {
-          if (ref.current) onChange(ref.current.innerHTML);
-        }}
-        style={{
-          border: '1px solid var(--p-color-border-secondary)',
-          borderRadius: 8,
-          padding: 12,
-          minHeight: height,
-          maxHeight: height,
-          overflowY: 'auto',
-          background: 'var(--p-color-bg-surface)',
-        }}
-      />
+      <Box
+        borderColor="border"
+        borderWidth="025"
+        borderRadius="200"
+        background="bg-surface"
+      >
+        {/* Toolbar (Shopify-like) */}
+        <Box padding="200" background="bg-surface">
+          <div style={{display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto'}}>
+            <div style={{minWidth: 128, maxWidth: 170, flex: '0 0 auto'}}>
+              <Select
+                label=""
+                labelHidden
+                options={[
+                  {label: 'Paragraph', value: 'p'},
+                  {label: 'Heading', value: 'h2'},
+                  {label: 'Subheading', value: 'h3'},
+                ]}
+                value={blockType}
+                onChange={(v) => applyBlockType(v as 'p' | 'h2' | 'h3')}
+              />
+            </div>
+
+            <ButtonGroup>
+              <Button size="micro" accessibilityLabel="Bold" icon={TextBoldIcon} onClick={() => exec('bold')} />
+              <Button size="micro" accessibilityLabel="Italic" icon={TextItalicIcon} onClick={() => exec('italic')} />
+              <Button size="micro" accessibilityLabel="Underline" icon={TextUnderlineIcon} onClick={() => exec('underline')} />
+            </ButtonGroup>
+
+            <ButtonGroup>
+              <Button
+                size="micro"
+                accessibilityLabel="Bulleted list"
+                icon={ListBulletedIcon}
+                onClick={() => exec('insertUnorderedList')}
+              />
+              <Button
+                size="micro"
+                accessibilityLabel="Numbered list"
+                icon={ListNumberedIcon}
+                onClick={() => exec('insertOrderedList')}
+              />
+            </ButtonGroup>
+
+            <Button size="micro" accessibilityLabel="Insert link" icon={LinkIcon} onClick={insertLink} />
+          </div>
+        </Box>
+        <Divider />
+
+        {/* Editor surface */}
+        <div
+          ref={ref}
+          className="shopifyRte"
+          contentEditable
+          suppressContentEditableWarning
+          onFocus={() => {
+            setIsFocused(true);
+            try {
+              // eslint-disable-next-line deprecation/deprecation
+              document.execCommand('defaultParagraphSeparator', false, 'p');
+            } catch {
+              // no-op
+            }
+          }}
+          onBlur={() => setIsFocused(false)}
+          onInput={() => {
+            if (ref.current) onChange(ref.current.innerHTML);
+          }}
+          style={{
+            padding: 16,
+            minHeight: height,
+            maxHeight: height,
+            overflowY: 'auto',
+            // Match Shopify Admin editor feel (typography + spacing)
+            fontSize: 16,
+            lineHeight: '24px',
+            fontFamily: 'var(--p-font-family-sans)',
+          }}
+        />
+      </Box>
     </BlockStack>
   );
 }
@@ -462,6 +597,7 @@ export default function RewriterWorkspace() {
   } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const app = useAppBridge() as unknown as ClientApplication<any>;
 
   const [search, setSearch] = useState('');
   const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
@@ -477,10 +613,23 @@ export default function RewriterWorkspace() {
   const [isSwitchingLocale, setIsSwitchingLocale] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizeError, setOptimizeError] = useState<string | null>(null);
+  const [discoveredValues, setDiscoveredValues] = useState<
+    Array<{
+      category: string;
+      evidence: string;
+      explanation: string;
+      suggested_footer: string;
+      insight_headline?: string;
+      strategic_value?: string;
+    }>
+  >([]);
+  const [addedValueKeys, setAddedValueKeys] = useState<Record<string, boolean>>({});
+  const [culturalContextSaved, setCulturalContextSaved] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('⏳ Analyzing materials and craftsmanship...');
   const loadingTimerRef = useRef<number | null>(null);
 
   const saveFetcher = useFetcher<typeof action>();
+  const culturalFetcher = useFetcher<typeof action>();
 
   const [toastContent, setToastContent] = useState<string | null>(null);
   const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
@@ -516,6 +665,9 @@ export default function RewriterWorkspace() {
     setOptimizeError(null);
     setReferenceTitle(selectedProduct?.title ?? '');
     setReferenceDescription(selectedProduct?.descriptionHtml ?? '');
+    setDiscoveredValues([]);
+    setAddedValueKeys({});
+    setCulturalContextSaved(Boolean(selectedProduct?.culturalContext?.value));
 
     const baseTitle = selectedProduct?.title ?? '';
     const baseDesc = selectedProduct?.descriptionHtml ?? '';
@@ -541,14 +693,22 @@ export default function RewriterWorkspace() {
     if (initLocale) setActiveLocale(initLocale);
   }, [selectedProduct?.id]);
 
+  // Reflect metafield save immediately in UI.
+  useEffect(() => {
+    if ((culturalFetcher.data as any)?.ok) {
+      setCulturalContextSaved(true);
+    }
+  }, [culturalFetcher.data]);
+
+  // NOTE: Value discovery now comes from the main generation response (LLM JSON),
+  // so we intentionally do not run a separate discovery call on selection.
+
   // Success toast after Save
   useEffect(() => {
     if ((saveFetcher.data as any)?.ok) {
       setToastContent('Product saved, please refresh to check!');
     }
   }, [saveFetcher.data]);
-
-  const app = useAppBridge() as unknown as ClientApplication<any>;
 
   // Show a small spinner while switching locales (prevents perceived flicker)
   useEffect(() => {
@@ -569,6 +729,85 @@ export default function RewriterWorkspace() {
       description: fromTranslations?.descriptionHtml ?? baseDesc,
     };
   }, [activeLocale, draftByLocale, selectedProduct?.descriptionHtml, selectedProduct?.title, translationsByLocale]);
+
+  const valueKey = useCallback(
+    (v: {category: string; evidence: string}) => `${v.category}::${v.evidence}`,
+    [],
+  );
+
+  const uniqueValues = useMemo(() => {
+    // Deduplicate by (category,evidence) so the same insight doesn't render multiple times.
+    const seen = new Set<string>();
+    const out: typeof discoveredValues = [];
+    for (const v of discoveredValues) {
+      const k = valueKey(v);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(v);
+    }
+    return out;
+  }, [discoveredValues, valueKey]);
+
+  const handleAdd = useCallback(
+    (v: {category: string; evidence: string; suggested_footer: string}) => {
+      const key = valueKey(v);
+      if (addedValueKeys[key] || culturalContextSaved) return;
+
+      const footerText = String(v.suggested_footer || '').trim();
+      if (!footerText) return;
+
+      const escapeHtml = (s: string) =>
+        s
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+
+      // Suggested heading to make the appended footer feel intentional + premium in the description.
+      const heading = 'Cultural Context';
+      const snippet =
+        `\n\n<hr />\n` +
+        `<div class="ai-value-footer">\n` +
+        `<h3>${heading}</h3>\n` +
+        `<p>${escapeHtml(footerText)}</p>\n` +
+        `</div>\n`;
+
+      const base = String(currentDraft.description || '');
+      const nextDesc = base ? `${base}${snippet}` : snippet.trim();
+
+      setDraftByLocale((prev) => ({
+        ...prev,
+        [activeLocale]: {
+          title: currentDraft.title,
+          description: nextDesc,
+        },
+      }));
+
+      setAddedValueKeys((prev) => ({...prev, [key]: true}));
+
+      // Persist to Shopify as a product metafield (theme/SEO usage).
+      if (selectedProduct?.id) {
+        const metaValue = `${heading}\n\n${footerText}`;
+        const fd = new FormData();
+        fd.set('intent', 'set_cultural_context');
+        fd.set('productId', selectedProduct.id);
+        fd.set('value', metaValue);
+        culturalFetcher.submit(fd, {method: 'post'});
+      }
+    },
+    [
+      activeLocale,
+      addedValueKeys,
+      culturalContextSaved,
+      culturalFetcher,
+      currentDraft.description,
+      currentDraft.title,
+      selectedProduct?.id,
+      setDraftByLocale,
+      valueKey,
+    ],
+  );
 
   const startLoading = useCallback(() => {
     const msgs = [
@@ -604,6 +843,8 @@ export default function RewriterWorkspace() {
   const handleOptimize = useCallback(async () => {
     setOptimizeError(null);
     setOverLimit(false);
+    setDiscoveredValues([]);
+    setAddedValueKeys({});
 
     if (!selectedProduct?.id) {
       setOptimizeError('No product selected.');
@@ -650,6 +891,33 @@ export default function RewriterWorkspace() {
         const msg = result?.detail || 'Generation failed';
         setOptimizeError(String(msg));
         return;
+      }
+      if (Array.isArray(result?.discovered_values)) {
+        // Preferred contract: discovered_values from backend.
+        const vals = result.discovered_values
+          .map((v: any) => ({
+            category: String(v?.category ?? '').trim(),
+            evidence: String(v?.evidence ?? '').trim(),
+            explanation: String(v?.explanation ?? '').trim(),
+            suggested_footer: String(v?.suggested_footer ?? '').trim(),
+            insight_headline: String(v?.insight_headline ?? '').trim() || undefined,
+            strategic_value: String(v?.strategic_value ?? '').trim() || undefined,
+          }))
+          .filter((v: any) => v.category && v.evidence && v.suggested_footer);
+        setDiscoveredValues(vals);
+      } else if (Array.isArray(result?.discoveries)) {
+        // Back-compat: map legacy discoveries to discoveredValues.
+        const vals = result.discoveries
+          .map((d: any) => ({
+            category: String(d?.category ?? '').trim(),
+            evidence: String(d?.evidence_text ?? '').trim(),
+            explanation: '',
+            suggested_footer: String(d?.suggested_content ?? '').trim(),
+            insight_headline: String(d?.title ?? '').trim() || undefined,
+            strategic_value: '',
+          }))
+          .filter((v: any) => v.category && v.evidence && v.suggested_footer);
+        setDiscoveredValues(vals);
       }
 
       const data = extractGenerated(result, activeLocale);
@@ -777,8 +1045,8 @@ export default function RewriterWorkspace() {
           </Banner>
         </Box>
       ) : null}
-      <Layout>
-        <Layout.Section variant="oneThird">
+      <InlineStack gap="400" align="start" wrap={false}>
+        <div style={{width: 320, flex: '0 0 320px'}}>
           <Card>
             <Box padding="400">
               <BlockStack gap="400">
@@ -805,6 +1073,7 @@ export default function RewriterWorkspace() {
                     <BlockStack gap="100">
                       {filteredProducts.map((p) => {
                         const isSelected = p.id === selectedProductId;
+                        const title = p.title.length > 44 ? `${p.title.slice(0, 44)}…` : p.title;
                         return (
                           <Box
                             key={p.id}
@@ -812,16 +1081,20 @@ export default function RewriterWorkspace() {
                             background={isSelected ? 'bg-surface-secondary' : undefined}
                             borderRadius="200"
                           >
-                            <Button
-                              variant="plain"
-                              onClick={() => {
-                                const next = new URLSearchParams(searchParams);
-                                next.set('productId', p.id);
-                                setSearchParams(next);
-                              }}
-                            >
-                              {p.title}
-                            </Button>
+                            <Tooltip content={p.title}>
+                              <Button
+                                variant="plain"
+                                fullWidth
+                                textAlign="left"
+                                onClick={() => {
+                                  const next = new URLSearchParams(searchParams);
+                                  next.set('productId', p.id);
+                                  setSearchParams(next);
+                                }}
+                              >
+                                {title}
+                              </Button>
+                            </Tooltip>
                           </Box>
                         );
                       })}
@@ -831,9 +1104,9 @@ export default function RewriterWorkspace() {
               </BlockStack>
             </Box>
           </Card>
-        </Layout.Section>
+        </div>
 
-        <Layout.Section>
+        <div style={{flex: 1, minWidth: 0}}>
           <Card>
             <Box padding="500">
               <BlockStack gap="400">
@@ -1003,11 +1276,130 @@ export default function RewriterWorkspace() {
                     {loadingMessage}
                   </Text>
                 ) : null}
+
+                {uniqueValues.length > 0 ? (
+                  <Box
+                    padding="300"
+                    background="bg-surface-secondary"
+                    borderRadius="200"
+                  >
+                    <BlockStack gap="300">
+                      <Text as="h3" variant="headingMd">
+                        ✨ Verified Japanese Value Detected
+                      </Text>
+
+                      <BlockStack gap="200">
+                        {uniqueValues.map((v) => {
+                          const key = valueKey(v);
+                          const existingMetafield = String(selectedProduct?.culturalContext?.value || '').trim();
+                          const addedThisSession = Boolean(addedValueKeys[key]);
+                          const alreadySaved = culturalContextSaved && Boolean(existingMetafield);
+                          const isDisabled = addedThisSession || culturalContextSaved;
+                          const headline =
+                            String(v.insight_headline || '').trim() ||
+                            `${v.category} Insight`;
+                          const strategy =
+                            String(v.strategic_value || '').trim() ||
+                            String(v.explanation || '').trim();
+                          const evidence = String(v.evidence || '').trim();
+                          const evidenceShort =
+                            evidence.length > 140 ? `${evidence.slice(0, 140)}…` : evidence;
+
+                          return (
+                            <BlockStack key={key} gap="200">
+                              {/* 1) Value detected card */}
+                              <Card>
+                                <Box padding="300">
+                                  <BlockStack gap="200">
+                                    <InlineStack gap="200" blockAlign="center">
+                                      <Badge tone="magic">{v.category}</Badge>
+                                      <Text as="h4" variant="headingSm">
+                                        {headline}
+                                      </Text>
+                                    </InlineStack>
+
+                                    <Box
+                                      padding="200"
+                                      background="bg-surface-secondary"
+                                      borderRadius="200"
+                                    >
+                                      <Text as="p">
+                                        🔍 Found in your notes: “{evidenceShort}”
+                                      </Text>
+                                    </Box>
+
+                                    {strategy ? (
+                                      <div style={{display: 'flex', gap: 8, alignItems: 'flex-start'}}>
+                                        <div style={{flex: '0 0 auto', marginTop: 2}}>
+                                          <Icon source={LightbulbIcon} tone="magic" />
+                                        </div>
+                                        <div style={{flex: '1 1 auto'}}>
+                                          <Text as="p">{strategy}</Text>
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                  </BlockStack>
+                                </Box>
+                              </Card>
+
+                              {/* 2) Footer suggestion + CTA card */}
+                              <Card>
+                                <Box padding="300">
+                                  <BlockStack gap="200">
+                                    <Text as="p" tone="subdued">
+                                      {culturalContextSaved ? (
+                                        <strong>Cultural context is already saved in product metafields.</strong>
+                                      ) : (
+                                        <strong>
+                                          AI suggestion: Add following "footer" in your product description to increase value
+                                        </strong>
+                                      )}
+                                    </Text>
+
+                                    <Box
+                                      padding="200"
+                                      borderColor="border"
+                                      borderWidth="025"
+                                      borderRadius="200"
+                                    >
+                                      <Text as="p">
+                                        {culturalContextSaved && existingMetafield
+                                          ? existingMetafield
+                                          : v.suggested_footer}
+                                      </Text>
+                                    </Box>
+
+                                    <InlineStack align="end">
+                                      <Tooltip content="This adds verified historical context based on your product details.">
+                                        <Button
+                                          variant="primary"
+                                          icon={isDisabled ? CheckIcon : undefined}
+                                          disabled={isDisabled}
+                                          onClick={() => handleAdd(v)}
+                                        >
+                                          {alreadySaved
+                                            ? 'Already added'
+                                            : addedThisSession
+                                              ? 'Added'
+                                              : 'Add to Description'}
+                                        </Button>
+                                      </Tooltip>
+                                    </InlineStack>
+                                  </BlockStack>
+                                </Box>
+                              </Card>
+                            </BlockStack>
+                          );
+                        })}
+                      </BlockStack>
+                    </BlockStack>
+                  </Box>
+                ) : null}
               </BlockStack>
             </Box>
           </Card>
-        </Layout.Section>
-      </Layout>
+        </div>
+      </InlineStack>
     </Page>
   );
 }
