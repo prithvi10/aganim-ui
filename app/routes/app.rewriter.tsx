@@ -68,9 +68,13 @@ type LoaderData = {
     title: string;
     descriptionHtml: string;
     productType: string;
+    seo?: {title?: string | null; description?: string | null} | null;
     culturalContext?: {value?: string | null} | null;
   } | null;
-  translationsByLocale: Record<string, {title?: string; descriptionHtml?: string}>;
+  translationsByLocale: Record<
+    string,
+    {title?: string; descriptionHtml?: string; seoTitle?: string; seoDescription?: string}
+  >;
   backendApiUrl: string;
   didSelfHeal?: boolean;
 };
@@ -218,6 +222,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               title
               descriptionHtml
               productType
+              seo { title description }
               culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { value }
             }
           }`,
@@ -229,6 +234,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               title
               descriptionHtml
               productType
+              seo { title description }
               culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { value }
             }
           }`,
@@ -265,6 +271,8 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       for (const item of items) {
         if (item?.key === 'title') bucket.title = item.value;
         if (item?.key === 'body_html') bucket.descriptionHtml = item.value;
+        if (item?.key === 'title_tag') bucket.seoTitle = item.value;
+        if (item?.key === 'description_tag') bucket.seoDescription = item.value;
       }
     }
   }
@@ -330,6 +338,8 @@ export const action = async ({request}: ActionFunctionArgs) => {
     const targetLocale = String(formData.get('targetLocale') || '');
     const title = String(formData.get('draftTitle') || '');
     const descriptionHtml = String(formData.get('draftDescription') || '');
+    const seoTitle = String(formData.get('draftSeoTitle') || '');
+    const seoDescription = String(formData.get('draftSeoDescription') || '');
 
     // Determine shop primary locale
     const localesResp = await admin.graphql(`query ShopLocales { shopLocales { locale primary } }`);
@@ -353,6 +363,9 @@ export const action = async ({request}: ActionFunctionArgs) => {
             id: productId,
             ...(title ? {title} : {}),
             ...(descriptionHtml ? {descriptionHtml} : {}),
+            ...((seoTitle || seoDescription)
+              ? {seo: {title: seoTitle || null, description: seoDescription || null}}
+              : {}),
           },
         },
       },
@@ -382,8 +395,13 @@ export const action = async ({request}: ActionFunctionArgs) => {
       digestJson?.data?.translatableResource?.translatableContent ?? [];
     const titleDigest = contents.find((c) => c.key === 'title')?.digest || '';
     const bodyDigest = contents.find((c) => c.key === 'body_html')?.digest || '';
+    const titleTagDigest = contents.find((c) => c.key === 'title_tag')?.digest || '';
+    const descTagDigest = contents.find((c) => c.key === 'description_tag')?.digest || '';
     if (!titleDigest || !bodyDigest) {
       return {ok: false, error: 'Missing translation digests for title/body_html.'};
+    }
+    if ((seoTitle && !titleTagDigest) || (seoDescription && !descTagDigest)) {
+      return {ok: false, error: 'Missing translation digests for SEO (title_tag/description_tag).'};
     }
 
     const registerResp = await admin.graphql(
@@ -408,6 +426,26 @@ export const action = async ({request}: ActionFunctionArgs) => {
               value: descriptionHtml,
               translatableContentDigest: bodyDigest,
             },
+            ...(seoTitle
+              ? [
+                  {
+                    locale: targetLocale,
+                    key: 'title_tag',
+                    value: seoTitle,
+                    translatableContentDigest: titleTagDigest,
+                  },
+                ]
+              : []),
+            ...(seoDescription
+              ? [
+                  {
+                    locale: targetLocale,
+                    key: 'description_tag',
+                    value: seoDescription,
+                    translatableContentDigest: descTagDigest,
+                  },
+                ]
+              : []),
           ],
         },
       },
@@ -594,6 +632,7 @@ export default function RewriterWorkspace() {
     selectedProduct,
     translationsByLocale,
     didSelfHeal,
+    shopSlug,
   } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -608,7 +647,7 @@ export default function RewriterWorkspace() {
   const [referenceDescription, setReferenceDescription] = useState('');
 
   const [draftByLocale, setDraftByLocale] = useState<
-    Record<string, {title: string; description: string}>
+    Record<string, {title: string; description: string; seoTitle: string; seoDescription: string}>
   >({});
   const [isSwitchingLocale, setIsSwitchingLocale] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -671,14 +710,19 @@ export default function RewriterWorkspace() {
 
     const baseTitle = selectedProduct?.title ?? '';
     const baseDesc = selectedProduct?.descriptionHtml ?? '';
+    const baseSeoTitle = String(selectedProduct?.seo?.title ?? '').trim();
+    const baseSeoDesc = String(selectedProduct?.seo?.description ?? '').trim();
 
     // Seed draft map from existing Shopify translations, falling back to primary content.
-    const seeded: Record<string, {title: string; description: string}> = {};
+    const seeded: Record<string, {title: string; description: string; seoTitle: string; seoDescription: string}> = {};
     for (const loc of publishedLocales.map((l) => l.locale)) {
       const t = translationsByLocale?.[loc];
       seeded[loc] = {
         title: t?.title ?? baseTitle,
         description: t?.descriptionHtml ?? baseDesc,
+        // Store the actual translation if present; otherwise keep empty and show primary SEO as placeholder.
+        seoTitle: t?.seoTitle ?? '',
+        seoDescription: t?.seoDescription ?? '',
       };
     }
     setDraftByLocale(seeded);
@@ -727,8 +771,63 @@ export default function RewriterWorkspace() {
     return {
       title: fromTranslations?.title ?? baseTitle,
       description: fromTranslations?.descriptionHtml ?? baseDesc,
+      seoTitle: fromTranslations?.seoTitle ?? '',
+      seoDescription: fromTranslations?.seoDescription ?? '',
     };
   }, [activeLocale, draftByLocale, selectedProduct?.descriptionHtml, selectedProduct?.title, translationsByLocale]);
+
+  const seoPlaceholders = useMemo(() => {
+    const pTitle = String(selectedProduct?.seo?.title ?? '').trim();
+    const pDesc = String(selectedProduct?.seo?.description ?? '').trim();
+    return {
+      title: pTitle,
+      description: pDesc,
+    };
+  }, [selectedProduct?.seo?.description, selectedProduct?.seo?.title]);
+
+  function SearchEnginePreview({
+    title,
+    url,
+    snippet,
+  }: {
+    title: string;
+    url: string;
+    snippet: string;
+  }) {
+    return (
+      <div
+        style={{
+          border: '1px solid var(--p-color-border-secondary)',
+          borderRadius: 8,
+          padding: 12,
+          background: 'var(--p-color-bg-surface)',
+        }}
+      >
+        <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
+          <div
+            style={{
+              color: '#1a0dab',
+              fontSize: 18,
+              lineHeight: '22px',
+              fontWeight: 500,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={title}
+          >
+            {title || 'SEO title preview…'}
+          </div>
+          <div style={{color: '#006621', fontSize: 14, lineHeight: '18px'}}>
+            {url}
+          </div>
+          <div style={{color: '#4b5563', fontSize: 14, lineHeight: '18px'}}>
+            {snippet || 'Meta description preview…'}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const valueKey = useCallback(
     (v: {category: string; evidence: string}) => `${v.category}::${v.evidence}`,
@@ -781,6 +880,8 @@ export default function RewriterWorkspace() {
         [activeLocale]: {
           title: currentDraft.title,
           description: nextDesc,
+          seoTitle: currentDraft.seoTitle,
+          seoDescription: currentDraft.seoDescription,
         },
       }));
 
@@ -829,7 +930,10 @@ export default function RewriterWorkspace() {
     loadingTimerRef.current = null;
   }, []);
 
-  const extractGenerated = (result: any, locale: string): {title?: string; description?: string} | null => {
+  const extractGenerated = (
+    result: any,
+    locale: string,
+  ): {title?: string; description?: string; seo_title?: string; seo_description?: string} | null => {
     if (result?.data) return result.data;
     const results = result?.results;
     if (results && typeof results === 'object') {
@@ -935,6 +1039,14 @@ export default function RewriterWorkspace() {
             typeof data.description === 'string' && data.description
               ? data.description
               : prev[activeLocale]?.description ?? '',
+          seoTitle:
+            typeof data.seo_title === 'string' && data.seo_title
+              ? data.seo_title
+              : prev[activeLocale]?.seoTitle ?? '',
+          seoDescription:
+            typeof data.seo_description === 'string' && data.seo_description
+              ? data.seo_description
+              : prev[activeLocale]?.seoDescription ?? '',
         },
       }));
 
@@ -947,6 +1059,8 @@ export default function RewriterWorkspace() {
             next[loc] = {
               title: String(p?.title ?? next[loc]?.title ?? ''),
               description: String(p?.description ?? next[loc]?.description ?? ''),
+              seoTitle: String(p?.seo_title ?? next[loc]?.seoTitle ?? ''),
+              seoDescription: String(p?.seo_description ?? next[loc]?.seoDescription ?? ''),
             };
           }
           return next;
@@ -1183,7 +1297,12 @@ export default function RewriterWorkspace() {
                             onChange={(v) =>
                               setDraftByLocale((prev) => ({
                                 ...prev,
-                                [activeLocale]: {title: v, description: currentDraft.description},
+                                [activeLocale]: {
+                                  title: v,
+                                  description: currentDraft.description,
+                                  seoTitle: currentDraft.seoTitle,
+                                  seoDescription: currentDraft.seoDescription,
+                                },
                               }))
                             }
                             autoComplete="off"
@@ -1194,11 +1313,97 @@ export default function RewriterWorkspace() {
                             onChange={(v) =>
                               setDraftByLocale((prev) => ({
                                 ...prev,
-                                [activeLocale]: {title: currentDraft.title, description: v},
+                                [activeLocale]: {
+                                  title: currentDraft.title,
+                                  description: v,
+                                  seoTitle: currentDraft.seoTitle,
+                                  seoDescription: currentDraft.seoDescription,
+                                },
                               }))
                             }
                             height={420}
                           />
+
+                          <Divider />
+
+                          <BlockStack gap="200">
+                            <InlineStack align="space-between" blockAlign="center">
+                              <Text as="h4" variant="headingSm">
+                                SEO (Market-specific)
+                              </Text>
+                              <Text
+                                as="span"
+                                variant="bodySm"
+                                tone={(currentDraft.seoTitle || '').length > 70 ? 'critical' : 'subdued'}
+                              >
+                                {(currentDraft.seoTitle || '').length}/70
+                              </Text>
+                            </InlineStack>
+
+                            <TextField
+                              label="SEO Title"
+                              value={currentDraft.seoTitle}
+                              placeholder={currentDraft.seoTitle ? '' : seoPlaceholders.title || 'Shop the authentic…'}
+                              onChange={(v) =>
+                                setDraftByLocale((prev) => ({
+                                  ...prev,
+                                  [activeLocale]: {
+                                    title: currentDraft.title,
+                                    description: currentDraft.description,
+                                    seoTitle: v,
+                                    seoDescription: currentDraft.seoDescription,
+                                  },
+                                }))
+                              }
+                              autoComplete="off"
+                            />
+
+                            <InlineStack align="space-between" blockAlign="center">
+                              <Text as="span" variant="bodySm" tone="subdued">
+                                Meta description
+                              </Text>
+                              <Text
+                                as="span"
+                                variant="bodySm"
+                                tone={(currentDraft.seoDescription || '').length > 160 ? 'critical' : 'subdued'}
+                              >
+                                {(currentDraft.seoDescription || '').length}/160
+                              </Text>
+                            </InlineStack>
+
+                            <TextField
+                              label="Meta Description"
+                              multiline={3}
+                              value={currentDraft.seoDescription}
+                              placeholder={
+                                currentDraft.seoDescription
+                                  ? ''
+                                  : seoPlaceholders.description || 'Discover authentic craftsmanship…'
+                              }
+                              onChange={(v) =>
+                                setDraftByLocale((prev) => ({
+                                  ...prev,
+                                  [activeLocale]: {
+                                    title: currentDraft.title,
+                                    description: currentDraft.description,
+                                    seoTitle: currentDraft.seoTitle,
+                                    seoDescription: v,
+                                  },
+                                }))
+                              }
+                              autoComplete="off"
+                            />
+
+                            <SearchEnginePreview
+                              title={currentDraft.seoTitle || seoPlaceholders.title || currentDraft.title}
+                              url={
+                                shopSlug
+                                  ? `https://${shopSlug}.myshopify.com`
+                                  : 'https://your-store.myshopify.com'
+                              }
+                              snippet={currentDraft.seoDescription || seoPlaceholders.description}
+                            />
+                          </BlockStack>
                         </BlockStack>
                       </Box>
                     </Card>
@@ -1256,6 +1461,8 @@ export default function RewriterWorkspace() {
                     <input type="hidden" name="targetLocale" value={activeLocale || primaryLocale} />
                     <input type="hidden" name="draftTitle" value={currentDraft.title} />
                     <input type="hidden" name="draftDescription" value={currentDraft.description} />
+                    <input type="hidden" name="draftSeoTitle" value={currentDraft.seoTitle} />
+                    <input type="hidden" name="draftSeoDescription" value={currentDraft.seoDescription} />
                     <Button
                       variant="primary"
                       submit
