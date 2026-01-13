@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Instagram">
+  <defs>
+    <linearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f58529"/>
+      <stop offset="0.35" stop-color="#dd2a7b"/>
+      <stop offset="0.7" stop-color="#8134af"/>
+      <stop offset="1" stop-color="#515bd4"/>
+    </linearGradient>
+  </defs>
+  <rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5" fill="url(#ig)"/>
+  <path
+    d="M12 7.8a4.2 4.2 0 1 0 0 8.4 4.2 4.2 0 0 0 0-8.4Zm0 6.9a2.7 2.7 0 1 1 0-5.4 2.7 2.7 0 0 1 0 5.4Z"
+    fill="#fff"
+  />
+  <circle cx="16.65" cy="7.35" r="1.05" fill="#fff"/>
+  <path
+    d="M7.9 6.6h8.2c1.1 0 2.1.9 2.1 2.1v8.2c0 1.1-.9 2.1-2.1 2.1H7.9c-1.1 0-2.1-.9-2.1-2.1V8.7c0-1.1.9-2.1 2.1-2.1Zm0 1.2c-.5 0-.9.4-.9.9v8.2c0 .5.4.9.9.9h8.2c.5 0 .9-.4.9-.9V8.7c0-.5-.4-.9-.9-.9H7.9Z"
+    fill="#fff"
+    opacity="0.9"
+  />
+</svg>
+
