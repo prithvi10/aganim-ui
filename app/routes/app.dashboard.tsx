@@ -451,6 +451,7 @@ export default function Dashboard() {
                       <Text as="span" variant="bodySm" tone="subdued">{t.quickStart}:</Text>
                       <Link url="https://docs.crossborder.ai" target="_blank">{t.docs}</Link>
                       <Link url="#" target="_blank">{t.video}</Link>
+                      <Link url="/privacy-policy" target="_blank">Privacy Policy</Link>
                    </InlineStack>
                 </InlineStack>
              </BlockStack>
