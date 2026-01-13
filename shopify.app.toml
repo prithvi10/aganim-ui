@@ -25,6 +25,11 @@ api_version = "2026-01"
   topics = [ "app_subscriptions/update" ]
   uri = "https://shopify-translator-api.onrender.com/webhooks/subscription-activated"
 
+  # Mandatory GDPR compliance webhooks (required for App Store review)
+  [[webhooks.subscriptions]]
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+  uri = "https://shopify-translator-api.onrender.com/api/webhooks/compliance"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_products,write_products,read_locales,read_translations,write_translations,read_files"
