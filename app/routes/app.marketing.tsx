@@ -268,7 +268,7 @@ export default function MarketingWorkspace() {
   const [search, setSearch] = useState('');
   const [imagesOpen, setImagesOpen] = useState(false);
 
-  // Social Hook Architect
+  // Instagram Marketing Assistant
   const [hooksLoading, setHooksLoading] = useState(false);
   const [hooksError, setHooksError] = useState<string | null>(null);
   const [overlaySuggestions, setOverlaySuggestions] = useState<string[]>([]);
@@ -670,9 +670,18 @@ export default function MarketingWorkspace() {
               <Box padding="400">
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
-                    <Text as="h2" variant="headingMd">
-                      Social Hook Architect (Instagram)
-                    </Text>
+                    <InlineStack gap="200" blockAlign="center">
+                      <img
+                        src="/instagram.svg"
+                        alt="Instagram"
+                        width={18}
+                        height={18}
+                        style={{width: 18, height: 18, borderRadius: 4}}
+                      />
+                      <Text as="h2" variant="headingMd">
+                        Instagram Marketing Assistant
+                      </Text>
+                    </InlineStack>
                     <InlineStack gap="200" blockAlign="center">
                       <Link url="https://www.instagram.com/reels/create/" external>
                         Open Instagram Reels
