@@ -8,6 +8,7 @@ import {
   Button,
   InlineStack,
   ExceptionList,
+  Badge,
 } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
@@ -71,26 +72,25 @@ export default function PlansPage() {
   const plans = [
     {
       name: PLAN_BASIC,
-      price: "$9.90",
-      features: ["200 Product Syncs", "Core Localization AI", "Standard Support"],
+      price: "$49",
+      features: ["1 Locale", "SEO optimization", "GPT-4o-mini"],
     },
     {
       name: PLAN_STANDARD,
-      price: "$29.90",
+      price: "$99",
       features: [
-        "1,000 Product Syncs",
-        "Market-Specific Personas",
-        "Priority Support",
+        "Multi-locale",
+        "Social Hook Architect",
+        "AI Marketing",
       ],
     },
     {
       name: PLAN_PRO,
-      price: "$69.90",
+      price: "$199",
       features: [
-        "10,000 Product Syncs",
-        "Bulk Multi-Market Update",
-        "Real-time AI Streaming",
-        "Dedicated Account Manager",
+        "Unlimited Bulk Sync",
+        "Priority GPT-5",
+        "Supreme Features",
       ],
     },
   ];
@@ -102,11 +102,20 @@ export default function PlansPage() {
           <InlineStack gap="400" align="center">
             {plans.map((plan) => (
               <Box key={plan.name} minWidth="300px" maxWidth="300px">
+                {(() => {
+                  const isCurrent = currentPlans.some((sub) => sub.name === plan.name);
+                  return (
                 <Card>
                   <BlockStack gap="400">
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingLg">
-                        {plan.name}
+                        <InlineStack gap="200" align="space-between">
+                          <span>{plan.name}</span>
+                          {isCurrent ? <Badge tone="success">Active</Badge> : null}
+                          {plan.name === PLAN_PRO ? (
+                            <Badge tone="success">Priority AI (GPT-5) • Unlimited Sync</Badge>
+                          ) : null}
+                        </InlineStack>
                       </Text>
                       <Text as="p" variant="heading2xl" fontWeight="bold">
                         {plan.price}
@@ -133,19 +142,19 @@ export default function PlansPage() {
                     <Form method="post">
                       <input type="hidden" name="plan" value={plan.name} />
                       <Button
-                        variant="primary"
+                        variant={isCurrent ? "secondary" : "primary"}
                         fullWidth
                         submit
                         loading={isUpgrading}
-                        disabled={currentPlans.some((sub) => sub.name === plan.name)}
+                        disabled={isCurrent}
                       >
-                        {currentPlans.some((sub) => sub.name === plan.name)
-                          ? "Current Plan"
-                          : "Upgrade"}
+                        {isCurrent ? "Current Plan" : "Upgrade"}
                       </Button>
                     </Form>
                   </BlockStack>
                 </Card>
+                  );
+                })()}
               </Box>
             ))}
           </InlineStack>

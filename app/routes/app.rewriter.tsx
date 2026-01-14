@@ -43,6 +43,7 @@ import {
 } from '@shopify/polaris-icons';
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
+import {descriptionHash} from '../utils/descriptionHash.server';
 
 type ShopLocale = {
   locale: string;
@@ -59,7 +60,8 @@ type ProductListItem = {
 type LoaderData = {
   shop: string;
   shopSlug: string;
-  planName: 'Free' | 'Pro' | 'Growth';
+  planName: 'Basic' | 'Standard' | 'Pro';
+  maxLocales: number; // 1 = single-locale, -1 = unlimited
   primaryLocale: string;
   locales: ShopLocale[];
   products: ProductListItem[];
@@ -69,7 +71,10 @@ type LoaderData = {
     descriptionHtml: string;
     productType: string;
     seo?: {title?: string | null; description?: string | null} | null;
-    culturalContext?: {value?: string | null} | null;
+    culturalContext?: {id?: string | null; value?: string | null} | null;
+    descHashMeta?: {id?: string | null; value?: string | null} | null;
+    appDescHashMeta?: {id?: string | null; value?: string | null} | null;
+    _contentHash?: string;
   } | null;
   translationsByLocale: Record<
     string,
@@ -77,6 +82,8 @@ type LoaderData = {
   >;
   backendApiUrl: string;
   didSelfHeal?: boolean;
+  contentHash: string | null;
+  didResetMetaCache: boolean;
 };
 
 function firstOrNull<T>(arr: T[]): T | null {
@@ -201,9 +208,29 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     })
     .map((s) => String(s.name || ''));
   const normalizedNames = activeNames.map((n) => n.toLowerCase());
-  const hasGrowth = normalizedNames.some((n) => n.includes('growth'));
   const hasPro = normalizedNames.some((n) => n.includes('pro'));
-  const planName: LoaderData['planName'] = hasGrowth ? 'Growth' : hasPro ? 'Pro' : 'Free';
+  const hasStandard = normalizedNames.some((n) => n.includes('standard'));
+  const hasBasic = normalizedNames.some((n) => n.includes('basic'));
+
+  // Default from Shopify billing (fallback to Basic if not subscribed yet).
+  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Basic';
+
+  // Pull plan limits from backend DB so gating matches seeded limits.
+  let maxLocales: number = planName === 'Basic' ? 1 : -1;
+  try {
+    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
+    if (u.ok) {
+      const data: any = await u.json().catch(() => ({}));
+      // IMPORTANT: keep the DISPLAYED plan name aligned with Shopify billing.
+      // We only use backend data for feature gating (e.g., max_locales).
+      const ml = Number(data?.max_locales);
+      if (Number.isFinite(ml)) {
+        maxLocales = ml;
+      }
+    }
+  } catch {
+    // Best-effort: keep fallback gating.
+  }
 
   const locales: ShopLocale[] = localesRes?.data?.shopLocales ?? [];
   const primaryLocale = locales.find((l) => l.primary)?.locale || 'en';
@@ -223,7 +250,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               descriptionHtml
               productType
               seo { title description }
-              culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { value }
+              culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { id value }
+              descHashMeta: metafield(namespace: "crossborderagent", key: "desc_hash") { id value }
+              appDescHashMeta: metafield(namespace: "crossborderagent", key: "app_desc_hash") { id value }
             }
           }`,
         )
@@ -235,14 +264,111 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               descriptionHtml
               productType
               seo { title description }
-              culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { value }
+              culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { id value }
+              descHashMeta: metafield(namespace: "crossborderagent", key: "desc_hash") { id value }
+              appDescHashMeta: metafield(namespace: "crossborderagent", key: "app_desc_hash") { id value }
             }
           }`,
           {id: selectedProductId},
         )
     : null;
 
-  const selectedProduct = selectedProductRes?.data?.product ?? null;
+  let selectedProduct = selectedProductRes?.data?.product ?? null;
+
+  const currentContentHash = selectedProduct?.descriptionHtml
+    ? descriptionHash(String(selectedProduct.descriptionHtml ?? ''))
+    : descriptionHash('');
+  let didResetMetaCache = false;
+
+  // If description changed manually in Shopify (not via our app), clear cached context metafields.
+  if (selectedProduct?.id) {
+    const prevDescHash = String(selectedProduct?.descHashMeta?.value ?? '');
+    const appDescHash = String(selectedProduct?.appDescHashMeta?.value ?? '');
+    // If we don't have a baseline yet, just set it—don't treat it as a manual change.
+    if (prevDescHash && prevDescHash !== currentContentHash) {
+      const isManualChange = appDescHash !== currentContentHash;
+      if (isManualChange) {
+        const ctxId = selectedProduct?.culturalContext?.id;
+        if (ctxId) {
+          try {
+            await graphqlQuery(
+              `mutation DeleteMetafield($input: MetafieldDeleteInput!) {
+                metafieldDelete(input: $input) {
+                  deletedId
+                  userErrors { field message }
+                }
+              }`,
+              {input: {id: ctxId}},
+            );
+          } catch {
+            // best-effort
+          }
+        }
+        // Ensure UI doesn't keep showing stale "saved" status for cultural context.
+        selectedProduct = {
+          ...selectedProduct,
+          culturalContext: {id: null, value: null},
+        };
+        didResetMetaCache = true;
+      }
+
+      // Record latest seen hash so we don't reset repeatedly.
+      try {
+        await graphqlQuery(
+          `mutation SetHash($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+              metafields { id }
+              userErrors { field message }
+            }
+          }`,
+          {
+            metafields: [
+              {
+                ownerId: selectedProduct.id,
+                namespace: "crossborderagent",
+                key: "desc_hash",
+                type: "single_line_text_field",
+                value: currentContentHash,
+              },
+            ],
+          },
+        );
+      } catch {
+        // best-effort
+      }
+    }
+
+    // Ensure we always have a baseline hash recorded for future comparisons.
+    if (!prevDescHash) {
+      try {
+        await graphqlQuery(
+          `mutation SetHash($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+              metafields { id }
+              userErrors { field message }
+            }
+          }`,
+          {
+            metafields: [
+              {
+                ownerId: selectedProduct.id,
+                namespace: "crossborderagent",
+                key: "desc_hash",
+                type: "single_line_text_field",
+                value: currentContentHash,
+              },
+            ],
+          },
+        );
+      } catch {
+        // best-effort
+      }
+    }
+  }
+
+  if (selectedProduct) {
+    selectedProduct = {...selectedProduct, _contentHash: currentContentHash};
+  }
 
   // Existing translations for this product (used for locale switching in the workspace).
   // NOTE: Shopify requires a `locale` argument for `translations(...)`, so we query per locale.
@@ -281,6 +407,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     shop: sessionShop,
     shopSlug,
     planName,
+    maxLocales,
     primaryLocale,
     locales,
     products,
@@ -288,7 +415,20 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     translationsByLocale,
     backendApiUrl,
     didSelfHeal,
+    contentHash: selectedProduct?._contentHash ?? null,
+    didResetMetaCache,
   } satisfies LoaderData;
+};
+
+// Avoid revalidating the loader for non-destructive fetcher actions like saving cultural context.
+// Revalidation can reseed drafts and appear as a "reset" while the merchant is editing.
+export const shouldRevalidate = (args: {
+  formData?: FormData | null;
+  defaultShouldRevalidate: boolean;
+}) => {
+  const intent = String(args.formData?.get('intent') ?? '');
+  if (intent === 'set_cultural_context') return false;
+  return args.defaultShouldRevalidate;
 };
 
 export const action = async ({request}: ActionFunctionArgs) => {
@@ -329,6 +469,48 @@ export const action = async ({request}: ActionFunctionArgs) => {
     const errs = body?.data?.metafieldsSet?.userErrors ?? [];
     if (errs.length > 0) {
       return {ok: false, error: errs[0]?.message ?? 'Failed to set metafield'};
+    }
+
+    // Treat this as an app-driven change for our hash tracking. Some Shopify operations can re-normalize HTML,
+    // so we stamp hashes based on Shopify's canonical saved description to avoid false "manual edit" detection.
+    try {
+      const p = await admin.graphql(
+        `query ProductDesc($id: ID!) { product(id: $id) { descriptionHtml } }`,
+        {variables: {id: productId}},
+      );
+      const pj = await p.json();
+      const canonical = String(pj?.data?.product?.descriptionHtml ?? '');
+      const h = descriptionHash(canonical);
+      await admin.graphql(
+        `mutation SetHashes($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { id }
+            userErrors { field message }
+          }
+        }`,
+        {
+          variables: {
+            metafields: [
+              {
+                ownerId: productId,
+                namespace: 'crossborderagent',
+                key: 'app_desc_hash',
+                type: 'single_line_text_field',
+                value: h,
+              },
+              {
+                ownerId: productId,
+                namespace: 'crossborderagent',
+                key: 'desc_hash',
+                type: 'single_line_text_field',
+                value: h,
+              },
+            ],
+          },
+        },
+      );
+    } catch {
+      // best-effort
     }
     return {ok: true};
   }
@@ -374,6 +556,49 @@ export const action = async ({request}: ActionFunctionArgs) => {
     const errors = body?.data?.productUpdate?.userErrors ?? [];
     if (errors.length > 0) {
       return {ok: false, error: errors[0]?.message ?? 'Unknown error'};
+    }
+
+    // Stamp hashes using Shopify's canonical saved HTML (Shopify may normalize/sanitize the HTML we submit).
+    if (descriptionHtml) {
+      try {
+        const p = await admin.graphql(
+          `query ProductDesc($id: ID!) { product(id: $id) { descriptionHtml } }`,
+          {variables: {id: productId}},
+        );
+        const pj = await p.json();
+        const canonical = String(pj?.data?.product?.descriptionHtml ?? descriptionHtml);
+        const h = descriptionHash(canonical);
+        await admin.graphql(
+          `mutation SetHashes($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+              metafields { id }
+              userErrors { field message }
+            }
+          }`,
+          {
+            variables: {
+              metafields: [
+                {
+                  ownerId: productId,
+                  namespace: 'crossborderagent',
+                  key: 'app_desc_hash',
+                  type: 'single_line_text_field',
+                  value: h,
+                },
+                {
+                  ownerId: productId,
+                  namespace: 'crossborderagent',
+                  key: 'desc_hash',
+                  type: 'single_line_text_field',
+                  value: h,
+                },
+              ],
+            },
+          },
+        );
+      } catch {
+        // best-effort
+      }
     }
     return {ok: true};
     }
@@ -626,12 +851,15 @@ function RichTextEditor({
 export default function RewriterWorkspace() {
   const {
     planName,
+    maxLocales,
     primaryLocale,
     locales,
     products,
     selectedProduct,
     translationsByLocale,
     didSelfHeal,
+    contentHash,
+    didResetMetaCache,
     shopSlug,
   } =
     useLoaderData<typeof loader>();
@@ -673,7 +901,7 @@ export default function RewriterWorkspace() {
   const [toastContent, setToastContent] = useState<string | null>(null);
   const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
 
-  const isPro = planName === 'Pro' || planName === 'Growth';
+  const allowsMultiLocale = maxLocales !== 1;
 
   const publishedLocales = useMemo(
     () => locales.filter((l) => l.published),
@@ -706,7 +934,7 @@ export default function RewriterWorkspace() {
     setReferenceDescription(selectedProduct?.descriptionHtml ?? '');
     setDiscoveredValues([]);
     setAddedValueKeys({});
-    setCulturalContextSaved(Boolean(selectedProduct?.culturalContext?.value));
+    setCulturalContextSaved(didResetMetaCache ? false : Boolean(selectedProduct?.culturalContext?.value));
 
     const baseTitle = selectedProduct?.title ?? '';
     const baseDesc = selectedProduct?.descriptionHtml ?? '';
@@ -717,12 +945,13 @@ export default function RewriterWorkspace() {
     const seeded: Record<string, {title: string; description: string; seoTitle: string; seoDescription: string}> = {};
     for (const loc of publishedLocales.map((l) => l.locale)) {
       const t = translationsByLocale?.[loc];
+      const isPrimary = loc === primaryLocale;
       seeded[loc] = {
-        title: t?.title ?? baseTitle,
-        description: t?.descriptionHtml ?? baseDesc,
-        // Store the actual translation if present; otherwise keep empty and show primary SEO as placeholder.
-        seoTitle: t?.seoTitle ?? '',
-        seoDescription: t?.seoDescription ?? '',
+        // For primary locale, always reflect the live product values (prevents stale SEO after manual edits).
+        title: isPrimary ? baseTitle : t?.title ?? baseTitle,
+        description: isPrimary ? baseDesc : t?.descriptionHtml ?? baseDesc,
+        seoTitle: isPrimary ? baseSeoTitle : t?.seoTitle ?? '',
+        seoDescription: isPrimary ? baseSeoDesc : t?.seoDescription ?? '',
       };
     }
     setDraftByLocale(seeded);
@@ -735,7 +964,10 @@ export default function RewriterWorkspace() {
       publishedLocales[0]?.locale ||
       '';
     if (initLocale) setActiveLocale(initLocale);
-  }, [selectedProduct?.id]);
+    if (didResetMetaCache) {
+      setToastContent('Product description changed in Shopify. Context & drafts were reset.');
+    }
+  }, [selectedProduct?.id, contentHash]);
 
   // Reflect metafield save immediately in UI.
   useEffect(() => {
@@ -1103,8 +1335,9 @@ export default function RewriterWorkspace() {
     setOverLimit(false);
     setSelectedLocales((prev) => {
       const next = nextChecked ? Array.from(new Set([...prev, locale])) : prev.filter((l) => l !== locale);
-      if (!isPro && next.length > 1) {
+      if (!allowsMultiLocale && next.length > 1) {
         setOverLimit(true);
+        setToastContent('Basic plan allows selecting 1 locale. Upgrade to select multiple.');
         return prev;
       }
       return next;
@@ -1168,7 +1401,7 @@ export default function RewriterWorkspace() {
                   <Text as="h2" variant="headingMd">
                     Products
                   </Text>
-                  <Badge tone={planName === 'Free' ? 'warning' : 'success'}>{planName}</Badge>
+                  <Badge tone={planName === 'Basic' ? 'warning' : 'success'}>{planName}</Badge>
                 </InlineStack>
 
                 <TextField
@@ -1422,7 +1655,7 @@ export default function RewriterWorkspace() {
                     </Text>
                     {overLimit ? (
                       <Banner tone="warning">
-                        Free plan allows selecting 1 market. Upgrade to select multiple.
+                        Basic plan allows selecting 1 locale. Upgrade to select multiple.
                       </Banner>
                     ) : null}
                     <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>

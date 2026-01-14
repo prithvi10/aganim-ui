@@ -84,7 +84,7 @@ export default function PrivacyPolicy() {
               <strong>Merchant / Shop data (stored)</strong>
               <ul>
                 <li>Shop domain (e.g., your-store.myshopify.com)</li>
-                <li>App plan information and usage counters (token usage)</li>
+                <li>App plan information and usage counters (e.g., monthly rewrites used)</li>
                 <li>
                   Shopify Admin access token for your shop (used to write
                   translations/content back to Shopify)
@@ -118,6 +118,65 @@ export default function PrivacyPolicy() {
               </ul>
             </li>
           </ul>
+        </section>
+
+        <section style={{ marginBottom: 20 }}>
+          <h2 style={{ fontSize: 18, marginBottom: 8 }}>
+            Fair Use Policy for “Unlimited” Plans
+          </h2>
+
+          <h3 style={{ fontSize: 16, margin: "0 0 8px 0" }}>1. Purpose and Scope</h3>
+          <p style={{ marginTop: 0 }}>
+            To ensure consistent performance and priority access for all our merchants,
+            Cross-Border AI (the “App”) employs a Fair Use Policy. While our “Pro” and
+            “Enterprise” plans may offer “Unlimited” product rewrites, these services are
+            intended for the standard business operations of a single Shopify store.
+          </p>
+
+          <h3 style={{ fontSize: 16, margin: "0 0 8px 0" }}>2. Standard Usage Thresholds</h3>
+          <p style={{ marginTop: 0 }}>
+            “Unlimited” usage is subject to the condition that your use of the App does not
+            significantly exceed the average usage patterns of other merchants on similar tiers.
+            This includes, but is not limited to:
+          </p>
+          <ul style={{ marginTop: 0 }}>
+            <li>
+              <strong>Token Consumption</strong>: Excessive consumption of high-reasoning models
+              (e.g., GPT-5) that incurs costs exceeding the value of the monthly subscription.
+            </li>
+            <li>
+              <strong>Automated Scents</strong>: Using third-party scripts, bots, or automated
+              scrapers to trigger mass-generation beyond typical merchant administrative needs.
+            </li>
+          </ul>
+
+          <h3 style={{ fontSize: 16, margin: "0 0 8px 0" }}>3. Monitoring and Intervention</h3>
+          <p style={{ marginTop: 0 }}>
+            Cross-Border AI monitors lifetime and monthly token usage purely for cost-stability
+            and system integrity. If your usage is flagged as “Extraordinary” or “Abusive,” we
+            reserve the right to:
+          </p>
+          <ul style={{ marginTop: 0 }}>
+            <li>
+              <strong>Priority Throttling</strong>: Temporarily reduce the generation priority or
+              shift your processing to a high-speed, standard-tier AI model.
+            </li>
+            <li>
+              <strong>Account Review</strong>: Contact you to discuss moving your store to a custom
+              Enterprise tier that reflects your actual volume.
+            </li>
+            <li>
+              <strong>Suspension</strong>: In cases of clear automated abuse or “spamming” of our
+              API, we reserve the right to suspend access immediately to protect our infrastructure.
+            </li>
+          </ul>
+
+          <h3 style={{ fontSize: 16, margin: "0 0 8px 0" }}>4. Our Commitment</h3>
+          <p style={{ marginTop: 0, marginBottom: 0 }}>
+            We will never block a merchant for “selling too much.” If you are a high-volume
+            merchant experiencing genuine growth, we will work with you to ensure your service
+            remains uninterrupted and your profit margins—and ours—are protected.
+          </p>
         </section>
 
         <section style={{ marginBottom: 20 }}>

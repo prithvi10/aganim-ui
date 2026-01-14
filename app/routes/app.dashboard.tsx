@@ -33,7 +33,8 @@ const TRANSLATIONS = {
     currentPlan: "Current Plan",
     manageSubscription: "Manage Subscription",
     usage: "Usage",
-    syncsUsed: "syncs used this month",
+    rewritesUsed: "rewrites used this month",
+    priorityAccess: "Priority GPT-5 Access Active",
     health: "All Systems Operational",
     supportTitle: "Certified Support",
     supportText: "Our team is based in JST and typically responds within 2 hours.",
@@ -51,7 +52,8 @@ const TRANSLATIONS = {
     currentPlan: "現在のプラン",
     manageSubscription: "サブスクリプション管理",
     usage: "利用状況",
-    syncsUsed: "件 / 今月の同期数",
+    rewritesUsed: "件 / 今月の書き換え数",
+    priorityAccess: "GPT-5 優先アクセス有効",
     health: "全システム稼働中",
     supportTitle: "認定サポート",
     supportText: "日本時間で対応中。通常2時間以内に返信いたします。",
@@ -111,9 +113,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Defaults
   let activeMarketsCount = 0;
-  let usage = { used: 0, quota: 1000, planName: "Free" };
+  let usage = { used: 0, quota: 50, planName: "Basic", nextResetDate: null as string | null };
   let backendError401 = false;
-  let planName = "Free";
+  let planName = "Basic";
   let trialDays = 0;
   let needsReauth = false;
 
@@ -142,8 +144,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       await authenticate.admin(request);
       return {
         activeMarketsCount: 0,
-        usage: { used: 0, quota: 1000, planName: "Free" },
-        planName: "Free",
+        usage: { used: 0, quota: 1000, planName: "Basic" },
+        planName: "Basic",
         trialDays: 0,
         backendError401: false,
         isAuthenticating: false,
@@ -173,8 +175,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       await authenticate.admin(request);
       return {
         activeMarketsCount: 0,
-        usage: { used: 0, quota: 1000, planName: "Free" },
-        planName: "Free",
+        usage: { used: 0, quota: 1000, planName: "Basic" },
+        planName: "Basic",
         trialDays: 0,
         backendError401: false,
         isAuthenticating: false,
@@ -202,9 +204,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       } else if (resp.ok) {
         const data = await resp.json();
         usage = {
-          used: data.current_usage || 0,
-          quota: data.monthly_token_quota || 1000,
-          planName: data.plan_name || planName // Prefer backend plan if available
+          used: data.monthly_rewrites_used ?? data.current_usage ?? 0,
+          quota: data.rewrite_limit ?? data.monthly_token_quota ?? 50,
+          planName: data.plan_name || planName, // Prefer backend plan if available
+          nextResetDate: data.next_reset_date ?? null,
         };
       }
     } catch (e) {
@@ -235,8 +238,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       isAuthenticating: false,
       needsReauth: true,
       activeMarketsCount: 0,
-      usage: { used: 0, quota: 1000, planName: "Free" },
-      planName: "Free",
+      usage: { used: 0, quota: 1000, planName: "Basic" },
+      planName: "Basic",
       trialDays: 0,
       backendError401: false,
       isSyncing: false
@@ -265,6 +268,15 @@ export default function Dashboard() {
   const app = useAppBridge();
   
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
+  const featureList = useMemo(() => {
+    if (planName === "Pro") {
+      return ["Unlimited Bulk Sync", "Priority GPT-5", "Supreme Features"];
+    }
+    if (planName === "Standard") {
+      return ["Multi-locale", "Social Hook Architect", "AI Marketing"];
+    }
+    return ["1 Locale", "SEO optimization", "GPT-4o-mini"];
+  }, [planName]);
 
   useEffect(() => {
     // Artificial delay to prevent skeleton flash on fast loads
@@ -272,10 +284,14 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, []);
 
-  const usedCount = usage?.used || 0;
-  const quotaCount = usage?.quota || 1000;
-  const usagePercent = Math.min(100, Math.round((usedCount / quotaCount) * 100));
+  const usedCount = Number(usage?.used || 0);
+  const quotaCount = Number(usage?.quota ?? 0);
+  const isUnlimited = quotaCount === -1;
+  const usagePercent = isUnlimited || quotaCount <= 0 ? 0 : Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
+  const resetDateLabel = usage?.nextResetDate
+    ? new Date(usage.nextResetDate).toLocaleDateString()
+    : null;
 
   // 1. Re-Auth State
   if (needsReauth) {
@@ -369,17 +385,34 @@ export default function Dashboard() {
                 </Card>
                </div>
                
-               {/* Usage Token Bar */}
+               {/* Monthly Product Rewrite Usage */}
                <div style={{ flex: 1 }}>
                 <Card>
                   <div style={{ padding: "var(--p-space-400)" }}>
                     <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">Tokens Used</Text>
+                      <Text as="h2" variant="headingSm" tone="subdued">Monthly Product Rewrites</Text>
+                      {isUnlimited ? (
+                        <BlockStack gap="100">
+                          <InlineStack align="space-between" blockAlign="center">
+                            <Text as="p" variant="headingMd">Unlimited</Text>
+                            <Badge tone="success">Priority GPT-5 Access Active</Badge>
+                          </InlineStack>
+                          {resetDateLabel ? (
+                            <Text as="p" variant="bodySm" tone="subdued">{`Resets on ${resetDateLabel}`}</Text>
+                          ) : null}
+                        </BlockStack>
+                      ) : (
+                        <BlockStack gap="100">
                       <InlineStack align="space-between">
                         <Text as="p" variant="headingMd">{usedCount} / {quotaCount}</Text>
                         <Badge tone={isCritical ? "critical" : "success"}>{`${usagePercent}%`}</Badge>
                       </InlineStack>
                       <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} />
+                          {resetDateLabel ? (
+                            <Text as="p" variant="bodySm" tone="subdued">{`Resets on ${resetDateLabel}`}</Text>
+                          ) : null}
+                        </BlockStack>
+                      )}
                     </BlockStack>
                   </div>
                 </Card>
@@ -405,15 +438,14 @@ export default function Dashboard() {
                       <Button url="/app/plans">{t.manageSubscription}</Button>
                     </InlineStack>
 
-                    {/* Data Table for Benefits */}
+                    {/* Feature Table (new plan features) */}
                     <div style={{ marginTop: "4px" }}>
                       <DataTable
                         columnContentTypes={["text", "text"]}
                         headings={["Feature", "Status"]}
                         rows={[
-                          ["Bulk Market Optimization", planName === "Pro" || planName === "Growth" ? "✅ Unlocked" : "❌ Upgrade Required"],
-                          ["Priority AI Support", "✅ Included"],
-                          ["SEO Meta-tag Sync", "✅ Included"]
+                          ...featureList.map((f) => [f, "✅ Included"]),
+                          ["Bulk Market Optimization", planName === "Pro" || planName === "Standard" ? "✅ Unlocked" : "❌ Upgrade Required"],
                         ]}
                         footerContent={null}
                       />
@@ -426,10 +458,25 @@ export default function Dashboard() {
                         {t.usage}
                       </Text>
                       <Text as="span" variant="bodySm" tone="subdued">
-                        {usedCount} / {quotaCount} {t.syncsUsed}
+                        {isUnlimited ? `Unlimited • ${t.priorityAccess}` : `${usedCount} / ${quotaCount} ${t.rewritesUsed}`}
                       </Text>
                     </InlineStack>
+                    {isUnlimited ? (
+                      <InlineStack align="start">
+                        {resetDateLabel ? (
+                          <Text as="span" variant="bodySm" tone="subdued">{`Your usage resets on ${resetDateLabel}`}</Text>
+                        ) : (
+                          <Text as="span" variant="bodySm" tone="subdued">Priority GPT-5 Access Active.</Text>
+                        )}
+                      </InlineStack>
+                    ) : (
+                      <BlockStack gap="100">
                     <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} size="small" />
+                        {resetDateLabel ? (
+                          <Text as="span" variant="bodySm" tone="subdued">{`Your usage resets on ${resetDateLabel}`}</Text>
+                        ) : null}
+                      </BlockStack>
+                    )}
                   </BlockStack>
                 </BlockStack>
               </div>
