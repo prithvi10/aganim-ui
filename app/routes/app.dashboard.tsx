@@ -268,6 +268,15 @@ export default function Dashboard() {
   const app = useAppBridge();
   
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
+  const featureList = useMemo(() => {
+    if (planName === "Pro") {
+      return ["Unlimited Bulk Sync", "Priority GPT-5", "Supreme Features"];
+    }
+    if (planName === "Standard") {
+      return ["Multi-locale", "Social Hook Architect", "AI Marketing"];
+    }
+    return ["1 Locale", "SEO optimization", "GPT-4o-mini"];
+  }, [planName]);
 
   useEffect(() => {
     // Artificial delay to prevent skeleton flash on fast loads
@@ -429,15 +438,14 @@ export default function Dashboard() {
                       <Button url="/app/plans">{t.manageSubscription}</Button>
                     </InlineStack>
 
-                    {/* Data Table for Benefits */}
+                    {/* Feature Table (new plan features) */}
                     <div style={{ marginTop: "4px" }}>
                       <DataTable
                         columnContentTypes={["text", "text"]}
                         headings={["Feature", "Status"]}
                         rows={[
+                          ...featureList.map((f) => [f, "✅ Included"]),
                           ["Bulk Market Optimization", planName === "Pro" || planName === "Standard" ? "✅ Unlocked" : "❌ Upgrade Required"],
-                          ["Priority AI Support", "✅ Included"],
-                          ["SEO Meta-tag Sync", "✅ Included"]
                         ]}
                         footerContent={null}
                       />

@@ -102,12 +102,16 @@ export default function PlansPage() {
           <InlineStack gap="400" align="center">
             {plans.map((plan) => (
               <Box key={plan.name} minWidth="300px" maxWidth="300px">
+                {(() => {
+                  const isCurrent = currentPlans.some((sub) => sub.name === plan.name);
+                  return (
                 <Card>
                   <BlockStack gap="400">
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingLg">
                         <InlineStack gap="200" align="space-between">
                           <span>{plan.name}</span>
+                          {isCurrent ? <Badge tone="success">Active</Badge> : null}
                           {plan.name === PLAN_PRO ? (
                             <Badge tone="success">Priority AI (GPT-5) • Unlimited Sync</Badge>
                           ) : null}
@@ -138,19 +142,19 @@ export default function PlansPage() {
                     <Form method="post">
                       <input type="hidden" name="plan" value={plan.name} />
                       <Button
-                        variant="primary"
+                        variant={isCurrent ? "secondary" : "primary"}
                         fullWidth
                         submit
                         loading={isUpgrading}
-                        disabled={currentPlans.some((sub) => sub.name === plan.name)}
+                        disabled={isCurrent}
                       >
-                        {currentPlans.some((sub) => sub.name === plan.name)
-                          ? "Current Plan"
-                          : "Upgrade"}
+                        {isCurrent ? "Current Plan" : "Upgrade"}
                       </Button>
                     </Form>
                   </BlockStack>
                 </Card>
+                  );
+                })()}
               </Box>
             ))}
           </InlineStack>
