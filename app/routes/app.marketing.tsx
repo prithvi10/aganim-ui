@@ -49,7 +49,7 @@ type SelectedProduct = {
 };
 
 type LoaderData = {
-  planName: 'Free' | 'Pro' | 'Growth';
+  planName: 'Basic' | 'Standard' | 'Pro';
   shop: string;
   shopSlug: string;
   products: ProductListItem[];
@@ -129,9 +129,13 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   const activeSubs: Array<{name: string; status: string}> =
     planRes?.data?.appInstallation?.activeSubscriptions ?? [];
-  const hasGrowth = activeSubs.some((s) => s.status === 'ACTIVE' && s.name === 'Growth');
-  const hasPro = activeSubs.some((s) => s.status === 'ACTIVE' && s.name === 'Pro');
-  const planName: LoaderData['planName'] = hasGrowth ? 'Growth' : hasPro ? 'Pro' : 'Free';
+  const normalized = activeSubs
+    .filter((s) => String(s.status || '').toUpperCase() === 'ACTIVE')
+    .map((s) => String(s.name || '').toLowerCase());
+  const hasPro = normalized.some((n) => n.includes('pro'));
+  const hasStandard = normalized.some((n) => n.includes('standard'));
+  const hasBasic = normalized.some((n) => n.includes('basic'));
+  const planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Basic';
 
   const products: ProductListItem[] =
     productsRes?.data?.products?.edges?.map((e: any) => e.node) ?? [];
@@ -510,7 +514,7 @@ export default function MarketingWorkspace() {
                   <Text as="h2" variant="headingMd">
                     Products
                   </Text>
-                  <Badge tone={planName === 'Free' ? 'warning' : 'success'}>{planName}</Badge>
+                  <Badge tone={planName === 'Basic' ? 'warning' : 'success'}>{planName}</Badge>
                 </InlineStack>
 
                 <TextField

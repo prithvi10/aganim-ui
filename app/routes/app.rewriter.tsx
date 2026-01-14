@@ -59,7 +59,8 @@ type ProductListItem = {
 type LoaderData = {
   shop: string;
   shopSlug: string;
-  planName: 'Free' | 'Pro' | 'Growth';
+  planName: 'Basic' | 'Standard' | 'Pro';
+  maxLocales: number; // 1 = single-locale, -1 = unlimited
   primaryLocale: string;
   locales: ShopLocale[];
   products: ProductListItem[];
@@ -201,9 +202,31 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     })
     .map((s) => String(s.name || ''));
   const normalizedNames = activeNames.map((n) => n.toLowerCase());
-  const hasGrowth = normalizedNames.some((n) => n.includes('growth'));
   const hasPro = normalizedNames.some((n) => n.includes('pro'));
-  const planName: LoaderData['planName'] = hasGrowth ? 'Growth' : hasPro ? 'Pro' : 'Free';
+  const hasStandard = normalizedNames.some((n) => n.includes('standard'));
+  const hasBasic = normalizedNames.some((n) => n.includes('basic'));
+
+  // Default from Shopify billing (fallback to Basic if not subscribed yet).
+  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Basic';
+
+  // Pull plan limits from backend DB so gating matches seeded limits.
+  let maxLocales: number = planName === 'Basic' ? 1 : -1;
+  try {
+    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
+    if (u.ok) {
+      const data: any = await u.json().catch(() => ({}));
+      const pn = String(data?.plan_name ?? '').trim();
+      if (pn === 'Basic' || pn === 'Standard' || pn === 'Pro') {
+        planName = pn;
+      }
+      const ml = Number(data?.max_locales);
+      if (Number.isFinite(ml)) {
+        maxLocales = ml;
+      }
+    }
+  } catch {
+    // Best-effort: keep fallback gating.
+  }
 
   const locales: ShopLocale[] = localesRes?.data?.shopLocales ?? [];
   const primaryLocale = locales.find((l) => l.primary)?.locale || 'en';
@@ -281,6 +304,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     shop: sessionShop,
     shopSlug,
     planName,
+    maxLocales,
     primaryLocale,
     locales,
     products,
@@ -626,6 +650,7 @@ function RichTextEditor({
 export default function RewriterWorkspace() {
   const {
     planName,
+    maxLocales,
     primaryLocale,
     locales,
     products,
@@ -673,7 +698,7 @@ export default function RewriterWorkspace() {
   const [toastContent, setToastContent] = useState<string | null>(null);
   const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
 
-  const isPro = planName === 'Pro' || planName === 'Growth';
+  const allowsMultiLocale = maxLocales !== 1;
 
   const publishedLocales = useMemo(
     () => locales.filter((l) => l.published),
@@ -1103,8 +1128,9 @@ export default function RewriterWorkspace() {
     setOverLimit(false);
     setSelectedLocales((prev) => {
       const next = nextChecked ? Array.from(new Set([...prev, locale])) : prev.filter((l) => l !== locale);
-      if (!isPro && next.length > 1) {
+      if (!allowsMultiLocale && next.length > 1) {
         setOverLimit(true);
+        setToastContent('Basic plan allows selecting 1 locale. Upgrade to select multiple.');
         return prev;
       }
       return next;
@@ -1168,7 +1194,7 @@ export default function RewriterWorkspace() {
                   <Text as="h2" variant="headingMd">
                     Products
                   </Text>
-                  <Badge tone={planName === 'Free' ? 'warning' : 'success'}>{planName}</Badge>
+                  <Badge tone={planName === 'Basic' ? 'warning' : 'success'}>{planName}</Badge>
                 </InlineStack>
 
                 <TextField
@@ -1422,7 +1448,7 @@ export default function RewriterWorkspace() {
                     </Text>
                     {overLimit ? (
                       <Banner tone="warning">
-                        Free plan allows selecting 1 market. Upgrade to select multiple.
+                        Basic plan allows selecting 1 locale. Upgrade to select multiple.
                       </Banner>
                     ) : null}
                     <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
