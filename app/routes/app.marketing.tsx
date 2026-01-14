@@ -24,6 +24,7 @@ import {getSessionToken} from '@shopify/app-bridge/utilities';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
+import {descriptionHash} from '../utils/descriptionHash.server';
 
 type ProductListItem = {id: string; title: string};
 type ProductImage = {url: string; altText?: string | null};
@@ -37,6 +38,7 @@ type SocialHooksCache = {
   }>;
   overlay_suggestions?: string[];
   generated_at?: string;
+  source_desc_hash?: string;
 };
 type SelectedProduct = {
   id: string;
@@ -46,14 +48,19 @@ type SelectedProduct = {
   tags: string[];
   images: ProductImage[];
   socialHooksCache?: SocialHooksCache | null;
+  _contentHash?: string;
+  _hooksSourceHash?: string;
+  _hooksIsFresh?: boolean;
 };
 
 type LoaderData = {
-  planName: 'Free' | 'Pro' | 'Growth';
+  planName: 'Basic' | 'Standard' | 'Pro';
   shop: string;
   shopSlug: string;
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
+  contentHash: string | null;
+  didResetMetaCache: boolean;
 };
 
 function firstOrNull<T>(arr: T[]): T | null {
@@ -129,9 +136,13 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   const activeSubs: Array<{name: string; status: string}> =
     planRes?.data?.appInstallation?.activeSubscriptions ?? [];
-  const hasGrowth = activeSubs.some((s) => s.status === 'ACTIVE' && s.name === 'Growth');
-  const hasPro = activeSubs.some((s) => s.status === 'ACTIVE' && s.name === 'Pro');
-  const planName: LoaderData['planName'] = hasGrowth ? 'Growth' : hasPro ? 'Pro' : 'Free';
+  const normalized = activeSubs
+    .filter((s) => String(s.status || '').toUpperCase() === 'ACTIVE')
+    .map((s) => String(s.name || '').toLowerCase());
+  const hasPro = normalized.some((n) => n.includes('pro'));
+  const hasStandard = normalized.some((n) => n.includes('standard'));
+  const hasBasic = normalized.some((n) => n.includes('basic'));
+  const planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Basic';
 
   const products: ProductListItem[] =
     productsRes?.data?.products?.edges?.map((e: any) => e.node) ?? [];
@@ -149,9 +160,12 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               descriptionHtml
               productType
               tags
-              metafield(namespace: "crossborderagent", key: "social_hooks_instagram") {
+              hooksMeta: metafield(namespace: "crossborderagent", key: "social_hooks_instagram") {
+                id
                 value
               }
+              hooksHashMeta: metafield(namespace: "crossborderagent", key: "social_hooks_instagram_desc_hash") { id value }
+              legacyDescHashMeta: metafield(namespace: "crossborderagent", key: "desc_hash") { id value }
               images(first: 6) {
                 edges {
                   node {
@@ -171,9 +185,12 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               descriptionHtml
               productType
               tags
-              metafield(namespace: "crossborderagent", key: "social_hooks_instagram") {
+              hooksMeta: metafield(namespace: "crossborderagent", key: "social_hooks_instagram") {
+                id
                 value
               }
+              hooksHashMeta: metafield(namespace: "crossborderagent", key: "social_hooks_instagram_desc_hash") { id value }
+              legacyDescHashMeta: metafield(namespace: "crossborderagent", key: "desc_hash") { id value }
               images(first: 6) {
                 edges {
                   node {
@@ -189,14 +206,70 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     : null;
 
   const rawSelectedProduct = selectedProductRes?.data?.product ?? null;
+  const currentContentHash = rawSelectedProduct?.descriptionHtml
+    ? descriptionHash(String(rawSelectedProduct.descriptionHtml ?? ''))
+    : descriptionHash('');
+  let didResetMetaCache = false;
+
   let parsedSocialHooks: SocialHooksCache | null = null;
-  if (rawSelectedProduct?.metafield?.value) {
+  if (rawSelectedProduct?.hooksMeta?.value) {
     try {
-      parsedSocialHooks = JSON.parse(String(rawSelectedProduct.metafield.value));
+      parsedSocialHooks = JSON.parse(String(rawSelectedProduct.hooksMeta.value));
     } catch {
       parsedSocialHooks = null;
     }
   }
+
+  // Invalidate cached hooks if the product description has changed (manual OR via our app rewriter).
+  if (rawSelectedProduct?.id) {
+    const hooksHash =
+      String(rawSelectedProduct?.hooksHashMeta?.value ?? '') ||
+      String(parsedSocialHooks?.source_desc_hash ?? '') ||
+      String(rawSelectedProduct?.legacyDescHashMeta?.value ?? '');
+    const hasCache = Boolean(rawSelectedProduct?.hooksMeta?.id);
+    if (hasCache && hooksHash && hooksHash !== currentContentHash) {
+      const hooksId = rawSelectedProduct?.hooksMeta?.id;
+      const hooksHashId = rawSelectedProduct?.hooksHashMeta?.id;
+      if (hooksId) {
+        try {
+          await graphqlQuery(
+            `mutation DeleteMetafield($input: MetafieldDeleteInput!) {
+              metafieldDelete(input: $input) {
+                deletedId
+                userErrors { field message }
+              }
+            }`,
+            {input: {id: hooksId}},
+          );
+        } catch {
+          // best-effort
+        }
+      }
+      if (hooksHashId) {
+        try {
+          await graphqlQuery(
+            `mutation DeleteMetafield($input: MetafieldDeleteInput!) {
+              metafieldDelete(input: $input) {
+                deletedId
+                userErrors { field message }
+              }
+            }`,
+            {input: {id: hooksHashId}},
+          );
+        } catch {
+          // best-effort
+        }
+      }
+      didResetMetaCache = true;
+      parsedSocialHooks = null;
+    }
+  }
+
+  const hooksSourceHash =
+    String(rawSelectedProduct?.hooksHashMeta?.value ?? '') ||
+    String(parsedSocialHooks?.source_desc_hash ?? '') ||
+    String(rawSelectedProduct?.legacyDescHashMeta?.value ?? '');
+  const hooksIsFresh = Boolean(hooksSourceHash && hooksSourceHash === currentContentHash);
   const selectedProduct: SelectedProduct | null = rawSelectedProduct
     ? {
         ...rawSelectedProduct,
@@ -204,6 +277,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
         images:
           rawSelectedProduct?.images?.edges?.map((e: any) => e.node).filter(Boolean) ?? [],
         socialHooksCache: parsedSocialHooks,
+        _contentHash: currentContentHash,
+        _hooksSourceHash: hooksSourceHash || undefined,
+        _hooksIsFresh: hooksIsFresh,
       }
     : null;
 
@@ -213,6 +289,8 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     shopSlug,
     products,
     selectedProduct,
+    contentHash: selectedProduct?._contentHash ?? null,
+    didResetMetaCache,
   } satisfies LoaderData;
 };
 
@@ -227,6 +305,33 @@ export const action = async ({request}: ActionFunctionArgs) => {
     const value = String(formData.get('value') || '');
     if (!productId) return {ok: false, error: 'Missing productId'};
     if (!value) return {ok: false, error: 'Missing value'};
+
+    // Stamp the current desc hash for this caption cache so we can invalidate it when description changes.
+    let currentHash = '';
+    try {
+      const p = await admin.graphql(
+        `query ProductDesc($id: ID!) { product(id: $id) { descriptionHtml } }`,
+        {variables: {id: productId}},
+      );
+      const pj = await p.json();
+      currentHash = descriptionHash(String(pj?.data?.product?.descriptionHtml ?? ''));
+    } catch {
+      currentHash = '';
+    }
+
+    // Ensure payload also carries the source description hash (back-compat friendly).
+    let valueToSave = value;
+    if (currentHash) {
+      try {
+        const obj = JSON.parse(valueToSave);
+        if (obj && typeof obj === 'object') {
+          obj.source_desc_hash = currentHash;
+          valueToSave = JSON.stringify(obj);
+        }
+      } catch {
+        // keep original value
+      }
+    }
 
     const resp = await admin.graphql(
       `mutation SetHooks($metafields: [MetafieldsSetInput!]!) {
@@ -243,8 +348,19 @@ export const action = async ({request}: ActionFunctionArgs) => {
               namespace: 'crossborderagent',
               key: 'social_hooks_instagram',
               type: 'json',
-              value,
+              value: valueToSave,
             },
+            ...(currentHash
+              ? [
+                  {
+                    ownerId: productId,
+                    namespace: 'crossborderagent',
+                    key: 'social_hooks_instagram_desc_hash',
+                    type: 'single_line_text_field',
+                    value: currentHash,
+                  },
+                ]
+              : []),
           ],
         },
       },
@@ -261,7 +377,8 @@ export const action = async ({request}: ActionFunctionArgs) => {
 };
 
 export default function MarketingWorkspace() {
-  const {planName, products, selectedProduct, shopSlug} = useLoaderData<typeof loader>();
+  const {planName, products, selectedProduct, shopSlug, contentHash, didResetMetaCache} =
+    useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge();
 
@@ -271,6 +388,7 @@ export default function MarketingWorkspace() {
   // Instagram Marketing Assistant
   const [hooksLoading, setHooksLoading] = useState(false);
   const [hooksError, setHooksError] = useState<string | null>(null);
+  const [hooksGenerated, setHooksGenerated] = useState(false);
   const [overlaySuggestions, setOverlaySuggestions] = useState<string[]>([]);
   const [hooks, setHooks] = useState<
     Array<{
@@ -351,6 +469,7 @@ export default function MarketingWorkspace() {
 
   const runSocialHooks = useCallback(async () => {
     if (!selectedProduct?.id) return;
+    if (hooksGenerated) return; // safety valve: prevent spamming after generation
     setHooksLoading(true);
     setHooksError(null);
     setOverlaySuggestions([]);
@@ -373,6 +492,8 @@ export default function MarketingWorkspace() {
       setHooks(safeHooks);
       setOverlaySuggestions(safeOverlays);
       setSelectedHookIndex(0);
+      setHooksGenerated(true);
+      setToastContent('Generated Instagram hooks.');
 
       // Persist cache on the product (Shopify metafield) to avoid re-calling the LLM.
       try {
@@ -394,7 +515,7 @@ export default function MarketingWorkspace() {
     } finally {
       setHooksLoading(false);
     }
-  }, [callAgent, saveHooksFetcher, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
+  }, [callAgent, hooksGenerated, saveHooksFetcher, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
   const loadUpcomingHolidayOnce = useCallback(async () => {
     // Holiday window doesn't depend on product, so load once and keep the banner stable.
@@ -450,6 +571,7 @@ export default function MarketingWorkspace() {
     setHooks([]);
     setHooksError(null);
     setSeasonalError(null);
+    setHooksGenerated(false);
     if (!selectedProduct?.id) return;
     // Use cached hooks if present; otherwise generate once and persist to metafield.
     const cached = selectedProduct.socialHooksCache;
@@ -457,10 +579,15 @@ export default function MarketingWorkspace() {
       setHooks(cached.hooks);
       setOverlaySuggestions(Array.isArray(cached.overlay_suggestions) ? cached.overlay_suggestions : []);
       setSelectedHookIndex(0);
+      // Only lock/disable the button when the cache matches the CURRENT product description.
+      setHooksGenerated(Boolean(selectedProduct?._hooksIsFresh));
     } else {
       runSocialHooks();
     }
-  }, [selectedProduct?.id]);
+    if (didResetMetaCache) {
+      setToastContent('Product description changed. Please generate hooks again.');
+    }
+  }, [selectedProduct?.id, contentHash]);
 
   // Load holiday banner once per page load
   useEffect(() => {
@@ -510,7 +637,7 @@ export default function MarketingWorkspace() {
                   <Text as="h2" variant="headingMd">
                     Products
                   </Text>
-                  <Badge tone={planName === 'Free' ? 'warning' : 'success'}>{planName}</Badge>
+                  <Badge tone={planName === 'Basic' ? 'warning' : 'success'}>{planName}</Badge>
                 </InlineStack>
 
                 <TextField
@@ -692,8 +819,18 @@ export default function MarketingWorkspace() {
                   {hooksError ? <Banner tone="critical">{hooksError}</Banner> : null}
 
                   <InlineStack align="end">
-                    <Button onClick={runSocialHooks} disabled={!selectedProduct?.id}>
-                      {hooksLoading ? 'Generating…' : 'Regenerate'}
+                    <Button
+                      onClick={runSocialHooks}
+                      disabled={!selectedProduct?.id || hooksLoading || hooksGenerated}
+                      variant={hooksGenerated ? "secondary" : "primary"}
+                    >
+                      {hooksLoading
+                        ? 'Generating…'
+                        : hooksGenerated
+                          ? 'Generated ✓'
+                          : hooks.length
+                            ? 'Regenerate'
+                            : 'Generate'}
                     </Button>
                   </InlineStack>
 
