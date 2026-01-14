@@ -111,9 +111,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Defaults
   let activeMarketsCount = 0;
-  let usage = { used: 0, quota: 1000, planName: "Free" };
+  let usage = { used: 0, quota: 1000, planName: "Basic" };
   let backendError401 = false;
-  let planName = "Free";
+  let planName = "Basic";
   let trialDays = 0;
   let needsReauth = false;
 
@@ -142,8 +142,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       await authenticate.admin(request);
       return {
         activeMarketsCount: 0,
-        usage: { used: 0, quota: 1000, planName: "Free" },
-        planName: "Free",
+        usage: { used: 0, quota: 1000, planName: "Basic" },
+        planName: "Basic",
         trialDays: 0,
         backendError401: false,
         isAuthenticating: false,
@@ -173,8 +173,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       await authenticate.admin(request);
       return {
         activeMarketsCount: 0,
-        usage: { used: 0, quota: 1000, planName: "Free" },
-        planName: "Free",
+        usage: { used: 0, quota: 1000, planName: "Basic" },
+        planName: "Basic",
         trialDays: 0,
         backendError401: false,
         isAuthenticating: false,
@@ -235,8 +235,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       isAuthenticating: false,
       needsReauth: true,
       activeMarketsCount: 0,
-      usage: { used: 0, quota: 1000, planName: "Free" },
-      planName: "Free",
+      usage: { used: 0, quota: 1000, planName: "Basic" },
+      planName: "Basic",
       trialDays: 0,
       backendError401: false,
       isSyncing: false
@@ -411,7 +411,7 @@ export default function Dashboard() {
                         columnContentTypes={["text", "text"]}
                         headings={["Feature", "Status"]}
                         rows={[
-                          ["Bulk Market Optimization", planName === "Pro" || planName === "Growth" ? "✅ Unlocked" : "❌ Upgrade Required"],
+                          ["Bulk Market Optimization", planName === "Pro" || planName === "Standard" ? "✅ Unlocked" : "❌ Upgrade Required"],
                           ["Priority AI Support", "✅ Included"],
                           ["SEO Meta-tag Sync", "✅ Included"]
                         ]}
