@@ -23,16 +23,44 @@ const PLAN_STANDARD = 'Standard' as const;
 const PLAN_PRO = 'Pro' as const;
 type PlanName = typeof PLAN_BASIC | typeof PLAN_STANDARD | typeof PLAN_PRO;
 
+type ActiveSub = { name?: string; status?: string; test?: boolean };
+
+function normalizeActivePlan(subs: ActiveSub[] | null | undefined): PlanName {
+  const activeNames = (subs ?? [])
+    .filter((s) => {
+      const st = String(s?.status ?? "").toUpperCase();
+      // Shopify can return PENDING briefly right after upgrade; treat as active for UI + guards.
+      return !st || st === "ACTIVE" || st === "PENDING";
+    })
+    .map((s) => String(s?.name ?? "").toLowerCase());
+
+  const hasPro = activeNames.some((n) => n.includes("pro"));
+  const hasStandard = activeNames.some((n) => n.includes("standard"));
+  const hasBasic = activeNames.some((n) => n.includes("basic"));
+  return hasPro ? PLAN_PRO : hasStandard ? PLAN_STANDARD : hasBasic ? PLAN_BASIC : PLAN_BASIC;
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { billing } = await authenticate.admin(request);
-  
   try {
-    const billingCheck = await billing.check();
-    return { 
-      currentPlans: billingCheck.appSubscriptions,
-    };
+    const { admin } = await authenticate.admin(request);
+    const resp = await admin.graphql(`
+      query {
+        currentAppInstallation {
+          activeSubscriptions {
+            name
+            status
+            test
+          }
+        }
+      }
+    `);
+    const body = await resp.json();
+    const subs: ActiveSub[] =
+      body?.data?.currentAppInstallation?.activeSubscriptions ?? [];
+    const activePlan = normalizeActivePlan(subs);
+    return { currentPlans: subs, activePlan };
   } catch (e) {
-    return { currentPlans: [] };
+    return { currentPlans: [], activePlan: PLAN_BASIC };
   }
 };
 
@@ -48,6 +76,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const adminReturnUrl = `https://admin.shopify.com/store/${shopSubdomain}/apps/crossborderagent/app${hostSuffix}`;
 
   if (plan === PLAN_BASIC || plan === PLAN_STANDARD || plan === PLAN_PRO) {
+    // Server-side guard: do not allow "upgrading" to the already-active plan.
+    try {
+      const { admin } = await authenticate.admin(request);
+      const resp = await admin.graphql(`
+        query {
+          currentAppInstallation {
+            activeSubscriptions {
+              name
+              status
+            }
+          }
+        }
+      `);
+      const body = await resp.json();
+      const subs: ActiveSub[] =
+        body?.data?.currentAppInstallation?.activeSubscriptions ?? [];
+      const activePlan = normalizeActivePlan(subs);
+      if (activePlan === plan) {
+        return null;
+      }
+    } catch {
+      // If billing.check fails, we still proceed (Shopify will handle idempotency / confirmation UI).
+    }
+
     await billing.request({
       plan,
       isTest: process.env.NODE_ENV !== "production",
@@ -64,7 +116,7 @@ export const headers: HeadersFunction = (headersArgs) => {
 };
 
 export default function PlansPage() {
-  const { currentPlans } = useLoaderData<typeof loader>();
+  const { activePlan } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
 
   const isUpgrading = navigation.state === "submitting";
@@ -103,7 +155,7 @@ export default function PlansPage() {
             {plans.map((plan) => (
               <Box key={plan.name} minWidth="300px" maxWidth="300px">
                 {(() => {
-                  const isCurrent = currentPlans.some((sub) => sub.name === plan.name);
+                  const isCurrent = plan.name === activePlan;
                   return (
                 <Card>
                   <BlockStack gap="400">
