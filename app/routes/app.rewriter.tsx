@@ -761,6 +761,9 @@ function RichTextEditor({
           .shopifyRte ul, .shopifyRte ol { margin: 0 0 12px 20px; padding: 0; }
           .shopifyRte li { margin: 4px 0; }
           .shopifyRte hr { margin: 16px 0; }
+          .shopifyRte table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+          .shopifyRte th, .shopifyRte td { border: 1px solid #d0d0d0; padding: 10px 12px; vertical-align: top; }
+          .shopifyRte th { background: #f6f6f7; font-weight: 650; text-align: left; width: 36%; }
         `}
       </style>
 
@@ -870,6 +873,7 @@ export default function RewriterWorkspace() {
   const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
   const [activeLocale, setActiveLocale] = useState<string>('');
   const [overLimit, setOverLimit] = useState(false);
+  const [autoConvertUnits, setAutoConvertUnits] = useState(true);
 
   const [referenceTitle, setReferenceTitle] = useState('');
   const [referenceDescription, setReferenceDescription] = useState('');
@@ -1096,7 +1100,7 @@ export default function RewriterWorkspace() {
           .replaceAll("'", '&#39;');
 
       // Suggested heading to make the appended footer feel intentional + premium in the description.
-      const heading = 'Cultural Context';
+      const heading = 'Key Details (Nuance)';
       const snippet =
         `\n\n<hr />\n` +
         `<div class="ai-value-footer">\n` +
@@ -1209,6 +1213,7 @@ export default function RewriterWorkspace() {
         product_id: productIdFromGid(selectedProduct?.id),
         // Pro users can generate for multiple locales at once; we still preview the activeLocale in the Draft pane.
         target_locales: selectedLocales.length > 0 ? selectedLocales : [activeLocale],
+        auto_convert_units: Boolean(autoConvertUnits),
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
@@ -1673,6 +1678,18 @@ export default function RewriterWorkspace() {
                         );
                       })}
                     </div>
+
+                    <Box paddingBlockStart="200">
+                      <Checkbox
+                        label="✨ Auto-convert units to US Standard"
+                        checked={autoConvertUnits}
+                        onChange={setAutoConvertUnits}
+                      />
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Keeps metric specs (cm, g, kg, ml, L) and appends US equivalents in parentheses for English
+                        output.
+                      </Text>
+                    </Box>
                   </BlockStack>
 
                   <InlineStack align="end" gap="200">
@@ -1788,7 +1805,7 @@ export default function RewriterWorkspace() {
                                   <BlockStack gap="200">
                                     <Text as="p" tone="subdued">
                                       {culturalContextSaved ? (
-                                        <strong>Cultural context is already saved in product metafields.</strong>
+                                        <strong>Key details (nuance) are already saved in product metafields.</strong>
                                       ) : (
                                         <strong>
                                           AI suggestion: Add following "footer" in your product description to increase value
@@ -1810,7 +1827,7 @@ export default function RewriterWorkspace() {
                                     </Box>
 
                                     <InlineStack align="end">
-                                      <Tooltip content="This adds verified historical context based on your product details.">
+                                      <Tooltip content="This adds key details & nuance based on your product details.">
                                         <Button
                                           variant="primary"
                                           icon={isDisabled ? CheckIcon : undefined}
