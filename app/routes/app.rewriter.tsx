@@ -6,7 +6,6 @@ import {
 } from 'react-router';
 import {
   Page,
-  Layout,
   Card,
   BlockStack,
   InlineStack,
@@ -34,6 +33,7 @@ import {getSessionToken} from '@shopify/app-bridge/utilities';
 import {
   CheckIcon,
   LightbulbIcon,
+  LockIcon,
   LinkIcon,
   ListBulletedIcon,
   ListNumberedIcon,
@@ -712,7 +712,6 @@ function RichTextEditor({
   const exec = useCallback(
     (command: string, commandValue?: string) => {
       try {
-        // eslint-disable-next-line deprecation/deprecation
         document.execCommand(command, false, commandValue);
         if (ref.current) onChange(ref.current.innerHTML);
       } catch {
@@ -727,7 +726,6 @@ function RichTextEditor({
       setBlockType(next);
       // Make Enter create <p> blocks (closer to Shopify’s editor behavior).
       try {
-        // eslint-disable-next-line deprecation/deprecation
         document.execCommand('defaultParagraphSeparator', false, 'p');
       } catch {
         // no-op
@@ -761,6 +759,9 @@ function RichTextEditor({
           .shopifyRte ul, .shopifyRte ol { margin: 0 0 12px 20px; padding: 0; }
           .shopifyRte li { margin: 4px 0; }
           .shopifyRte hr { margin: 16px 0; }
+          .shopifyRte table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+          .shopifyRte th, .shopifyRte td { border: 1px solid #d0d0d0; padding: 10px 12px; vertical-align: top; }
+          .shopifyRte th { background: #f6f6f7; font-weight: 650; text-align: left; width: 36%; }
         `}
       </style>
 
@@ -822,7 +823,6 @@ function RichTextEditor({
           onFocus={() => {
             setIsFocused(true);
             try {
-              // eslint-disable-next-line deprecation/deprecation
               document.execCommand('defaultParagraphSeparator', false, 'p');
             } catch {
               // no-op
@@ -848,21 +848,19 @@ function RichTextEditor({
   );
 }
 
-export default function RewriterWorkspace() {
-  const {
-    planName,
-    maxLocales,
-    primaryLocale,
-    locales,
-    products,
-    selectedProduct,
-    translationsByLocale,
-    didSelfHeal,
-    contentHash,
-    didResetMetaCache,
-    shopSlug,
-  } =
-    useLoaderData<typeof loader>();
+function RewriterWorkspaceInner({
+  planName,
+  maxLocales,
+  primaryLocale,
+  locales,
+  products,
+  selectedProduct,
+  translationsByLocale,
+  didSelfHeal,
+  contentHash,
+  didResetMetaCache,
+  shopSlug,
+}: LoaderData) {
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as ClientApplication<any>;
 
@@ -870,6 +868,8 @@ export default function RewriterWorkspace() {
   const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
   const [activeLocale, setActiveLocale] = useState<string>('');
   const [overLimit, setOverLimit] = useState(false);
+  const [autoConvertUnits, setAutoConvertUnits] = useState(true);
+  const [toneProfile, setToneProfile] = useState<'professional' | 'luxury' | 'minimalist' | 'playful'>('professional');
 
   const [referenceTitle, setReferenceTitle] = useState('');
   const [referenceDescription, setReferenceDescription] = useState('');
@@ -902,6 +902,10 @@ export default function RewriterWorkspace() {
   const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
 
   const allowsMultiLocale = maxLocales !== 1;
+  const isBasicPlan = planName === 'Basic';
+  const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = isBasicPlan
+    ? 'professional'
+    : toneProfile;
 
   const publishedLocales = useMemo(
     () => locales.filter((l) => l.published),
@@ -1096,7 +1100,7 @@ export default function RewriterWorkspace() {
           .replaceAll("'", '&#39;');
 
       // Suggested heading to make the appended footer feel intentional + premium in the description.
-      const heading = 'Cultural Context';
+      const heading = 'Key Details (Nuance)';
       const snippet =
         `\n\n<hr />\n` +
         `<div class="ai-value-footer">\n` +
@@ -1209,6 +1213,8 @@ export default function RewriterWorkspace() {
         product_id: productIdFromGid(selectedProduct?.id),
         // Pro users can generate for multiple locales at once; we still preview the activeLocale in the Draft pane.
         target_locales: selectedLocales.length > 0 ? selectedLocales : [activeLocale],
+        auto_convert_units: Boolean(autoConvertUnits),
+        tone_profile: effectiveTone,
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
@@ -1375,6 +1381,117 @@ export default function RewriterWorkspace() {
           </Text>
         </InlineStack>
       </Box>
+      <style>
+        {`
+          @keyframes aiRainbowShift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+
+          .aiOptimizeWrap {
+            position: relative;
+            display: inline-flex;
+            border-radius: 14px;
+            padding: 3px;
+          }
+
+          /* Animated gradient border (video-style) */
+          .aiOptimizeWrap::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            background: linear-gradient(
+              90deg,
+              #ff2bd6,
+              #ff7a00,
+              #ffe600,
+              #2ee59d,
+              #34a7ff,
+              #7c3aed,
+              #ff2bd6
+            );
+            background-size: 400% 400%;
+            animation: aiRainbowShift 2.8s ease-in-out infinite;
+            filter: saturate(1.25);
+            opacity: 0.95;
+          }
+
+          /* Glow */
+          .aiOptimizeWrap::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: 18px;
+            background: inherit;
+            background: linear-gradient(
+              90deg,
+              #ff2bd6,
+              #ff7a00,
+              #ffe600,
+              #2ee59d,
+              #34a7ff,
+              #7c3aed,
+              #ff2bd6
+            );
+            background-size: 400% 400%;
+            animation: aiRainbowShift 2.8s ease-in-out infinite;
+            filter: blur(10px) saturate(1.1);
+            opacity: 0.35;
+            pointer-events: none;
+          }
+
+          .aiOptimizeInner {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            border-radius: 12px;
+            background: var(--p-color-bg-surface);
+            padding: 1px; /* keeps the border visible even with large button radius */
+          }
+
+          .aiOptimizeWrap--disabled::before {
+            animation: none;
+            opacity: 0.25;
+            filter: grayscale(0.7);
+          }
+          .aiOptimizeWrap--disabled::after {
+            animation: none;
+            opacity: 0.15;
+            filter: blur(14px) grayscale(0.7);
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .aiOptimizeWrap::before { animation: none; }
+            .aiOptimizeWrap::after { animation: none; }
+          }
+
+          .aiActions {
+            position: relative;
+            width: fit-content;
+            padding-bottom: 30px; /* reserve space for loader without shifting buttons */
+          }
+
+          .aiActionsLoader {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 6px;
+            max-width: 520px;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .aiLoaderText {
+            font-size: 16px;
+            line-height: 22px;
+            font-weight: 600;
+          }
+        `}
+      </style>
       {toastContent ? (
         <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
       ) : null}
@@ -1462,8 +1579,8 @@ export default function RewriterWorkspace() {
                     <Text as="h2" variant="headingLg">
                       Workspace
                     </Text>
-                    <Text as="p" tone="subdued">
-                      Generate a draft, refine it, then save to Shopify.
+                    <Text as="p" variant="headingMd" tone="subdued">
+                      Generate draft product description, SEO details, refine it, then save to Shopify.
                     </Text>
                   </BlockStack>
                 </InlineStack>
@@ -1556,23 +1673,40 @@ export default function RewriterWorkspace() {
                             }
                             height={420}
                           />
+                        </BlockStack>
+                      </Box>
+                    </Card>
+                  </Box>
+                </InlineStack>
 
-                          <Divider />
+                <Card>
+                  <Box padding="400">
+                    <BlockStack gap="300">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="h3" variant="headingMd">
+                          SEO Details
+                        </Text>
+                        <InlineStack gap="300" blockAlign="center">
+                          <Text
+                            as="span"
+                            variant="bodySm"
+                            tone={(currentDraft.seoTitle || '').length > 70 ? 'critical' : 'subdued'}
+                          >
+                            Title {(currentDraft.seoTitle || '').length}/70
+                          </Text>
+                          <Text
+                            as="span"
+                            variant="bodySm"
+                            tone={(currentDraft.seoDescription || '').length > 160 ? 'critical' : 'subdued'}
+                          >
+                            Description {(currentDraft.seoDescription || '').length}/160
+                          </Text>
+                        </InlineStack>
+                      </InlineStack>
 
-                          <BlockStack gap="200">
-                            <InlineStack align="space-between" blockAlign="center">
-                              <Text as="h4" variant="headingSm">
-                                SEO (Market-specific)
-                              </Text>
-                              <Text
-                                as="span"
-                                variant="bodySm"
-                                tone={(currentDraft.seoTitle || '').length > 70 ? 'critical' : 'subdued'}
-                              >
-                                {(currentDraft.seoTitle || '').length}/70
-                              </Text>
-                            </InlineStack>
-
+                      <InlineStack gap="500" blockAlign="start" wrap>
+                        <Box width="60%">
+                          <BlockStack gap="300">
                             <TextField
                               label="SEO Title"
                               value={currentDraft.seoTitle}
@@ -1590,19 +1724,6 @@ export default function RewriterWorkspace() {
                               }
                               autoComplete="off"
                             />
-
-                            <InlineStack align="space-between" blockAlign="center">
-                              <Text as="span" variant="bodySm" tone="subdued">
-                                Meta description
-                              </Text>
-                              <Text
-                                as="span"
-                                variant="bodySm"
-                                tone={(currentDraft.seoDescription || '').length > 160 ? 'critical' : 'subdued'}
-                              >
-                                {(currentDraft.seoDescription || '').length}/160
-                              </Text>
-                            </InlineStack>
 
                             <TextField
                               label="Meta Description"
@@ -1626,7 +1747,14 @@ export default function RewriterWorkspace() {
                               }
                               autoComplete="off"
                             />
+                          </BlockStack>
+                        </Box>
 
+                        <Box width="40%">
+                          <BlockStack gap="200">
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              Preview
+                            </Text>
                             <SearchEnginePreview
                               title={currentDraft.seoTitle || seoPlaceholders.title || currentDraft.title}
                               url={
@@ -1637,11 +1765,11 @@ export default function RewriterWorkspace() {
                               snippet={currentDraft.seoDescription || seoPlaceholders.description}
                             />
                           </BlockStack>
-                        </BlockStack>
-                      </Box>
-                    </Card>
+                        </Box>
+                      </InlineStack>
+                    </BlockStack>
                   </Box>
-                </InlineStack>
+                </Card>
 
                 {(saveFetcher.data as any)?.error ? (
                   <Banner tone="critical">{(saveFetcher.data as any).error}</Banner>
@@ -1650,72 +1778,147 @@ export default function RewriterWorkspace() {
                 <InlineStack align="space-between" gap="200" blockAlign="center">
                   {/* Locale selection for rewrite (moved next to Optimize button) */}
                   <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Rewrite markets
+                    <Text as="h3" variant="headingMd">
+                      Optimization preferences
                     </Text>
-                    {overLimit ? (
-                      <Banner tone="warning">
-                        Basic plan allows selecting 1 locale. Upgrade to select multiple.
-                      </Banner>
-                    ) : null}
-                    <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
-                      {publishedLocales.map((loc) => {
-                        const short =
-                          String(loc.locale).split('-')[0]?.toUpperCase() ||
-                          String(loc.locale).toUpperCase();
-                        return (
-                          <Checkbox
-                            key={loc.locale}
-                            label={short}
-                            checked={selectedLocales.includes(loc.locale)}
-                            onChange={(v) => toggleLocale(loc.locale, v)}
-                          />
-                        );
-                      })}
-                    </div>
+                    <Box paddingBlockStart="200">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="p" variant="bodyMd" tone="subdued">
+                          Market Persona / Brand Tone
+                        </Text>
+                        {isBasicPlan ? <Icon source={LockIcon} tone="magic" /> : null}
+                      </InlineStack>
+                      <Select
+                        label=""
+                        labelHidden
+                        disabled={isBasicPlan}
+                        options={[
+                          {label: 'Professional (Standard English)', value: 'professional'},
+                          {label: 'Luxury (Sophisticated & Heritage)', value: 'luxury'},
+                          {label: 'Minimalist (Clean & Direct)', value: 'minimalist'},
+                          {label: 'Playful (Friendly & Social)', value: 'playful'},
+                        ]}
+                        value={effectiveTone}
+                        onChange={(v) => setToneProfile(v as any)}
+                      />
+                      {isBasicPlan ? (
+                        <Box paddingBlockStart="200">
+                          <Banner tone="info">
+                            <InlineStack gap="200" blockAlign="center">
+                              <Icon source={LockIcon} tone="magic" />
+                              <Text as="p">
+                                <strong>Standard Plan Feature:</strong> Unlock Luxury and Minimalist tones to match your
+                                brand&apos;s voice.
+                              </Text>
+                            </InlineStack>
+                          </Banner>
+                        </Box>
+                      ) : null}
+                    </Box>
+
+                    <Box paddingBlockStart="200">
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Rewrite markets
+                      </Text>
+                      {overLimit ? (
+                        <Box paddingBlockStart="200">
+                          <Banner tone="warning">
+                            Basic plan allows selecting 1 locale. Upgrade to select multiple.
+                          </Banner>
+                        </Box>
+                      ) : null}
+                      <Box paddingBlockStart="200">
+                        <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
+                          {publishedLocales.map((loc) => {
+                            const short =
+                              String(loc.locale).split('-')[0]?.toUpperCase() ||
+                              String(loc.locale).toUpperCase();
+                            return (
+                              <Checkbox
+                                key={loc.locale}
+                                label={short}
+                                checked={selectedLocales.includes(loc.locale)}
+                                onChange={(v) => toggleLocale(loc.locale, v)}
+                              />
+                            );
+                          })}
+                        </div>
+                      </Box>
+                    </Box>
+
+                    <Box paddingBlockStart="200">
+                      <Checkbox
+                        label="✨ Auto-convert units to US Standard"
+                        checked={autoConvertUnits}
+                        onChange={setAutoConvertUnits}
+                      />
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Keeps metric specs (cm, g, kg, ml, L) and appends US equivalents in parentheses for English
+                        output.
+                      </Text>
+                    </Box>
                   </BlockStack>
 
-                  <InlineStack align="end" gap="200">
-                  <Button
-                    onClick={handleOptimize}
-                    disabled={
-                      !selectedProduct ||
-                      selectedLocales.length === 0 ||
-                      isOptimizing ||
-                      saveFetcher.state !== 'idle'
-                    }
-                  >
-                    Optimize for Global
-                  </Button>
+                  <div className="aiActions">
+                    <InlineStack align="end" gap="300" blockAlign="center">
+                      <div
+                        className={`aiOptimizeWrap${
+                          !selectedProduct ||
+                          selectedLocales.length === 0 ||
+                          isOptimizing ||
+                          saveFetcher.state !== 'idle'
+                            ? ' aiOptimizeWrap--disabled'
+                            : ''
+                        }`}
+                      >
+                        <div className="aiOptimizeInner">
+                          <Button
+                            size="large"
+                            onClick={handleOptimize}
+                            disabled={
+                              !selectedProduct ||
+                              selectedLocales.length === 0 ||
+                              isOptimizing ||
+                              saveFetcher.state !== 'idle'
+                            }
+                          >
+                            Optimize for Global
+                          </Button>
+                        </div>
+                      </div>
 
-                  <saveFetcher.Form method="post">
-                    <input type="hidden" name="intent" value="save" />
-                    <input type="hidden" name="productId" value={selectedProduct?.id ?? ''} />
-                    <input type="hidden" name="targetLocale" value={activeLocale || primaryLocale} />
-                    <input type="hidden" name="draftTitle" value={currentDraft.title} />
-                    <input type="hidden" name="draftDescription" value={currentDraft.description} />
-                    <input type="hidden" name="draftSeoTitle" value={currentDraft.seoTitle} />
-                    <input type="hidden" name="draftSeoDescription" value={currentDraft.seoDescription} />
-                    <Button
-                      variant="primary"
-                      submit
-                      disabled={
-                        !selectedProduct ||
-                        saveFetcher.state !== 'idle' ||
-                        isOptimizing
-                      }
-                    >
-                      Save
-                    </Button>
-                  </saveFetcher.Form>
-                  </InlineStack>
+                      <saveFetcher.Form method="post">
+                        <input type="hidden" name="intent" value="save" />
+                        <input type="hidden" name="productId" value={selectedProduct?.id ?? ''} />
+                        <input type="hidden" name="targetLocale" value={activeLocale || primaryLocale} />
+                        <input type="hidden" name="draftTitle" value={currentDraft.title} />
+                        <input type="hidden" name="draftDescription" value={currentDraft.description} />
+                        <input type="hidden" name="draftSeoTitle" value={currentDraft.seoTitle} />
+                        <input type="hidden" name="draftSeoDescription" value={currentDraft.seoDescription} />
+                        <Button
+                          size="large"
+                          variant="primary"
+                          submit
+                          disabled={
+                            !selectedProduct ||
+                            saveFetcher.state !== 'idle' ||
+                            isOptimizing
+                          }
+                        >
+                          Save
+                        </Button>
+                      </saveFetcher.Form>
+                    </InlineStack>
+
+                    <div className="aiActionsLoader" aria-live="polite">
+                      {isOptimizing ? (
+                        <Text as="p" tone="subdued">
+                          <span className="aiLoaderText">{loadingMessage}</span>
+                        </Text>
+                      ) : null}
+                    </div>
+                  </div>
                 </InlineStack>
-
-                {isOptimizing ? (
-                  <Text as="p" tone="subdued">
-                    {loadingMessage}
-                  </Text>
-                ) : null}
 
                 {uniqueValues.length > 0 ? (
                   <Box
@@ -1788,7 +1991,7 @@ export default function RewriterWorkspace() {
                                   <BlockStack gap="200">
                                     <Text as="p" tone="subdued">
                                       {culturalContextSaved ? (
-                                        <strong>Cultural context is already saved in product metafields.</strong>
+                                        <strong>Key details (nuance) are already saved in product metafields.</strong>
                                       ) : (
                                         <strong>
                                           AI suggestion: Add following "footer" in your product description to increase value
@@ -1810,7 +2013,7 @@ export default function RewriterWorkspace() {
                                     </Box>
 
                                     <InlineStack align="end">
-                                      <Tooltip content="This adds verified historical context based on your product details.">
+                                      <Tooltip content="This adds key details & nuance based on your product details.">
                                         <Button
                                           variant="primary"
                                           icon={isDisabled ? CheckIcon : undefined}
@@ -1842,6 +2045,49 @@ export default function RewriterWorkspace() {
       </InlineStack>
     </Page>
   );
+}
+
+export default function RewriterWorkspace() {
+  const data = useLoaderData<typeof loader>() as LoaderData;
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // IMPORTANT: Render a static, non-Polaris placeholder on the server and before hydration.
+  // Polaris components can render responsively based on `window.matchMedia`, which differs on SSR vs client.
+  if (!hasMounted) {
+    return (
+      <div suppressHydrationWarning style={{padding: 16}}>
+        <div
+          style={{
+            border: '1px solid var(--p-color-border-secondary)',
+            borderRadius: 12,
+            padding: 14,
+            background: 'var(--p-color-bg-surface)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 999,
+              background: 'var(--p-color-bg-fill-brand)',
+            }}
+          />
+          <span style={{color: 'var(--p-color-text-subdued)', fontSize: 14}}>
+            Loading Rewriter…
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return <RewriterWorkspaceInner {...data} />;
 }
 
 
