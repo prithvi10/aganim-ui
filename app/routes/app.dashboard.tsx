@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { trail, trailWarn } from "../utils/trail";
-import { useAppBridge, TitleBar } from "@shopify/app-bridge-react";
+import { TitleBar } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Page,
@@ -76,7 +76,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // 1. Try to get the "Master Key" (Offline Client) first.
   //    This avoids the 302 redirect loop by talking server-to-server.
   trail(`[🔍 Trail] Step 1: Requesting Master Key context...`);
-  let offlineContext = shopParam ? await getOfflineGraphqlClient(shopParam) : null;
+  const offlineContext = shopParam ? await getOfflineGraphqlClient(shopParam) : null;
 
   // 2. SELF-HEALING: If no Master Key exists, we MUST trigger standard auth to create one.
   let client;
@@ -117,8 +117,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let backendError401 = false;
   let planName = "Basic";
   let trialDays = 0;
-  let needsReauth = false;
-
   try {
     // 3. FETCH DATA using the Master Key (No 302s)
     
@@ -144,7 +142,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       await authenticate.admin(request);
       return {
         activeMarketsCount: 0,
-        usage: { used: 0, quota: 1000, planName: "Basic" },
+        usage: { used: 0, quota: 1000, planName: "Basic", nextResetDate: null },
         planName: "Basic",
         trialDays: 0,
         backendError401: false,
@@ -175,7 +173,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       await authenticate.admin(request);
       return {
         activeMarketsCount: 0,
-        usage: { used: 0, quota: 1000, planName: "Basic" },
+        usage: { used: 0, quota: 1000, planName: "Basic", nextResetDate: null },
         planName: "Basic",
         trialDays: 0,
         backendError401: false,
@@ -238,7 +236,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       isAuthenticating: false,
       needsReauth: true,
       activeMarketsCount: 0,
-      usage: { used: 0, quota: 1000, planName: "Basic" },
+      usage: { used: 0, quota: 1000, planName: "Basic", nextResetDate: null },
       planName: "Basic",
       trialDays: 0,
       backendError401: false,
@@ -265,7 +263,7 @@ export default function Dashboard() {
   
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
-  const app = useAppBridge();
+  // NOTE: App Bridge instance is not needed on this page right now.
   
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
   const featureList = useMemo(() => {
