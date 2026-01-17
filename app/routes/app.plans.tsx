@@ -125,91 +125,192 @@ export default function PlansPage() {
     {
       name: PLAN_BASIC,
       price: "$49",
-      features: ["1 Locale", "SEO optimization", "GPT-4o-mini"],
+      rewrites: "50 rewrites / month",
+      rewriterFeatures: [
+        "AI product rewrite (title + description)",
+        "SEO details (title + meta description)",
+        "SEO editor + preview",
+        "Key Details (Nuance) auto-detected",
+        "EN unit conversion (metric + US)",
+        "1 market at a time (1 locale)",
+      ],
+      marketingFeatures: [
+        "Instagram captions + hashtags",
+        "Seasonal campaign ideas + caption",
+      ],
+      otherFeatures: [] as string[],
     },
     {
       name: PLAN_STANDARD,
       price: "$99",
-      features: [
-        "Multi-locale",
-        "Social Hook Architect",
-        "AI Marketing",
+      rewrites: "100 rewrites / month",
+      rewriterFeatures: [
+        "Everything in Basic (Rewriter)",
+        "Multi-market (multiple locales per run)",
+        "Brand tones: Luxury / Minimalist / Playful",
+        "Bulk market optimization",
       ],
+      marketingFeatures: [
+        "Everything in Basic (Marketing)",
+      ],
+      otherFeatures: [] as string[],
     },
     {
       name: PLAN_PRO,
       price: "$199",
-      features: [
-        "Unlimited Bulk Sync",
-        "Priority GPT-5",
-        "Supreme Features",
+      rewrites: "Unlimited rewrites",
+      rewriterFeatures: [
+        "Everything in Standard (Rewriter)",
+        "Unlimited bulk multi-market",
+      ],
+      marketingFeatures: [
+        "Everything in Standard (Marketing)",
+      ],
+      otherFeatures: [
+        "Priority AI (GPT‑5)",
       ],
     },
   ];
 
   return (
-    <Page title="Select a Plan">
+    <Page title="Select a Plan" fullWidth>
       <Layout>
         <Layout.Section>
-          <InlineStack gap="400" align="center">
-            {plans.map((plan) => (
-              <Box key={plan.name} minWidth="300px" maxWidth="300px">
-                {(() => {
-                  const isCurrent = plan.name === activePlan;
-                  return (
-                <Card>
-                  <BlockStack gap="400">
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingLg">
-                        <InlineStack gap="200" align="space-between">
-                          <span>{plan.name}</span>
-                          {isCurrent ? <Badge tone="success">Active</Badge> : null}
-                          {plan.name === PLAN_PRO ? (
-                            <Badge tone="success">Priority AI (GPT-5) • Unlimited Sync</Badge>
-                          ) : null}
-                        </InlineStack>
-                      </Text>
-                      <Text as="p" variant="heading2xl" fontWeight="bold">
-                        {plan.price}
-                        <Text as="span" variant="bodyMd" fontWeight="regular">
-                          /month
-                        </Text>
-                      </Text>
-                    </BlockStack>
-                    
-                    <BlockStack gap="100">
-                      {plan.features.map((feature) => (
-                        <ExceptionList
-                          key={feature}
-                          items={[
-                            {
-                              icon: CheckIcon,
-                              description: feature,
-                            },
-                          ]}
-                        />
-                      ))}
-                    </BlockStack>
+          <div style={{overflowX: "auto"}}>
+            <div
+              style={{
+                display: "flex",
+                gap: 24,
+                flexWrap: "nowrap",
+                alignItems: "stretch",
+                width: "100%",
+                minWidth: 0,
+                paddingBottom: 4,
+              }}
+            >
+            {plans.map((plan) => {
+              const isCurrent = plan.name === activePlan;
+              return (
+                <div
+                  key={plan.name}
+                  style={{
+                    minWidth: 320,
+                    flex: "1 1 0px",
+                  }}
+                >
+                  <Card>
+                    <Box padding="400" style={{height: 432}}>
+                      <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
+                        {/* Header (fixed) */}
+                        <div>
+                          <BlockStack gap="200">
+                            <Text as="h2" variant="headingLg">
+                              <InlineStack gap="200" align="space-between">
+                                <span>{plan.name}</span>
+                                {isCurrent ? <Badge tone="success">Active</Badge> : null}
+                              </InlineStack>
+                            </Text>
+                            <Text as="p" variant="heading2xl" fontWeight="bold">
+                              {plan.price}
+                              <Text as="span" variant="bodyMd" fontWeight="regular">
+                                /month
+                              </Text>
+                            </Text>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              {plan.rewrites}
+                            </Text>
+                          </BlockStack>
+                        </div>
 
-                    <Form method="post">
-                      <input type="hidden" name="plan" value={plan.name} />
-                      <Button
-                        variant={isCurrent ? "secondary" : "primary"}
-                        fullWidth
-                        submit
-                        loading={isUpgrading}
-                        disabled={isCurrent}
-                      >
-                        {isCurrent ? "Current Plan" : "Upgrade"}
-                      </Button>
-                    </Form>
-                  </BlockStack>
-                </Card>
-                  );
-                })()}
-              </Box>
-            ))}
-          </InlineStack>
+                        {/* Features (scrollable) */}
+                        <div style={{flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 2}}>
+                          <BlockStack gap="200">
+                            <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                              <BlockStack gap="200">
+                                <Text as="h3" variant="headingSm">
+                                  Rewriter
+                                </Text>
+                                <BlockStack gap="100">
+                                  {plan.rewriterFeatures.map((feature) => (
+                                    <ExceptionList
+                                      key={`rewriter-${plan.name}-${feature}`}
+                                      items={[
+                                        {
+                                          icon: CheckIcon,
+                                          description: feature,
+                                        },
+                                      ]}
+                                    />
+                                  ))}
+                                </BlockStack>
+                              </BlockStack>
+                            </Box>
+
+                            <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                              <BlockStack gap="200">
+                                <Text as="h3" variant="headingSm">
+                                  Marketing
+                                </Text>
+                                <BlockStack gap="100">
+                                  {plan.marketingFeatures.map((feature) => (
+                                    <ExceptionList
+                                      key={`marketing-${plan.name}-${feature}`}
+                                      items={[
+                                        {
+                                          icon: CheckIcon,
+                                          description: feature,
+                                        },
+                                      ]}
+                                    />
+                                  ))}
+                                </BlockStack>
+                              </BlockStack>
+                            </Box>
+
+                            {plan.otherFeatures.length ? (
+                              <BlockStack gap="100">
+                                <Text as="h3" variant="headingSm">
+                                  Other
+                                </Text>
+                                {plan.otherFeatures.map((feature) => (
+                                  <ExceptionList
+                                    key={`other-${plan.name}-${feature}`}
+                                    items={[
+                                      {
+                                        icon: CheckIcon,
+                                        description: feature,
+                                      },
+                                    ]}
+                                  />
+                                ))}
+                              </BlockStack>
+                            ) : null}
+                          </BlockStack>
+                        </div>
+
+                        {/* CTA (fixed to bottom) */}
+                        <div style={{paddingTop: 16}}>
+                          <Form method="post">
+                            <input type="hidden" name="plan" value={plan.name} />
+                            <Button
+                              variant={isCurrent ? "secondary" : "primary"}
+                              fullWidth
+                              submit
+                              loading={isUpgrading}
+                              disabled={isCurrent}
+                            >
+                              {isCurrent ? "Current Plan" : "Upgrade"}
+                            </Button>
+                          </Form>
+                        </div>
+                      </div>
+                    </Box>
+                  </Card>
+                </div>
+              );
+            })}
+            </div>
+          </div>
         </Layout.Section>
       </Layout>
     </Page>
