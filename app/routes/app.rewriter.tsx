@@ -1932,12 +1932,12 @@ function RewriterWorkspaceInner({
                   <div className="aiActions">
                     <InlineStack align="end" gap="300" blockAlign="center">
                       {isExpiredPaid ? (
-                        <Button size="large" variant="primary" url="/app/pricing?returning_paid=1">
-                          Select a plan
+                        <Button size="large" variant="primary" url="/app/dashboard">
+                          Go to Dashboard
                         </Button>
                       ) : isOutOfFreeCredits ? (
-                        <Button size="large" variant="primary" url="/app/plans">
-                          Upgrade to Basic
+                        <Button size="large" variant="primary" url="/app/dashboard">
+                          Go to Dashboard
                         </Button>
                       ) : (
                         <div
