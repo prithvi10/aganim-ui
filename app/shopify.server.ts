@@ -27,6 +27,12 @@ export const MONTHLY_PLAN_STANDARD = 'Standard';
 export const MONTHLY_PLAN_PRO = 'Pro';
 export const PLAN_FREE = 'Free';
 
+// Limited-time launch promo plans (UI will request these only when backend flag enables it)
+export const PROMO_PLAN_BASIC_MONTHLY = "Basic Promo Monthly";
+export const PROMO_PLAN_BASIC_ANNUAL = "Basic Promo Annual";
+export const PROMO_PLAN_STANDARD_MONTHLY = "Standard Promo Monthly";
+export const PROMO_PLAN_STANDARD_ANNUAL = "Standard Promo Annual";
+
 // ... (Your Env validation code remains the same) ...
 function requireEnv(name: string): string {
   const val = process.env[name]?.trim();
@@ -96,6 +102,19 @@ const shopify = shopifyApp({
     },
     [MONTHLY_PLAN_PRO]: {
       lineItems: [{ amount: 199.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
+    },
+    // Promo (Basic/Standard only)
+    [PROMO_PLAN_BASIC_MONTHLY]: {
+      lineItems: [{ amount: 29.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
+    },
+    [PROMO_PLAN_BASIC_ANNUAL]: {
+      lineItems: [{ amount: 290.0, currencyCode: "USD", interval: BillingInterval.Annual }],
+    },
+    [PROMO_PLAN_STANDARD_MONTHLY]: {
+      lineItems: [{ amount: 79.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
+    },
+    [PROMO_PLAN_STANDARD_ANNUAL]: {
+      lineItems: [{ amount: 790.0, currencyCode: "USD", interval: BillingInterval.Annual }],
     },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
