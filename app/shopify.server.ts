@@ -25,6 +25,7 @@ import { trail, trailError, trailWarn } from "./utils/trail";
 export const MONTHLY_PLAN_BASIC = 'Basic';
 export const MONTHLY_PLAN_STANDARD = 'Standard';
 export const MONTHLY_PLAN_PRO = 'Pro';
+export const PLAN_FREE = 'Free';
 
 // ... (Your Env validation code remains the same) ...
 function requireEnv(name: string): string {
@@ -82,6 +83,11 @@ const shopify = shopifyApp({
     expiringOfflineAccessTokens: false, 
   },
   billing: {
+    // Free tier: used for App Store listing + internal gating.
+    // We do NOT request billing for this plan in the UI; it is a $0 one-time placeholder.
+    [PLAN_FREE]: {
+      lineItems: [{ amount: 0.0, currencyCode: 'USD', interval: BillingInterval.OneTime }],
+    },
     [MONTHLY_PLAN_BASIC]: {
       lineItems: [{ amount: 49.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
