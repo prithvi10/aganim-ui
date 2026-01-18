@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
+import { useLoaderData, useSearchParams, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { trail, trailWarn } from "../utils/trail";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -15,13 +15,19 @@ import {
   ProgressBar,
   Badge,
   Banner,
+  Box,
   Link,
   SkeletonPage,
   SkeletonBodyText,
   SkeletonDisplayText,
-  DataTable,
+  ExceptionList,
   Spinner,
+  Toast,
+  Modal,
 } from "@shopify/polaris";
+import { PlanCard } from "../components/PlanCard";
+import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
+import { XSmallIcon } from "@shopify/polaris-icons";
 
 type Lang = "en" | "jp";
 
@@ -113,9 +119,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Defaults
   let activeMarketsCount = 0;
-  let usage = { used: 0, quota: 50, planName: "Basic", nextResetDate: null as string | null };
+  let usage = {
+    used: 0,
+    quota: 10,
+    planName: "Free",
+    nextResetDate: null as string | null,
+    billingCycleType: "lifetime" as "lifetime" | "recurring",
+    lifetimeRemaining: 10 as number | null,
+    accessExpiresAt: null as string | null,
+    graceActive: false,
+    lastPlanName: null as string | null,
+    welcomeBack: false,
+  };
   let backendError401 = false;
-  let planName = "Basic";
+  let planName = "Free";
   let trialDays = 0;
   try {
     // 3. FETCH DATA using the Master Key (No 302s)
@@ -184,6 +201,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
+    const hasShopifySubscription = activeSubs.length > 0;
     if (activeSubs.length > 0) {
       planName = activeSubs[0].name;
       if (activeSubs[0].test) trialDays = 4;
@@ -201,12 +219,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         backendError401 = true; 
       } else if (resp.ok) {
         const data = await resp.json();
+        const billingCycleType =
+          String(data.billing_cycle_type || "")
+            .trim()
+            .toLowerCase() === "lifetime"
+            ? "lifetime"
+            : "recurring";
         usage = {
           used: data.monthly_rewrites_used ?? data.current_usage ?? 0,
           quota: data.rewrite_limit ?? data.monthly_token_quota ?? 50,
           planName: data.plan_name || planName, // Prefer backend plan if available
-          nextResetDate: data.next_reset_date ?? null,
+          nextResetDate: data.next_reset_date ?? data.nextResetDate ?? null,
+          billingCycleType,
+          lifetimeRemaining:
+            billingCycleType === "lifetime"
+              ? (data.lifetime_rewrites_remaining ?? null)
+              : null,
+          welcomeBack: Boolean(data.welcome_back),
+          accessExpiresAt: data.access_expires_at ?? null,
+          // Reinstall-only UI: backend grace_mode is true only when the shop actually uninstalled.
+          graceActive: Boolean(data.grace_mode) && !hasShopifySubscription,
+          lastPlanName: data.last_plan_name ?? null,
         };
+
+        // If grace period is active, Shopify activeSubscriptions will likely be empty after uninstall.
+        // In that case, show the LAST paid plan as the effective current plan.
+        if (!hasShopifySubscription && Boolean(data.grace_mode) && String(data.last_plan_name || "").trim()) {
+          planName = String(data.last_plan_name).trim();
+        }
       }
     } catch (e) {
       console.error("Backend usage fetch failed", e);
@@ -260,20 +300,88 @@ export default function Dashboard() {
     needsReauth, 
     isSyncing 
   } = useLoaderData<typeof loader>();
+  const [searchParams] = useSearchParams();
+  const rewriterUrl = useMemo(() => {
+    const qs =
+      searchParams?.toString() ||
+      (typeof window !== "undefined" ? new URL(window.location.href).searchParams.toString() : "");
+    return qs ? `/app/rewriter?${qs}` : "/app/rewriter";
+  }, [searchParams]);
+  const plansUrl = useMemo(() => {
+    const qs =
+      searchParams?.toString() ||
+      (typeof window !== "undefined" ? new URL(window.location.href).searchParams.toString() : "");
+    const prefix = qs ? `/app/plans?${qs}` : "/app/plans";
+    // Guarded route: only Dashboard can open plans directly.
+    return prefix.includes("?") ? `${prefix}&from=dashboard` : `${prefix}?from=dashboard`;
+  }, [searchParams]);
   
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
+  const [toastContent, setToastContent] = useState<string | null>(null);
+  const [showExpiredModal, setShowExpiredModal] = useState(false);
   // NOTE: App Bridge instance is not needed on this page right now.
   
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
-  const featureList = useMemo(() => {
-    if (planName === "Pro") {
-      return ["Unlimited Bulk Sync", "Priority GPT-5", "Supreme Features"];
+  const activePlanCard = useMemo(() => {
+    const name = String(planName || "Free") as PlanName;
+    return PLAN_CATALOG.find((p) => p.name === name) ?? PLAN_CATALOG[0];
+  }, [planName]);
+
+  const lockedFeatureSections = useMemo(() => {
+    const order: PlanName[] = [PLAN_FREE, PLAN_BASIC, PLAN_STANDARD, PLAN_PRO];
+    const current = (String(planName || PLAN_FREE) as PlanName) ?? PLAN_FREE;
+    if (current === PLAN_PRO) return [];
+    const currentIdx = order.indexOf(current);
+    if (currentIdx < 0 || currentIdx === order.length - 1) return [];
+
+    const isFiller = (s: string) => /^everything in\s+/i.test(String(s || "").trim());
+    const normalize = (s: string) => String(s || "").trim();
+
+    const currentCard = PLAN_CATALOG.find((p) => p.name === current);
+    const currentSet = new Set<string>(
+      [
+        ...(currentCard?.rewriterFeatures ?? []),
+        ...(currentCard?.marketingFeatures ?? []),
+        ...(currentCard?.otherFeatures ?? []),
+      ]
+        .map(normalize)
+        .filter((x) => x && !isFiller(x)),
+    );
+
+    const sections: Array<{ title: string; plan: PlanName; rewrites: string; features: string[] }> = [];
+    const seen = new Set<string>(currentSet);
+
+    for (let i = currentIdx + 1; i < order.length; i++) {
+      const tier = order[i];
+      const card = PLAN_CATALOG.find((p) => p.name === tier);
+      if (!card) continue;
+      const all = [
+        ...(card.rewriterFeatures ?? []),
+        ...(card.marketingFeatures ?? []),
+        ...(card.otherFeatures ?? []),
+      ]
+        .map(normalize)
+        .filter((x) => x && !isFiller(x));
+
+      const additions = all.filter((x) => !seen.has(x));
+      additions.forEach((x) => seen.add(x));
+      if (additions.length) {
+        sections.push({
+          title:
+            tier === PLAN_PRO
+              ? "Unlock with Pro"
+              : tier === PLAN_STANDARD
+                ? "Unlock with Standard"
+                : "Unlock with Basic",
+          plan: tier,
+          rewrites: String(card.rewrites || "").trim(),
+          features: additions,
+        });
+      }
     }
-    if (planName === "Standard") {
-      return ["Multi-locale", "Social Hook Architect", "AI Marketing"];
-    }
-    return ["1 Locale", "SEO optimization", "GPT-4o-mini"];
+
+    return sections;
   }, [planName]);
 
   useEffect(() => {
@@ -284,6 +392,39 @@ export default function Dashboard() {
 
   const usedCount = Number(usage?.used || 0);
   const quotaCount = Number(usage?.quota ?? 0);
+  const isLifetime =
+    String((usage as any)?.billingCycleType || "").toLowerCase() === "lifetime" ||
+    String(usage?.planName || "").toLowerCase() === "free" ||
+    String(planName || "").toLowerCase() === "free";
+  const lifetimeTotal = isLifetime ? (quotaCount > 0 ? quotaCount : 10) : 0;
+  const lifetimeRemaining = isLifetime
+    ? Number(
+        (usage as any)?.lifetimeRemaining ??
+          Math.max(0, Number(lifetimeTotal) - Number(usedCount)),
+      )
+    : 0;
+  const lifetimeRemainingPct =
+    isLifetime && lifetimeTotal > 0
+      ? Math.max(0, Math.min(100, Math.round((lifetimeRemaining / lifetimeTotal) * 100)))
+      : 0;
+
+  const welcomeBack = Boolean((usage as any)?.welcomeBack);
+  useEffect(() => {
+    if (!welcomeBack) return;
+    setToastContent("Welcome back!");
+  }, [welcomeBack]);
+
+  // Plan-expired interceptor: if the grace window ends while the merchant is active,
+  // prompt and route them to pricing for reactivation.
+  useEffect(() => {
+    const expiresAt = String((usage as any)?.accessExpiresAt || "").trim();
+    if (!expiresAt) return;
+    const dt = new Date(expiresAt);
+    if (Number.isNaN(dt.getTime())) return;
+    if (Date.now() > dt.getTime()) {
+      setShowExpiredModal(true);
+    }
+  }, [(usage as any)?.accessExpiresAt]);
   const isUnlimited = quotaCount === -1;
   const usagePercent = isUnlimited || quotaCount <= 0 ? 0 : Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
@@ -303,6 +444,32 @@ export default function Dashboard() {
             </Banner>
           </Layout.Section>
         </Layout>
+      </Page>
+    );
+  }
+
+  if (showExpiredModal) {
+    const qs =
+      typeof window !== "undefined" ? (window.location.search || "") : "";
+    const target = `/app/pricing?returning_paid=1${qs ? `&${qs.replace(/^\?/, "")}` : ""}`;
+    return (
+      <Page title={t.title} fullWidth>
+        <TitleBar title={t.title} />
+        <Modal
+          open
+          title="Your pre-paid period has ended"
+          onClose={() => window.open(target, "_top")}
+          primaryAction={{
+            content: "Select a plan",
+            onAction: () => window.open(target, "_top"),
+          }}
+        >
+          <Modal.Section>
+            <Text as="p" variant="bodyMd">
+              Please select a plan to continue using the app.
+            </Text>
+          </Modal.Section>
+        </Modal>
       </Page>
     );
   }
@@ -338,6 +505,9 @@ export default function Dashboard() {
           {t.toggleLabel}
         </button>
       </TitleBar>
+      {toastContent ? (
+        <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
+      ) : null}
 
       <BlockStack gap="300">
         {backendError401 && (
@@ -357,16 +527,19 @@ export default function Dashboard() {
                {/* Optimized Count */}
                <div style={{ flex: 1 }}>
                 <Card>
-                  <div style={{ padding: "var(--p-space-400)" }}>
+                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingSm" tone="subdued">{t.totalOptimized}</Text>
                       <Text as="p" variant="heading2xl">{usedCount.toLocaleString()}</Text>
-                      {usedCount === 0 && (
-                          <div style={{marginTop: '4px'}}>
-                              <Button size="micro" url="/products">Optimize your first product</Button>
-                          </div>
-                      )}
                     </BlockStack>
+
+                    <div style={{ marginTop: "auto" }}>
+                      {usedCount === 0 && !welcomeBack ? (
+                        <Button size="micro" url={rewriterUrl}>Optimize your first product</Button>
+                      ) : (
+                        <div style={{ height: 28 }} />
+                      )}
+                    </div>
                   </div>
                 </Card>
                </div>
@@ -374,11 +547,12 @@ export default function Dashboard() {
                {/* Active Markets */}
                <div style={{ flex: 1 }}>
                 <Card>
-                  <div style={{ padding: "var(--p-space-400)" }}>
+                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingSm" tone="subdued">{t.activeMarkets}</Text>
                       <Text as="p" variant="heading2xl">{activeMarketsCount}</Text>
                     </BlockStack>
+                    <div style={{ marginTop: "auto", height: 28 }} />
                   </div>
                 </Card>
                </div>
@@ -386,10 +560,32 @@ export default function Dashboard() {
                {/* Monthly Product Rewrite Usage */}
                <div style={{ flex: 1 }}>
                 <Card>
-                  <div style={{ padding: "var(--p-space-400)" }}>
+                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">Monthly Product Rewrites</Text>
-                      {isUnlimited ? (
+                      <Text as="h2" variant="headingSm" tone="subdued">
+                        {isLifetime ? "Lifetime Credits" : "Monthly Product Rewrites"}
+                      </Text>
+                      {isLifetime ? (
+                        <BlockStack gap="100">
+                          <InlineStack align="space-between">
+                            <Text as="p" variant="headingMd">
+                              {lifetimeRemaining} / {lifetimeTotal} left
+                            </Text>
+                            <Badge tone={lifetimeRemaining <= 2 ? "critical" : "success"}>
+                              {`${lifetimeRemainingPct}%`}
+                            </Badge>
+                          </InlineStack>
+                          <ProgressBar
+                            progress={lifetimeRemainingPct}
+                            tone={lifetimeRemaining <= 2 ? "critical" : "highlight"}
+                          />
+                          <div style={{marginTop: "6px"}}>
+                            <Button url={plansUrl} variant="primary">
+                              Get 50 rewrites/month
+                            </Button>
+                          </div>
+                        </BlockStack>
+                      ) : isUnlimited ? (
                         <BlockStack gap="100">
                           <InlineStack align="space-between" blockAlign="center">
                             <Text as="p" variant="headingMd">Unlimited</Text>
@@ -420,65 +616,96 @@ export default function Dashboard() {
 
           {/* PLAN & BENEFITS */}
           <Layout.Section>
-            <Card>
-              <div style={{ padding: "var(--p-space-400)" }}>
-                <BlockStack gap="400">
-                  <InlineStack align="space-between">
-                    <Text as="h2" variant="headingMd">{t.currentPlan}</Text>
-                    {trialDays > 0 && (
-                       <Badge tone="info">{`${t.trial}: ${trialDays} ${t.daysRemaining}`}</Badge>
-                    )}
-                  </InlineStack>
+            <BlockStack gap="300">
+              {Boolean((usage as any)?.graceActive) && (usage as any)?.accessExpiresAt ? (
+                <Banner tone="info" title="Grace Period Active">
+                  <Text as="p" variant="bodyMd">
+                    You can keep using your previous plan until{" "}
+                    {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString()}.
+                  </Text>
+                </Banner>
+              ) : null}
 
-                  <BlockStack gap="300">
-                    <InlineStack align="space-between">
-                      <Text as="h3" variant="headingLg">{planName}</Text>
-                      <Button url="/app/plans">{t.manageSubscription}</Button>
-                    </InlineStack>
+              <InlineStack gap="400" align="start" wrap>
+                <div style={{ flex: "1 1 420px", minWidth: 360 }}>
+                  <PlanCard
+                    plan={activePlanCard}
+                    isCurrent
+                    graceActive={Boolean((usage as any)?.graceActive)}
+                    cta={
+                      <Button fullWidth variant="primary" url={plansUrl}>
+                        {t.manageSubscription}
+                      </Button>
+                    }
+                  />
+                </div>
 
-                    {/* Feature Table (new plan features) */}
-                    <div style={{ marginTop: "4px" }}>
-                      <DataTable
-                        columnContentTypes={["text", "text"]}
-                        headings={["Feature", "Status"]}
-                        rows={[
-                          ...featureList.map((f) => [f, "✅ Included"]),
-                          ["Bulk Market Optimization", planName === "Pro" || planName === "Standard" ? "✅ Unlocked" : "❌ Upgrade Required"],
-                        ]}
-                        footerContent={null}
-                      />
-                    </div>
-                  </BlockStack>
+                {planName !== PLAN_PRO && lockedFeatureSections.length ? (
+                  <div style={{ flex: "1 1 420px", minWidth: 360 }}>
+                    <Card>
+                      <div style={{ height: 480, padding: "var(--p-space-400)" }}>
+                        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                          <BlockStack gap="200">
+                            <Text as="h2" variant="headingLg">
+                              Locked features (upgrade to unlock)
+                            </Text>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              These features are not available on your current plan.
+                            </Text>
+                          </BlockStack>
 
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodySm" tone={isCritical ? "critical" : "subdued"}>
-                        {t.usage}
-                      </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        {isUnlimited ? `Unlimited • ${t.priorityAccess}` : `${usedCount} / ${quotaCount} ${t.rewritesUsed}`}
-                      </Text>
-                    </InlineStack>
-                    {isUnlimited ? (
-                      <InlineStack align="start">
-                        {resetDateLabel ? (
-                          <Text as="span" variant="bodySm" tone="subdued">{`Your usage resets on ${resetDateLabel}`}</Text>
-                        ) : (
-                          <Text as="span" variant="bodySm" tone="subdued">Priority GPT-5 Access Active.</Text>
-                        )}
-                      </InlineStack>
-                    ) : (
-                      <BlockStack gap="100">
-                    <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} size="small" />
-                        {resetDateLabel ? (
-                          <Text as="span" variant="bodySm" tone="subdued">{`Your usage resets on ${resetDateLabel}`}</Text>
-                        ) : null}
-                      </BlockStack>
-                    )}
-                  </BlockStack>
-                </BlockStack>
-              </div>
-            </Card>
+                          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 2, marginTop: 12 }}>
+                            <BlockStack gap="300">
+                              {lockedFeatureSections.map((sec) => (
+                                <Box
+                                  key={sec.title}
+                                  padding="300"
+                                  background="bg-surface-secondary"
+                                  borderRadius="200"
+                                >
+                                  <BlockStack gap="150">
+                                    <InlineStack align="space-between" blockAlign="center">
+                                      <Text as="h3" variant="headingSm">
+                                        {sec.title}
+                                      </Text>
+                                      {sec.plan === PLAN_STANDARD && sec.rewrites ? (
+                                        <Text as="span" variant="bodySm" tone="subdued">
+                                          {sec.rewrites}
+                                        </Text>
+                                      ) : null}
+                                    </InlineStack>
+                                    <BlockStack gap="100">
+                                      {sec.features.map((f) => (
+                                        <ExceptionList
+                                          key={`${sec.title}-${f}`}
+                                          items={[
+                                            {
+                                              icon: XSmallIcon,
+                                              description: f,
+                                            },
+                                          ]}
+                                        />
+                                      ))}
+                                    </BlockStack>
+                                  </BlockStack>
+                                </Box>
+                              ))}
+                            </BlockStack>
+                          </div>
+
+                          <div style={{ paddingTop: 16, marginTop: "auto" }}>
+                            <Button fullWidth variant="primary" url={plansUrl}>
+                              {t.manageSubscription}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                ) : null}
+              </InlineStack>
+
+            </BlockStack>
           </Layout.Section>
 
           {/* FOOTER */}

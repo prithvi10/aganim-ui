@@ -54,7 +54,7 @@ type SelectedProduct = {
 };
 
 type LoaderData = {
-  planName: 'Basic' | 'Standard' | 'Pro';
+  planName: 'Free' | 'Basic' | 'Standard' | 'Pro';
   shop: string;
   shopSlug: string;
   products: ProductListItem[];
@@ -107,6 +107,8 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   const shop = sessionShop;
   const shopSlug = shop.replace('.myshopify.com', '');
+  const backendApiUrl =
+    process.env.BACKEND_API_URL || 'https://shopify-translator-api.onrender.com';
 
   const planQuery = `query AppPlan {
     appInstallation {
@@ -137,12 +139,32 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   const activeSubs: Array<{name: string; status: string}> =
     planRes?.data?.appInstallation?.activeSubscriptions ?? [];
   const normalized = activeSubs
-    .filter((s) => String(s.status || '').toUpperCase() === 'ACTIVE')
+    .filter((s) => {
+      const st = String(s.status || '').toUpperCase();
+      // Shopify can return PENDING briefly right after upgrade; treat as active for UI.
+      return !st || st === 'ACTIVE' || st === 'PENDING';
+    })
     .map((s) => String(s.name || '').toLowerCase());
   const hasPro = normalized.some((n) => n.includes('pro'));
   const hasStandard = normalized.some((n) => n.includes('standard'));
   const hasBasic = normalized.some((n) => n.includes('basic'));
-  const planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Basic';
+  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Free';
+
+  // Grace-period override (reinstall-only):
+  // After uninstall Shopify activeSubscriptions is often empty ("Free"), but backend grants access until access_expires_at.
+  try {
+    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
+    if (u.ok) {
+      const data: any = await u.json().catch(() => ({}));
+      const grace = Boolean(data?.grace_mode);
+      const last = String(data?.last_plan_name || '').trim();
+      if (planName === 'Free' && grace && (last === 'Basic' || last === 'Standard' || last === 'Pro')) {
+        planName = last as LoaderData['planName'];
+      }
+    }
+  } catch {
+    // best-effort
+  }
 
   const products: ProductListItem[] =
     productsRes?.data?.products?.edges?.map((e: any) => e.node) ?? [];

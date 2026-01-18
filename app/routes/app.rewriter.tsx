@@ -60,8 +60,15 @@ type ProductListItem = {
 type LoaderData = {
   shop: string;
   shopSlug: string;
-  planName: 'Basic' | 'Standard' | 'Pro';
+  planName: 'Free' | 'Basic' | 'Standard' | 'Pro';
   maxLocales: number; // 1 = single-locale, -1 = unlimited
+  billingCycleType?: 'lifetime' | 'recurring';
+  rewriteLimit?: number | null;
+  rewritesUsed?: number | null;
+  lifetimeRewritesRemaining?: number | null;
+  graceActive?: boolean;
+  lastPlanName?: 'Free' | 'Basic' | 'Standard' | 'Pro' | null;
+  accessExpiresAt?: string | null;
   primaryLocale: string;
   locales: ShopLocale[];
   products: ProductListItem[];
@@ -212,20 +219,47 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   const hasStandard = normalizedNames.some((n) => n.includes('standard'));
   const hasBasic = normalizedNames.some((n) => n.includes('basic'));
 
-  // Default from Shopify billing (fallback to Basic if not subscribed yet).
-  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Basic';
+  // Default from Shopify billing (fallback to Free if not subscribed yet).
+  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Free';
+  const shopifyPlanName = planName;
 
   // Pull plan limits from backend DB so gating matches seeded limits.
-  let maxLocales: number = planName === 'Basic' ? 1 : -1;
+  let maxLocales: number = planName === 'Basic' || planName === 'Free' ? 1 : -1;
+  let billingCycleType: LoaderData['billingCycleType'] = planName === 'Free' ? 'lifetime' : 'recurring';
+  let rewriteLimit: number | null = null;
+  let rewritesUsed: number | null = null;
+  let lifetimeRewritesRemaining: number | null = null;
+  let graceActive = false;
+  let lastPlanName: LoaderData['planName'] | null = null;
+  let accessExpiresAt: string | null = null;
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
       const data: any = await u.json().catch(() => ({}));
-      // IMPORTANT: keep the DISPLAYED plan name aligned with Shopify billing.
-      // We only use backend data for feature gating (e.g., max_locales).
+      // Backend is the source-of-truth for grace period plan display after reinstall
+      // (Shopify activeSubscriptions may be empty after uninstall).
       const ml = Number(data?.max_locales);
       if (Number.isFinite(ml)) {
         maxLocales = ml;
+      }
+      const bt = String(data?.billing_cycle_type || '').trim().toLowerCase();
+      billingCycleType = bt === 'lifetime' ? 'lifetime' : 'recurring';
+      const rl = Number(data?.rewrite_limit);
+      rewriteLimit = Number.isFinite(rl) ? rl : null;
+      const used = Number(data?.monthly_rewrites_used ?? data?.current_usage);
+      rewritesUsed = Number.isFinite(used) ? used : null;
+      const lr = Number(data?.lifetime_rewrites_remaining);
+      lifetimeRewritesRemaining = Number.isFinite(lr) ? lr : null;
+
+      // Reinstall-only UI: backend grace_mode is true only when the shop actually uninstalled.
+      graceActive = Boolean(data?.grace_mode) && shopifyPlanName === 'Free';
+      accessExpiresAt = data?.access_expires_at ?? null;
+      const last = String(data?.last_plan_name || '').trim();
+      if (last === 'Free' || last === 'Basic' || last === 'Standard' || last === 'Pro') {
+        lastPlanName = last as LoaderData['planName'];
+      }
+      if (graceActive && lastPlanName && lastPlanName !== 'Free') {
+        planName = lastPlanName;
       }
     }
   } catch {
@@ -408,6 +442,13 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     shopSlug,
     planName,
     maxLocales,
+    billingCycleType,
+    rewriteLimit,
+    rewritesUsed,
+    lifetimeRewritesRemaining,
+    graceActive,
+    lastPlanName,
+    accessExpiresAt,
     primaryLocale,
     locales,
     products,
@@ -851,6 +892,13 @@ function RichTextEditor({
 function RewriterWorkspaceInner({
   planName,
   maxLocales,
+  billingCycleType,
+  rewriteLimit,
+  rewritesUsed,
+  lifetimeRewritesRemaining,
+  graceActive,
+  lastPlanName,
+  accessExpiresAt,
   primaryLocale,
   locales,
   products,
@@ -902,10 +950,27 @@ function RewriterWorkspaceInner({
   const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
 
   const allowsMultiLocale = maxLocales !== 1;
-  const isBasicPlan = planName === 'Basic';
+  // IMPORTANT: determine Free by billingCycleType (source-of-truth from backend usage),
+  // not by Shopify billing planName (which may show "Free" after uninstall).
+  const isFreePlan =
+    billingCycleType === 'lifetime' || (!billingCycleType && planName === 'Free');
+  const isBasicPlan = planName === 'Basic' || isFreePlan;
   const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = isBasicPlan
     ? 'professional'
     : toneProfile;
+  const isOutOfFreeCredits =
+    isFreePlan && Number(lifetimeRewritesRemaining ?? 0) <= 0;
+
+  const isExpiredPaid = useMemo(() => {
+    // If last plan is paid and access_expires_at has passed, the merchant must upgrade.
+    const last = String(lastPlanName || '').trim();
+    const expiresAt = String(accessExpiresAt || '').trim();
+    if (!last || last === 'Free') return false;
+    if (!expiresAt) return false;
+    const dt = new Date(expiresAt);
+    if (Number.isNaN(dt.getTime())) return false;
+    return Date.now() > dt.getTime();
+  }, [lastPlanName, accessExpiresAt]);
 
   const publishedLocales = useMemo(
     () => locales.filter((l) => l.published),
@@ -1181,6 +1246,10 @@ function RewriterWorkspaceInner({
   };
 
   const handleOptimize = useCallback(async () => {
+    if (isOutOfFreeCredits) {
+      setToastContent("You've used your 10 free lifetime credits. Upgrade to Basic for 50 rewrites every month!");
+      return;
+    }
     setOptimizeError(null);
     setOverLimit(false);
     setDiscoveredValues([]);
@@ -1327,6 +1396,7 @@ function RewriterWorkspaceInner({
     selectedProduct?.productType,
     startLoading,
     stopLoading,
+    isOutOfFreeCredits,
   ]);
 
   const filteredProducts = useMemo(() => {
@@ -1861,31 +1931,41 @@ function RewriterWorkspaceInner({
 
                   <div className="aiActions">
                     <InlineStack align="end" gap="300" blockAlign="center">
-                      <div
-                        className={`aiOptimizeWrap${
-                          !selectedProduct ||
-                          selectedLocales.length === 0 ||
-                          isOptimizing ||
-                          saveFetcher.state !== 'idle'
-                            ? ' aiOptimizeWrap--disabled'
-                            : ''
-                        }`}
-                      >
-                        <div className="aiOptimizeInner">
-                          <Button
-                            size="large"
-                            onClick={handleOptimize}
-                            disabled={
-                              !selectedProduct ||
-                              selectedLocales.length === 0 ||
-                              isOptimizing ||
-                              saveFetcher.state !== 'idle'
-                            }
-                          >
-                            Optimize for Global
-                          </Button>
+                      {isExpiredPaid ? (
+                        <Button size="large" variant="primary" url="/app/dashboard">
+                          Go to Dashboard
+                        </Button>
+                      ) : isOutOfFreeCredits ? (
+                        <Button size="large" variant="primary" url="/app/dashboard">
+                          Go to Dashboard
+                        </Button>
+                      ) : (
+                        <div
+                          className={`aiOptimizeWrap${
+                            !selectedProduct ||
+                            selectedLocales.length === 0 ||
+                            isOptimizing ||
+                            saveFetcher.state !== 'idle'
+                              ? ' aiOptimizeWrap--disabled'
+                              : ''
+                          }`}
+                        >
+                          <div className="aiOptimizeInner">
+                            <Button
+                              size="large"
+                              onClick={handleOptimize}
+                              disabled={
+                                !selectedProduct ||
+                                selectedLocales.length === 0 ||
+                                isOptimizing ||
+                                saveFetcher.state !== 'idle'
+                              }
+                            >
+                              Optimize for Global
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       <saveFetcher.Form method="post">
                         <input type="hidden" name="intent" value="save" />
