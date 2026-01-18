@@ -90,9 +90,9 @@ const shopify = shopifyApp({
   },
   billing: {
     // Free tier: used for App Store listing + internal gating.
-    // We do NOT request billing for this plan in the UI; it is a $0 one-time placeholder.
+    // We do NOT request billing for this plan in the UI; it is a $0 placeholder.
     [PLAN_FREE]: {
-      lineItems: [{ amount: 0.0, currencyCode: 'USD', interval: BillingInterval.OneTime }],
+      lineItems: [{ amount: 0.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_BASIC]: {
       lineItems: [{ amount: 49.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
