@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
+import { useLoaderData, useSearchParams, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { trail, trailWarn } from "../utils/trail";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -15,15 +15,19 @@ import {
   ProgressBar,
   Badge,
   Banner,
+  Box,
   Link,
   SkeletonPage,
   SkeletonBodyText,
   SkeletonDisplayText,
-  DataTable,
+  ExceptionList,
   Spinner,
   Toast,
   Modal,
 } from "@shopify/polaris";
+import { PlanCard } from "../components/PlanCard";
+import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
+import { XSmallIcon } from "@shopify/polaris-icons";
 
 type Lang = "en" | "jp";
 
@@ -125,6 +129,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     accessExpiresAt: null as string | null,
     graceActive: false,
     lastPlanName: null as string | null,
+    welcomeBack: false,
   };
   let backendError401 = false;
   let planName = "Free";
@@ -295,6 +300,21 @@ export default function Dashboard() {
     needsReauth, 
     isSyncing 
   } = useLoaderData<typeof loader>();
+  const [searchParams] = useSearchParams();
+  const rewriterUrl = useMemo(() => {
+    const qs =
+      searchParams?.toString() ||
+      (typeof window !== "undefined" ? new URL(window.location.href).searchParams.toString() : "");
+    return qs ? `/app/rewriter?${qs}` : "/app/rewriter";
+  }, [searchParams]);
+  const plansUrl = useMemo(() => {
+    const qs =
+      searchParams?.toString() ||
+      (typeof window !== "undefined" ? new URL(window.location.href).searchParams.toString() : "");
+    const prefix = qs ? `/app/plans?${qs}` : "/app/plans";
+    // Guarded route: only Dashboard can open plans directly.
+    return prefix.includes("?") ? `${prefix}&from=dashboard` : `${prefix}?from=dashboard`;
+  }, [searchParams]);
   
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
@@ -303,17 +323,65 @@ export default function Dashboard() {
   // NOTE: App Bridge instance is not needed on this page right now.
   
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
-  const featureList = useMemo(() => {
-    if (planName === "Pro") {
-      return ["Unlimited Bulk Sync", "Priority GPT-5", "Supreme Features"];
+  const activePlanCard = useMemo(() => {
+    const name = String(planName || "Free") as PlanName;
+    return PLAN_CATALOG.find((p) => p.name === name) ?? PLAN_CATALOG[0];
+  }, [planName]);
+
+  const lockedFeatureSections = useMemo(() => {
+    const order: PlanName[] = [PLAN_FREE, PLAN_BASIC, PLAN_STANDARD, PLAN_PRO];
+    const current = (String(planName || PLAN_FREE) as PlanName) ?? PLAN_FREE;
+    if (current === PLAN_PRO) return [];
+    const currentIdx = order.indexOf(current);
+    if (currentIdx < 0 || currentIdx === order.length - 1) return [];
+
+    const isFiller = (s: string) => /^everything in\s+/i.test(String(s || "").trim());
+    const normalize = (s: string) => String(s || "").trim();
+
+    const currentCard = PLAN_CATALOG.find((p) => p.name === current);
+    const currentSet = new Set<string>(
+      [
+        ...(currentCard?.rewriterFeatures ?? []),
+        ...(currentCard?.marketingFeatures ?? []),
+        ...(currentCard?.otherFeatures ?? []),
+      ]
+        .map(normalize)
+        .filter((x) => x && !isFiller(x)),
+    );
+
+    const sections: Array<{ title: string; plan: PlanName; rewrites: string; features: string[] }> = [];
+    const seen = new Set<string>(currentSet);
+
+    for (let i = currentIdx + 1; i < order.length; i++) {
+      const tier = order[i];
+      const card = PLAN_CATALOG.find((p) => p.name === tier);
+      if (!card) continue;
+      const all = [
+        ...(card.rewriterFeatures ?? []),
+        ...(card.marketingFeatures ?? []),
+        ...(card.otherFeatures ?? []),
+      ]
+        .map(normalize)
+        .filter((x) => x && !isFiller(x));
+
+      const additions = all.filter((x) => !seen.has(x));
+      additions.forEach((x) => seen.add(x));
+      if (additions.length) {
+        sections.push({
+          title:
+            tier === PLAN_PRO
+              ? "Unlock with Pro"
+              : tier === PLAN_STANDARD
+                ? "Unlock with Standard"
+                : "Unlock with Basic",
+          plan: tier,
+          rewrites: String(card.rewrites || "").trim(),
+          features: additions,
+        });
+      }
     }
-    if (planName === "Standard") {
-      return ["Multi-locale", "Social Hook Architect", "AI Marketing"];
-    }
-    if (planName === "Free") {
-      return ["10 lifetime credits", "1 Locale", "Professional tone"];
-    }
-    return ["1 Locale", "SEO optimization", "GPT-4o-mini"];
+
+    return sections;
   }, [planName]);
 
   useEffect(() => {
@@ -459,16 +527,19 @@ export default function Dashboard() {
                {/* Optimized Count */}
                <div style={{ flex: 1 }}>
                 <Card>
-                  <div style={{ padding: "var(--p-space-400)" }}>
+                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingSm" tone="subdued">{t.totalOptimized}</Text>
                       <Text as="p" variant="heading2xl">{usedCount.toLocaleString()}</Text>
-                      {usedCount === 0 && !welcomeBack && (
-                          <div style={{marginTop: '4px'}}>
-                              <Button size="micro" url="/products">Optimize your first product</Button>
-                          </div>
-                      )}
                     </BlockStack>
+
+                    <div style={{ marginTop: "auto" }}>
+                      {usedCount === 0 && !welcomeBack ? (
+                        <Button size="micro" url={rewriterUrl}>Optimize your first product</Button>
+                      ) : (
+                        <div style={{ height: 28 }} />
+                      )}
+                    </div>
                   </div>
                 </Card>
                </div>
@@ -476,11 +547,12 @@ export default function Dashboard() {
                {/* Active Markets */}
                <div style={{ flex: 1 }}>
                 <Card>
-                  <div style={{ padding: "var(--p-space-400)" }}>
+                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingSm" tone="subdued">{t.activeMarkets}</Text>
                       <Text as="p" variant="heading2xl">{activeMarketsCount}</Text>
                     </BlockStack>
+                    <div style={{ marginTop: "auto", height: 28 }} />
                   </div>
                 </Card>
                </div>
@@ -488,7 +560,7 @@ export default function Dashboard() {
                {/* Monthly Product Rewrite Usage */}
                <div style={{ flex: 1 }}>
                 <Card>
-                  <div style={{ padding: "var(--p-space-400)" }}>
+                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingSm" tone="subdued">
                         {isLifetime ? "Lifetime Credits" : "Monthly Product Rewrites"}
@@ -508,7 +580,7 @@ export default function Dashboard() {
                             tone={lifetimeRemaining <= 2 ? "critical" : "highlight"}
                           />
                           <div style={{marginTop: "6px"}}>
-                            <Button url="/app/plans" variant="primary">
+                            <Button url={plansUrl} variant="primary">
                               Get 50 rewrites/month
                             </Button>
                           </div>
@@ -544,94 +616,96 @@ export default function Dashboard() {
 
           {/* PLAN & BENEFITS */}
           <Layout.Section>
-            <Card>
-              <div style={{ padding: "var(--p-space-400)" }}>
-                <BlockStack gap="400">
-                  {Boolean((usage as any)?.graceActive) && (usage as any)?.accessExpiresAt ? (
-                    <Banner tone="info" title="Grace Period Active">
-                      <Text as="p" variant="bodyMd">
-                        You can keep using your previous plan until{" "}
-                        {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString()}.
-                      </Text>
-                    </Banner>
-                  ) : null}
-                  <InlineStack align="space-between">
-                    <Text as="h2" variant="headingMd">{t.currentPlan}</Text>
-                    {trialDays > 0 && (
-                       <Badge tone="info">{`${t.trial}: ${trialDays} ${t.daysRemaining}`}</Badge>
-                    )}
-                  </InlineStack>
+            <BlockStack gap="300">
+              {Boolean((usage as any)?.graceActive) && (usage as any)?.accessExpiresAt ? (
+                <Banner tone="info" title="Grace Period Active">
+                  <Text as="p" variant="bodyMd">
+                    You can keep using your previous plan until{" "}
+                    {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString()}.
+                  </Text>
+                </Banner>
+              ) : null}
 
-                  <BlockStack gap="300">
-                    <InlineStack align="space-between">
-                      <InlineStack gap="200" blockAlign="center">
-                        <Text as="h3" variant="headingLg">{planName}</Text>
-                        {Boolean((usage as any)?.graceActive) ? (
-                          <Badge tone="info">Grace</Badge>
-                        ) : null}
-                      </InlineStack>
-                      <Button url="/app/plans">{t.manageSubscription}</Button>
-                    </InlineStack>
+              <InlineStack gap="400" align="start" wrap>
+                <div style={{ flex: "1 1 420px", minWidth: 360 }}>
+                  <PlanCard
+                    plan={activePlanCard}
+                    isCurrent
+                    graceActive={Boolean((usage as any)?.graceActive)}
+                    cta={
+                      <Button fullWidth variant="primary" url={plansUrl}>
+                        {t.manageSubscription}
+                      </Button>
+                    }
+                  />
+                </div>
 
-                    {/* Feature Table (new plan features) */}
-                    <div style={{ marginTop: "4px" }}>
-                      <DataTable
-                        columnContentTypes={["text", "text"]}
-                        headings={["Feature", "Status"]}
-                        rows={[
-                          ...featureList.map((f) => [f, "✅ Included"]),
-                          ["Bulk Market Optimization", planName === "Pro" || planName === "Standard" ? "✅ Unlocked" : "❌ Upgrade Required"],
-                        ]}
-                        footerContent={null}
-                      />
-                    </div>
-                  </BlockStack>
+                {planName !== PLAN_PRO && lockedFeatureSections.length ? (
+                  <div style={{ flex: "1 1 420px", minWidth: 360 }}>
+                    <Card>
+                      <div style={{ height: 480, padding: "var(--p-space-400)" }}>
+                        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                          <BlockStack gap="200">
+                            <Text as="h2" variant="headingLg">
+                              Locked features (upgrade to unlock)
+                            </Text>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              These features are not available on your current plan.
+                            </Text>
+                          </BlockStack>
 
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodySm" tone={isCritical ? "critical" : "subdued"}>
-                        {t.usage}
-                      </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        {isLifetime
-                          ? `${lifetimeRemaining} / ${lifetimeTotal} credits left`
-                          : isUnlimited
-                            ? `Unlimited • ${t.priorityAccess}`
-                            : `${usedCount} / ${quotaCount} ${t.rewritesUsed}`}
-                      </Text>
-                    </InlineStack>
-                    {isLifetime ? (
-                      <BlockStack gap="100">
-                        <ProgressBar progress={lifetimeRemainingPct} tone={lifetimeRemaining <= 2 ? "critical" : "highlight"} size="small" />
-                        <InlineStack align="space-between" blockAlign="center">
-                          <Text as="span" variant="bodySm" tone="subdued">
-                            One-time credits (no monthly reset)
-                          </Text>
-                          <Button url="/app/plans" variant="primary">
-                            Upgrade
-                          </Button>
-                        </InlineStack>
-                      </BlockStack>
-                    ) : isUnlimited ? (
-                      <InlineStack align="start">
-                        {resetDateLabel ? (
-                          <Text as="span" variant="bodySm" tone="subdued">{`Your usage resets on ${resetDateLabel}`}</Text>
-                        ) : (
-                          <Text as="span" variant="bodySm" tone="subdued">Priority GPT-5 Access Active.</Text>
-                        )}
-                      </InlineStack>
-                    ) : (
-                      <BlockStack gap="100">
-                    <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} size="small" />
-                        {resetDateLabel ? (
-                          <Text as="span" variant="bodySm" tone="subdued">{`Your usage resets on ${resetDateLabel}`}</Text>
-                        ) : null}
-                      </BlockStack>
-                    )}
-                  </BlockStack>
-                </BlockStack>
-              </div>
-            </Card>
+                          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 2, marginTop: 12 }}>
+                            <BlockStack gap="300">
+                              {lockedFeatureSections.map((sec) => (
+                                <Box
+                                  key={sec.title}
+                                  padding="300"
+                                  background="bg-surface-secondary"
+                                  borderRadius="200"
+                                >
+                                  <BlockStack gap="150">
+                                    <InlineStack align="space-between" blockAlign="center">
+                                      <Text as="h3" variant="headingSm">
+                                        {sec.title}
+                                      </Text>
+                                      {sec.plan === PLAN_STANDARD && sec.rewrites ? (
+                                        <Text as="span" variant="bodySm" tone="subdued">
+                                          {sec.rewrites}
+                                        </Text>
+                                      ) : null}
+                                    </InlineStack>
+                                    <BlockStack gap="100">
+                                      {sec.features.map((f) => (
+                                        <ExceptionList
+                                          key={`${sec.title}-${f}`}
+                                          items={[
+                                            {
+                                              icon: XSmallIcon,
+                                              description: f,
+                                            },
+                                          ]}
+                                        />
+                                      ))}
+                                    </BlockStack>
+                                  </BlockStack>
+                                </Box>
+                              ))}
+                            </BlockStack>
+                          </div>
+
+                          <div style={{ paddingTop: 16, marginTop: "auto" }}>
+                            <Button fullWidth variant="primary" url={plansUrl}>
+                              {t.manageSubscription}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                ) : null}
+              </InlineStack>
+
+            </BlockStack>
           </Layout.Section>
 
           {/* FOOTER */}

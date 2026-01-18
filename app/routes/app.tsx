@@ -9,6 +9,8 @@ import "@shopify/polaris/build/esm/styles.css";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+  const host = url.searchParams.get("host") || "";
   // 1. Authenticate (embedded session-token based). Let Shopify boundary handle 401s/reauthorize.
   const { session } = await authenticate.admin(request);
 
@@ -39,22 +41,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error("[Token Sync] Error", e);
   }
 
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    host,
+    shop: session.shop,
+  };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const { apiKey, host, shop } = useLoaderData<typeof loader>();
+  const navQs = (() => {
+    const p = new URLSearchParams();
+    if (host) p.set("host", host);
+    if (shop) p.set("shop", shop);
+    return p.toString();
+  })();
+  const nav = (path: string) => (navQs ? `${path}?${navQs}` : path);
 
   return (
     <AppProvider embedded apiKey={apiKey}>
       <PolarisAppProvider i18n={enTranslations}>
         <Frame>
           <s-app-nav>
-            <s-link href="/app">Home</s-link>
-            <s-link href="/app/plans">Plans</s-link>
-            <s-link href="/app/rewriter">Rewriter</s-link>
-            <s-link href="/app/marketing">Marketing</s-link>
-            <s-link href="/app/dashboard">Dashboard</s-link>
+            <s-link href={nav("/app")}>Home</s-link>
+            <s-link href={nav("/app/rewriter")}>Rewriter</s-link>
+            <s-link href={nav("/app/marketing")}>Marketing</s-link>
+            <s-link href={nav("/app/dashboard")}>Dashboard</s-link>
           </s-app-nav>
           <Outlet />
         </Frame>

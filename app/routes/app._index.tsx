@@ -17,11 +17,11 @@ import { useMemo, useState } from "react";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const shopParam = url.searchParams.get("shop") || "";
-  return { shop: shopParam, showNotice: Boolean(shopParam) };
+  return { shop: shopParam };
 };
 
 export default function LandingPage() {
-  const { shop, showNotice } = useLoaderData<typeof loader>();
+  const { shop } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<"en" | "jp">("en");
 
   const shopSlug = shop.replace(".myshopify.com", "");
@@ -82,11 +82,6 @@ export default function LandingPage() {
           <Card>
             <div style={{ padding: "var(--p-space-500)" }}>
               <BlockStack gap="500">
-                {showNotice ? (
-                  <Banner tone="info">
-                    If you are returning, you’ll be redirected shortly…
-                  </Banner>
-                ) : null}
                 <InlineStack align="space-between" blockAlign="center">
                   <InlineStack align="start" blockAlign="center" gap="400">
                     <img
