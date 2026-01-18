@@ -47,7 +47,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const returningPaid = url.searchParams.get("returning_paid") === "1";
   try {
-    const { admin } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
     const resp = await admin.graphql(`
       query {
         currentAppInstallation {
@@ -62,10 +62,40 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const body = await resp.json();
     const subs: ActiveSub[] =
       body?.data?.currentAppInstallation?.activeSubscriptions ?? [];
-    const activePlan = normalizeActivePlan(subs);
-    return { currentPlans: subs, activePlan, returningPaid };
+    const shopifyActivePlan = normalizeActivePlan(subs);
+    let activePlan = shopifyActivePlan;
+
+    // If grace is active, Shopify will often report no active subscription after uninstall.
+    // Use backend usage (last_plan_name) as the effective plan for UI.
+    let graceActive = false;
+    let accessExpiresAt: string | null = null;
+    let lastPlanName: PlanName | null = null;
+    try {
+      const backendApiUrl =
+        process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+      const usageResp = await fetch(
+        `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`
+      );
+      if (usageResp.ok) {
+        const data = await usageResp.json();
+        // "Grace" is a reinstall-only UI state (backend grace_mode implies an uninstall happened).
+        graceActive = Boolean(data.grace_mode) && shopifyActivePlan === PLAN_FREE;
+        accessExpiresAt = data.access_expires_at ?? null;
+        const last = String(data.last_plan_name || "").trim();
+        if (last === PLAN_BASIC || last === PLAN_STANDARD || last === PLAN_PRO) {
+          lastPlanName = last as PlanName;
+        }
+        if (graceActive && lastPlanName) {
+          activePlan = lastPlanName;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    return { currentPlans: subs, activePlan, returningPaid, graceActive, accessExpiresAt, lastPlanName };
   } catch (e) {
-    return { currentPlans: [], activePlan: PLAN_FREE, returningPaid };
+    return { currentPlans: [], activePlan: PLAN_FREE, returningPaid, graceActive: false, accessExpiresAt: null, lastPlanName: null };
   }
 };
 
@@ -107,7 +137,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const body = await resp.json();
       const subs: ActiveSub[] =
         body?.data?.currentAppInstallation?.activeSubscriptions ?? [];
-      const activePlan = normalizeActivePlan(subs);
+      let activePlan = normalizeActivePlan(subs);
+
+      // Grace override: if Shopify thinks "Free" but backend says last paid + grace active,
+      // treat that as the effective current plan to prevent re-purchasing the same tier.
+      try {
+        const backendApiUrl =
+          process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+        const usageResp = await fetch(
+          `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`
+        );
+        if (usageResp.ok) {
+          const data = await usageResp.json();
+          const last = String(data.last_plan_name || "").trim();
+          const grace = Boolean(data.grace_mode);
+          if (activePlan === PLAN_FREE && grace && (last === PLAN_BASIC || last === PLAN_STANDARD || last === PLAN_PRO)) {
+            activePlan = last as PlanName;
+          }
+        }
+      } catch {
+        // ignore
+      }
+
       if (activePlan === plan) {
         return null;
       }
@@ -116,7 +167,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     await billing.request({
-      plan,
+      // Shopify types can resolve plan to `never` depending on how billing is typed;
+      // we only send known plan strings from our UI.
+      plan: plan as unknown as never,
       isTest: process.env.NODE_ENV !== "production",
       // Redirect back to the embedded app root; prefer new admin URL
       returnUrl: adminReturnUrl,
@@ -131,7 +184,7 @@ export const headers: HeadersFunction = (headersArgs) => {
 };
 
 export default function PlansPage() {
-  const { activePlan, returningPaid } = useLoaderData<typeof loader>();
+  const { activePlan, returningPaid, graceActive, accessExpiresAt } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
 
   const isUpgrading = navigation.state === "submitting";
@@ -214,6 +267,16 @@ export default function PlansPage() {
               <Banner tone="warning" title="Welcome back! Please select a plan to reactivate your account." />
             </div>
           ) : null}
+          {graceActive && accessExpiresAt ? (
+            <div style={{ marginBottom: 16 }}>
+              <Banner tone="info" title="Grace Period Active">
+                <Text as="p" variant="bodyMd">
+                  Your previous plan stays active until{" "}
+                  {new Date(accessExpiresAt).toLocaleDateString()}.
+                </Text>
+              </Banner>
+            </div>
+          ) : null}
           <div style={{overflowX: "auto"}}>
             <div
               style={{
@@ -237,15 +300,21 @@ export default function PlansPage() {
                   }}
                 >
                   <Card>
-                    <Box padding="400" style={{height: 432}}>
-                      <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
+                    <div style={{ height: 432 }}>
+                      <Box padding="400">
+                        <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
                         {/* Header (fixed) */}
                         <div>
                           <BlockStack gap="200">
                             <Text as="h2" variant="headingLg">
                               <InlineStack gap="200" align="space-between">
                                 <span>{plan.name}</span>
-                                {isCurrent ? <Badge tone="success">Active</Badge> : null}
+                                {isCurrent ? (
+                                  <InlineStack gap="200" blockAlign="center">
+                                    <Badge tone="success">Active</Badge>
+                                    {graceActive ? <Badge tone="info">Grace</Badge> : null}
+                                  </InlineStack>
+                                ) : null}
                               </InlineStack>
                             </Text>
                             <Text as="p" variant="heading2xl" fontWeight="bold">
@@ -341,8 +410,9 @@ export default function PlansPage() {
                             </Button>
                           </Form>
                         </div>
-                      </div>
-                    </Box>
+                        </div>
+                      </Box>
+                    </div>
                   </Card>
                 </div>
               );

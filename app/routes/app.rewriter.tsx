@@ -66,6 +66,9 @@ type LoaderData = {
   rewriteLimit?: number | null;
   rewritesUsed?: number | null;
   lifetimeRewritesRemaining?: number | null;
+  graceActive?: boolean;
+  lastPlanName?: 'Free' | 'Basic' | 'Standard' | 'Pro' | null;
+  accessExpiresAt?: string | null;
   primaryLocale: string;
   locales: ShopLocale[];
   products: ProductListItem[];
@@ -218,6 +221,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   // Default from Shopify billing (fallback to Free if not subscribed yet).
   let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Free';
+  const shopifyPlanName = planName;
 
   // Pull plan limits from backend DB so gating matches seeded limits.
   let maxLocales: number = planName === 'Basic' || planName === 'Free' ? 1 : -1;
@@ -225,12 +229,15 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let rewriteLimit: number | null = null;
   let rewritesUsed: number | null = null;
   let lifetimeRewritesRemaining: number | null = null;
+  let graceActive = false;
+  let lastPlanName: LoaderData['planName'] | null = null;
+  let accessExpiresAt: string | null = null;
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
       const data: any = await u.json().catch(() => ({}));
-      // IMPORTANT: keep the DISPLAYED plan name aligned with Shopify billing.
-      // We only use backend data for feature gating (e.g., max_locales).
+      // Backend is the source-of-truth for grace period plan display after reinstall
+      // (Shopify activeSubscriptions may be empty after uninstall).
       const ml = Number(data?.max_locales);
       if (Number.isFinite(ml)) {
         maxLocales = ml;
@@ -243,6 +250,17 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       rewritesUsed = Number.isFinite(used) ? used : null;
       const lr = Number(data?.lifetime_rewrites_remaining);
       lifetimeRewritesRemaining = Number.isFinite(lr) ? lr : null;
+
+      // Reinstall-only UI: backend grace_mode is true only when the shop actually uninstalled.
+      graceActive = Boolean(data?.grace_mode) && shopifyPlanName === 'Free';
+      accessExpiresAt = data?.access_expires_at ?? null;
+      const last = String(data?.last_plan_name || '').trim();
+      if (last === 'Free' || last === 'Basic' || last === 'Standard' || last === 'Pro') {
+        lastPlanName = last as LoaderData['planName'];
+      }
+      if (graceActive && lastPlanName && lastPlanName !== 'Free') {
+        planName = lastPlanName;
+      }
     }
   } catch {
     // Best-effort: keep fallback gating.
@@ -428,6 +446,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     rewriteLimit,
     rewritesUsed,
     lifetimeRewritesRemaining,
+    graceActive,
+    lastPlanName,
+    accessExpiresAt,
     primaryLocale,
     locales,
     products,
@@ -875,6 +896,9 @@ function RewriterWorkspaceInner({
   rewriteLimit,
   rewritesUsed,
   lifetimeRewritesRemaining,
+  graceActive,
+  lastPlanName,
+  accessExpiresAt,
   primaryLocale,
   locales,
   products,
@@ -926,14 +950,27 @@ function RewriterWorkspaceInner({
   const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
 
   const allowsMultiLocale = maxLocales !== 1;
-  const isFreePlan = planName === 'Free' || billingCycleType === 'lifetime';
+  // IMPORTANT: determine Free by billingCycleType (source-of-truth from backend usage),
+  // not by Shopify billing planName (which may show "Free" after uninstall).
+  const isFreePlan =
+    billingCycleType === 'lifetime' || (!billingCycleType && planName === 'Free');
   const isBasicPlan = planName === 'Basic' || isFreePlan;
   const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = isBasicPlan
     ? 'professional'
     : toneProfile;
-  const freeCreditsRemaining = isFreePlan ? Number(lifetimeRewritesRemaining ?? 0) : null;
-  const freeCreditsTotal = isFreePlan ? Number(rewriteLimit ?? 10) : null;
-  const isOutOfFreeCredits = isFreePlan && (freeCreditsRemaining ?? 0) <= 0;
+  const isOutOfFreeCredits =
+    isFreePlan && Number(lifetimeRewritesRemaining ?? 0) <= 0;
+
+  const isExpiredPaid = useMemo(() => {
+    // If last plan is paid and access_expires_at has passed, the merchant must upgrade.
+    const last = String(lastPlanName || '').trim();
+    const expiresAt = String(accessExpiresAt || '').trim();
+    if (!last || last === 'Free') return false;
+    if (!expiresAt) return false;
+    const dt = new Date(expiresAt);
+    if (Number.isNaN(dt.getTime())) return false;
+    return Date.now() > dt.getTime();
+  }, [lastPlanName, accessExpiresAt]);
 
   const publishedLocales = useMemo(
     () => locales.filter((l) => l.published),
@@ -1894,7 +1931,11 @@ function RewriterWorkspaceInner({
 
                   <div className="aiActions">
                     <InlineStack align="end" gap="300" blockAlign="center">
-                      {isOutOfFreeCredits ? (
+                      {isExpiredPaid ? (
+                        <Button size="large" variant="primary" url="/app/pricing?returning_paid=1">
+                          Select a plan
+                        </Button>
+                      ) : isOutOfFreeCredits ? (
                         <Button size="large" variant="primary" url="/app/plans">
                           Upgrade to Basic
                         </Button>
@@ -1950,13 +1991,6 @@ function RewriterWorkspaceInner({
                     </InlineStack>
 
                     <div className="aiActionsLoader" aria-live="polite">
-                      {isFreePlan && freeCreditsTotal ? (
-                        <Text as="p" tone={freeCreditsRemaining && freeCreditsRemaining <= 2 ? "critical" : "subdued"}>
-                          <span className="aiLoaderText">
-                            Credits: {Math.max(0, Number(freeCreditsRemaining ?? 0))} / {freeCreditsTotal}
-                          </span>
-                        </Text>
-                      ) : null}
                       {isOptimizing ? (
                         <Text as="p" tone="subdued">
                           <span className="aiLoaderText">{loadingMessage}</span>

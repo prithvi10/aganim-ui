@@ -196,6 +196,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
+    const hasShopifySubscription = activeSubs.length > 0;
     if (activeSubs.length > 0) {
       planName = activeSubs[0].name;
       if (activeSubs[0].test) trialDays = 4;
@@ -231,9 +232,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               : null,
           welcomeBack: Boolean(data.welcome_back),
           accessExpiresAt: data.access_expires_at ?? null,
-          graceActive: Boolean(data.grace_active),
+          // Reinstall-only UI: backend grace_mode is true only when the shop actually uninstalled.
+          graceActive: Boolean(data.grace_mode) && !hasShopifySubscription,
           lastPlanName: data.last_plan_name ?? null,
         };
+
+        // If grace period is active, Shopify activeSubscriptions will likely be empty after uninstall.
+        // In that case, show the LAST paid plan as the effective current plan.
+        if (!hasShopifySubscription && Boolean(data.grace_mode) && String(data.last_plan_name || "").trim()) {
+          planName = String(data.last_plan_name).trim();
+        }
       }
     } catch (e) {
       console.error("Backend usage fetch failed", e);
@@ -556,7 +564,12 @@ export default function Dashboard() {
 
                   <BlockStack gap="300">
                     <InlineStack align="space-between">
-                      <Text as="h3" variant="headingLg">{planName}</Text>
+                      <InlineStack gap="200" blockAlign="center">
+                        <Text as="h3" variant="headingLg">{planName}</Text>
+                        {Boolean((usage as any)?.graceActive) ? (
+                          <Badge tone="info">Grace</Badge>
+                        ) : null}
+                      </InlineStack>
                       <Button url="/app/plans">{t.manageSubscription}</Button>
                     </InlineStack>
 
