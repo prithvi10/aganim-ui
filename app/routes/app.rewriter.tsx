@@ -907,6 +907,8 @@ function RewriterWorkspaceInner({
   didSelfHeal,
   contentHash,
   didResetMetaCache,
+  shop,
+  backendApiUrl,
   shopSlug,
 }: LoaderData) {
   const [searchParams, setSearchParams] = useSearchParams();
