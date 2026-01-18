@@ -8,10 +8,30 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = url.searchParams.get("shop");
 
   if (shop) {
-    // IMPORTANT:
-    // Shopify loads the app at the configured application_url. In our config, that is the ORIGIN,
-    // so embedded loads land on `/`. We must redirect into our embedded app shell route (`/app`)
-    // and preserve all query params (host, embedded, etc).
+    // Shopify loads the app at the configured application_url (origin), so embedded loads land on `/`.
+    // We run the reinstall "pathfinder" HERE (one-time entry), then send the merchant to:
+    // - /app/dashboard (paid grace OR free with credits)
+    // - /app/pricing?returning_paid=1 (expired paid)
+    // - /app/pricing (free no credits)
+    const backendApiUrl =
+      process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+    try {
+      const resp = await fetch(
+        `${backendApiUrl}/api/admin/reinstall-path?shop=${encodeURIComponent(shop)}`
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const to = String(data?.redirect_to || "").trim() || "/app";
+        const target = new URL(to, url.origin);
+        for (const [k, v] of url.searchParams.entries()) {
+          if (!target.searchParams.has(k)) target.searchParams.set(k, v);
+        }
+        throw redirect(`${target.pathname}${target.search}`);
+      }
+    } catch (e) {
+      // ignore and fall back
+    }
+
     url.pathname = "/app";
     throw redirect(`${url.pathname}${url.search}`);
   }

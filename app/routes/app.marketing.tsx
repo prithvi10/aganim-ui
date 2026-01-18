@@ -54,7 +54,7 @@ type SelectedProduct = {
 };
 
 type LoaderData = {
-  planName: 'Basic' | 'Standard' | 'Pro';
+  planName: 'Free' | 'Basic' | 'Standard' | 'Pro';
   shop: string;
   shopSlug: string;
   products: ProductListItem[];
@@ -142,7 +142,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   const hasPro = normalized.some((n) => n.includes('pro'));
   const hasStandard = normalized.some((n) => n.includes('standard'));
   const hasBasic = normalized.some((n) => n.includes('basic'));
-  const planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Basic';
+  const planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Free';
 
   const products: ProductListItem[] =
     productsRes?.data?.products?.edges?.map((e: any) => e.node) ?? [];

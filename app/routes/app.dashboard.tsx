@@ -21,6 +21,8 @@ import {
   SkeletonDisplayText,
   DataTable,
   Spinner,
+  Toast,
+  Modal,
 } from "@shopify/polaris";
 
 type Lang = "en" | "jp";
@@ -113,9 +115,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Defaults
   let activeMarketsCount = 0;
-  let usage = { used: 0, quota: 50, planName: "Basic", nextResetDate: null as string | null };
+  let usage = {
+    used: 0,
+    quota: 10,
+    planName: "Free",
+    nextResetDate: null as string | null,
+    billingCycleType: "lifetime" as "lifetime" | "recurring",
+    lifetimeRemaining: 10 as number | null,
+    accessExpiresAt: null as string | null,
+    graceActive: false,
+    lastPlanName: null as string | null,
+  };
   let backendError401 = false;
-  let planName = "Basic";
+  let planName = "Free";
   let trialDays = 0;
   try {
     // 3. FETCH DATA using the Master Key (No 302s)
@@ -201,11 +213,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         backendError401 = true; 
       } else if (resp.ok) {
         const data = await resp.json();
+        const billingCycleType =
+          String(data.billing_cycle_type || "")
+            .trim()
+            .toLowerCase() === "lifetime"
+            ? "lifetime"
+            : "recurring";
         usage = {
           used: data.monthly_rewrites_used ?? data.current_usage ?? 0,
           quota: data.rewrite_limit ?? data.monthly_token_quota ?? 50,
           planName: data.plan_name || planName, // Prefer backend plan if available
-          nextResetDate: data.next_reset_date ?? null,
+          nextResetDate: data.next_reset_date ?? data.nextResetDate ?? null,
+          billingCycleType,
+          lifetimeRemaining:
+            billingCycleType === "lifetime"
+              ? (data.lifetime_rewrites_remaining ?? null)
+              : null,
+          welcomeBack: Boolean(data.welcome_back),
+          accessExpiresAt: data.access_expires_at ?? null,
+          graceActive: Boolean(data.grace_active),
+          lastPlanName: data.last_plan_name ?? null,
         };
       }
     } catch (e) {
@@ -263,6 +290,8 @@ export default function Dashboard() {
   
   const [lang, setLang] = useState<Lang>("en");
   const [isLoading, setIsLoading] = useState(true);
+  const [toastContent, setToastContent] = useState<string | null>(null);
+  const [showExpiredModal, setShowExpiredModal] = useState(false);
   // NOTE: App Bridge instance is not needed on this page right now.
   
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
@@ -272,6 +301,9 @@ export default function Dashboard() {
     }
     if (planName === "Standard") {
       return ["Multi-locale", "Social Hook Architect", "AI Marketing"];
+    }
+    if (planName === "Free") {
+      return ["10 lifetime credits", "1 Locale", "Professional tone"];
     }
     return ["1 Locale", "SEO optimization", "GPT-4o-mini"];
   }, [planName]);
@@ -284,6 +316,39 @@ export default function Dashboard() {
 
   const usedCount = Number(usage?.used || 0);
   const quotaCount = Number(usage?.quota ?? 0);
+  const isLifetime =
+    String((usage as any)?.billingCycleType || "").toLowerCase() === "lifetime" ||
+    String(usage?.planName || "").toLowerCase() === "free" ||
+    String(planName || "").toLowerCase() === "free";
+  const lifetimeTotal = isLifetime ? (quotaCount > 0 ? quotaCount : 10) : 0;
+  const lifetimeRemaining = isLifetime
+    ? Number(
+        (usage as any)?.lifetimeRemaining ??
+          Math.max(0, Number(lifetimeTotal) - Number(usedCount)),
+      )
+    : 0;
+  const lifetimeRemainingPct =
+    isLifetime && lifetimeTotal > 0
+      ? Math.max(0, Math.min(100, Math.round((lifetimeRemaining / lifetimeTotal) * 100)))
+      : 0;
+
+  const welcomeBack = Boolean((usage as any)?.welcomeBack);
+  useEffect(() => {
+    if (!welcomeBack) return;
+    setToastContent("Welcome back!");
+  }, [welcomeBack]);
+
+  // Plan-expired interceptor: if the grace window ends while the merchant is active,
+  // prompt and route them to pricing for reactivation.
+  useEffect(() => {
+    const expiresAt = String((usage as any)?.accessExpiresAt || "").trim();
+    if (!expiresAt) return;
+    const dt = new Date(expiresAt);
+    if (Number.isNaN(dt.getTime())) return;
+    if (Date.now() > dt.getTime()) {
+      setShowExpiredModal(true);
+    }
+  }, [(usage as any)?.accessExpiresAt]);
   const isUnlimited = quotaCount === -1;
   const usagePercent = isUnlimited || quotaCount <= 0 ? 0 : Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
@@ -303,6 +368,32 @@ export default function Dashboard() {
             </Banner>
           </Layout.Section>
         </Layout>
+      </Page>
+    );
+  }
+
+  if (showExpiredModal) {
+    const qs =
+      typeof window !== "undefined" ? (window.location.search || "") : "";
+    const target = `/app/pricing?returning_paid=1${qs ? `&${qs.replace(/^\?/, "")}` : ""}`;
+    return (
+      <Page title={t.title} fullWidth>
+        <TitleBar title={t.title} />
+        <Modal
+          open
+          title="Your pre-paid period has ended"
+          onClose={() => window.open(target, "_top")}
+          primaryAction={{
+            content: "Select a plan",
+            onAction: () => window.open(target, "_top"),
+          }}
+        >
+          <Modal.Section>
+            <Text as="p" variant="bodyMd">
+              Please select a plan to continue using the app.
+            </Text>
+          </Modal.Section>
+        </Modal>
       </Page>
     );
   }
@@ -338,6 +429,9 @@ export default function Dashboard() {
           {t.toggleLabel}
         </button>
       </TitleBar>
+      {toastContent ? (
+        <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
+      ) : null}
 
       <BlockStack gap="300">
         {backendError401 && (
@@ -361,7 +455,7 @@ export default function Dashboard() {
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingSm" tone="subdued">{t.totalOptimized}</Text>
                       <Text as="p" variant="heading2xl">{usedCount.toLocaleString()}</Text>
-                      {usedCount === 0 && (
+                      {usedCount === 0 && !welcomeBack && (
                           <div style={{marginTop: '4px'}}>
                               <Button size="micro" url="/products">Optimize your first product</Button>
                           </div>
@@ -388,8 +482,30 @@ export default function Dashboard() {
                 <Card>
                   <div style={{ padding: "var(--p-space-400)" }}>
                     <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">Monthly Product Rewrites</Text>
-                      {isUnlimited ? (
+                      <Text as="h2" variant="headingSm" tone="subdued">
+                        {isLifetime ? "Lifetime Credits" : "Monthly Product Rewrites"}
+                      </Text>
+                      {isLifetime ? (
+                        <BlockStack gap="100">
+                          <InlineStack align="space-between">
+                            <Text as="p" variant="headingMd">
+                              {lifetimeRemaining} / {lifetimeTotal} left
+                            </Text>
+                            <Badge tone={lifetimeRemaining <= 2 ? "critical" : "success"}>
+                              {`${lifetimeRemainingPct}%`}
+                            </Badge>
+                          </InlineStack>
+                          <ProgressBar
+                            progress={lifetimeRemainingPct}
+                            tone={lifetimeRemaining <= 2 ? "critical" : "highlight"}
+                          />
+                          <div style={{marginTop: "6px"}}>
+                            <Button url="/app/plans" variant="primary">
+                              Get 50 rewrites/month
+                            </Button>
+                          </div>
+                        </BlockStack>
+                      ) : isUnlimited ? (
                         <BlockStack gap="100">
                           <InlineStack align="space-between" blockAlign="center">
                             <Text as="p" variant="headingMd">Unlimited</Text>
@@ -423,6 +539,14 @@ export default function Dashboard() {
             <Card>
               <div style={{ padding: "var(--p-space-400)" }}>
                 <BlockStack gap="400">
+                  {Boolean((usage as any)?.graceActive) && (usage as any)?.accessExpiresAt ? (
+                    <Banner tone="info" title="Grace Period Active">
+                      <Text as="p" variant="bodyMd">
+                        You can keep using your previous plan until{" "}
+                        {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString()}.
+                      </Text>
+                    </Banner>
+                  ) : null}
                   <InlineStack align="space-between">
                     <Text as="h2" variant="headingMd">{t.currentPlan}</Text>
                     {trialDays > 0 && (
@@ -456,10 +580,26 @@ export default function Dashboard() {
                         {t.usage}
                       </Text>
                       <Text as="span" variant="bodySm" tone="subdued">
-                        {isUnlimited ? `Unlimited • ${t.priorityAccess}` : `${usedCount} / ${quotaCount} ${t.rewritesUsed}`}
+                        {isLifetime
+                          ? `${lifetimeRemaining} / ${lifetimeTotal} credits left`
+                          : isUnlimited
+                            ? `Unlimited • ${t.priorityAccess}`
+                            : `${usedCount} / ${quotaCount} ${t.rewritesUsed}`}
                       </Text>
                     </InlineStack>
-                    {isUnlimited ? (
+                    {isLifetime ? (
+                      <BlockStack gap="100">
+                        <ProgressBar progress={lifetimeRemainingPct} tone={lifetimeRemaining <= 2 ? "critical" : "highlight"} size="small" />
+                        <InlineStack align="space-between" blockAlign="center">
+                          <Text as="span" variant="bodySm" tone="subdued">
+                            One-time credits (no monthly reset)
+                          </Text>
+                          <Button url="/app/plans" variant="primary">
+                            Upgrade
+                          </Button>
+                        </InlineStack>
+                      </BlockStack>
+                    ) : isUnlimited ? (
                       <InlineStack align="start">
                         {resetDateLabel ? (
                           <Text as="span" variant="bodySm" tone="subdued">{`Your usage resets on ${resetDateLabel}`}</Text>

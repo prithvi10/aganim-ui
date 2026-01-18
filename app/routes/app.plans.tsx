@@ -9,6 +9,7 @@ import {
   InlineStack,
   ExceptionList,
   Badge,
+  Banner,
 } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
@@ -21,7 +22,8 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 const PLAN_BASIC = 'Basic' as const;
 const PLAN_STANDARD = 'Standard' as const;
 const PLAN_PRO = 'Pro' as const;
-type PlanName = typeof PLAN_BASIC | typeof PLAN_STANDARD | typeof PLAN_PRO;
+const PLAN_FREE = 'Free' as const;
+type PlanName = typeof PLAN_FREE | typeof PLAN_BASIC | typeof PLAN_STANDARD | typeof PLAN_PRO;
 
 type ActiveSub = { name?: string; status?: string; test?: boolean };
 
@@ -37,10 +39,13 @@ function normalizeActivePlan(subs: ActiveSub[] | null | undefined): PlanName {
   const hasPro = activeNames.some((n) => n.includes("pro"));
   const hasStandard = activeNames.some((n) => n.includes("standard"));
   const hasBasic = activeNames.some((n) => n.includes("basic"));
-  return hasPro ? PLAN_PRO : hasStandard ? PLAN_STANDARD : hasBasic ? PLAN_BASIC : PLAN_BASIC;
+  // If no subscription is active, treat as Free tier by default.
+  return hasPro ? PLAN_PRO : hasStandard ? PLAN_STANDARD : hasBasic ? PLAN_BASIC : PLAN_FREE;
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+  const returningPaid = url.searchParams.get("returning_paid") === "1";
   try {
     const { admin } = await authenticate.admin(request);
     const resp = await admin.graphql(`
@@ -58,9 +63,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const subs: ActiveSub[] =
       body?.data?.currentAppInstallation?.activeSubscriptions ?? [];
     const activePlan = normalizeActivePlan(subs);
-    return { currentPlans: subs, activePlan };
+    return { currentPlans: subs, activePlan, returningPaid };
   } catch (e) {
-    return { currentPlans: [], activePlan: PLAN_BASIC };
+    return { currentPlans: [], activePlan: PLAN_FREE, returningPaid };
   }
 };
 
@@ -69,12 +74,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop } = session;
   const formData = await request.formData();
   const plan = formData.get("plan") as PlanName | null;
+  const url = new URL(request.url);
+  const returningPaid = url.searchParams.get("returning_paid") === "1";
   // Build a return URL that works for both classic admin and new admin.shopify.com
   const shopSubdomain = shop.replace(".myshopify.com", "");
   const hostParam = new URL(request.url).searchParams.get("host");
   const hostSuffix = hostParam ? `?host=${hostParam}` : "";
   const adminReturnUrl = `https://admin.shopify.com/store/${shopSubdomain}/apps/crossborderagent/app${hostSuffix}`;
 
+  if (plan === PLAN_FREE) {
+    // Free is the default tier (no billing flow).
+    // If this is a returning paid user, do not allow falling back to Free.
+    if (returningPaid) {
+      return null;
+    }
+    return null;
+  }
   if (plan === PLAN_BASIC || plan === PLAN_STANDARD || plan === PLAN_PRO) {
     // Server-side guard: do not allow "upgrading" to the already-active plan.
     try {
@@ -116,12 +131,28 @@ export const headers: HeadersFunction = (headersArgs) => {
 };
 
 export default function PlansPage() {
-  const { activePlan } = useLoaderData<typeof loader>();
+  const { activePlan, returningPaid } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
 
   const isUpgrading = navigation.state === "submitting";
 
   const plans = [
+    {
+      name: PLAN_FREE,
+      price: "$0",
+      rewrites: "10 lifetime credits",
+      rewriterFeatures: [
+        "AI product rewrite (title + description)",
+        "SEO details (title + meta description)",
+        "SEO editor + preview",
+        "1 market at a time (1 locale)",
+      ],
+      marketingFeatures: [
+        "Instagram captions + hashtags",
+        "Seasonal campaign ideas + caption",
+      ],
+      otherFeatures: [] as string[],
+    },
     {
       name: PLAN_BASIC,
       price: "$49",
@@ -172,10 +203,17 @@ export default function PlansPage() {
     },
   ];
 
+  const visiblePlans = returningPaid ? plans.filter((p) => p.name !== PLAN_FREE) : plans;
+
   return (
     <Page title="Select a Plan" fullWidth>
       <Layout>
         <Layout.Section>
+          {returningPaid ? (
+            <div style={{ marginBottom: 16 }}>
+              <Banner tone="warning" title="Welcome back! Please select a plan to reactivate your account." />
+            </div>
+          ) : null}
           <div style={{overflowX: "auto"}}>
             <div
               style={{
@@ -188,7 +226,7 @@ export default function PlansPage() {
                 paddingBottom: 4,
               }}
             >
-            {plans.map((plan) => {
+            {visiblePlans.map((plan) => {
               const isCurrent = plan.name === activePlan;
               return (
                 <div
@@ -297,9 +335,9 @@ export default function PlansPage() {
                               fullWidth
                               submit
                               loading={isUpgrading}
-                              disabled={isCurrent}
+                              disabled={isCurrent || plan.name === PLAN_FREE}
                             >
-                              {isCurrent ? "Current Plan" : "Upgrade"}
+                              {isCurrent ? "Current Plan" : plan.name === PLAN_FREE ? "Included" : "Upgrade"}
                             </Button>
                           </Form>
                         </div>

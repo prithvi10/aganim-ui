@@ -60,8 +60,12 @@ type ProductListItem = {
 type LoaderData = {
   shop: string;
   shopSlug: string;
-  planName: 'Basic' | 'Standard' | 'Pro';
+  planName: 'Free' | 'Basic' | 'Standard' | 'Pro';
   maxLocales: number; // 1 = single-locale, -1 = unlimited
+  billingCycleType?: 'lifetime' | 'recurring';
+  rewriteLimit?: number | null;
+  rewritesUsed?: number | null;
+  lifetimeRewritesRemaining?: number | null;
   primaryLocale: string;
   locales: ShopLocale[];
   products: ProductListItem[];
@@ -212,11 +216,15 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   const hasStandard = normalizedNames.some((n) => n.includes('standard'));
   const hasBasic = normalizedNames.some((n) => n.includes('basic'));
 
-  // Default from Shopify billing (fallback to Basic if not subscribed yet).
-  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Basic';
+  // Default from Shopify billing (fallback to Free if not subscribed yet).
+  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Free';
 
   // Pull plan limits from backend DB so gating matches seeded limits.
-  let maxLocales: number = planName === 'Basic' ? 1 : -1;
+  let maxLocales: number = planName === 'Basic' || planName === 'Free' ? 1 : -1;
+  let billingCycleType: LoaderData['billingCycleType'] = planName === 'Free' ? 'lifetime' : 'recurring';
+  let rewriteLimit: number | null = null;
+  let rewritesUsed: number | null = null;
+  let lifetimeRewritesRemaining: number | null = null;
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -227,6 +235,14 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       if (Number.isFinite(ml)) {
         maxLocales = ml;
       }
+      const bt = String(data?.billing_cycle_type || '').trim().toLowerCase();
+      billingCycleType = bt === 'lifetime' ? 'lifetime' : 'recurring';
+      const rl = Number(data?.rewrite_limit);
+      rewriteLimit = Number.isFinite(rl) ? rl : null;
+      const used = Number(data?.monthly_rewrites_used ?? data?.current_usage);
+      rewritesUsed = Number.isFinite(used) ? used : null;
+      const lr = Number(data?.lifetime_rewrites_remaining);
+      lifetimeRewritesRemaining = Number.isFinite(lr) ? lr : null;
     }
   } catch {
     // Best-effort: keep fallback gating.
@@ -408,6 +424,10 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     shopSlug,
     planName,
     maxLocales,
+    billingCycleType,
+    rewriteLimit,
+    rewritesUsed,
+    lifetimeRewritesRemaining,
     primaryLocale,
     locales,
     products,
@@ -851,6 +871,10 @@ function RichTextEditor({
 function RewriterWorkspaceInner({
   planName,
   maxLocales,
+  billingCycleType,
+  rewriteLimit,
+  rewritesUsed,
+  lifetimeRewritesRemaining,
   primaryLocale,
   locales,
   products,
@@ -902,10 +926,14 @@ function RewriterWorkspaceInner({
   const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
 
   const allowsMultiLocale = maxLocales !== 1;
-  const isBasicPlan = planName === 'Basic';
+  const isFreePlan = planName === 'Free' || billingCycleType === 'lifetime';
+  const isBasicPlan = planName === 'Basic' || isFreePlan;
   const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = isBasicPlan
     ? 'professional'
     : toneProfile;
+  const freeCreditsRemaining = isFreePlan ? Number(lifetimeRewritesRemaining ?? 0) : null;
+  const freeCreditsTotal = isFreePlan ? Number(rewriteLimit ?? 10) : null;
+  const isOutOfFreeCredits = isFreePlan && (freeCreditsRemaining ?? 0) <= 0;
 
   const publishedLocales = useMemo(
     () => locales.filter((l) => l.published),
@@ -1181,6 +1209,10 @@ function RewriterWorkspaceInner({
   };
 
   const handleOptimize = useCallback(async () => {
+    if (isOutOfFreeCredits) {
+      setToastContent("You've used your 10 free lifetime credits. Upgrade to Basic for 50 rewrites every month!");
+      return;
+    }
     setOptimizeError(null);
     setOverLimit(false);
     setDiscoveredValues([]);
@@ -1327,6 +1359,7 @@ function RewriterWorkspaceInner({
     selectedProduct?.productType,
     startLoading,
     stopLoading,
+    isOutOfFreeCredits,
   ]);
 
   const filteredProducts = useMemo(() => {
@@ -1861,31 +1894,37 @@ function RewriterWorkspaceInner({
 
                   <div className="aiActions">
                     <InlineStack align="end" gap="300" blockAlign="center">
-                      <div
-                        className={`aiOptimizeWrap${
-                          !selectedProduct ||
-                          selectedLocales.length === 0 ||
-                          isOptimizing ||
-                          saveFetcher.state !== 'idle'
-                            ? ' aiOptimizeWrap--disabled'
-                            : ''
-                        }`}
-                      >
-                        <div className="aiOptimizeInner">
-                          <Button
-                            size="large"
-                            onClick={handleOptimize}
-                            disabled={
-                              !selectedProduct ||
-                              selectedLocales.length === 0 ||
-                              isOptimizing ||
-                              saveFetcher.state !== 'idle'
-                            }
-                          >
-                            Optimize for Global
-                          </Button>
+                      {isOutOfFreeCredits ? (
+                        <Button size="large" variant="primary" url="/app/plans">
+                          Upgrade to Basic
+                        </Button>
+                      ) : (
+                        <div
+                          className={`aiOptimizeWrap${
+                            !selectedProduct ||
+                            selectedLocales.length === 0 ||
+                            isOptimizing ||
+                            saveFetcher.state !== 'idle'
+                              ? ' aiOptimizeWrap--disabled'
+                              : ''
+                          }`}
+                        >
+                          <div className="aiOptimizeInner">
+                            <Button
+                              size="large"
+                              onClick={handleOptimize}
+                              disabled={
+                                !selectedProduct ||
+                                selectedLocales.length === 0 ||
+                                isOptimizing ||
+                                saveFetcher.state !== 'idle'
+                              }
+                            >
+                              Optimize for Global
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       <saveFetcher.Form method="post">
                         <input type="hidden" name="intent" value="save" />
@@ -1911,6 +1950,13 @@ function RewriterWorkspaceInner({
                     </InlineStack>
 
                     <div className="aiActionsLoader" aria-live="polite">
+                      {isFreePlan && freeCreditsTotal ? (
+                        <Text as="p" tone={freeCreditsRemaining && freeCreditsRemaining <= 2 ? "critical" : "subdued"}>
+                          <span className="aiLoaderText">
+                            Credits: {Math.max(0, Number(freeCreditsRemaining ?? 0))} / {freeCreditsTotal}
+                          </span>
+                        </Text>
+                      ) : null}
                       {isOptimizing ? (
                         <Text as="p" tone="subdued">
                           <span className="aiLoaderText">{loadingMessage}</span>
