@@ -8,12 +8,18 @@ export function PlanCard({
   plan,
   isCurrent,
   graceActive,
+  extraBadges,
+  priceNode,
+  rewritesNode,
   cta,
   height = 480,
 }: {
   plan: PlanCardModel;
   isCurrent: boolean;
   graceActive: boolean;
+  extraBadges?: ReactNode;
+  priceNode?: ReactNode;
+  rewritesNode?: ReactNode;
   cta: ReactNode;
   height?: number;
 }) {
@@ -27,23 +33,32 @@ export function PlanCard({
               <Text as="h2" variant="headingLg">
                 <InlineStack gap="200" align="space-between">
                   <span>{plan.name}</span>
-                  {isCurrent ? (
+                  {isCurrent || extraBadges ? (
                     <InlineStack gap="200" blockAlign="center">
-                      <Badge tone="success">Active</Badge>
-                      {graceActive ? <Badge tone="info">Grace</Badge> : null}
+                      {isCurrent ? <Badge tone="success">Active</Badge> : null}
+                      {isCurrent && graceActive ? <Badge tone="info">Grace</Badge> : null}
+                      {extraBadges}
                     </InlineStack>
                   ) : null}
                 </InlineStack>
               </Text>
-              <Text as="p" variant="heading2xl" fontWeight="bold">
-                {plan.price}
-                <Text as="span" variant="bodyMd" fontWeight="regular">
-                  /month
+              {priceNode ? (
+                priceNode
+              ) : (
+                <Text as="p" variant="heading2xl" fontWeight="bold">
+                  {plan.price}
+                  <Text as="span" variant="bodyMd" fontWeight="regular">
+                    /month
+                  </Text>
                 </Text>
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                {plan.rewrites}
-              </Text>
+              )}
+              {rewritesNode ? (
+                rewritesNode
+              ) : (
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {plan.rewrites}
+                </Text>
+              )}
             </BlockStack>
           </div>
 
