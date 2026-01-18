@@ -8,20 +8,21 @@ import {
   Link,
   InlineStack,
   Divider,
-  Banner,
 } from "@shopify/polaris";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { useMemo, useState } from "react";
+import { GetStartedGuide } from "../components/GetStartedGuide";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const shopParam = url.searchParams.get("shop") || "";
-  return { shop: shopParam };
+  const host = url.searchParams.get("host") || "";
+  return { shop: shopParam, host };
 };
 
 export default function LandingPage() {
-  const { shop } = useLoaderData<typeof loader>();
+  const { shop, host } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<"en" | "jp">("en");
 
   const shopSlug = shop.replace(".myshopify.com", "");
@@ -167,6 +168,10 @@ export default function LandingPage() {
               </BlockStack>
             </div>
           </Card>
+        </Layout.Section>
+
+        <Layout.Section variant="oneThird">
+          <GetStartedGuide shop={shop} host={host} />
         </Layout.Section>
       </Layout>
     </Page>

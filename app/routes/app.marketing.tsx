@@ -57,6 +57,7 @@ type LoaderData = {
   planName: 'Free' | 'Basic' | 'Standard' | 'Pro';
   shop: string;
   shopSlug: string;
+  backendApiUrl: string;
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
   contentHash: string | null;
@@ -309,6 +310,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     planName,
     shop,
     shopSlug,
+    backendApiUrl,
     products,
     selectedProduct,
     contentHash: selectedProduct?._contentHash ?? null,
@@ -399,7 +401,7 @@ export const action = async ({request}: ActionFunctionArgs) => {
 };
 
 export default function MarketingWorkspace() {
-  const {planName, products, selectedProduct, shopSlug, contentHash, didResetMetaCache} =
+  const {planName, products, selectedProduct, shopSlug, shop, backendApiUrl, contentHash, didResetMetaCache} =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge();
