@@ -44,6 +44,7 @@ import {
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';
+import { DowngradeScheduledBanner } from '../components/DowngradeScheduledBanner';
 
 type ShopLocale = {
   locale: string;
@@ -69,6 +70,8 @@ type LoaderData = {
   graceActive?: boolean;
   lastPlanName?: 'Free' | 'Basic' | 'Standard' | 'Pro' | null;
   accessExpiresAt?: string | null;
+  pendingPlanName?: string | null;
+  pendingPlanEffectiveAt?: string | null;
   primaryLocale: string;
   locales: ShopLocale[];
   products: ProductListItem[];
@@ -205,33 +208,21 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     ]);
   }
 
-  const subs: {name: string; status?: string}[] =
-    planRes?.data?.appInstallation?.activeSubscriptions ?? [];
-  const activeNames = subs
-    .filter((s) => {
-      const st = String(s.status || '').toUpperCase();
-      // Shopify can return PENDING briefly right after upgrade; treat as active for UI gating.
-      return !st || st === 'ACTIVE' || st === 'PENDING';
-    })
-    .map((s) => String(s.name || ''));
-  const normalizedNames = activeNames.map((n) => n.toLowerCase());
-  const hasPro = normalizedNames.some((n) => n.includes('pro'));
-  const hasStandard = normalizedNames.some((n) => n.includes('standard'));
-  const hasBasic = normalizedNames.some((n) => n.includes('basic'));
-
-  // Default from Shopify billing (fallback to Free if not subscribed yet).
-  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Free';
-  const shopifyPlanName = planName;
+  // Shopify billing is NOT the source of truth for plan display/gating.
+  // Keep this GraphQL fetch for products/locales; plan gating comes from backend usage below.
+  let planName: LoaderData['planName'] = 'Free';
 
   // Pull plan limits from backend DB so gating matches seeded limits.
-  let maxLocales: number = planName === 'Basic' || planName === 'Free' ? 1 : -1;
-  let billingCycleType: LoaderData['billingCycleType'] = planName === 'Free' ? 'lifetime' : 'recurring';
+  let maxLocales: number = 1;
+  let billingCycleType: LoaderData['billingCycleType'] = 'lifetime';
   let rewriteLimit: number | null = null;
   let rewritesUsed: number | null = null;
   let lifetimeRewritesRemaining: number | null = null;
   let graceActive = false;
   let lastPlanName: LoaderData['planName'] | null = null;
   let accessExpiresAt: string | null = null;
+  let pendingPlanName: string | null = null;
+  let pendingPlanEffectiveAt: string | null = null;
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -252,13 +243,19 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       lifetimeRewritesRemaining = Number.isFinite(lr) ? lr : null;
 
       // Reinstall-only UI: backend grace_mode is true only when the shop actually uninstalled.
-      graceActive = Boolean(data?.grace_mode) && shopifyPlanName === 'Free';
+      graceActive = Boolean(data?.grace_mode) && planName === 'Free';
       accessExpiresAt = data?.access_expires_at ?? null;
+      pendingPlanName = data?.pending_plan_name ?? null;
+      pendingPlanEffectiveAt = data?.pending_plan_effective_at ?? null;
       const last = String(data?.last_plan_name || '').trim();
       if (last === 'Free' || last === 'Basic' || last === 'Standard' || last === 'Pro') {
         lastPlanName = last as LoaderData['planName'];
       }
-      if (graceActive && lastPlanName && lastPlanName !== 'Free') {
+      const eff = String(data?.effective_plan_name || data?.plan_name || '').trim();
+      if (eff === 'Free' || eff === 'Basic' || eff === 'Standard' || eff === 'Pro') {
+        planName = eff as LoaderData['planName'];
+      } else if (graceActive && lastPlanName && lastPlanName !== 'Free') {
+        // Back-compat fallback (older backends)
         planName = lastPlanName;
       }
     }
@@ -449,6 +446,8 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     graceActive,
     lastPlanName,
     accessExpiresAt,
+    pendingPlanName,
+    pendingPlanEffectiveAt,
     primaryLocale,
     locales,
     products,
@@ -899,6 +898,8 @@ function RewriterWorkspaceInner({
   graceActive,
   lastPlanName,
   accessExpiresAt,
+  pendingPlanName,
+  pendingPlanEffectiveAt,
   primaryLocale,
   locales,
   products,
@@ -925,7 +926,10 @@ function RewriterWorkspaceInner({
   const [referenceDescription, setReferenceDescription] = useState('');
 
   const [draftByLocale, setDraftByLocale] = useState<
-    Record<string, {title: string; description: string; seoTitle: string; seoDescription: string}>
+    Record<
+      string,
+      {title: string; description: string; seoTitle: string; seoDescription: string; seoAltText: string}
+    >
   >({});
   const [isSwitchingLocale, setIsSwitchingLocale] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -950,6 +954,7 @@ function RewriterWorkspaceInner({
 
   const [toastContent, setToastContent] = useState<string | null>(null);
   const [showSelfHealBanner, setShowSelfHealBanner] = useState(Boolean(didSelfHeal));
+  const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
 
   const allowsMultiLocale = maxLocales !== 1;
   // IMPORTANT: determine Free by billingCycleType (source-of-truth from backend usage),
@@ -1013,7 +1018,10 @@ function RewriterWorkspaceInner({
     const baseSeoDesc = String(selectedProduct?.seo?.description ?? '').trim();
 
     // Seed draft map from existing Shopify translations, falling back to primary content.
-    const seeded: Record<string, {title: string; description: string; seoTitle: string; seoDescription: string}> = {};
+    const seeded: Record<
+      string,
+      {title: string; description: string; seoTitle: string; seoDescription: string; seoAltText: string}
+    > = {};
     for (const loc of publishedLocales.map((l) => l.locale)) {
       const t = translationsByLocale?.[loc];
       const isPrimary = loc === primaryLocale;
@@ -1023,6 +1031,7 @@ function RewriterWorkspaceInner({
         description: isPrimary ? baseDesc : t?.descriptionHtml ?? baseDesc,
         seoTitle: isPrimary ? baseSeoTitle : t?.seoTitle ?? '',
         seoDescription: isPrimary ? baseSeoDesc : t?.seoDescription ?? '',
+        seoAltText: '',
       };
     }
     setDraftByLocale(seeded);
@@ -1076,6 +1085,7 @@ function RewriterWorkspaceInner({
       description: fromTranslations?.descriptionHtml ?? baseDesc,
       seoTitle: fromTranslations?.seoTitle ?? '',
       seoDescription: fromTranslations?.seoDescription ?? '',
+      seoAltText: '',
     };
   }, [activeLocale, draftByLocale, selectedProduct?.descriptionHtml, selectedProduct?.title, translationsByLocale]);
 
@@ -1185,6 +1195,7 @@ function RewriterWorkspaceInner({
           description: nextDesc,
           seoTitle: currentDraft.seoTitle,
           seoDescription: currentDraft.seoDescription,
+          seoAltText: currentDraft.seoAltText,
         },
       }));
 
@@ -1236,7 +1247,7 @@ function RewriterWorkspaceInner({
   const extractGenerated = (
     result: any,
     locale: string,
-  ): {title?: string; description?: string; seo_title?: string; seo_description?: string} | null => {
+  ): {title?: string; description?: string; seo_title?: string; seo_description?: string; seo_alt_text?: string} | null => {
     if (result?.data) return result.data;
     const results = result?.results;
     if (results && typeof results === 'object') {
@@ -1356,6 +1367,10 @@ function RewriterWorkspaceInner({
             typeof data.seo_description === 'string' && data.seo_description
               ? data.seo_description
               : prev[activeLocale]?.seoDescription ?? '',
+          seoAltText:
+            typeof data.seo_alt_text === 'string' && data.seo_alt_text
+              ? data.seo_alt_text
+              : prev[activeLocale]?.seoAltText ?? '',
         },
       }));
 
@@ -1370,6 +1385,7 @@ function RewriterWorkspaceInner({
               description: String(p?.description ?? next[loc]?.description ?? ''),
               seoTitle: String(p?.seo_title ?? next[loc]?.seoTitle ?? ''),
               seoDescription: String(p?.seo_description ?? next[loc]?.seoDescription ?? ''),
+              seoAltText: String(p?.seo_alt_text ?? next[loc]?.seoAltText ?? ''),
             };
           }
           return next;
@@ -1593,6 +1609,16 @@ function RewriterWorkspaceInner({
                   <Badge tone={planName === 'Basic' ? 'warning' : 'success'}>{planName}</Badge>
                 </InlineStack>
 
+                {showDowngradeBanner && String(pendingPlanName || '').trim() && String(pendingPlanEffectiveAt || '').trim() ? (
+                  <DowngradeScheduledBanner
+                    currentPlanName={String(planName)}
+                    pendingPlanName={String(pendingPlanName)}
+                    pendingPlanEffectiveAt={String(pendingPlanEffectiveAt)}
+                    dismissible
+                    onDismiss={() => setShowDowngradeBanner(false)}
+                  />
+                ) : null}
+
                 <TextField
                   label="Search"
                   labelHidden
@@ -1724,6 +1750,7 @@ function RewriterWorkspaceInner({
                                   description: currentDraft.description,
                                   seoTitle: currentDraft.seoTitle,
                                   seoDescription: currentDraft.seoDescription,
+                                  seoAltText: currentDraft.seoAltText,
                                 },
                               }))
                             }
@@ -1740,6 +1767,7 @@ function RewriterWorkspaceInner({
                                   description: v,
                                   seoTitle: currentDraft.seoTitle,
                                   seoDescription: currentDraft.seoDescription,
+                                  seoAltText: currentDraft.seoAltText,
                                 },
                               }))
                             }
@@ -1776,13 +1804,16 @@ function RewriterWorkspaceInner({
                         </InlineStack>
                       </InlineStack>
 
-                      <InlineStack gap="500" blockAlign="start" wrap>
-                        <Box width="60%">
-                          <BlockStack gap="300">
+                      <BlockStack gap="300">
+                        <div style={{ display: "flex", gap: 24, alignItems: "stretch" }}>
+                          {/* Left: SEO fields (narrower) */}
+                          <div style={{ flex: "0 0 54%", minWidth: 320 }}>
+                            <BlockStack gap="300">
                             <TextField
                               label="SEO Title"
                               value={currentDraft.seoTitle}
                               placeholder={currentDraft.seoTitle ? '' : seoPlaceholders.title || 'Shop the authentic…'}
+                                multiline={2}
                               onChange={(v) =>
                                 setDraftByLocale((prev) => ({
                                   ...prev,
@@ -1791,6 +1822,7 @@ function RewriterWorkspaceInner({
                                     description: currentDraft.description,
                                     seoTitle: v,
                                     seoDescription: currentDraft.seoDescription,
+                                    seoAltText: currentDraft.seoAltText,
                                   },
                                 }))
                               }
@@ -1814,16 +1846,188 @@ function RewriterWorkspaceInner({
                                     description: currentDraft.description,
                                     seoTitle: currentDraft.seoTitle,
                                     seoDescription: v,
+                                    seoAltText: currentDraft.seoAltText,
                                   },
                                 }))
                               }
                               autoComplete="off"
                             />
-                          </BlockStack>
-                        </Box>
 
-                        <Box width="40%">
-                          <BlockStack gap="200">
+                            <TextField
+                              label="SEO Alt Text (Main image)"
+                              value={currentDraft.seoAltText}
+                              placeholder="Black leather wallet - slim design"
+                              onChange={(v) =>
+                                setDraftByLocale((prev) => ({
+                                  ...prev,
+                                  [activeLocale]: {
+                                    title: currentDraft.title,
+                                    description: currentDraft.description,
+                                    seoTitle: currentDraft.seoTitle,
+                                    seoDescription: currentDraft.seoDescription,
+                                    seoAltText: v,
+                                  },
+                                }))
+                              }
+                              autoComplete="off"
+                            />
+                            </BlockStack>
+                          </div>
+
+                          {/* Right: CTR scorecard (stretch to match left column height) */}
+                          <div style={{ flex: "1 1 0px", minWidth: 320 }}>
+                            {isBasicPlan ? (
+                              <div style={{ height: "100%" }}>
+                                <Box
+                                  padding="300"
+                                  background="bg-surface-secondary"
+                                  borderRadius="200"
+                                >
+                                <BlockStack gap="200">
+                                  <InlineStack align="space-between" blockAlign="center">
+                                    <Text as="h4" variant="headingSm">
+                                      CTR Optimization Score
+                                    </Text>
+                                    <Text as="span" variant="bodySm" tone="subdued">
+                                      <span
+                                        style={{
+                                          display: "inline-block",
+                                          padding: "2px 8px",
+                                          borderRadius: 999,
+                                          background: "var(--p-color-bg-surface-brand)",
+                                          color: "var(--p-color-text-on-color)",
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        Optimized for US Search Patterns
+                                      </span>
+                                    </Text>
+                                  </InlineStack>
+
+                                  {(() => {
+                                    const titleLen = (currentDraft.seoTitle || "").length;
+                                    const desc = String(currentDraft.seoDescription || "");
+                                    const descLower = desc.toLowerCase();
+                                    const problemWords = [
+                                      "tired",
+                                      "struggling",
+                                      "problem",
+                                      "frustrated",
+                                      "looking for",
+                                      "need a",
+                                      "wish",
+                                    ];
+                                    const hasProblemSignal =
+                                      desc.includes("?") ||
+                                      problemWords.some((w) => descLower.includes(w));
+                                    const hasBrandTrust =
+                                      /japan/i.test(desc) ||
+                                      /handcrafted/i.test(desc) ||
+                                      /free shipping/i.test(desc);
+
+                                    const pstTone: "green" | "yellow" | "red" = hasProblemSignal
+                                      ? "green"
+                                      : /shop now|discover|order|buy/i.test(desc)
+                                        ? "yellow"
+                                        : "red";
+                                    const trustTone: "green" | "yellow" | "red" = hasBrandTrust
+                                      ? "green"
+                                      : /authentic|artisan|premium/i.test(desc)
+                                        ? "yellow"
+                                        : "red";
+                                    const lenTone: "green" | "yellow" | "red" =
+                                      titleLen > 50 && titleLen < 70
+                                        ? "green"
+                                        : titleLen >= 45 && titleLen <= 75
+                                          ? "yellow"
+                                          : "red";
+
+                                    const colorFor = (t: "green" | "yellow" | "red") =>
+                                      t === "green"
+                                        ? "var(--p-color-bg-fill-success)"
+                                        : t === "yellow"
+                                          ? "var(--p-color-bg-fill-warning)"
+                                          : "var(--p-color-bg-fill-critical)";
+
+                                    const Light = ({ tone }: { tone: "green" | "yellow" | "red" }) => (
+                                      <span
+                                        style={{
+                                          width: 10,
+                                          height: 10,
+                                          borderRadius: 999,
+                                          display: "inline-block",
+                                          background: colorFor(tone),
+                                          boxShadow: "0 0 0 2px rgba(255,255,255,0.6) inset",
+                                        }}
+                                      />
+                                    );
+
+                                    const Row = ({
+                                      label,
+                                      tone,
+                                      hint,
+                                    }: {
+                                      label: string;
+                                      tone: "green" | "yellow" | "red";
+                                      hint: string;
+                                    }) => (
+                                      <InlineStack align="space-between" blockAlign="center">
+                                        <InlineStack gap="200" blockAlign="center">
+                                          <Light tone={tone} />
+                                          <Text as="span" variant="bodySm">
+                                            {label}
+                                          </Text>
+                                        </InlineStack>
+                                        <Text as="span" variant="bodySm" tone="subdued">
+                                          {hint}
+                                        </Text>
+                                      </InlineStack>
+                                    );
+
+                                    return (
+                                      <BlockStack gap="200">
+                                        <Row
+                                          label="PST Check"
+                                          tone={pstTone}
+                                          hint={hasProblemSignal ? "OK" : "Add a problem/question"}
+                                        />
+                                        <Row
+                                          label="Brand Trust"
+                                          tone={trustTone}
+                                          hint={hasBrandTrust ? "OK" : 'Add “Japan”, “Handcrafted” or “Free Shipping”'}
+                                        />
+                                        <Row
+                                          label="Length Check"
+                                          tone={lenTone}
+                                          hint={`${titleLen}/70`}
+                                        />
+                                      </BlockStack>
+                                    );
+                                  })()}
+                                </BlockStack>
+                                </Box>
+                              </div>
+                            ) : (
+                              <BlockStack gap="200">
+                                <Text as="p" variant="bodySm" tone="subdued">
+                                  Preview
+                                </Text>
+                                <SearchEnginePreview
+                                  title={currentDraft.seoTitle || seoPlaceholders.title || currentDraft.title}
+                                  url={
+                                    shopSlug
+                                      ? `https://${shopSlug}.myshopify.com`
+                                      : 'https://your-store.myshopify.com'
+                                  }
+                                  snippet={currentDraft.seoDescription || seoPlaceholders.description}
+                                />
+                              </BlockStack>
+                            )}
+                          </div>
+                        </div>
+
+                        {isBasicPlan ? (
+                          <Box>
                             <Text as="p" variant="bodySm" tone="subdued">
                               Preview
                             </Text>
@@ -1836,9 +2040,9 @@ function RewriterWorkspaceInner({
                               }
                               snippet={currentDraft.seoDescription || seoPlaceholders.description}
                             />
-                          </BlockStack>
-                        </Box>
-                      </InlineStack>
+                          </Box>
+                        ) : null}
+                      </BlockStack>
                     </BlockStack>
                   </Box>
                 </Card>

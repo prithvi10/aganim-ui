@@ -25,6 +25,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';
+import { DowngradeScheduledBanner } from "../components/DowngradeScheduledBanner";
 
 type ProductListItem = {id: string; title: string};
 type ProductImage = {url: string; altText?: string | null};
@@ -58,6 +59,10 @@ type LoaderData = {
   shop: string;
   shopSlug: string;
   backendApiUrl: string;
+  pendingPlanName?: string | null;
+  pendingPlanEffectiveAt?: string | null;
+  lastPlanChangeType?: string | null;
+  lastPlanChangeAt?: string | null;
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
   contentHash: string | null;
@@ -71,6 +76,15 @@ function firstOrNull<T>(arr: T[]): T | null {
 function productIdFromGid(gid: string | null | undefined) {
   if (!gid) return '';
   return String(gid).split('/').pop() ?? '';
+}
+
+function planTierFromName(name: string): LoaderData['planName'] {
+  const n = String(name ?? '').toLowerCase();
+  // IMPORTANT: word boundaries so "promo" does NOT match "pro"
+  if (/\bpro\b/.test(n)) return 'Pro';
+  if (/\bstandard\b/.test(n)) return 'Standard';
+  if (/\bbasic\b/.test(n)) return 'Basic';
+  return 'Free';
 }
 
 function discountCodeName(holidayName: string, category: string, year: number) {
@@ -139,17 +153,27 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   const activeSubs: Array<{name: string; status: string}> =
     planRes?.data?.appInstallation?.activeSubscriptions ?? [];
-  const normalized = activeSubs
+  const activeNames = activeSubs
     .filter((s) => {
       const st = String(s.status || '').toUpperCase();
       // Shopify can return PENDING briefly right after upgrade; treat as active for UI.
       return !st || st === 'ACTIVE' || st === 'PENDING';
     })
-    .map((s) => String(s.name || '').toLowerCase());
-  const hasPro = normalized.some((n) => n.includes('pro'));
-  const hasStandard = normalized.some((n) => n.includes('standard'));
-  const hasBasic = normalized.some((n) => n.includes('basic'));
-  let planName: LoaderData['planName'] = hasPro ? 'Pro' : hasStandard ? 'Standard' : hasBasic ? 'Basic' : 'Free';
+    .map((s) => String(s.name || ''));
+  const tiers = activeNames.map(planTierFromName);
+  let planName: LoaderData['planName'] =
+    tiers.includes('Pro')
+      ? 'Pro'
+      : tiers.includes('Standard')
+        ? 'Standard'
+        : tiers.includes('Basic')
+          ? 'Basic'
+          : 'Free';
+
+  let pendingPlanName: string | null = null;
+  let pendingPlanEffectiveAt: string | null = null;
+  let lastPlanChangeType: string | null = null;
+  let lastPlanChangeAt: string | null = null;
 
   // Grace-period override (reinstall-only):
   // After uninstall Shopify activeSubscriptions is often empty ("Free"), but backend grants access until access_expires_at.
@@ -157,11 +181,15 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
       const data: any = await u.json().catch(() => ({}));
-      const grace = Boolean(data?.grace_mode);
-      const last = String(data?.last_plan_name || '').trim();
-      if (planName === 'Free' && grace && (last === 'Basic' || last === 'Standard' || last === 'Pro')) {
-        planName = last as LoaderData['planName'];
+      const eff = String(data?.effective_plan_name || '').trim();
+      if (eff === 'Free' || eff === 'Basic' || eff === 'Standard' || eff === 'Pro') {
+        // DB is the source of truth for plan display/gating.
+        planName = eff as LoaderData['planName'];
       }
+      pendingPlanName = String(data?.pending_plan_name || '').trim() || null;
+      pendingPlanEffectiveAt = String(data?.pending_plan_effective_at || '').trim() || null;
+      lastPlanChangeType = String(data?.last_plan_change_type || '').trim() || null;
+      lastPlanChangeAt = String(data?.last_plan_change_at || '').trim() || null;
     }
   } catch {
     // best-effort
@@ -311,6 +339,10 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     shop,
     shopSlug,
     backendApiUrl,
+    pendingPlanName,
+    pendingPlanEffectiveAt,
+    lastPlanChangeType,
+    lastPlanChangeAt,
     products,
     selectedProduct,
     contentHash: selectedProduct?._contentHash ?? null,
@@ -401,13 +433,14 @@ export const action = async ({request}: ActionFunctionArgs) => {
 };
 
 export default function MarketingWorkspace() {
-  const {planName, products, selectedProduct, shopSlug, shop, backendApiUrl, contentHash, didResetMetaCache} =
+  const {planName, pendingPlanName, pendingPlanEffectiveAt, lastPlanChangeType, products, selectedProduct, shopSlug, shop, backendApiUrl, contentHash, didResetMetaCache} =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge();
 
   const [search, setSearch] = useState('');
   const [imagesOpen, setImagesOpen] = useState(false);
+  const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
 
   // Instagram Marketing Assistant
   const [hooksLoading, setHooksLoading] = useState(false);
@@ -650,6 +683,19 @@ export default function MarketingWorkspace() {
     <Page title="Marketing Consultant">
       {toastContent ? (
         <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
+      ) : null}
+
+      {showDowngradeBanner ? (
+        <div style={{marginBottom: 16}}>
+          <DowngradeScheduledBanner
+            currentPlanName={String(planName)}
+            pendingPlanName={pendingPlanName}
+            pendingPlanEffectiveAt={pendingPlanEffectiveAt}
+            lastPlanChangeType={lastPlanChangeType}
+            dismissible
+            onDismiss={() => setShowDowngradeBanner(false)}
+          />
+        </div>
       ) : null}
 
       <Layout>
