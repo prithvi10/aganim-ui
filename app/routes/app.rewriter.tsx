@@ -1872,19 +1872,21 @@ function RewriterWorkspaceInner({
                           </Text>
                           {isBasicPlan ? <Icon source={LockIcon} tone="magic" /> : null}
                         </InlineStack>
-                        <Select
-                          label=""
-                          labelHidden
-                          disabled={isBasicPlan}
-                          options={[
-                            {label: 'Professional (Standard English)', value: 'professional'},
-                            {label: 'Luxury (Sophisticated & Heritage)', value: 'luxury'},
-                            {label: 'Minimalist (Clean & Direct)', value: 'minimalist'},
-                            {label: 'Playful (Friendly & Social)', value: 'playful'},
-                          ]}
-                          value={effectiveTone}
-                          onChange={(v) => setToneProfile(v as any)}
-                        />
+                        <div style={{maxWidth: 420}}>
+                          <Select
+                            label=""
+                            labelHidden
+                            disabled={isBasicPlan}
+                            options={[
+                              {label: 'Professional (Standard English)', value: 'professional'},
+                              {label: 'Luxury (Sophisticated & Heritage)', value: 'luxury'},
+                              {label: 'Minimalist (Clean & Direct)', value: 'minimalist'},
+                              {label: 'Playful (Friendly & Social)', value: 'playful'},
+                            ]}
+                            value={effectiveTone}
+                            onChange={(v) => setToneProfile(v as any)}
+                          />
+                        </div>
                         {isBasicPlan ? (
                           <Box paddingBlockStart="200">
                             <Banner tone="info">
@@ -2175,134 +2177,151 @@ function RewriterWorkspaceInner({
                                     autoComplete="off"
                                   />
 
-                                  <Box
-                                    padding="300"
-                                    background="bg-surface-secondary"
-                                    borderRadius="200"
-                                  >
-                                    <BlockStack gap="200">
+                                  {isBasicPlan ? (
+                                    <Box
+                                      padding="300"
+                                      background="bg-surface-secondary"
+                                      borderRadius="200"
+                                    >
                                       <InlineStack align="space-between" blockAlign="center">
-                                        <Text as="h4" variant="headingSm">
-                                          CTR Optimization Score
+                                        <Text as="p" variant="bodyMd" tone="subdued">
+                                          CTR Optimization Score is available on Standard & Pro.
                                         </Text>
-                                        <Text as="span" variant="bodySm" tone="subdued">
-                                          <span
-                                            style={{
-                                              display: "inline-block",
-                                              padding: "2px 8px",
-                                              borderRadius: 999,
-                                              background: "var(--p-color-bg-surface-brand)",
-                                              color: "var(--p-color-text-on-color)",
-                                              fontSize: 12,
-                                            }}
-                                          >
-                                            Optimized for US Search Patterns
-                                          </span>
-                                        </Text>
+                                        <Button url={plansUrl} variant="primary">
+                                          Upgrade
+                                        </Button>
                                       </InlineStack>
+                                    </Box>
+                                  ) : (
+                                    <Box
+                                      padding="300"
+                                      background="bg-surface-secondary"
+                                      borderRadius="200"
+                                    >
+                                      <BlockStack gap="200">
+                                        <InlineStack align="space-between" blockAlign="center">
+                                          <Text as="h4" variant="headingSm">
+                                            CTR Optimization Score
+                                          </Text>
+                                          <Text as="span" variant="bodySm" tone="subdued">
+                                            <span
+                                              style={{
+                                                display: "inline-block",
+                                                padding: "2px 8px",
+                                                borderRadius: 999,
+                                                background: "var(--p-color-bg-surface-brand)",
+                                                color: "var(--p-color-text-on-color)",
+                                                fontSize: 12,
+                                              }}
+                                            >
+                                              Optimized for US Search Patterns
+                                            </span>
+                                          </Text>
+                                        </InlineStack>
 
-                                      {(() => {
-                                        const titleLen = (currentDraft.seoTitle || "").length;
-                                        const desc = String(currentDraft.seoDescription || "");
-                                        const descLower = desc.toLowerCase();
-                                        const problemWords = [
-                                          "tired",
-                                          "struggling",
-                                          "problem",
-                                          "frustrated",
-                                          "looking for",
-                                          "need a",
-                                          "wish",
-                                        ];
-                                        const hasProblemSignal =
-                                          desc.includes("?") ||
-                                          problemWords.some((w) => descLower.includes(w));
-                                        const hasBrandTrust =
-                                          /japan/i.test(desc) ||
-                                          /handcrafted/i.test(desc) ||
-                                          /free shipping/i.test(desc);
+                                        {(() => {
+                                          const titleLen = (currentDraft.seoTitle || "").length;
+                                          const desc = String(currentDraft.seoDescription || "");
+                                          const descLower = desc.toLowerCase();
+                                          const problemWords = [
+                                            "tired",
+                                            "struggling",
+                                            "problem",
+                                            "frustrated",
+                                            "looking for",
+                                            "need a",
+                                            "wish",
+                                          ];
+                                          const hasProblemSignal =
+                                            desc.includes("?") ||
+                                            problemWords.some((w) => descLower.includes(w));
+                                          const hasBrandTrust =
+                                            /japan/i.test(desc) ||
+                                            /handcrafted/i.test(desc) ||
+                                            /free shipping/i.test(desc);
 
-                                        const pstTone: "green" | "yellow" | "red" = hasProblemSignal
-                                          ? "green"
-                                          : /shop now|discover|order|buy/i.test(desc)
-                                            ? "yellow"
-                                            : "red";
-                                        const trustTone: "green" | "yellow" | "red" = hasBrandTrust
-                                          ? "green"
-                                          : /authentic|artisan|premium/i.test(desc)
-                                            ? "yellow"
-                                            : "red";
-                                        const lenTone: "green" | "yellow" | "red" =
-                                          titleLen > 50 && titleLen < 70
+                                          const pstTone: "green" | "yellow" | "red" = hasProblemSignal
                                             ? "green"
-                                            : titleLen >= 45 && titleLen <= 75
+                                            : /shop now|discover|order|buy/i.test(desc)
                                               ? "yellow"
                                               : "red";
+                                          const trustTone: "green" | "yellow" | "red" = hasBrandTrust
+                                            ? "green"
+                                            : /authentic|artisan|premium/i.test(desc)
+                                              ? "yellow"
+                                              : "red";
+                                          const lenTone: "green" | "yellow" | "red" =
+                                            titleLen > 50 && titleLen < 70
+                                              ? "green"
+                                              : titleLen >= 45 && titleLen <= 75
+                                                ? "yellow"
+                                                : "red";
 
-                                        const colorFor = (t: "green" | "yellow" | "red") =>
-                                          t === "green"
-                                            ? "var(--p-color-bg-fill-success)"
-                                            : t === "yellow"
-                                              ? "var(--p-color-bg-fill-warning)"
-                                              : "var(--p-color-bg-fill-critical)";
+                                          const colorFor = (t: "green" | "yellow" | "red") =>
+                                            t === "green"
+                                              ? "var(--p-color-bg-fill-success)"
+                                              : t === "yellow"
+                                                ? "var(--p-color-bg-fill-warning)"
+                                                : "var(--p-color-bg-fill-critical)";
 
-                                        const Light = ({ tone }: { tone: "green" | "yellow" | "red" }) => (
-                                          <span
-                                            style={{
-                                              width: 10,
-                                              height: 10,
-                                              borderRadius: 999,
-                                              display: "inline-block",
-                                              background: colorFor(tone),
-                                              boxShadow: "0 0 0 2px rgba(255,255,255,0.6) inset",
-                                            }}
-                                          />
-                                        );
+                                          const Light = ({ tone }: { tone: "green" | "yellow" | "red" }) => (
+                                            <span
+                                              style={{
+                                                width: 10,
+                                                height: 10,
+                                                borderRadius: 999,
+                                                display: "inline-block",
+                                                background: colorFor(tone),
+                                                boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.6) inset",
+                                              }}
+                                            />
+                                          );
 
-                                        const Row = ({
-                                          label,
-                                          tone,
-                                          hint,
-                                        }: {
-                                          label: string;
-                                          tone: "green" | "yellow" | "red";
-                                          hint: string;
-                                        }) => (
-                                          <InlineStack align="space-between" blockAlign="center">
-                                            <InlineStack gap="200" blockAlign="center">
-                                              <Light tone={tone} />
-                                              <Text as="span" variant="bodySm">
-                                                {label}
+                                          const Row = ({
+                                            label,
+                                            tone,
+                                            hint,
+                                          }: {
+                                            label: string;
+                                            tone: "green" | "yellow" | "red";
+                                            hint: string;
+                                          }) => (
+                                            <InlineStack align="space-between" blockAlign="center">
+                                              <InlineStack gap="200" blockAlign="center">
+                                                <Light tone={tone} />
+                                                <Text as="span" variant="bodySm">
+                                                  {label}
+                                                </Text>
+                                              </InlineStack>
+                                              <Text as="span" variant="bodySm" tone="subdued">
+                                                {hint}
                                               </Text>
                                             </InlineStack>
-                                            <Text as="span" variant="bodySm" tone="subdued">
-                                              {hint}
-                                            </Text>
-                                          </InlineStack>
-                                        );
+                                          );
 
-                                        return (
-                                          <BlockStack gap="200">
-                                            <Row
-                                              label="PST Check"
-                                              tone={pstTone}
-                                              hint={hasProblemSignal ? "OK" : "Add a problem/question"}
-                                            />
-                                            <Row
-                                              label="Brand Trust"
-                                              tone={trustTone}
-                                              hint={hasBrandTrust ? "OK" : 'Add “Japan”, “Handcrafted” or “Free Shipping”'}
-                                            />
-                                            <Row
-                                              label="Length Check"
-                                              tone={lenTone}
-                                              hint={`${titleLen}/70`}
-                                            />
-                                          </BlockStack>
-                                        );
-                                      })()}
-                                    </BlockStack>
-                                  </Box>
+                                          return (
+                                            <BlockStack gap="200">
+                                              <Row
+                                                label="PST Check"
+                                                tone={pstTone}
+                                                hint={hasProblemSignal ? "OK" : "Add a problem/question"}
+                                              />
+                                              <Row
+                                                label="Brand Trust"
+                                                tone={trustTone}
+                                                hint={hasBrandTrust ? "OK" : 'Add “Japan”, “Handcrafted” or “Free Shipping”'}
+                                              />
+                                              <Row
+                                                label="Length Check"
+                                                tone={lenTone}
+                                                hint={`${titleLen}/70`}
+                                              />
+                                            </BlockStack>
+                                          );
+                                        })()}
+                                      </BlockStack>
+                                    </Box>
+                                  )}
 
                                   <BlockStack gap="100">
                                     <Text as="h4" variant="headingSm">
