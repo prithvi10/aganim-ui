@@ -26,6 +26,7 @@ import {
   Modal,
 } from "@shopify/polaris";
 import { PlanCard } from "../components/PlanCard";
+import { DowngradeScheduledBanner } from "../components/DowngradeScheduledBanner";
 import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
 import { XSmallIcon } from "@shopify/polaris-icons";
 
@@ -130,6 +131,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     graceActive: false,
     lastPlanName: null as string | null,
     welcomeBack: false,
+    pendingPlanName: null as string | null,
+    pendingPlanEffectiveAt: null as string | null,
+    lastPlanChangeType: null as string | null,
   };
   let backendError401 = false;
   let planName = "Free";
@@ -202,10 +206,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
     const hasShopifySubscription = activeSubs.length > 0;
-    if (activeSubs.length > 0) {
-      planName = activeSubs[0].name;
-      if (activeSubs[0].test) trialDays = 4;
-    }
+    // Shopify billing is NOT the source of truth for plan display/gating.
+    // Keep this only for trial-day display.
+    if (activeSubs.length > 0 && activeSubs[0].test) trialDays = 4;
 
     // C. Fetch Usage from Backend
     // Note: Usage fetch uses a direct HTTP call. We sync the token first just in case.
@@ -225,10 +228,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             .toLowerCase() === "lifetime"
             ? "lifetime"
             : "recurring";
+        // DB is source-of-truth: prefer effective_plan_name for display/gating.
+        planName = String(data.effective_plan_name || data.plan_name || planName).trim() || planName;
         usage = {
           used: data.monthly_rewrites_used ?? data.current_usage ?? 0,
           quota: data.rewrite_limit ?? data.monthly_token_quota ?? 50,
-          planName: data.plan_name || planName, // Prefer backend plan if available
+          planName,
           nextResetDate: data.next_reset_date ?? data.nextResetDate ?? null,
           billingCycleType,
           lifetimeRemaining:
@@ -240,13 +245,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           // Reinstall-only UI: backend grace_mode is true only when the shop actually uninstalled.
           graceActive: Boolean(data.grace_mode) && !hasShopifySubscription,
           lastPlanName: data.last_plan_name ?? null,
+          pendingPlanName: data.pending_plan_name ?? null,
+          pendingPlanEffectiveAt: data.pending_plan_effective_at ?? null,
+          lastPlanChangeType: data.last_plan_change_type ?? null,
         };
-
-        // If grace period is active, Shopify activeSubscriptions will likely be empty after uninstall.
-        // In that case, show the LAST paid plan as the effective current plan.
-        if (!hasShopifySubscription && Boolean(data.grace_mode) && String(data.last_plan_name || "").trim()) {
-          planName = String(data.last_plan_name).trim();
-        }
+        // Backend effective_plan_name already incorporates grace handling; no UI override needed.
       }
     } catch (e) {
       console.error("Backend usage fetch failed", e);
@@ -624,6 +627,15 @@ export default function Dashboard() {
                     {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString()}.
                   </Text>
                 </Banner>
+              ) : null}
+              {String((usage as any)?.pendingPlanName || "").trim() &&
+              String((usage as any)?.pendingPlanEffectiveAt || "").trim() ? (
+                <DowngradeScheduledBanner
+                  currentPlanName={String(planName)}
+                  pendingPlanName={String((usage as any)?.pendingPlanName || "")}
+                  pendingPlanEffectiveAt={String((usage as any)?.pendingPlanEffectiveAt || "")}
+                  lastPlanChangeType={String((usage as any)?.lastPlanChangeType || "")}
+                />
               ) : null}
 
               <InlineStack gap="400" align="start" wrap>

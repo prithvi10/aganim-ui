@@ -1,6 +1,6 @@
 import { Layout, Page, Text, BlockStack, Button, InlineStack, Banner, Badge, Select } from "@shopify/polaris";
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
-import { Form, useLoaderData, useNavigation, redirect } from "react-router";
+import { Form, useLoaderData, useLocation, useNavigation, redirect } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { PlanCard } from "../components/PlanCard";
@@ -8,6 +8,15 @@ import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type Plan
 import { useMemo, useState } from "react";
 
 type ActiveSub = { name?: string; status?: string; test?: boolean };
+
+function tierFromPlanName(name: string): PlanName {
+  const n = String(name ?? "").toLowerCase();
+  // IMPORTANT: use word boundaries so "promo" does NOT match "pro"
+  if (/\bbasic\b/.test(n)) return PLAN_BASIC;
+  if (/\bstandard\b/.test(n)) return PLAN_STANDARD;
+  if (/\bpro\b/.test(n)) return PLAN_PRO;
+  return PLAN_FREE;
+}
 
 function normalizeActivePlan(subs: ActiveSub[] | null | undefined): PlanName {
   const activeNames = (subs ?? [])
@@ -18,9 +27,9 @@ function normalizeActivePlan(subs: ActiveSub[] | null | undefined): PlanName {
     })
     .map((s) => String(s?.name ?? "").toLowerCase());
 
-  const hasPro = activeNames.some((n) => n.includes("pro"));
-  const hasStandard = activeNames.some((n) => n.includes("standard"));
-  const hasBasic = activeNames.some((n) => n.includes("basic"));
+  const hasBasic = activeNames.some((n) => /\bbasic\b/.test(n));
+  const hasStandard = activeNames.some((n) => /\bstandard\b/.test(n));
+  const hasPro = activeNames.some((n) => /\bpro\b/.test(n));
   // If no subscription is active, treat as Free tier by default.
   return hasPro ? PLAN_PRO : hasStandard ? PLAN_STANDARD : hasBasic ? PLAN_BASIC : PLAN_FREE;
 }
@@ -51,8 +60,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const body = await resp.json();
     const subs: ActiveSub[] =
       body?.data?.currentAppInstallation?.activeSubscriptions ?? [];
+    // Shopify billing is NOT the source of truth for plan display/gating.
+    // Keep this only for diagnostics; the highlighted plan is backend effective_plan_name.
     const shopifyActivePlan = normalizeActivePlan(subs);
-    let activePlan = shopifyActivePlan;
+    let activePlan: PlanName = PLAN_FREE;
 
     // If grace is active, Shopify will often report no active subscription after uninstall.
     // Use backend usage (last_plan_name) as the effective plan for UI.
@@ -76,13 +87,46 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         if (last === PLAN_BASIC || last === PLAN_STANDARD || last === PLAN_PRO) {
           lastPlanName = last as PlanName;
         }
-        if (graceActive && lastPlanName) {
+        const eff = String(data.effective_plan_name || data.plan_name || "").trim();
+        if (eff === PLAN_BASIC || eff === PLAN_STANDARD || eff === PLAN_PRO || eff === PLAN_FREE) {
+          activePlan = eff as PlanName;
+        } else if (graceActive && lastPlanName) {
+          // Back-compat fallback (older backends)
           activePlan = lastPlanName;
         }
       }
     } catch {
       // ignore
     }
+
+    // #region agent log
+    try {
+      await fetch("http://127.0.0.1:7242/ingest/41485e42-2913-45c2-88d6-2416c2f38ce8", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          sessionId: "debug-session",
+          runId: "ui-pre-fix",
+          hypothesisId: "UI-H5",
+          location: "app.plans.tsx:loader",
+          message: "Plans loader resolved",
+          data: {
+            shop: session.shop,
+            activePlan,
+            returningPaid,
+            graceActive,
+            accessExpiresAt,
+            lastPlanName,
+            promoEnabled,
+            shopifyActivePlan,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    } catch {
+      // ignore log failures
+    }
+    // #endregion agent log
 
     return { currentPlans: subs, activePlan, returningPaid, graceActive, accessExpiresAt, lastPlanName, promoEnabled };
   } catch (e) {
@@ -97,16 +141,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const planKey = String(formData.get("plan") || "").trim();
   const url = new URL(request.url);
   const returningPaid = url.searchParams.get("returning_paid") === "1";
+  const embeddedParam = url.searchParams.get("embedded");
+  const hostParam = url.searchParams.get("host");
+  const hasAuthHeader = Boolean(request.headers.get("authorization"));
   // Build a return URL that works for both classic admin and new admin.shopify.com
   const shopSubdomain = shop.replace(".myshopify.com", "");
-  const hostParam = new URL(request.url).searchParams.get("host");
   const hostSuffix = hostParam ? `?host=${hostParam}` : "";
   const adminReturnUrl = `https://admin.shopify.com/store/${shopSubdomain}/apps/crossborderagent/app${hostSuffix}`;
 
-  const requestedTier: PlanName =
-    planKey.toLowerCase().includes("pro") ? PLAN_PRO :
-    planKey.toLowerCase().includes("standard") ? PLAN_STANDARD :
-    planKey.toLowerCase().includes("basic") ? PLAN_BASIC : PLAN_FREE;
+  const requestedTier: PlanName = tierFromPlanName(planKey);
 
   if (requestedTier === PLAN_FREE) {
     // Free is the default tier (no billing flow).
@@ -162,7 +205,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // If billing.check fails, we still proceed (Shopify will handle idempotency / confirmation UI).
     }
 
-    await billing.request({
+    // NOTE: In shopify-app-react-router, billing.request throws a redirect Response (out-of-app)
+    // and does not return normally.
+    // IMPORTANT: return the Response from billing.request so React Router can redirect
+    return await billing.request({
       // Shopify types can resolve plan to `never` depending on how billing is typed;
       // we only send known plan strings from our UI.
       plan: planKey as unknown as never,
@@ -182,9 +228,18 @@ export const headers: HeadersFunction = (headersArgs) => {
 export default function PlansPage() {
   const { activePlan, returningPaid, graceActive, accessExpiresAt, promoEnabled } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
+  const location = useLocation();
 
   const isUpgrading = navigation.state === "submitting";
   const visiblePlans = returningPaid ? PLAN_CATALOG.filter((p) => p.name !== PLAN_FREE) : PLAN_CATALOG;
+
+  // IMPORTANT: Shopify billing "exit iframe" redirect requires embedded=1 on the request URL.
+  // Some internal links preserve only host/shop; force embedded=1 for POSTs to /app/plans.
+  const postAction = useMemo(() => {
+    const sp = new URLSearchParams(location.search);
+    if (!sp.get("embedded")) sp.set("embedded", "1");
+    return `${location.pathname}?${sp.toString()}`;
+  }, [location.pathname, location.search]);
 
   const [billingCycle, setBillingCycle] = useState<Record<string, "monthly" | "annual">>({
     [PLAN_BASIC]: "monthly",
@@ -307,7 +362,7 @@ export default function PlansPage() {
                             }
                           />
                         ) : null}
-                        <Form method="post">
+                        <Form method="post" action={postAction}>
                           <input type="hidden" name="plan" value={planKey} />
                           <Button
                             variant={isCurrent ? "secondary" : "primary"}
