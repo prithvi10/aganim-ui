@@ -959,6 +959,8 @@ function RewriterWorkspaceInner({
   const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
   const [seoIntelOpen, setSeoIntelOpen] = useState(false);
   const [jvOpen, setJvOpen] = useState(false);
+  const [removeIrrelevantContent, setRemoveIrrelevantContent] = useState(true);
+  const [miscInfoByLocale, setMiscInfoByLocale] = useState<Record<string, string>>({});
   const [seoIntelByLocale, setSeoIntelByLocale] = useState<
     Record<
       string,
@@ -1274,6 +1276,7 @@ function RewriterWorkspaceInner({
       search_intent?: string;
       competitive_edge?: string;
     };
+    misc_information?: string;
     competitor_titles?: string[];
     competitor_results?: {title?: string | null; snippet?: string | null; link?: string | null}[];
   } | null => {
@@ -1326,6 +1329,7 @@ function RewriterWorkspaceInner({
         target_locales: selectedLocales.length > 0 ? selectedLocales : [activeLocale],
         auto_convert_units: Boolean(autoConvertUnits),
         tone_profile: effectiveTone,
+        remove_irrelevant_content: Boolean(removeIrrelevantContent),
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
@@ -1400,6 +1404,12 @@ function RewriterWorkspaceInner({
                 ? data?.seo_insights?.competitive_edge
                 : prev[activeLocale]?.competitive_edge,
           },
+        }));
+      }
+      if (typeof data?.misc_information === 'string') {
+        setMiscInfoByLocale((prev) => ({
+          ...prev,
+          [activeLocale]: (data.misc_information || '').trim(),
         }));
       }
 
@@ -1486,10 +1496,49 @@ function RewriterWorkspaceInner({
     const descLen = (currentDraft.seoDescription || '').length;
     const titleOk = titleLen >= 50 && titleLen <= 70;
     const descOk = descLen > 0 && descLen <= 160;
-    const allOk = titleOk && descOk;
+
+    // Reuse CTR lights logic to keep badge honest
+    const desc = String(currentDraft.seoDescription || "");
+    const descLower = desc.toLowerCase();
+    const problemWords = [
+      "tired",
+      "struggling",
+      "problem",
+      "frustrated",
+      "looking for",
+      "need a",
+      "wish",
+    ];
+    const hasProblemSignal =
+      desc.includes("?") ||
+      problemWords.some((w) => descLower.includes(w));
+    const hasBrandTrust =
+      /japan/i.test(desc) ||
+      /handcrafted/i.test(desc) ||
+      /free shipping/i.test(desc);
+
+    const pstTone: "green" | "yellow" | "red" = hasProblemSignal
+      ? "green"
+      : /shop now|discover|order|buy/i.test(desc)
+        ? "yellow"
+        : "red";
+    const trustTone: "green" | "yellow" | "red" = hasBrandTrust
+      ? "green"
+      : /authentic|artisan|premium/i.test(desc)
+        ? "yellow"
+        : "red";
+    const lenTone: "green" | "yellow" | "red" =
+      titleLen > 50 && titleLen < 70
+        ? "green"
+        : titleLen >= 45 && titleLen <= 75
+          ? "yellow"
+          : "red";
+
+    const allGreen = pstTone === "green" && trustTone === "green" && lenTone === "green";
+
     return {
-      label: allOk ? 'Optimized' : 'Needs work',
-      tone: allOk ? 'success' : 'warning' as 'success' | 'warning',
+      label: allGreen && titleOk && descOk ? 'Optimized' : 'Needs work',
+      tone: allGreen && titleOk && descOk ? 'success' : 'warning' as 'success' | 'warning',
     };
   }, [currentDraft.seoDescription, currentDraft.seoTitle]);
 
@@ -1945,6 +1994,15 @@ function RewriterWorkspaceInner({
                           output.
                         </Text>
                       </Box>
+
+                      <Box paddingBlockStart="200">
+                        <Checkbox
+                          label="Remove irrelvant content"
+                          checked={removeIrrelevantContent}
+                          onChange={setRemoveIrrelevantContent}
+                          helpText="Remove any not product related information from the product description."
+                        />
+                      </Box>
                       </BlockStack>
                     </div>
 
@@ -1998,6 +2056,14 @@ function RewriterWorkspaceInner({
                   </InlineStack>
                 </BlockStack>
 
+              {miscInfoByLocale[activeLocale]?.trim() ? (
+                <Box paddingBlockStart="200">
+                  <Banner tone="warning" title="Miscellaneous information (Recommended to be removed)">
+                    <Text as="p">{miscInfoByLocale[activeLocale]}</Text>
+                  </Banner>
+                </Box>
+              ) : null}
+
                 <Card>
                   <Box padding="300">
                     <InlineStack align="space-between" blockAlign="center">
@@ -2020,6 +2086,14 @@ function RewriterWorkspaceInner({
                     </InlineStack>
                   </Box>
                 </Card>
+
+                {miscInfoByLocale[activeLocale]?.trim() ? (
+                  <Box paddingBlockStart="200">
+                    <Banner tone="warning" title="Miscellaneous information (Recommended to be removed)">
+                      <Text as="p">{miscInfoByLocale[activeLocale]}</Text>
+                    </Banner>
+                  </Box>
+                ) : null}
 
                 <Modal
                   open={seoIntelOpen}
@@ -2057,14 +2131,14 @@ function RewriterWorkspaceInner({
                                   <BlockStack gap="200">
                                     {(() => {
                                       const entries =
-                                        (seoIntelByLocale[activeLocale]?.competitor_results &&
-                                          seoIntelByLocale[activeLocale]?.competitor_results?.length
-                                          ? seoIntelByLocale[activeLocale]?.competitor_results
-                                          : seoIntelByLocale[activeLocale]?.competitor_titles?.map((t) => ({
-                                              title: t,
-                                              snippet: undefined,
-                                              link: undefined,
-                                            })) || []) || [];
+                (seoIntelByLocale[activeLocale]?.competitor_results &&
+                  seoIntelByLocale[activeLocale]?.competitor_results?.length
+                  ? seoIntelByLocale[activeLocale]?.competitor_results
+                  : seoIntelByLocale[activeLocale]?.competitor_titles?.map((t) => ({
+                      title: t,
+                      snippet: undefined,
+                      link: undefined,
+                    })) || []) || [];
                                       return entries.length ? (
                                         entries.map((r, i) => (
                                           <SearchEnginePreview
@@ -2076,7 +2150,7 @@ function RewriterWorkspaceInner({
                                         ))
                                       ) : (
                                         <Text as="p" tone="subdued">
-                                          No competitor results available.
+                                          Currently unavailable.
                                         </Text>
                                       );
                                     })()}
