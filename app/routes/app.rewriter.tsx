@@ -979,25 +979,10 @@ function RewriterWorkspaceInner({
     Record<
       string,
       {
-        ctr_pst_patch?: {
-          problem?: string;
-          solution?: string;
-          trust?: string;
-          cta?: string;
-          patched_seo_description?: string;
-        };
         competitive_edge?: { headline?: string; copy?: string };
-        strategy_keywords?: {
-          recommended_keywords?: string[];
-          suggested_insertions?: Array<{keyword?: string; suggested_sentence?: string; target_section_hint?: string}>;
-        };
-        search_intent?: { label?: string; strategy?: string[] };
+        buyer_intent?: { strategy?: string[] };
       }
     >
-  >({});
-
-  const [seoAppliedByLocale, setSeoAppliedByLocale] = useState<
-    Record<string, { pstPatched?: boolean; keywordKeys?: Record<string, boolean> }>
   >({});
 
   const allowsMultiLocale = maxLocales !== 1;
@@ -1179,7 +1164,18 @@ function RewriterWorkspaceInner({
           >
             {title || 'SEO title preview…'}
           </div>
-          <div style={{color: '#006621', fontSize: 14, lineHeight: '18px'}}>
+          <div
+            style={{
+              color: '#006621',
+              fontSize: 14,
+              lineHeight: '18px',
+              // Long competitor URLs can be extremely long (no spaces) and force horizontal scrolling.
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
+              whiteSpace: 'normal',
+              maxWidth: '100%',
+            }}
+          >
             {url}
           </div>
           <div style={{color: '#4b5563', fontSize: 14, lineHeight: '18px'}}>
@@ -1320,190 +1316,6 @@ function RewriterWorkspaceInner({
     [escapeHtml],
   );
 
-  const applySeoPstPatch = useCallback(() => {
-    const rec = seoRecsByLocale?.[activeLocale]?.ctr_pst_patch;
-    const patched = String(rec?.patched_seo_description || '').trim();
-    if (!patched) {
-      setToastContent('No PST patch available yet. Run Optimize again.');
-      return;
-    }
-    setDraftByLocale((prev) => ({
-      ...prev,
-      [activeLocale]: {
-        ...prev[activeLocale],
-        seoDescription: patched,
-      },
-    }));
-    setSeoAppliedByLocale((prev) => ({
-      ...prev,
-      [activeLocale]: {
-        ...(prev[activeLocale] || {}),
-        pstPatched: true,
-      },
-    }));
-    setToastContent('Applied PST patch to meta description.');
-  }, [activeLocale, seoRecsByLocale, setDraftByLocale]);
-
-  const insertSeoKeywordSuggestion = useCallback(
-    (sugg: {keyword?: string; suggested_sentence?: string}) => {
-      const sentence = String(sugg?.suggested_sentence || '').trim();
-      const keyword = String(sugg?.keyword || '').trim();
-      if (!sentence) return;
-
-      const key = `${keyword}::${sentence}`.trim();
-      const already = Boolean(seoAppliedByLocale?.[activeLocale]?.keywordKeys?.[key]);
-      if (already) return;
-
-      const snippet = `\n<p>${escapeHtml(sentence)}</p>\n`;
-      const base = String(draftByLocale?.[activeLocale]?.description || '');
-      const idx = base.lastIndexOf('</div>');
-      const nextDesc = idx >= 0 ? base.slice(0, idx) + snippet + base.slice(idx) : base + snippet;
-
-      setDraftByLocale((prev) => ({
-        ...prev,
-        [activeLocale]: {
-          ...prev[activeLocale],
-          description: nextDesc,
-        },
-      }));
-      setSeoAppliedByLocale((prev) => ({
-        ...prev,
-        [activeLocale]: {
-          ...(prev[activeLocale] || {}),
-          keywordKeys: {
-            ...((prev[activeLocale] || {}).keywordKeys || {}),
-            [key]: true,
-          },
-        },
-      }));
-      setToastContent(`Inserted SEO keyword suggestion${keyword ? `: ${keyword}` : ''}.`);
-    },
-    [activeLocale, draftByLocale, escapeHtml, seoAppliedByLocale, setDraftByLocale],
-  );
-
-  const applySeoAll = useCallback(() => {
-    const locales = selectedLocales.length ? selectedLocales : [activeLocale];
-    if (!locales.length) return;
-
-    let appliedSomething = false;
-
-    setDraftByLocale((prev) => {
-      const next = {...prev};
-
-      for (const loc of locales) {
-        const recs: any = seoRecsByLocale?.[loc] || {};
-
-        const patched = String(recs?.ctr_pst_patch?.patched_seo_description || '').trim();
-        if (patched) {
-          next[loc] = {
-            ...next[loc],
-            seoDescription: patched,
-          };
-          appliedSomething = true;
-        }
-
-        const insertions: any[] = Array.isArray(recs?.strategy_keywords?.suggested_insertions)
-          ? (recs.strategy_keywords.suggested_insertions as any[])
-          : [];
-        const top3 = insertions
-          .slice(0, 3)
-          .map((s) => ({
-            keyword: String(s?.keyword || '').trim(),
-            sentence: String(s?.suggested_sentence || '').trim(),
-          }))
-          .filter((x) => Boolean(x.sentence));
-
-        let desc = String(next?.[loc]?.description || '');
-
-        for (const t of top3) {
-          // Avoid inserting duplicates (raw or escaped).
-          const escaped = escapeHtml(t.sentence);
-          if (desc.includes(t.sentence) || desc.includes(escaped)) continue;
-          const snippet = `\n<p>${escaped}</p>\n`;
-          const idx = desc.lastIndexOf('</div>');
-          desc = idx >= 0 ? desc.slice(0, idx) + snippet + desc.slice(idx) : desc + snippet;
-          appliedSomething = true;
-        }
-
-        // Key Details / Nuances summary (bulleted): one from Keywords + one from Japanese Value.
-        const bullets: string[] = [];
-        const firstKeyword =
-          (Array.isArray(recs?.strategy_keywords?.recommended_keywords)
-            ? String((recs.strategy_keywords.recommended_keywords as any[])[0] || '').trim()
-            : '') ||
-          (top3.length ? String(top3[0].keyword || '').trim() : '');
-        const jvBullet =
-          uniqueValues.length > 0
-            ? `Japanese value: ${String(uniqueValues[0]?.category || '').trim()} — ${String(uniqueValues[0]?.evidence || '').trim()}`
-            : '';
-
-        if (firstKeyword) bullets.push(`SEO keyword: ${firstKeyword}`);
-        if (jvBullet) bullets.push(jvBullet);
-
-        if (bullets.length) {
-          const nextDesc = upsertKeyDetailsNuance(desc, bullets);
-          if (nextDesc !== desc) {
-            desc = nextDesc;
-            appliedSomething = true;
-          }
-        }
-
-        if (desc !== String(next?.[loc]?.description || '')) {
-          next[loc] = {
-            ...next[loc],
-            description: desc,
-          };
-        }
-      }
-
-      return next;
-    });
-
-    setSeoAppliedByLocale((prev) => {
-      const next: any = {...prev};
-      for (const loc of locales) {
-        const recs: any = seoRecsByLocale?.[loc] || {};
-
-        const patched = String(recs?.ctr_pst_patch?.patched_seo_description || '').trim();
-        const insertions: any[] = Array.isArray(recs?.strategy_keywords?.suggested_insertions)
-          ? (recs.strategy_keywords.suggested_insertions as any[])
-          : [];
-        const top3 = insertions
-          .slice(0, 3)
-          .map((s) => ({
-            keyword: String(s?.keyword || '').trim(),
-            sentence: String(s?.suggested_sentence || '').trim(),
-          }))
-          .filter((x) => Boolean(x.sentence));
-
-        const existing = next[loc] || {};
-        const keywordKeys = {...(existing.keywordKeys || {})};
-        for (const t of top3) {
-          const key = `${t.keyword}::${t.sentence}`.trim();
-          if (!key) continue;
-          keywordKeys[key] = true;
-        }
-
-        next[loc] = {
-          ...existing,
-          pstPatched: Boolean(existing.pstPatched) || Boolean(patched),
-          keywordKeys,
-        };
-      }
-      return next;
-    });
-
-    setToastContent(appliedSomething ? 'Applied SEO recommendations.' : 'No SEO recommendations available yet. Run Optimize again.');
-  }, [
-    activeLocale,
-    escapeHtml,
-    selectedLocales,
-    seoRecsByLocale,
-    setDraftByLocale,
-    uniqueValues,
-    upsertKeyDetailsNuance,
-  ]);
-
   const startLoading = useCallback(() => {
     const msgs = [
       '⏳ Analyzing materials and craftsmanship...',
@@ -1539,19 +1351,8 @@ function RewriterWorkspaceInner({
       competitive_edge?: string;
     };
     seo_recommendations?: {
-      ctr_pst_patch?: {
-        problem?: string;
-        solution?: string;
-        trust?: string;
-        cta?: string;
-        patched_seo_description?: string;
-      };
       competitive_edge?: { headline?: string; copy?: string };
-      strategy_keywords?: {
-        recommended_keywords?: string[];
-        suggested_insertions?: Array<{keyword?: string; suggested_sentence?: string; target_section_hint?: string}>;
-      };
-      search_intent?: { label?: string; strategy?: string[] };
+      buyer_intent?: { strategy?: string[] };
     };
     misc_information?: string;
     competitor_titles?: string[];
@@ -1683,10 +1484,11 @@ function RewriterWorkspaceInner({
           },
         }));
       }
-      if (data?.seo_recommendations) {
+      if (data?.seo_recommendations && typeof data.seo_recommendations === 'object') {
+        const recs = data.seo_recommendations as any;
         setSeoRecsByLocale((prev) => ({
           ...prev,
-          [activeLocale]: data.seo_recommendations,
+          [activeLocale]: recs,
         }));
       }
       if (typeof data?.misc_information === 'string') {
@@ -1772,8 +1574,9 @@ function RewriterWorkspaceInner({
           const next = {...prev};
           for (const [loc, payload] of Object.entries(result.results)) {
             const p: any = payload;
-            if (p?.seo_recommendations) {
-              next[loc] = p.seo_recommendations;
+            const recs = p?.seo_recommendations;
+            if (recs && typeof recs === 'object') {
+              next[loc] = recs as any;
             }
           }
           return next;
@@ -1820,35 +1623,6 @@ function RewriterWorkspaceInner({
     const qs = searchParams.toString();
     return qs ? `/app/dashboard?${qs}` : "/app/dashboard";
   }, [searchParams]);
-
-  const seoStatus = useMemo(() => {
-    // Do NOT use the CTR Optimization Score to judge the small-card overview status.
-    // Instead, key off the actionable recommendation areas:
-    // - CTR Patch (PST)
-    // - Strategy Insight (Keywords)
-
-    const recs: any = seoRecsByLocale?.[activeLocale] || {};
-    const applied = seoAppliedByLocale?.[activeLocale] || {};
-
-    const patchedSeo = String(recs?.ctr_pst_patch?.patched_seo_description || '').trim();
-    const pstPatched = Boolean(applied?.pstPatched);
-
-    // If no patch exists (not generated yet / not needed), don't block "Optimized" on it.
-    const pstOk = pstPatched || !patchedSeo;
-
-    const keywordAppliedCount = Object.values(applied?.keywordKeys || {}).filter(Boolean).length;
-    const hasKeywordSuggestions =
-      Array.isArray(recs?.strategy_keywords?.suggested_insertions) &&
-      (recs?.strategy_keywords?.suggested_insertions || []).length > 0;
-    const keywordsOk = keywordAppliedCount > 0 || !hasKeywordSuggestions;
-
-    // Search intent / competitive edge are just recommendations (merchant decides), so they do NOT affect status.
-    const optimized = pstOk && keywordsOk;
-    return {
-      label: optimized ? 'Optimized' : 'Needs work',
-      tone: optimized ? ('success' as const) : ('warning' as const),
-    };
-  }, [activeLocale, seoAppliedByLocale, seoRecsByLocale]);
 
   const jvStatus = useMemo(() => {
     const hasValues = uniqueValues.length > 0;
@@ -2385,13 +2159,10 @@ function RewriterWorkspaceInner({
                           SEO strategy crafted by AI
                         </Text>
                         <Text as="p" variant="bodySm" tone="subdued">
-                          Preview of your SEO readiness. Open to review details.
+                          Review SEO metadata and competitor insights.
                         </Text>
                       </BlockStack>
                       <InlineStack gap="200" blockAlign="center">
-                        <Badge tone={seoStatus.tone === 'success' ? 'success' : 'warning'}>
-                          {seoStatus.label}
-                        </Badge>
                         <Button onClick={() => setSeoIntelOpen(true)} variant="primary">
                           View Details
                         </Button>
@@ -2415,7 +2186,7 @@ function RewriterWorkspaceInner({
                   size="large"
                 >
                   <Modal.Section>
-                    <div style={{maxWidth: 1280, width: '95vw'}}>
+                    <div style={{maxWidth: 1400, width: '100%', overflowX: 'hidden'}}>
                     <BlockStack gap="300">
                       <div style={{ display: "flex", gap: 24, alignItems: "stretch", flexWrap: "wrap" }}>
                         <div style={{ flex: "1 1 0", minWidth: 420 }}>
@@ -2468,67 +2239,6 @@ function RewriterWorkspaceInner({
                                     })()}
                                   </BlockStack>
                                 )}
-
-                                <Box
-                                  padding="300"
-                                  background="bg-surface-secondary"
-                                  borderRadius="200"
-                                >
-                                  <BlockStack gap="200">
-                                    <InlineStack gap="200" blockAlign="center">
-                                      <Icon source={LightbulbIcon} tone="magic" />
-                                      <Text as="h4" variant="headingSm">
-                                        AI Insight (Recommendations)
-                                      </Text>
-                                    </InlineStack>
-
-                                    <BlockStack gap="150">
-                                      <Text as="p" variant="bodySm" tone="subdued">
-                                        Competitive Edge
-                                      </Text>
-                                      {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim() ? (
-                                        <Text as="p" variant="headingSm">
-                                          {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim()}
-                                        </Text>
-                                      ) : null}
-                                      <Text as="p">
-                                        {seoIntelByLocale[activeLocale]?.competitive_edge ||
-                                          String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.copy || '').trim() ||
-                                          'Run Optimize to generate a competitive edge suggestion.'}
-                                      </Text>
-                                    </BlockStack>
-
-                                    <BlockStack gap="150">
-                                      <Text as="p" variant="bodySm" tone="subdued">
-                                        Search Intent
-                                      </Text>
-                                      {String(seoRecsByLocale?.[activeLocale]?.search_intent?.label || '').trim() ? (
-                                        <Text as="p" variant="headingSm">
-                                          {String(seoRecsByLocale?.[activeLocale]?.search_intent?.label || '').trim()}
-                                        </Text>
-                                      ) : null}
-                                      {Array.isArray(seoRecsByLocale?.[activeLocale]?.search_intent?.strategy) &&
-                                      (seoRecsByLocale?.[activeLocale]?.search_intent?.strategy as any[]).length ? (
-                                        <BlockStack gap="100">
-                                          {(seoRecsByLocale?.[activeLocale]?.search_intent?.strategy as any[])
-                                            .slice(0, 4)
-                                            .map((s, i) => (
-                                              <Text key={`intent-ai-${i}`} as="p">
-                                                • {String(s || '').trim()}
-                                              </Text>
-                                            ))}
-                                        </BlockStack>
-                                      ) : (
-                                        <Text as="p" tone="subdued">
-                                          Run Optimize to generate a search intent strategy.
-                                        </Text>
-                                      )}
-                                      <Text as="p" variant="bodySm" tone="subdued">
-                                        These are recommendations only—review and decide what to add.
-                                      </Text>
-                                    </BlockStack>
-                                  </BlockStack>
-                                </Box>
                               </BlockStack>
                             </Box>
                           </Card>
@@ -2537,239 +2247,53 @@ function RewriterWorkspaceInner({
                         <div style={{ flex: "1 1 0", minWidth: 420 }}>
                           <Card>
                             <Box padding="300">
-                              <BlockStack gap="300">
-                                <InlineStack align="space-between" blockAlign="center">
+                              <BlockStack gap="200">
+                                <InlineStack gap="200" blockAlign="center">
+                                  <Icon source={LightbulbIcon} tone="magic" />
                                   <Text as="h4" variant="headingSm">
-                                    Our SEO Strategy
+                                    AI Insight (Recommendations)
                                   </Text>
-                                  <InlineStack gap="300" blockAlign="center">
-                                    <Text
-                                      as="span"
-                                      variant="bodySm"
-                                      tone={(currentDraft.seoTitle || '').length > 70 ? 'critical' : 'subdued'}
-                                    >
-                                      Title {(currentDraft.seoTitle || '').length}/70
-                                    </Text>
-                                    <Text
-                                      as="span"
-                                      variant="bodySm"
-                                      tone={(currentDraft.seoDescription || '').length > 160 ? 'critical' : 'subdued'}
-                                    >
-                                      Description {(currentDraft.seoDescription || '').length}/160
-                                    </Text>
-                                  </InlineStack>
                                 </InlineStack>
 
-                                <BlockStack gap="300">
-                                  <TextField
-                                    label="SEO Title"
-                                    value={currentDraft.seoTitle}
-                                    placeholder={currentDraft.seoTitle ? '' : seoPlaceholders.title || 'Shop the authentic…'}
-                                    multiline={2}
-                                    onChange={(v) =>
-                                      setDraftByLocale((prev) => ({
-                                        ...prev,
-                                        [activeLocale]: {
-                                          title: currentDraft.title,
-                                          description: currentDraft.description,
-                                          seoTitle: v,
-                                          seoDescription: currentDraft.seoDescription,
-                                          seoAltText: currentDraft.seoAltText,
-                                        },
-                                      }))
-                                    }
-                                    autoComplete="off"
-                                  />
+                                <BlockStack gap="150">
+                                  <Text as="h4" variant="headingMd">
+                                    You have an advantage over above competitors
+                                  </Text>
+                                  {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim() ? (
+                                    <Text as="p">
+                                      {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim()}
+                                    </Text>
+                                  ) : null}
+                                  <Text as="p">
+                                    {seoIntelByLocale[activeLocale]?.competitive_edge ||
+                                      String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.copy || '').trim() ||
+                                      'Run Optimize to generate a competitive edge suggestion.'}
+                                  </Text>
+                                </BlockStack>
 
-                                  <TextField
-                                    label="Meta Description"
-                                    multiline={3}
-                                    value={currentDraft.seoDescription}
-                                    placeholder={
-                                      currentDraft.seoDescription
-                                        ? ''
-                                        : seoPlaceholders.description || 'Discover authentic craftsmanship…'
-                                    }
-                                    onChange={(v) =>
-                                      setDraftByLocale((prev) => ({
-                                        ...prev,
-                                        [activeLocale]: {
-                                          title: currentDraft.title,
-                                          description: currentDraft.description,
-                                          seoTitle: currentDraft.seoTitle,
-                                          seoDescription: v,
-                                          seoAltText: currentDraft.seoAltText,
-                                        },
-                                      }))
-                                    }
-                                    autoComplete="off"
-                                  />
-
-                                  <TextField
-                                    label="SEO Alt Text (Main image)"
-                                    value={currentDraft.seoAltText}
-                                    placeholder="Black leather wallet - slim design"
-                                    onChange={(v) =>
-                                      setDraftByLocale((prev) => ({
-                                        ...prev,
-                                        [activeLocale]: {
-                                          title: currentDraft.title,
-                                          description: currentDraft.description,
-                                          seoTitle: currentDraft.seoTitle,
-                                          seoDescription: currentDraft.seoDescription,
-                                          seoAltText: v,
-                                        },
-                                      }))
-                                    }
-                                    autoComplete="off"
-                                  />
-
-                                  {false ? (
-                                    <Box
-                                      padding="300"
-                                      background="bg-surface-secondary"
-                                      borderRadius="200"
-                                    >
-                                      <InlineStack align="space-between" blockAlign="center">
-                                        <Text as="p" variant="bodyMd" tone="subdued">
-                                          CTR Optimization Score is available on Standard & Pro.
-                                        </Text>
-                                        <Button url={plansUrl} variant="primary">
-                                          Upgrade
-                                        </Button>
-                                      </InlineStack>
-                                    </Box>
+                                <BlockStack gap="150">
+                                  <Text as="h4" variant="headingMd">
+                                    Improve SEO further by applying Buyer Intent in your Description.
+                                  </Text>
+                                  {Array.isArray(seoRecsByLocale?.[activeLocale]?.buyer_intent?.strategy) &&
+                                  (seoRecsByLocale?.[activeLocale]?.buyer_intent?.strategy as any[]).length ? (
+                                    <BlockStack gap="100">
+                                      {(seoRecsByLocale?.[activeLocale]?.buyer_intent?.strategy as any[])
+                                        .slice(0, 6)
+                                        .map((s, i) => (
+                                          <Text key={`buyer-intent-${i}`} as="p">
+                                            • {String(s || '').trim()}
+                                          </Text>
+                                        ))}
+                                    </BlockStack>
                                   ) : (
-                                    <Box
-                                      padding="300"
-                                      background="bg-surface-secondary"
-                                      borderRadius="200"
-                                    >
-                                      <BlockStack gap="200">
-                                        <InlineStack align="space-between" blockAlign="center">
-                                          <Text as="h4" variant="headingSm">
-                                            CTR Optimization Score
-                                          </Text>
-                                          <Text as="span" variant="bodySm" tone="subdued">
-                                            <span
-                                              style={{
-                                                display: "inline-block",
-                                                padding: "2px 8px",
-                                                borderRadius: 999,
-                                                background: "var(--p-color-bg-surface-brand)",
-                                                color: "var(--p-color-text-on-color)",
-                                                fontSize: 12,
-                                              }}
-                                            >
-                                              Optimized for US Search Patterns
-                                            </span>
-                                          </Text>
-                                        </InlineStack>
-
-                                        {(() => {
-                                          const titleLen = (currentDraft.seoTitle || "").length;
-                                          const desc = String(currentDraft.seoDescription || "");
-                                          const descLower = desc.toLowerCase();
-                                          const problemWords = [
-                                            "tired",
-                                            "struggling",
-                                            "problem",
-                                            "frustrated",
-                                            "looking for",
-                                            "need a",
-                                            "wish",
-                                          ];
-                                          const hasProblemSignal =
-                                            desc.includes("?") ||
-                                            problemWords.some((w) => descLower.includes(w));
-                                          const hasBrandTrust =
-                                            /japan/i.test(desc) ||
-                                            /handcrafted/i.test(desc) ||
-                                            /free shipping/i.test(desc);
-
-                                          const pstTone: "green" | "yellow" | "red" = hasProblemSignal
-                                            ? "green"
-                                            : /shop now|discover|order|buy/i.test(desc)
-                                              ? "yellow"
-                                              : "red";
-                                          const trustTone: "green" | "yellow" | "red" = hasBrandTrust
-                                            ? "green"
-                                            : /authentic|artisan|premium/i.test(desc)
-                                              ? "yellow"
-                                              : "red";
-                                          const lenTone: "green" | "yellow" | "red" =
-                                            titleLen > 50 && titleLen < 70
-                                              ? "green"
-                                              : titleLen >= 45 && titleLen <= 75
-                                                ? "yellow"
-                                                : "red";
-
-                                          const colorFor = (t: "green" | "yellow" | "red") =>
-                                            t === "green"
-                                              ? "var(--p-color-bg-fill-success)"
-                                              : t === "yellow"
-                                                ? "var(--p-color-bg-fill-warning)"
-                                                : "var(--p-color-bg-fill-critical)";
-
-                                          const Light = ({ tone }: { tone: "green" | "yellow" | "red" }) => (
-                                            <span
-                                              style={{
-                                                width: 10,
-                                                height: 10,
-                                                borderRadius: 999,
-                                                display: "inline-block",
-                                                background: colorFor(tone),
-                                                boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.6) inset",
-                                              }}
-                                            />
-                                          );
-
-                                          const Row = ({
-                                            label,
-                                            tone,
-                                            hint,
-                                          }: {
-                                            label: string;
-                                            tone: "green" | "yellow" | "red";
-                                            hint: string;
-                                          }) => (
-                                            <InlineStack align="space-between" blockAlign="center">
-                                              <InlineStack gap="200" blockAlign="center">
-                                                <Light tone={tone} />
-                                                <Text as="span" variant="bodySm">
-                                                  {label}
-                                                </Text>
-                                              </InlineStack>
-                                              <Text as="span" variant="bodySm" tone="subdued">
-                                                {hint}
-                                              </Text>
-                                            </InlineStack>
-                                          );
-
-                                          return (
-                                            <BlockStack gap="200">
-                                              <Row
-                                                label="PST Check"
-                                                tone={pstTone}
-                                                hint={hasProblemSignal ? "OK" : "Add a problem/question"}
-                                              />
-                                              <Row
-                                                label="Brand Trust"
-                                                tone={trustTone}
-                                                hint={hasBrandTrust ? "OK" : 'Add “Japan”, “Handcrafted” or “Free Shipping”'}
-                                              />
-                                              <Row
-                                                label="Length Check"
-                                                tone={lenTone}
-                                                hint={`${titleLen}/70`}
-                                              />
-                                            </BlockStack>
-                                          );
-                                        })()}
-                                      </BlockStack>
-                                    </Box>
+                                    <Text as="p" tone="subdued">
+                                      Run Optimize to generate buyer intent recommendations.
+                                    </Text>
                                   )}
-
+                                  <Text as="p" variant="bodySm" tone="subdued">
+                                    These are recommendations only—review and decide what to add.
+                                  </Text>
                                 </BlockStack>
                               </BlockStack>
                             </Box>
@@ -2777,178 +2301,227 @@ function RewriterWorkspaceInner({
                         </div>
                       </div>
 
-                      {/* Second row: Apply SEO + the 3 recommendation cards */}
-                      <InlineStack align="space-between" blockAlign="center">
-                                    <Text as="h4" variant="headingSm">
-                          AI SEO Recommendations
-                                    </Text>
-                        <div
-                          className={`aiOptimizeWrap${
-                            selectedLocales.length === 0 || isOptimizing ? ' aiOptimizeWrap--disabled' : ''
-                          }`}
-                        >
-                          <div className="aiOptimizeInner">
-                            <Button size="large" onClick={applySeoAll} disabled={selectedLocales.length === 0 || isOptimizing}>
-                              Apply SEO
-                            </Button>
-                          </div>
-                        </div>
-                      </InlineStack>
-
-                      <div style={{display: 'flex', gap: 24, alignItems: 'stretch', flexWrap: 'wrap'}}>
-                        <div style={{flex: '1 1 0', minWidth: 360}}>
-                          <Card>
-                            <Box padding="300">
-                              <BlockStack gap="200">
-                                <InlineStack align="space-between" blockAlign="center">
-                                  <Text as="h4" variant="headingSm">
-                                    CTR (PST) Patch
-                                  </Text>
-                                  <InlineStack gap="200" blockAlign="center">
-                                    <Badge
-                                      tone={
-                                        Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched)
-                                          ? 'success'
-                                          : String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim()
-                                            ? 'warning'
-                                            : 'critical'
-                                      }
-                                    >
-                                      {Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched)
-                                        ? 'Applied'
-                                        : String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim()
-                                          ? 'Ready'
-                                          : 'Missing'}
-                                    </Badge>
-                                    <Button
-                                      variant="primary"
-                                      onClick={applySeoPstPatch}
-                                      disabled={
-                                        Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched) ||
-                                        !String(
-                                          seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '',
-                                        ).trim()
-                                      }
-                                    >
-                                      Apply Patch
-                                    </Button>
-                                  </InlineStack>
-                                </InlineStack>
-                                <Text as="p" tone="subdued">
-                                  Patch-only: inserts missing Problem/Solution/Trust/CTA while preserving your existing meta description.
+                      {/* Second row: Our SEO Strategy (full width) */}
+                      <Card>
+                        <Box padding="300">
+                          <BlockStack gap="300">
+                            <InlineStack align="space-between" blockAlign="center">
+                              <Text as="h4" variant="headingSm">
+                                Our SEO Strategy
+                              </Text>
+                              <InlineStack gap="300" blockAlign="center">
+                                <Text
+                                  as="span"
+                                  variant="bodySm"
+                                  tone={(currentDraft.seoTitle || '').length > 70 ? 'critical' : 'subdued'}
+                                >
+                                  Title {(currentDraft.seoTitle || '').length}/70
                                 </Text>
-                                {String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim() ? (
-                                  <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                                    <Text as="p">
-                                      {String(
-                                        seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '',
-                                      ).trim()}
-                                    </Text>
-                                  </Box>
-                                      ) : (
-                                        <Text as="p" tone="subdued">
-                                    Run Optimize to generate a PST patch.
-                                        </Text>
-                                      )}
-                                  </BlockStack>
-                            </Box>
-                          </Card>
-                        </div>
+                                <Text
+                                  as="span"
+                                  variant="bodySm"
+                                  tone={(currentDraft.seoDescription || '').length > 160 ? 'critical' : 'subdued'}
+                                >
+                                  Description {(currentDraft.seoDescription || '').length}/160
+                                </Text>
+                              </InlineStack>
+                            </InlineStack>
 
-                        <div style={{flex: '1 1 0', minWidth: 360}}>
-                          <Card>
-                            <Box padding="300">
-                              <BlockStack gap="200">
-                                <InlineStack align="space-between" blockAlign="center">
+                            <BlockStack gap="300">
+                              <TextField
+                                label="SEO Title"
+                                value={currentDraft.seoTitle}
+                                placeholder={currentDraft.seoTitle ? '' : seoPlaceholders.title || 'Shop the authentic…'}
+                                multiline={2}
+                                onChange={(v) =>
+                                  setDraftByLocale((prev) => ({
+                                    ...prev,
+                                    [activeLocale]: {
+                                      title: currentDraft.title,
+                                      description: currentDraft.description,
+                                      seoTitle: v,
+                                      seoDescription: currentDraft.seoDescription,
+                                      seoAltText: currentDraft.seoAltText,
+                                    },
+                                  }))
+                                }
+                                autoComplete="off"
+                              />
+
+                              <TextField
+                                label="Meta Description"
+                                multiline={3}
+                                value={currentDraft.seoDescription}
+                                placeholder={
+                                  currentDraft.seoDescription ? '' : seoPlaceholders.description || 'Discover authentic craftsmanship…'
+                                }
+                                onChange={(v) =>
+                                  setDraftByLocale((prev) => ({
+                                    ...prev,
+                                    [activeLocale]: {
+                                      title: currentDraft.title,
+                                      description: currentDraft.description,
+                                      seoTitle: currentDraft.seoTitle,
+                                      seoDescription: v,
+                                      seoAltText: currentDraft.seoAltText,
+                                    },
+                                  }))
+                                }
+                                autoComplete="off"
+                              />
+
+                              <TextField
+                                label="SEO Alt Text (Main image)"
+                                value={currentDraft.seoAltText}
+                                placeholder="Black leather wallet - slim design"
+                                onChange={(v) =>
+                                  setDraftByLocale((prev) => ({
+                                    ...prev,
+                                    [activeLocale]: {
+                                      title: currentDraft.title,
+                                      description: currentDraft.description,
+                                      seoTitle: currentDraft.seoTitle,
+                                      seoDescription: currentDraft.seoDescription,
+                                      seoAltText: v,
+                                    },
+                                  }))
+                                }
+                                autoComplete="off"
+                              />
+
+                              <Box>
+                                <Text as="p" variant="bodySm" tone="subdued">
+                                  Preview (how it may appear in Google)
+                                </Text>
+                                <Box paddingBlockStart="200">
+                                  <SearchEnginePreview
+                                    title={String(currentDraft.seoTitle || '').trim() || 'SEO title preview…'}
+                                    url={`https://${String(shop || 'example.com')}`}
+                                    snippet={String(currentDraft.seoDescription || '').trim() || 'Meta description preview…'}
+                                  />
+                                </Box>
+                              </Box>
+
+                              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                                <BlockStack gap="200">
+                                  <InlineStack align="space-between" blockAlign="center">
                                     <Text as="h4" variant="headingSm">
-                                    Strategy Insight (Keywords)
+                                      CTR Optimization Score
                                     </Text>
-                                  <Badge
-                                    tone={
-                                      Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length >= 3
-                                        ? 'success'
-                                        : Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length > 0
-                                          ? 'warning'
-                                          : 'critical'
-                                    }
-                                  >
-                                    {Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length >= 3
-                                      ? 'Green'
-                                      : Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length > 0
-                                        ? 'In progress'
-                                        : 'Not applied'}
-                                  </Badge>
-                                </InlineStack>
-
-                                <InlineStack gap="200" wrap>
-                                  {(Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords)
-                                    ? (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords as any[])
-                                    : []
-                                  )
-                                    .map((k) => String(k || '').trim())
-                                    .filter(Boolean)
-                                    .slice(0, 12)
-                                    .map((k, i) => (
-                                      <Badge key={`kw-${i}`}>{k}</Badge>
-                                    ))}
-                                  {!(
-                                    Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords) &&
-                                    (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords as any[]).length
-                                  ) ? (
-                                    <Text as="p" tone="subdued">
-                                      Run Optimize to generate keyword recommendations.
+                                    <Text as="span" variant="bodySm" tone="subdued">
+                                      <span
+                                        style={{
+                                          display: "inline-block",
+                                          padding: "2px 8px",
+                                          borderRadius: 999,
+                                          background: "var(--p-color-bg-surface-brand)",
+                                          color: "var(--p-color-text-on-color)",
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        Optimized for US Search Patterns
+                                      </span>
                                     </Text>
-                                  ) : null}
-                                </InlineStack>
+                                  </InlineStack>
 
-                                {Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions) &&
-                                (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions as any[]).length ? (
-                                  <BlockStack gap="200">
-                                    {(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions as any[])
-                                      .slice(0, 6)
-                                      .map((s, idx) => {
-                                        const sentence = String(s?.suggested_sentence || '').trim();
-                                        const keyword = String(s?.keyword || '').trim();
-                                        const key = `${keyword}::${sentence}`.trim();
-                                        const already = Boolean(seoAppliedByLocale?.[activeLocale]?.keywordKeys?.[key]);
-                                        return (
-                                          <Box key={`ins-${idx}`} padding="200" background="bg-surface-secondary" borderRadius="200">
-                                            <BlockStack gap="150">
-                                              <InlineStack align="space-between" blockAlign="center">
-                                                <Text as="p" variant="bodySm" tone="subdued">
-                                                  {keyword || 'Suggestion'}
-                                                </Text>
-                                                <Button
-                                                  variant={already ? 'secondary' : 'primary'}
-                                                  disabled={already || !sentence}
-                                                  onClick={() =>
-                                                    insertSeoKeywordSuggestion({
-                                                      keyword,
-                                                      suggested_sentence: sentence,
-                                                    })
-                                                  }
-                                                >
-                                                  {already ? 'Inserted' : 'Insert'}
-                                                </Button>
-                                              </InlineStack>
-                                              <Text as="p">{sentence || '—'}</Text>
-                                              {String(s?.target_section_hint || '').trim() ? (
-                                                <Text as="p" variant="bodySm" tone="subdued">
-                                                  Suggested section: {String(s.target_section_hint)}
-                                                </Text>
-                                              ) : null}
-                                  </BlockStack>
-                                          </Box>
-                                        );
-                                      })}
-                                  </BlockStack>
-                                ) : null}
-                              </BlockStack>
-                            </Box>
-                          </Card>
-                        </div>
+                                  {(() => {
+                                    const titleLen = (currentDraft.seoTitle || "").length;
+                                    const desc = String(currentDraft.seoDescription || "");
+                                    const descLower = desc.toLowerCase();
+                                    const problemWords = [
+                                      "tired",
+                                      "struggling",
+                                      "problem",
+                                      "frustrated",
+                                      "looking for",
+                                      "need a",
+                                      "wish",
+                                    ];
+                                    const hasProblemSignal =
+                                      desc.includes("?") ||
+                                      problemWords.some((w) => descLower.includes(w));
+                                    const hasBrandTrust =
+                                      /japan/i.test(desc) ||
+                                      /handcrafted/i.test(desc) ||
+                                      /free shipping/i.test(desc);
 
-                      </div>
+                                    const pstTone: "green" | "yellow" | "red" = hasProblemSignal
+                                      ? "green"
+                                      : /shop now|discover|order|buy/i.test(desc)
+                                        ? "yellow"
+                                        : "red";
+                                    const trustTone: "green" | "yellow" | "red" = hasBrandTrust
+                                      ? "green"
+                                      : /authentic|artisan|premium/i.test(desc)
+                                        ? "yellow"
+                                        : "red";
+                                    const lenTone: "green" | "yellow" | "red" =
+                                      titleLen > 50 && titleLen < 70
+                                        ? "green"
+                                        : titleLen >= 45 && titleLen <= 75
+                                          ? "yellow"
+                                          : "red";
+
+                                    const colorFor = (t: "green" | "yellow" | "red") =>
+                                      t === "green"
+                                        ? "var(--p-color-bg-fill-success)"
+                                        : t === "yellow"
+                                          ? "var(--p-color-bg-fill-warning)"
+                                          : "var(--p-color-bg-fill-critical)";
+
+                                    const Light = ({ tone }: { tone: "green" | "yellow" | "red" }) => (
+                                      <span
+                                        style={{
+                                          width: 10,
+                                          height: 10,
+                                          borderRadius: 999,
+                                          display: "inline-block",
+                                          background: colorFor(tone),
+                                          boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.6) inset",
+                                        }}
+                                      />
+                                    );
+
+                                    const Row = ({
+                                      label,
+                                      tone,
+                                      hint,
+                                    }: {
+                                      label: string;
+                                      tone: "green" | "yellow" | "red";
+                                      hint: string;
+                                    }) => (
+                                      <InlineStack align="space-between" blockAlign="center">
+                                        <InlineStack gap="200" blockAlign="center">
+                                          <Light tone={tone} />
+                                          <Text as="span" variant="bodySm">
+                                            {label}
+                                          </Text>
+                                        </InlineStack>
+                                        <Text as="span" variant="bodySm" tone="subdued">
+                                          {hint}
+                                        </Text>
+                                      </InlineStack>
+                                    );
+
+                                    return (
+                                      <BlockStack gap="200">
+                                        <Row label="PST Check" tone={pstTone} hint={hasProblemSignal ? "OK" : "Add a problem/question"} />
+                                        <Row
+                                          label="Brand Trust"
+                                          tone={trustTone}
+                                          hint={hasBrandTrust ? "OK" : 'Add “Japan”, “Handcrafted” or “Free Shipping”'}
+                                        />
+                                        <Row label="Length Check" tone={lenTone} hint={`${titleLen}/70`} />
+                                      </BlockStack>
+                                    );
+                                  })()}
+                                </BlockStack>
+                              </Box>
+                            </BlockStack>
+                          </BlockStack>
+                        </Box>
+                      </Card>
                     </BlockStack>
                     </div>
                   </Modal.Section>
