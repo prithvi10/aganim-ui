@@ -997,7 +997,7 @@ function RewriterWorkspaceInner({
   >({});
 
   const [seoAppliedByLocale, setSeoAppliedByLocale] = useState<
-    Record<string, { pstPatched?: boolean; keywordKeys?: Record<string, boolean>; intentApplied?: boolean }>
+    Record<string, { pstPatched?: boolean; keywordKeys?: Record<string, boolean> }>
   >({});
 
   const allowsMultiLocale = maxLocales !== 1;
@@ -1215,26 +1215,8 @@ function RewriterWorkspaceInner({
 
       const footerText = String(v.suggested_footer || '').trim();
       if (!footerText) return;
-
-      const escapeHtml = (s: string) =>
-        s
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;')
-          .replaceAll('"', '&quot;')
-          .replaceAll("'", '&#39;');
-
-      // Suggested heading to make the appended footer feel intentional + premium in the description.
-      const heading = 'Key Details (Nuance)';
-      const snippet =
-        `\n\n<hr />\n` +
-        `<div class="ai-value-footer">\n` +
-        `<h3>${heading}</h3>\n` +
-        `<p>${escapeHtml(footerText)}</p>\n` +
-        `</div>\n`;
-
       const base = String(currentDraft.description || '');
-      const nextDesc = base ? `${base}${snippet}` : snippet.trim();
+      const nextDesc = upsertKeyDetailsNuance(base, [footerText]);
 
       setDraftByLocale((prev) => ({
         ...prev,
@@ -1251,7 +1233,7 @@ function RewriterWorkspaceInner({
 
       // Persist to Shopify as a product metafield (theme/SEO usage).
       if (selectedProduct?.id) {
-        const metaValue = `${heading}\n\n${footerText}`;
+        const metaValue = `Key Details (Nuance)\n\n${footerText}`;
         const fd = new FormData();
         fd.set('intent', 'set_cultural_context');
         fd.set('productId', selectedProduct.id);
@@ -1280,6 +1262,63 @@ function RewriterWorkspaceInner({
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
   }, []);
+
+  const upsertKeyDetailsNuance = useCallback(
+    (descHtml: string, bullets: string[]) => {
+      const heading = 'Key Details (Nuance)';
+      const h = `<h3>${heading}</h3>`;
+
+      const clean = Array.from(
+        new Set(
+          (bullets || [])
+            .map((b) => String(b || '').trim())
+            .filter(Boolean),
+        ),
+      );
+      if (!clean.length) return String(descHtml || '');
+
+      const liHtml = clean.map((b) => `<li>${escapeHtml(b)}</li>`).join('\n');
+      const base = String(descHtml || '');
+
+      if (base.includes(h)) {
+        const idx = base.indexOf(h);
+        const window = base.slice(idx, idx + 1200);
+
+        // If an <ul> exists soon after the heading, append new <li>s before </ul>.
+        const ulOpenIdx = window.indexOf('<ul');
+        if (ulOpenIdx !== -1) {
+          const ulCloseIdx = window.indexOf('</ul>');
+          if (ulCloseIdx !== -1) {
+            const before = base.slice(0, idx) + window.slice(0, ulCloseIdx);
+            const after = base.slice(idx + ulCloseIdx);
+
+            // Avoid duplicates (simple string containment check).
+            const toAppend = clean
+              .filter((b) => !window.includes(escapeHtml(b)))
+              .map((b) => `<li>${escapeHtml(b)}</li>`)
+              .join('\n');
+
+            if (!toAppend.trim()) return base;
+            return `${before}\n${toAppend}\n</ul>${after.slice('</ul>'.length)}`;
+          }
+        }
+
+        // Otherwise, inject a UL right after the heading.
+        const insertAt = idx + h.length;
+        return `${base.slice(0, insertAt)}\n<ul>\n${liHtml}\n</ul>\n${base.slice(insertAt)}`;
+      }
+
+      // Heading does not exist yet; append a full section.
+      const snippet =
+        `\n\n<hr />\n` +
+        `<div class="ai-value-footer">\n` +
+        `${h}\n` +
+        `<ul>\n${liHtml}\n</ul>\n` +
+        `</div>\n`;
+      return base ? `${base}${snippet}` : snippet.trim();
+    },
+    [escapeHtml],
+  );
 
   const applySeoPstPatch = useCallback(() => {
     const rec = seoRecsByLocale?.[activeLocale]?.ctr_pst_patch;
@@ -1342,36 +1381,128 @@ function RewriterWorkspaceInner({
     [activeLocale, draftByLocale, escapeHtml, seoAppliedByLocale, setDraftByLocale],
   );
 
-  const applySearchIntent = useCallback(() => {
-    const intent = seoRecsByLocale?.[activeLocale]?.search_intent;
-    const label = String(intent?.label || '').trim();
-    const first = Array.isArray(intent?.strategy) ? String(intent?.strategy?.[0] || '').trim() : '';
-    if (!label && !first) {
-      setToastContent('No search intent strategy available yet. Run Optimize again.');
-      return;
-    }
-    const sentence = first ? `${label ? `${label}: ` : ''}${first}` : label;
-    const snippet = `\n<p><strong>Search intent:</strong> ${escapeHtml(sentence)}</p>\n`;
-    const base = String(draftByLocale?.[activeLocale]?.description || '');
-    const idx = base.lastIndexOf('</div>');
-    const nextDesc = idx >= 0 ? base.slice(0, idx) + snippet + base.slice(idx) : base + snippet;
+  const applySeoAll = useCallback(() => {
+    const locales = selectedLocales.length ? selectedLocales : [activeLocale];
+    if (!locales.length) return;
 
-    setDraftByLocale((prev) => ({
-      ...prev,
-      [activeLocale]: {
-        ...prev[activeLocale],
-        description: nextDesc,
-      },
-    }));
-    setSeoAppliedByLocale((prev) => ({
-      ...prev,
-      [activeLocale]: {
-        ...(prev[activeLocale] || {}),
-        intentApplied: true,
-      },
-    }));
-    setToastContent('Applied search intent strategy to description.');
-  }, [activeLocale, draftByLocale, escapeHtml, seoRecsByLocale, setDraftByLocale]);
+    let appliedSomething = false;
+
+    setDraftByLocale((prev) => {
+      const next = {...prev};
+
+      for (const loc of locales) {
+        const recs: any = seoRecsByLocale?.[loc] || {};
+
+        const patched = String(recs?.ctr_pst_patch?.patched_seo_description || '').trim();
+        if (patched) {
+          next[loc] = {
+            ...next[loc],
+            seoDescription: patched,
+          };
+          appliedSomething = true;
+        }
+
+        const insertions: any[] = Array.isArray(recs?.strategy_keywords?.suggested_insertions)
+          ? (recs.strategy_keywords.suggested_insertions as any[])
+          : [];
+        const top3 = insertions
+          .slice(0, 3)
+          .map((s) => ({
+            keyword: String(s?.keyword || '').trim(),
+            sentence: String(s?.suggested_sentence || '').trim(),
+          }))
+          .filter((x) => Boolean(x.sentence));
+
+        let desc = String(next?.[loc]?.description || '');
+
+        for (const t of top3) {
+          // Avoid inserting duplicates (raw or escaped).
+          const escaped = escapeHtml(t.sentence);
+          if (desc.includes(t.sentence) || desc.includes(escaped)) continue;
+          const snippet = `\n<p>${escaped}</p>\n`;
+          const idx = desc.lastIndexOf('</div>');
+          desc = idx >= 0 ? desc.slice(0, idx) + snippet + desc.slice(idx) : desc + snippet;
+          appliedSomething = true;
+        }
+
+        // Key Details / Nuances summary (bulleted): one from Keywords + one from Japanese Value.
+        const bullets: string[] = [];
+        const firstKeyword =
+          (Array.isArray(recs?.strategy_keywords?.recommended_keywords)
+            ? String((recs.strategy_keywords.recommended_keywords as any[])[0] || '').trim()
+            : '') ||
+          (top3.length ? String(top3[0].keyword || '').trim() : '');
+        const jvBullet =
+          uniqueValues.length > 0
+            ? `Japanese value: ${String(uniqueValues[0]?.category || '').trim()} — ${String(uniqueValues[0]?.evidence || '').trim()}`
+            : '';
+
+        if (firstKeyword) bullets.push(`SEO keyword: ${firstKeyword}`);
+        if (jvBullet) bullets.push(jvBullet);
+
+        if (bullets.length) {
+          const nextDesc = upsertKeyDetailsNuance(desc, bullets);
+          if (nextDesc !== desc) {
+            desc = nextDesc;
+            appliedSomething = true;
+          }
+        }
+
+        if (desc !== String(next?.[loc]?.description || '')) {
+          next[loc] = {
+            ...next[loc],
+            description: desc,
+          };
+        }
+      }
+
+      return next;
+    });
+
+    setSeoAppliedByLocale((prev) => {
+      const next: any = {...prev};
+      for (const loc of locales) {
+        const recs: any = seoRecsByLocale?.[loc] || {};
+
+        const patched = String(recs?.ctr_pst_patch?.patched_seo_description || '').trim();
+        const insertions: any[] = Array.isArray(recs?.strategy_keywords?.suggested_insertions)
+          ? (recs.strategy_keywords.suggested_insertions as any[])
+          : [];
+        const top3 = insertions
+          .slice(0, 3)
+          .map((s) => ({
+            keyword: String(s?.keyword || '').trim(),
+            sentence: String(s?.suggested_sentence || '').trim(),
+          }))
+          .filter((x) => Boolean(x.sentence));
+
+        const existing = next[loc] || {};
+        const keywordKeys = {...(existing.keywordKeys || {})};
+        for (const t of top3) {
+          const key = `${t.keyword}::${t.sentence}`.trim();
+          if (!key) continue;
+          keywordKeys[key] = true;
+        }
+
+        next[loc] = {
+          ...existing,
+          pstPatched: Boolean(existing.pstPatched) || Boolean(patched),
+          keywordKeys,
+        };
+      }
+      return next;
+    });
+
+    setToastContent(appliedSomething ? 'Applied SEO recommendations.' : 'No SEO recommendations available yet. Run Optimize again.');
+  }, [
+    activeLocale,
+    escapeHtml,
+    selectedLocales,
+    seoRecsByLocale,
+    setDraftByLocale,
+    uniqueValues,
+    upsertKeyDetailsNuance,
+  ]);
 
   const startLoading = useCallback(() => {
     const msgs = [
@@ -1691,55 +1822,33 @@ function RewriterWorkspaceInner({
   }, [searchParams]);
 
   const seoStatus = useMemo(() => {
-    const titleLen = (currentDraft.seoTitle || '').length;
-    const descLen = (currentDraft.seoDescription || '').length;
-    const titleOk = titleLen >= 50 && titleLen <= 70;
-    const descOk = descLen > 0 && descLen <= 160;
+    // Do NOT use the CTR Optimization Score to judge the small-card overview status.
+    // Instead, key off the actionable recommendation areas:
+    // - CTR Patch (PST)
+    // - Strategy Insight (Keywords)
 
-    // Reuse CTR lights logic to keep badge honest
-    const desc = String(currentDraft.seoDescription || "");
-    const descLower = desc.toLowerCase();
-    const problemWords = [
-      "tired",
-      "struggling",
-      "problem",
-      "frustrated",
-      "looking for",
-      "need a",
-      "wish",
-    ];
-    const hasProblemSignal =
-      desc.includes("?") ||
-      problemWords.some((w) => descLower.includes(w));
-    const hasBrandTrust =
-      /japan/i.test(desc) ||
-      /handcrafted/i.test(desc) ||
-      /free shipping/i.test(desc);
+    const recs: any = seoRecsByLocale?.[activeLocale] || {};
+    const applied = seoAppliedByLocale?.[activeLocale] || {};
 
-    const pstTone: "green" | "yellow" | "red" = hasProblemSignal
-      ? "green"
-      : /shop now|discover|order|buy/i.test(desc)
-        ? "yellow"
-        : "red";
-    const trustTone: "green" | "yellow" | "red" = hasBrandTrust
-      ? "green"
-      : /authentic|artisan|premium/i.test(desc)
-        ? "yellow"
-        : "red";
-    const lenTone: "green" | "yellow" | "red" =
-      titleLen > 50 && titleLen < 70
-        ? "green"
-        : titleLen >= 45 && titleLen <= 75
-          ? "yellow"
-          : "red";
+    const patchedSeo = String(recs?.ctr_pst_patch?.patched_seo_description || '').trim();
+    const pstPatched = Boolean(applied?.pstPatched);
 
-    const allGreen = pstTone === "green" && trustTone === "green" && lenTone === "green";
+    // If no patch exists (not generated yet / not needed), don't block "Optimized" on it.
+    const pstOk = pstPatched || !patchedSeo;
 
+    const keywordAppliedCount = Object.values(applied?.keywordKeys || {}).filter(Boolean).length;
+    const hasKeywordSuggestions =
+      Array.isArray(recs?.strategy_keywords?.suggested_insertions) &&
+      (recs?.strategy_keywords?.suggested_insertions || []).length > 0;
+    const keywordsOk = keywordAppliedCount > 0 || !hasKeywordSuggestions;
+
+    // Search intent / competitive edge are just recommendations (merchant decides), so they do NOT affect status.
+    const optimized = pstOk && keywordsOk;
     return {
-      label: allGreen && titleOk && descOk ? 'Optimized' : 'Needs work',
-      tone: allGreen && titleOk && descOk ? 'success' : 'warning' as 'success' | 'warning',
+      label: optimized ? 'Optimized' : 'Needs work',
+      tone: optimized ? ('success' as const) : ('warning' as const),
     };
-  }, [currentDraft.seoDescription, currentDraft.seoTitle]);
+  }, [activeLocale, seoAppliedByLocale, seoRecsByLocale]);
 
   const jvStatus = useMemo(() => {
     const hasValues = uniqueValues.length > 0;
@@ -2306,9 +2415,10 @@ function RewriterWorkspaceInner({
                   size="large"
                 >
                   <Modal.Section>
+                    <div style={{maxWidth: 1280, width: '95vw'}}>
                     <BlockStack gap="300">
                       <div style={{ display: "flex", gap: 24, alignItems: "stretch", flexWrap: "wrap" }}>
-                        <div style={{ flex: "1 1 360px", minWidth: 320 }}>
+                        <div style={{ flex: "1 1 0", minWidth: 420 }}>
                           <Card>
                             <Box padding="300">
                               <BlockStack gap="200">
@@ -2358,12 +2468,73 @@ function RewriterWorkspaceInner({
                                     })()}
                                   </BlockStack>
                                 )}
+
+                                <Box
+                                  padding="300"
+                                  background="bg-surface-secondary"
+                                  borderRadius="200"
+                                >
+                                  <BlockStack gap="200">
+                                    <InlineStack gap="200" blockAlign="center">
+                                      <Icon source={LightbulbIcon} tone="magic" />
+                                      <Text as="h4" variant="headingSm">
+                                        AI Insight (Recommendations)
+                                      </Text>
+                                    </InlineStack>
+
+                                    <BlockStack gap="150">
+                                      <Text as="p" variant="bodySm" tone="subdued">
+                                        Competitive Edge
+                                      </Text>
+                                      {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim() ? (
+                                        <Text as="p" variant="headingSm">
+                                          {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim()}
+                                        </Text>
+                                      ) : null}
+                                      <Text as="p">
+                                        {seoIntelByLocale[activeLocale]?.competitive_edge ||
+                                          String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.copy || '').trim() ||
+                                          'Run Optimize to generate a competitive edge suggestion.'}
+                                      </Text>
+                                    </BlockStack>
+
+                                    <BlockStack gap="150">
+                                      <Text as="p" variant="bodySm" tone="subdued">
+                                        Search Intent
+                                      </Text>
+                                      {String(seoRecsByLocale?.[activeLocale]?.search_intent?.label || '').trim() ? (
+                                        <Text as="p" variant="headingSm">
+                                          {String(seoRecsByLocale?.[activeLocale]?.search_intent?.label || '').trim()}
+                                        </Text>
+                                      ) : null}
+                                      {Array.isArray(seoRecsByLocale?.[activeLocale]?.search_intent?.strategy) &&
+                                      (seoRecsByLocale?.[activeLocale]?.search_intent?.strategy as any[]).length ? (
+                                        <BlockStack gap="100">
+                                          {(seoRecsByLocale?.[activeLocale]?.search_intent?.strategy as any[])
+                                            .slice(0, 4)
+                                            .map((s, i) => (
+                                              <Text key={`intent-ai-${i}`} as="p">
+                                                • {String(s || '').trim()}
+                                              </Text>
+                                            ))}
+                                        </BlockStack>
+                                      ) : (
+                                        <Text as="p" tone="subdued">
+                                          Run Optimize to generate a search intent strategy.
+                                        </Text>
+                                      )}
+                                      <Text as="p" variant="bodySm" tone="subdued">
+                                        These are recommendations only—review and decide what to add.
+                                      </Text>
+                                    </BlockStack>
+                                  </BlockStack>
+                                </Box>
                               </BlockStack>
                             </Box>
                           </Card>
                         </div>
 
-                        <div style={{ flex: "1 1 480px", minWidth: 320 }}>
+                        <div style={{ flex: "1 1 0", minWidth: 420 }}>
                           <Card>
                             <Box padding="300">
                               <BlockStack gap="300">
@@ -2599,246 +2770,187 @@ function RewriterWorkspaceInner({
                                     </Box>
                                   )}
 
-                                  <Card>
-                                    <Box padding="300">
-                                      <BlockStack gap="200">
-                                        <InlineStack align="space-between" blockAlign="center">
-                                          <Text as="h4" variant="headingSm">
-                                            CTR (PST) Patch
-                                          </Text>
-                                          <InlineStack gap="200" blockAlign="center">
-                                            <Badge
-                                              tone={
-                                                Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched)
-                                                  ? 'success'
-                                                  : String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim()
-                                                    ? 'warning'
-                                                    : 'critical'
-                                              }
-                                            >
-                                              {Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched)
-                                                ? 'Applied'
-                                                : String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim()
-                                                  ? 'Ready'
-                                                  : 'Missing'}
-                                            </Badge>
-                                            <Button
-                                              variant="primary"
-                                              onClick={applySeoPstPatch}
-                                              disabled={
-                                                Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched) ||
-                                                !String(
-                                                  seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '',
-                                                ).trim()
-                                              }
-                                            >
-                                              Apply Patch
-                                            </Button>
-                                          </InlineStack>
-                                        </InlineStack>
-                                        <Text as="p" tone="subdued">
-                                          Patch-only: inserts missing Problem/Solution/Trust/CTA while preserving your existing meta description.
-                                        </Text>
-                                        {String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim() ? (
-                                          <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                                            <Text as="p">
-                                              {String(
-                                                seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '',
-                                              ).trim()}
-                                            </Text>
-                                          </Box>
-                                        ) : (
-                                          <Text as="p" tone="subdued">
-                                            Run Optimize to generate a PST patch.
-                                          </Text>
-                                        )}
-                                      </BlockStack>
-                                    </Box>
-                                  </Card>
-
-                                  <Card>
-                                    <Box padding="300">
-                                      <BlockStack gap="200">
-                                        <InlineStack align="space-between" blockAlign="center">
-                                          <Text as="h4" variant="headingSm">
-                                            Strategy Insight (Keywords)
-                                          </Text>
-                                          <Badge
-                                            tone={
-                                              Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean)
-                                                .length >= 3
-                                                ? 'success'
-                                                : Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean)
-                                                      .length > 0
-                                                  ? 'warning'
-                                                  : 'critical'
-                                            }
-                                          >
-                                            {Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length >= 3
-                                              ? 'Green'
-                                              : Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length > 0
-                                                ? 'In progress'
-                                                : 'Not applied'}
-                                          </Badge>
-                                        </InlineStack>
-
-                                        <InlineStack gap="200" wrap>
-                                          {(Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords)
-                                            ? (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords as any[])
-                                            : []
-                                          )
-                                            .map((k) => String(k || '').trim())
-                                            .filter(Boolean)
-                                            .slice(0, 12)
-                                            .map((k, i) => (
-                                              <Badge key={`kw-${i}`}>{k}</Badge>
-                                            ))}
-                                          {!(
-                                            Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords) &&
-                                            (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords as any[]).length
-                                          ) ? (
-                                            <Text as="p" tone="subdued">
-                                              Run Optimize to generate keyword recommendations.
-                                            </Text>
-                                          ) : null}
-                                        </InlineStack>
-
-                                        {Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions) &&
-                                        (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions as any[]).length ? (
-                                          <BlockStack gap="200">
-                                            {(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions as any[])
-                                              .slice(0, 6)
-                                              .map((s, idx) => {
-                                                const sentence = String(s?.suggested_sentence || '').trim();
-                                                const keyword = String(s?.keyword || '').trim();
-                                                const key = `${keyword}::${sentence}`.trim();
-                                                const already = Boolean(seoAppliedByLocale?.[activeLocale]?.keywordKeys?.[key]);
-                                                return (
-                                                  <Box
-                                                    key={`ins-${idx}`}
-                                                    padding="200"
-                                                    background="bg-surface-secondary"
-                                                    borderRadius="200"
-                                                  >
-                                                    <BlockStack gap="150">
-                                                      <InlineStack align="space-between" blockAlign="center">
-                                                        <Text as="p" variant="bodySm" tone="subdued">
-                                                          {keyword || 'Suggestion'}
-                                                        </Text>
-                                                        <Button
-                                                          variant={already ? 'secondary' : 'primary'}
-                                                          disabled={already || !sentence}
-                                                          onClick={() =>
-                                                            insertSeoKeywordSuggestion({
-                                                              keyword,
-                                                              suggested_sentence: sentence,
-                                                            })
-                                                          }
-                                                        >
-                                                          {already ? 'Inserted' : 'Insert'}
-                                                        </Button>
-                                                      </InlineStack>
-                                                      <Text as="p">{sentence || '—'}</Text>
-                                                      {String(s?.target_section_hint || '').trim() ? (
-                                                        <Text as="p" variant="bodySm" tone="subdued">
-                                                          Suggested section: {String(s.target_section_hint)}
-                                                        </Text>
-                                                      ) : null}
-                                                    </BlockStack>
-                                                  </Box>
-                                                );
-                                              })}
-                                          </BlockStack>
-                                        ) : null}
-                                      </BlockStack>
-                                    </Box>
-                                  </Card>
-
-                                  <Card>
-                                    <Box padding="300">
-                                      <BlockStack gap="150">
-                                        <Text as="h4" variant="headingSm">
-                                          Competitive Edge
-                                        </Text>
-                                        {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim() ? (
-                                          <Text as="p" variant="headingSm">
-                                            {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim()}
-                                          </Text>
-                                        ) : null}
-                                        <Text as="p">
-                                          {seoIntelByLocale[activeLocale]?.competitive_edge ||
-                                            String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.copy || '').trim() ||
-                                            'Run Optimize to generate a competitive edge suggestion.'}
-                                        </Text>
-                                      </BlockStack>
-                                    </Box>
-                                  </Card>
-
-                                  <Card>
-                                    <Box padding="300">
-                                      <BlockStack gap="200">
-                                        <InlineStack align="space-between" blockAlign="center">
-                                          <Text as="h4" variant="headingSm">
-                                            Search Intent
-                                          </Text>
-                                          <InlineStack gap="200" blockAlign="center">
-                                            <Badge
-                                              tone={
-                                                Boolean(seoAppliedByLocale?.[activeLocale]?.intentApplied)
-                                                  ? 'success'
-                                                  : String(seoRecsByLocale?.[activeLocale]?.search_intent?.label || '').trim()
-                                                    ? 'warning'
-                                                    : 'critical'
-                                              }
-                                            >
-                                              {Boolean(seoAppliedByLocale?.[activeLocale]?.intentApplied)
-                                                ? 'Applied'
-                                                : String(seoRecsByLocale?.[activeLocale]?.search_intent?.label || '').trim() ||
-                                                  'Missing'}
-                                            </Badge>
-                                            <Button
-                                              variant="primary"
-                                              onClick={applySearchIntent}
-                                              disabled={
-                                                Boolean(seoAppliedByLocale?.[activeLocale]?.intentApplied) ||
-                                                (!String(seoRecsByLocale?.[activeLocale]?.search_intent?.label || '').trim() &&
-                                                  !(
-                                                    Array.isArray(seoRecsByLocale?.[activeLocale]?.search_intent?.strategy) &&
-                                                    (seoRecsByLocale?.[activeLocale]?.search_intent?.strategy as any[]).length
-                                                  ))
-                                              }
-                                            >
-                                              Apply
-                                            </Button>
-                                          </InlineStack>
-                                        </InlineStack>
-
-                                        {Array.isArray(seoRecsByLocale?.[activeLocale]?.search_intent?.strategy) &&
-                                        (seoRecsByLocale?.[activeLocale]?.search_intent?.strategy as any[]).length ? (
-                                          <BlockStack gap="100">
-                                            {(seoRecsByLocale?.[activeLocale]?.search_intent?.strategy as any[])
-                                              .slice(0, 6)
-                                              .map((s, i) => (
-                                                <Text key={`intent-${i}`} as="p">
-                                                  • {String(s || '').trim()}
-                                                </Text>
-                                              ))}
-                                          </BlockStack>
-                                        ) : (
-                                          <Text as="p" tone="subdued">
-                                            Run Optimize to generate a search intent strategy.
-                                          </Text>
-                                        )}
-                                      </BlockStack>
-                                    </Box>
-                                  </Card>
                                 </BlockStack>
                               </BlockStack>
                             </Box>
                           </Card>
                         </div>
                       </div>
+
+                      {/* Second row: Apply SEO + the 3 recommendation cards */}
+                      <InlineStack align="space-between" blockAlign="center">
+                                    <Text as="h4" variant="headingSm">
+                          AI SEO Recommendations
+                                    </Text>
+                        <div
+                          className={`aiOptimizeWrap${
+                            selectedLocales.length === 0 || isOptimizing ? ' aiOptimizeWrap--disabled' : ''
+                          }`}
+                        >
+                          <div className="aiOptimizeInner">
+                            <Button size="large" onClick={applySeoAll} disabled={selectedLocales.length === 0 || isOptimizing}>
+                              Apply SEO
+                            </Button>
+                          </div>
+                        </div>
+                      </InlineStack>
+
+                      <div style={{display: 'flex', gap: 24, alignItems: 'stretch', flexWrap: 'wrap'}}>
+                        <div style={{flex: '1 1 0', minWidth: 360}}>
+                          <Card>
+                            <Box padding="300">
+                              <BlockStack gap="200">
+                                <InlineStack align="space-between" blockAlign="center">
+                                  <Text as="h4" variant="headingSm">
+                                    CTR (PST) Patch
+                                  </Text>
+                                  <InlineStack gap="200" blockAlign="center">
+                                    <Badge
+                                      tone={
+                                        Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched)
+                                          ? 'success'
+                                          : String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim()
+                                            ? 'warning'
+                                            : 'critical'
+                                      }
+                                    >
+                                      {Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched)
+                                        ? 'Applied'
+                                        : String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim()
+                                          ? 'Ready'
+                                          : 'Missing'}
+                                    </Badge>
+                                    <Button
+                                      variant="primary"
+                                      onClick={applySeoPstPatch}
+                                      disabled={
+                                        Boolean(seoAppliedByLocale?.[activeLocale]?.pstPatched) ||
+                                        !String(
+                                          seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '',
+                                        ).trim()
+                                      }
+                                    >
+                                      Apply Patch
+                                    </Button>
+                                  </InlineStack>
+                                </InlineStack>
+                                <Text as="p" tone="subdued">
+                                  Patch-only: inserts missing Problem/Solution/Trust/CTA while preserving your existing meta description.
+                                </Text>
+                                {String(seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '').trim() ? (
+                                  <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                                    <Text as="p">
+                                      {String(
+                                        seoRecsByLocale?.[activeLocale]?.ctr_pst_patch?.patched_seo_description || '',
+                                      ).trim()}
+                                    </Text>
+                                  </Box>
+                                      ) : (
+                                        <Text as="p" tone="subdued">
+                                    Run Optimize to generate a PST patch.
+                                        </Text>
+                                      )}
+                                  </BlockStack>
+                            </Box>
+                          </Card>
+                        </div>
+
+                        <div style={{flex: '1 1 0', minWidth: 360}}>
+                          <Card>
+                            <Box padding="300">
+                              <BlockStack gap="200">
+                                <InlineStack align="space-between" blockAlign="center">
+                                    <Text as="h4" variant="headingSm">
+                                    Strategy Insight (Keywords)
+                                    </Text>
+                                  <Badge
+                                    tone={
+                                      Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length >= 3
+                                        ? 'success'
+                                        : Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length > 0
+                                          ? 'warning'
+                                          : 'critical'
+                                    }
+                                  >
+                                    {Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length >= 3
+                                      ? 'Green'
+                                      : Object.values(seoAppliedByLocale?.[activeLocale]?.keywordKeys || {}).filter(Boolean).length > 0
+                                        ? 'In progress'
+                                        : 'Not applied'}
+                                  </Badge>
+                                </InlineStack>
+
+                                <InlineStack gap="200" wrap>
+                                  {(Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords)
+                                    ? (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords as any[])
+                                    : []
+                                  )
+                                    .map((k) => String(k || '').trim())
+                                    .filter(Boolean)
+                                    .slice(0, 12)
+                                    .map((k, i) => (
+                                      <Badge key={`kw-${i}`}>{k}</Badge>
+                                    ))}
+                                  {!(
+                                    Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords) &&
+                                    (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.recommended_keywords as any[]).length
+                                  ) ? (
+                                    <Text as="p" tone="subdued">
+                                      Run Optimize to generate keyword recommendations.
+                                    </Text>
+                                  ) : null}
+                                </InlineStack>
+
+                                {Array.isArray(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions) &&
+                                (seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions as any[]).length ? (
+                                  <BlockStack gap="200">
+                                    {(seoRecsByLocale?.[activeLocale]?.strategy_keywords?.suggested_insertions as any[])
+                                      .slice(0, 6)
+                                      .map((s, idx) => {
+                                        const sentence = String(s?.suggested_sentence || '').trim();
+                                        const keyword = String(s?.keyword || '').trim();
+                                        const key = `${keyword}::${sentence}`.trim();
+                                        const already = Boolean(seoAppliedByLocale?.[activeLocale]?.keywordKeys?.[key]);
+                                        return (
+                                          <Box key={`ins-${idx}`} padding="200" background="bg-surface-secondary" borderRadius="200">
+                                            <BlockStack gap="150">
+                                              <InlineStack align="space-between" blockAlign="center">
+                                                <Text as="p" variant="bodySm" tone="subdued">
+                                                  {keyword || 'Suggestion'}
+                                                </Text>
+                                                <Button
+                                                  variant={already ? 'secondary' : 'primary'}
+                                                  disabled={already || !sentence}
+                                                  onClick={() =>
+                                                    insertSeoKeywordSuggestion({
+                                                      keyword,
+                                                      suggested_sentence: sentence,
+                                                    })
+                                                  }
+                                                >
+                                                  {already ? 'Inserted' : 'Insert'}
+                                                </Button>
+                                              </InlineStack>
+                                              <Text as="p">{sentence || '—'}</Text>
+                                              {String(s?.target_section_hint || '').trim() ? (
+                                                <Text as="p" variant="bodySm" tone="subdued">
+                                                  Suggested section: {String(s.target_section_hint)}
+                                                </Text>
+                                              ) : null}
+                                  </BlockStack>
+                                          </Box>
+                                        );
+                                      })}
+                                  </BlockStack>
+                                ) : null}
+                              </BlockStack>
+                            </Box>
+                          </Card>
+                        </div>
+
+                      </div>
                     </BlockStack>
+                    </div>
                   </Modal.Section>
                 </Modal>
 
