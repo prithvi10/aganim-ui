@@ -47,6 +47,7 @@ import {
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';
 import { DowngradeScheduledBanner } from '../components/DowngradeScheduledBanner';
+import { LockedFeatureNotice } from '../components/LockedFeatureNotice';
 
 type ShopLocale = {
   locale: string;
@@ -1495,6 +1496,11 @@ function RewriterWorkspaceInner({
     return qs ? `/app/plans?from=dashboard&${qs}` : "/app/plans?from=dashboard";
   }, [searchParams]);
 
+  const dashboardUrl = useMemo(() => {
+    const qs = searchParams.toString();
+    return qs ? `/app/dashboard?${qs}` : "/app/dashboard";
+  }, [searchParams]);
+
   const seoStatus = useMemo(() => {
     const titleLen = (currentDraft.seoTitle || '').length;
     const descLen = (currentDraft.seoDescription || '').length;
@@ -1942,15 +1948,16 @@ function RewriterWorkspaceInner({
                         </div>
                         {isBasicPlan ? (
                           <Box paddingBlockStart="200">
-                            <Banner tone="info">
-                              <InlineStack gap="200" blockAlign="center">
-                                <Icon source={LockIcon} tone="magic" />
-                                <Text as="p">
-                                  <strong>Standard Plan Feature:</strong> Unlock Luxury and Minimalist tones to match your
-                                  brand&apos;s voice.
-                                </Text>
-                              </InlineStack>
-                            </Banner>
+                            <LockedFeatureNotice
+                              title="Standard Plan Feature"
+                              description={
+                                <>
+                                  Unlock Luxury, Minimalist, and Playful tones to match your brand&apos;s voice.
+                                </>
+                              }
+                              ctaLabel="Upgrade to Standard"
+                              ctaUrl={plansUrl}
+                            />
                           </Box>
                         ) : null}
                       </Box>
@@ -1963,9 +1970,13 @@ function RewriterWorkspaceInner({
                         </InlineStack>
                         {overLimit ? (
                           <Box paddingBlockStart="200">
-                            <Banner tone="warning">
-                              {localeLimitMsg}
-                            </Banner>
+                            <LockedFeatureNotice
+                              title="Standard Plan Feature"
+                              description={<>{localeLimitMsg}</>}
+                              ctaLabel="Upgrade to Standard"
+                              ctaUrl={plansUrl}
+                              tone="warning"
+                            />
                           </Box>
                         ) : null}
                         <Box paddingBlockStart="200">
@@ -2013,11 +2024,11 @@ function RewriterWorkspaceInner({
                     <div className="aiActions" style={{paddingTop: '32px', flex: '0 0 auto'}}>
                       <InlineStack align="end" gap="300" blockAlign="center">
                         {isExpiredPaid ? (
-                          <Button size="large" variant="primary" url="/app/dashboard">
+                          <Button size="large" variant="primary" url={dashboardUrl}>
                             Go to Dashboard
                           </Button>
                         ) : isOutOfFreeCredits ? (
-                          <Button size="large" variant="primary" url="/app/dashboard">
+                          <Button size="large" variant="primary" url={dashboardUrl}>
                             Go to Dashboard
                           </Button>
                         ) : (
@@ -2116,14 +2127,12 @@ function RewriterWorkspaceInner({
                                   Top 3 Ranks on Google Search
                                 </Text>
                                 {isBasicPlan ? (
-                                  <BlockStack gap="200">
-                                    <Text as="p" tone="subdued">
-                                      Locked. Upgrade to Standard to see live competitor analysis.
-                                    </Text>
-                                    <Button url={plansUrl} variant="primary">
-                                      Upgrade to Standard
-                                    </Button>
-                                  </BlockStack>
+                                  <LockedFeatureNotice
+                                    title="Standard Plan Feature"
+                                    description={<>Unlock live competitor analysis (Top Google results) for your product.</>}
+                                    ctaLabel="Upgrade to Standard"
+                                    ctaUrl={plansUrl}
+                                  />
                                 ) : isOptimizing ? (
                                   <BlockStack gap="200">
                                     <Text as="p" tone="subdued">
