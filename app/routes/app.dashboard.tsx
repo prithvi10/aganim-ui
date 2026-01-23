@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSearchParams, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
+import { useLoaderData, useSearchParams, useNavigate, redirect, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { trail, trailWarn } from "../utils/trail";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -29,6 +29,7 @@ import { PlanCard } from "../components/PlanCard";
 import { DowngradeScheduledBanner } from "../components/DowngradeScheduledBanner";
 import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
 import { XSmallIcon } from "@shopify/polaris-icons";
+import db from "../db.server";
 
 type Lang = "en" | "jp";
 
@@ -159,18 +160,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     if (!localeResponse) {
       trailWarn(`[🔍 Trail] 🛑 Locale Fetch returned NULL (401 caught by wrapper).`);
       trailWarn(`[🔍 Trail] 🚑 TRIGGERING RE-AUTH (Self-Healing)...`);
-      console.warn("[Dashboard] Master Key is dead (401). Triggering re-auth.");
-      await authenticate.admin(request);
-      return {
-        activeMarketsCount: 0,
-        usage: { used: 0, quota: 1000, planName: "Basic", nextResetDate: null },
-        planName: "Basic",
-        trialDays: 0,
-        backendError401: false,
-        isAuthenticating: false,
-        needsReauth: true,
-        isSyncing: false
-      };
+      console.warn("[Dashboard] Master Key is dead (401). Clearing stale sessions + triggering re-auth.");
+      // The offline token is invalid after uninstall/reinstall. Clear it so we don't loop on 401.
+      try {
+        if (shopParam) {
+          await db.session.deleteMany({ where: { shop: shopParam } });
+        }
+      } catch {
+        // best-effort
+      }
+      // Force OAuth refresh.
+      const sp = new URLSearchParams();
+      if (shopParam) sp.set("shop", shopParam);
+      const host = url.searchParams.get("host");
+      if (host) sp.set("host", host);
+      throw redirect(`/auth/login?${sp.toString()}`);
     }
     trail(`[🔍 Trail] ✅ Locales Fetched Successfully. Count: ${localeResponse.body?.data?.shopLocales?.length}`);
     const locales = localeResponse.body?.data?.shopLocales || [];
@@ -191,17 +195,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     
     // Double check token health
     if (!billingResponse) {
-      await authenticate.admin(request);
-      return {
-        activeMarketsCount: 0,
-        usage: { used: 0, quota: 1000, planName: "Basic", nextResetDate: null },
-        planName: "Basic",
-        trialDays: 0,
-        backendError401: false,
-        isAuthenticating: false,
-        needsReauth: true,
-        isSyncing: false
-      };
+      // Same failure mode: stale offline token. Clear and re-auth.
+      try {
+        if (shopParam) {
+          await db.session.deleteMany({ where: { shop: shopParam } });
+        }
+      } catch {
+        // best-effort
+      }
+      const sp = new URLSearchParams();
+      if (shopParam) sp.set("shop", shopParam);
+      const host = url.searchParams.get("host");
+      if (host) sp.set("host", host);
+      throw redirect(`/auth/login?${sp.toString()}`);
     }
 
     const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
@@ -303,6 +309,7 @@ export default function Dashboard() {
     needsReauth, 
     isSyncing 
   } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const rewriterUrl = useMemo(() => {
     const qs =
@@ -538,7 +545,9 @@ export default function Dashboard() {
 
                     <div style={{ marginTop: "auto" }}>
                       {usedCount === 0 && !welcomeBack ? (
-                        <Button size="micro" url={rewriterUrl}>Optimize your first product</Button>
+                        <Button size="micro" onClick={() => navigate(rewriterUrl)}>
+                          Optimize your first product
+                        </Button>
                       ) : (
                         <div style={{ height: 28 }} />
                       )}

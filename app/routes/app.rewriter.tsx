@@ -986,6 +986,10 @@ function RewriterWorkspaceInner({
   const isOutOfFreeCredits =
     isFreePlan && Number(lifetimeRewritesRemaining ?? 0) <= 0;
 
+  const localeLimitMsg = isFreePlan
+    ? 'Free plan allows selecting 1 locale. Upgrade to Standard to select multiple.'
+    : 'Basic plan allows selecting 1 locale. Upgrade to Standard to select multiple.';
+
   const isExpiredPaid = useMemo(() => {
     // If last plan is paid and access_expires_at has passed, the merchant must upgrade.
     const last = String(lastPlanName || '').trim();
@@ -1558,7 +1562,7 @@ function RewriterWorkspaceInner({
       const next = nextChecked ? Array.from(new Set([...prev, locale])) : prev.filter((l) => l !== locale);
       if (!allowsMultiLocale && next.length > 1) {
         setOverLimit(true);
-        setToastContent('Basic plan allows selecting 1 locale. Upgrade to select multiple.');
+        setToastContent(localeLimitMsg);
         return prev;
       }
       return next;
@@ -1960,7 +1964,7 @@ function RewriterWorkspaceInner({
                         {overLimit ? (
                           <Box paddingBlockStart="200">
                             <Banner tone="warning">
-                              Basic plan allows selecting 1 locale. Upgrade to select multiple.
+                              {localeLimitMsg}
                             </Banner>
                           </Box>
                         ) : null}
