@@ -97,6 +97,9 @@ type LoaderData = {
   didSelfHeal?: boolean;
   contentHash: string | null;
   didResetMetaCache: boolean;
+  brandContextStatus?: string;
+  brandContextLastError?: string | null;
+  brandContextSummary?: string;
 };
 
 function firstOrNull<T>(arr: T[]): T | null {
@@ -226,6 +229,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let accessExpiresAt: string | null = null;
   let pendingPlanName: string | null = null;
   let pendingPlanEffectiveAt: string | null = null;
+  let brandContextStatus = 'idle';
+  let brandContextLastError: string | null = null;
+  let brandContextSummary = '';
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -264,6 +270,19 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     }
   } catch {
     // Best-effort: keep fallback gating.
+  }
+
+  try {
+    const statusUrl = `${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(sessionShop)}`;
+    const resp = await fetch(statusUrl);
+    if (resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      brandContextStatus = String(data?.status || 'idle');
+      brandContextLastError = data?.last_error ? String(data?.last_error) : null;
+      brandContextSummary = String(data?.summary || '').trim();
+    }
+  } catch {
+    // best-effort
   }
 
   const locales: ShopLocale[] = localesRes?.data?.shopLocales ?? [];
@@ -460,6 +479,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     didSelfHeal,
     contentHash: selectedProduct?._contentHash ?? null,
     didResetMetaCache,
+    brandContextStatus,
+    brandContextLastError,
+    brandContextSummary,
   } satisfies LoaderData;
 };
 
@@ -914,6 +936,9 @@ function RewriterWorkspaceInner({
   shop,
   backendApiUrl,
   shopSlug,
+  brandContextStatus,
+  brandContextLastError,
+  brandContextSummary,
 }: LoaderData) {
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as ClientApplication<any>;
@@ -961,6 +986,10 @@ function RewriterWorkspaceInner({
   const [seoIntelOpen, setSeoIntelOpen] = useState(false);
   const [jvOpen, setJvOpen] = useState(false);
   const [removeIrrelevantContent, setRemoveIrrelevantContent] = useState(true);
+  const [brandSoulEnabled, setBrandSoulEnabled] = useState(false);
+  const [brandStatus, setBrandStatus] = useState<string>(brandContextStatus || 'idle');
+  const [brandStatusError, setBrandStatusError] = useState<string | null>(brandContextLastError || null);
+  const [brandSummary, setBrandSummary] = useState<string>(brandContextSummary || '');
   const [miscInfoByLocale, setMiscInfoByLocale] = useState<Record<string, string>>({});
   const [seoIntelByLocale, setSeoIntelByLocale] = useState<
     Record<
@@ -991,6 +1020,7 @@ function RewriterWorkspaceInner({
   const isFreePlan =
     billingCycleType === 'lifetime' || (!billingCycleType && planName === 'Free');
   const isBasicPlan = planName === 'Basic' || isFreePlan;
+  const isStandardPlus = planName === 'Standard' || planName === 'Pro';
   const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = isBasicPlan
     ? 'professional'
     : toneProfile;
@@ -1011,6 +1041,39 @@ function RewriterWorkspaceInner({
     if (Number.isNaN(dt.getTime())) return false;
     return Date.now() > dt.getTime();
   }, [lastPlanName, accessExpiresAt]);
+
+  useEffect(() => {
+    setBrandStatus(brandContextStatus || 'idle');
+    setBrandStatusError(brandContextLastError || null);
+    setBrandSummary(brandContextSummary || '');
+  }, [brandContextStatus, brandContextLastError, brandContextSummary]);
+
+  useEffect(() => {
+    if (brandStatus !== 'running') return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const resp = await fetch(
+          `${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(shop)}`,
+        );
+        if (!resp.ok) return;
+        const data = await resp.json().catch(() => ({}));
+        if (!active) return;
+        const nextStatus = String(data?.status || 'idle');
+        setBrandStatus(nextStatus);
+        setBrandStatusError(data?.last_error ? String(data?.last_error) : null);
+        setBrandSummary(String(data?.summary || '').trim());
+      } catch {
+        // best-effort
+      }
+    };
+    const id = window.setInterval(poll, 10000);
+    poll();
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
+  }, [brandStatus, backendApiUrl, shop]);
 
   const publishedLocales = useMemo(
     () => locales.filter((l) => l.published),
@@ -1408,6 +1471,7 @@ function RewriterWorkspaceInner({
         auto_convert_units: Boolean(autoConvertUnits),
         tone_profile: effectiveTone,
         remove_irrelevant_content: Boolean(removeIrrelevantContent),
+        brand_soul_enabled: Boolean(brandSoulEnabled && isStandardPlus),
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
@@ -1897,6 +1961,16 @@ function RewriterWorkspaceInner({
                 ) : null}
 
                 {optimizeError ? <Banner tone="critical">{optimizeError}</Banner> : null}
+                {brandStatus === 'running' ? (
+                  <Banner tone="info">
+                    Generating brand intelligence… please check after a while.
+                  </Banner>
+                ) : null}
+                {brandStatus === 'failed' ? (
+                  <Banner tone="critical">
+                    Brand intelligence failed. Please retry in the Brand Soul wizard.
+                  </Banner>
+                ) : null}
 
                 <Divider />
 
@@ -2080,6 +2154,33 @@ function RewriterWorkspaceInner({
                           Keeps metric specs (cm, g, kg, ml, L) and appends US equivalents in parentheses for English
                           output.
                         </Text>
+                      </Box>
+
+                      <Box paddingBlockStart="200">
+                        <InlineStack align="space-between" blockAlign="center">
+                          <Checkbox
+                            label="Enhance description using your brand’s soul"
+                            checked={brandSoulEnabled}
+                            onChange={setBrandSoulEnabled}
+                            disabled={!isStandardPlus}
+                          />
+                          {!isStandardPlus ? <Icon source={LockIcon} tone="magic" /> : null}
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Pulls your brand story and pillars into the rewrite for richer storytelling.
+                        </Text>
+                        {!isStandardPlus ? (
+                          <Box paddingBlockStart="200">
+                            <LockedFeatureNotice
+                              title="Standard Plan Feature"
+                              description={
+                                <>Save your Brand Soul in the dashboard to unlock this toggle.</>
+                              }
+                              ctaLabel="Upgrade to Standard"
+                              ctaUrl={plansUrl}
+                            />
+                          </Box>
+                        ) : null}
                       </Box>
 
                       <Box paddingBlockStart="200">
