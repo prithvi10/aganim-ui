@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import type { ClientApplication } from "@shopify/app-bridge";
 import {
   Banner,
   BlockStack,
@@ -44,7 +45,7 @@ export function BrandSoulWizard({
   backendApiUrl,
   planName,
 }: Props) {
-  const app = useAppBridge();
+  const app = useAppBridge() as unknown as ClientApplication<any>;
   const [step, setStep] = useState(0);
   const [persona, setPersona] = useState(PERSONA_OPTIONS[0].value);
   const [pillar1, setPillar1] = useState("");
@@ -57,6 +58,13 @@ export function BrandSoulWizard({
   const [fileLoading, setFileLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const getTokenOrThrow = useCallback(async () => {
+    if (!app || typeof (app as any).subscribe !== "function") {
+      throw new Error("App Bridge not available. Open this page inside Shopify admin.");
+    }
+    return await getSessionToken(app);
+  }, [app]);
 
   const isStandardPlus = useMemo(() => {
     const n = String(planName || "").toLowerCase();
@@ -86,7 +94,7 @@ export function BrandSoulWizard({
         const mimeType = match[1];
         const fileB64 = match[2];
 
-        const token = await getSessionToken(app);
+        const token = await getTokenOrThrow();
         const resp = await fetch(`${backendApiUrl}/api/admin/brand-context/extract-file`, {
           method: "POST",
           headers: {
@@ -113,7 +121,7 @@ export function BrandSoulWizard({
     setSaving(true);
     setError(null);
     try {
-      const token = await getSessionToken(app);
+      const token = await getTokenOrThrow();
       const payload = {
         urls: parseUrls(urls),
         brand_persona: persona,
@@ -146,6 +154,7 @@ export function BrandSoulWizard({
     app,
     backendApiUrl,
     fileText,
+    getTokenOrThrow,
     onClose,
     onComplete,
     persona,
@@ -195,6 +204,7 @@ export function BrandSoulWizard({
                 value={rawNotes}
                 onChange={setRawNotes}
                 multiline={4}
+                autoComplete="off"
               />
             </BlockStack>
           ) : null}
@@ -204,9 +214,9 @@ export function BrandSoulWizard({
               <Text as="h3" variant="headingMd">
                 Core Pillars
               </Text>
-              <TextField label="Pillar 1" value={pillar1} onChange={setPillar1} />
-              <TextField label="Pillar 2" value={pillar2} onChange={setPillar2} />
-              <TextField label="Pillar 3" value={pillar3} onChange={setPillar3} />
+              <TextField label="Pillar 1" value={pillar1} onChange={setPillar1} autoComplete="off" />
+              <TextField label="Pillar 2" value={pillar2} onChange={setPillar2} autoComplete="off" />
+              <TextField label="Pillar 3" value={pillar3} onChange={setPillar3} autoComplete="off" />
             </BlockStack>
           ) : null}
 
@@ -221,6 +231,7 @@ export function BrandSoulWizard({
                 onChange={setUrls}
                 multiline={3}
                 helpText="Paste one or more URLs separated by commas or new lines."
+                autoComplete="off"
               />
               <Box>
                 <DropZone onDrop={handleDrop} allowMultiple={false}>
@@ -241,6 +252,7 @@ export function BrandSoulWizard({
                   value={fileText}
                   onChange={setFileText}
                   multiline={4}
+                  autoComplete="off"
                 />
               ) : null}
             </BlockStack>

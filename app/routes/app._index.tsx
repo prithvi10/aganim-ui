@@ -27,6 +27,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let planName = "Free";
   let brandStatus = "idle";
   let brandSummary = "";
+  let brandSummaryEn = "";
+  let brandSummaryJa = "";
   let brandUpdatedAt: string | null = null;
   let brandLastError: string | null = null;
 
@@ -47,6 +49,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const data: any = await s.json().catch(() => ({}));
       brandStatus = String(data?.status || "idle");
       brandSummary = String(data?.summary || "").trim();
+      brandSummaryEn = String(data?.summary_en || "").trim();
+      brandSummaryJa = String(data?.summary_ja || "").trim();
       brandUpdatedAt = data?.updated_at || null;
       brandLastError = data?.last_error ? String(data?.last_error) : null;
     }
@@ -61,6 +65,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     planName,
     brandStatus,
     brandSummary,
+    brandSummaryEn,
+    brandSummaryJa,
     brandUpdatedAt,
     brandLastError,
   };
@@ -74,13 +80,17 @@ export default function LandingPage() {
     planName,
     brandStatus,
     brandSummary,
+    brandSummaryEn,
+    brandSummaryJa,
     brandUpdatedAt,
     brandLastError,
   } = useLoaderData<typeof loader>();
   const [lang, setLang] = useState<"en" | "jp">("en");
   const [brandWizardOpen, setBrandWizardOpen] = useState(false);
   const [brandStatusState, setBrandStatusState] = useState(brandStatus);
-  const [brandSummaryState, setBrandSummaryState] = useState(brandSummary);
+  const [brandSummaryEnState, setBrandSummaryEnState] = useState(brandSummaryEn);
+  const [brandSummaryJaState, setBrandSummaryJaState] = useState(brandSummaryJa);
+  const [brandSummaryLegacyState, setBrandSummaryLegacyState] = useState(brandSummary);
   const [brandUpdatedState, setBrandUpdatedState] = useState<string | null>(brandUpdatedAt);
   const [brandErrorState, setBrandErrorState] = useState<string | null>(brandLastError);
 
@@ -137,10 +147,18 @@ export default function LandingPage() {
 
   useEffect(() => {
     setBrandStatusState(brandStatus);
-    setBrandSummaryState(brandSummary);
+    setBrandSummaryLegacyState(brandSummary);
+    setBrandSummaryEnState(brandSummaryEn);
+    setBrandSummaryJaState(brandSummaryJa);
     setBrandUpdatedState(brandUpdatedAt);
     setBrandErrorState(brandLastError);
-  }, [brandStatus, brandSummary, brandUpdatedAt, brandLastError]);
+  }, [brandStatus, brandSummary, brandSummaryEn, brandSummaryJa, brandUpdatedAt, brandLastError]);
+
+  const displayBrandSummary = useMemo(() => {
+    return lang === "jp"
+      ? brandSummaryJaState || brandSummaryEnState || brandSummaryLegacyState
+      : brandSummaryEnState || brandSummaryJaState || brandSummaryLegacyState;
+  }, [lang, brandSummaryEnState, brandSummaryJaState, brandSummaryLegacyState]);
 
   useEffect(() => {
     if (brandStatusState !== "running") return;
@@ -154,7 +172,9 @@ export default function LandingPage() {
         const data = await resp.json().catch(() => ({}));
         if (!active) return;
         setBrandStatusState(String(data?.status || "idle"));
-        setBrandSummaryState(String(data?.summary || "").trim());
+        setBrandSummaryLegacyState(String(data?.summary || "").trim());
+        setBrandSummaryEnState(String(data?.summary_en || "").trim());
+        setBrandSummaryJaState(String(data?.summary_ja || "").trim());
         setBrandUpdatedState(data?.updated_at || null);
         setBrandErrorState(data?.last_error ? String(data?.last_error) : null);
       } catch {
@@ -299,14 +319,14 @@ export default function LandingPage() {
                     </Text>
                   ) : null}
 
-                  {brandSummaryState ? (
+                  {displayBrandSummary ? (
                     <Box padding="300" background="bg-surface-secondary" borderRadius="200">
                       <BlockStack gap="200">
                         <Text as="p" variant="bodySm" tone="subdued">
                           Latest summary
                         </Text>
                         <Text as="p" variant="bodyMd">
-                          {brandSummaryState}
+                          {displayBrandSummary}
                         </Text>
                         {brandUpdatedState ? (
                           <Text as="span" variant="bodySm" tone="subdued">
