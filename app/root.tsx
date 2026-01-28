@@ -28,7 +28,7 @@ export default function App() {
       </head>
       <body>
         <PolarisAppProvider i18n={enTranslations}>
-          <Outlet />
+        <Outlet />
         </PolarisAppProvider>
         <ScrollRestoration />
         <Scripts />
