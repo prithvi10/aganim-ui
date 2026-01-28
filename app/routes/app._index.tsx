@@ -10,6 +10,7 @@ import {
   Divider,
   Banner,
   Box,
+  List,
 } from "@shopify/polaris";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
@@ -27,6 +28,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let planName = "Free";
   let brandStatus = "idle";
   let brandSummary = "";
+  let brandKeyFacts: string[] = [];
+  let brandKeyFactsEn: string[] = [];
+  let brandKeyFactsJa: string[] = [];
   let brandSummaryEn = "";
   let brandSummaryJa = "";
   let brandUpdatedAt: string | null = null;
@@ -47,10 +51,48 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const s = await fetch(`${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(shopParam)}`);
     if (s.ok) {
       const data: any = await s.json().catch(() => ({}));
+      const ctx = data?.brand_context || {};
+      
+      let ctxObj = {};
+      if (typeof ctx === 'string') {
+        try { ctxObj = JSON.parse(ctx); } catch {}
+      } else if (typeof ctx === 'object') {
+        ctxObj = ctx;
+      }
+      
+      // Support new nested structure {en: {clean_text}, ja: {clean_text}}
+      // Fallback to flat structure {summary_en, summary_ja}
+      const nestedEn = (ctxObj as any)?.en || {};
+      const nestedJa = (ctxObj as any)?.ja || {};
+      
       brandStatus = String(data?.status || "idle");
-      brandSummary = String(data?.summary || "").trim();
-      brandSummaryEn = String(data?.summary_en || "").trim();
-      brandSummaryJa = String(data?.summary_ja || "").trim();
+      brandSummaryEn = String(nestedEn?.clean_text || (ctxObj as any)?.summary_en || data?.summary_en || "").trim();
+      brandSummaryJa = String(nestedJa?.clean_text || (ctxObj as any)?.summary_ja || data?.summary_ja || "").trim();
+      brandSummary = String(data?.summary || brandSummaryEn || brandSummaryJa || "").trim();
+      
+      const pillarsEn = Array.isArray(nestedEn?.pillars) ? nestedEn.pillars : null;
+      const pillarsJa = Array.isArray(nestedJa?.pillars) ? nestedJa.pillars : null;
+      
+      brandKeyFactsEn = pillarsEn
+        ? pillarsEn.map((k: any) => String(k))
+        : Array.isArray((ctxObj as any)?.key_facts_en)
+          ? (ctxObj as any).key_facts_en.map((k: any) => String(k))
+          : Array.isArray(data?.key_facts_en)
+            ? data.key_facts_en.map((k: any) => String(k))
+            : [];
+            
+      brandKeyFactsJa = pillarsJa
+        ? pillarsJa.map((k: any) => String(k))
+        : Array.isArray((ctxObj as any)?.key_facts_ja)
+          ? (ctxObj as any).key_facts_ja.map((k: any) => String(k))
+          : Array.isArray(data?.key_facts_ja)
+            ? data.key_facts_ja.map((k: any) => String(k))
+            : [];
+      brandKeyFacts = Array.isArray(data?.key_facts)
+        ? data.key_facts.map((k: any) => String(k))
+        : brandKeyFactsEn.length
+          ? brandKeyFactsEn
+          : brandKeyFactsJa;
       brandUpdatedAt = data?.updated_at || null;
       brandLastError = data?.last_error ? String(data?.last_error) : null;
     }
@@ -65,6 +107,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     planName,
     brandStatus,
     brandSummary,
+    brandKeyFacts,
+    brandKeyFactsEn,
+    brandKeyFactsJa,
     brandSummaryEn,
     brandSummaryJa,
     brandUpdatedAt,
@@ -80,6 +125,9 @@ export default function LandingPage() {
     planName,
     brandStatus,
     brandSummary,
+    brandKeyFacts,
+    brandKeyFactsEn,
+    brandKeyFactsJa,
     brandSummaryEn,
     brandSummaryJa,
     brandUpdatedAt,
@@ -91,6 +139,9 @@ export default function LandingPage() {
   const [brandSummaryEnState, setBrandSummaryEnState] = useState(brandSummaryEn);
   const [brandSummaryJaState, setBrandSummaryJaState] = useState(brandSummaryJa);
   const [brandSummaryLegacyState, setBrandSummaryLegacyState] = useState(brandSummary);
+  const [brandKeyFactsState, setBrandKeyFactsState] = useState<string[]>(brandKeyFacts);
+  const [brandKeyFactsEnState, setBrandKeyFactsEnState] = useState<string[]>(brandKeyFactsEn);
+  const [brandKeyFactsJaState, setBrandKeyFactsJaState] = useState<string[]>(brandKeyFactsJa);
   const [brandUpdatedState, setBrandUpdatedState] = useState<string | null>(brandUpdatedAt);
   const [brandErrorState, setBrandErrorState] = useState<string | null>(brandLastError);
 
@@ -150,9 +201,32 @@ export default function LandingPage() {
     setBrandSummaryLegacyState(brandSummary);
     setBrandSummaryEnState(brandSummaryEn);
     setBrandSummaryJaState(brandSummaryJa);
+    setBrandKeyFactsState(brandKeyFacts);
+    setBrandKeyFactsEnState(brandKeyFactsEn);
+    setBrandKeyFactsJaState(brandKeyFactsJa);
     setBrandUpdatedState(brandUpdatedAt);
     setBrandErrorState(brandLastError);
-  }, [brandStatus, brandSummary, brandSummaryEn, brandSummaryJa, brandUpdatedAt, brandLastError]);
+  }, [
+    brandStatus,
+    brandSummary,
+    brandSummaryEn,
+    brandSummaryJa,
+    brandKeyFacts,
+    brandKeyFactsEn,
+    brandKeyFactsJa,
+    brandUpdatedAt,
+    brandLastError,
+  ]);
+  const displayKeyFacts = useMemo(() => {
+    return lang === "jp"
+      ? brandKeyFactsJaState.length
+        ? brandKeyFactsJaState
+        : brandKeyFactsState
+      : brandKeyFactsEnState.length
+        ? brandKeyFactsEnState
+        : brandKeyFactsState;
+  }, [lang, brandKeyFactsEnState, brandKeyFactsJaState, brandKeyFactsState]);
+
 
   const displayBrandSummary = useMemo(() => {
     return lang === "jp"
@@ -171,10 +245,34 @@ export default function LandingPage() {
         if (!resp.ok) return;
         const data = await resp.json().catch(() => ({}));
         if (!active) return;
+        const ctx = data?.brand_context || {};
         setBrandStatusState(String(data?.status || "idle"));
         setBrandSummaryLegacyState(String(data?.summary || "").trim());
-        setBrandSummaryEnState(String(data?.summary_en || "").trim());
-        setBrandSummaryJaState(String(data?.summary_ja || "").trim());
+        setBrandSummaryEnState(String(ctx?.en?.clean_text || ctx?.summary_en || data?.summary_en || "").trim());
+        setBrandSummaryJaState(String(ctx?.ja?.clean_text || ctx?.summary_ja || data?.summary_ja || "").trim());
+        const nextKeyFactsEn = Array.isArray(ctx?.en?.pillars)
+          ? ctx.en.pillars.map((k: any) => String(k))
+          : Array.isArray(ctx?.key_facts_en)
+            ? ctx.key_facts_en.map((k: any) => String(k))
+            : Array.isArray(data?.key_facts_en)
+              ? data.key_facts_en.map((k: any) => String(k))
+              : [];
+        const nextKeyFactsJa = Array.isArray(ctx?.ja?.pillars)
+          ? ctx.ja.pillars.map((k: any) => String(k))
+          : Array.isArray(ctx?.key_facts_ja)
+            ? ctx.key_facts_ja.map((k: any) => String(k))
+            : Array.isArray(data?.key_facts_ja)
+              ? data.key_facts_ja.map((k: any) => String(k))
+              : [];
+        setBrandKeyFactsEnState(nextKeyFactsEn);
+        setBrandKeyFactsJaState(nextKeyFactsJa);
+        setBrandKeyFactsState(
+          Array.isArray(data?.key_facts)
+            ? data.key_facts.map((k: any) => String(k))
+            : nextKeyFactsEn.length
+              ? nextKeyFactsEn
+              : nextKeyFactsJa,
+        );
         setBrandUpdatedState(data?.updated_at || null);
         setBrandErrorState(data?.last_error ? String(data?.last_error) : null);
       } catch {
@@ -285,7 +383,7 @@ export default function LandingPage() {
 
         <Layout.Section variant="oneThird">
           <BlockStack gap="400">
-            <GetStartedGuide shop={shop} host={host} />
+          <GetStartedGuide shop={shop} host={host} />
             <Card>
               <Box padding="400">
                 <BlockStack gap="300">
@@ -325,9 +423,33 @@ export default function LandingPage() {
                         <Text as="p" variant="bodySm" tone="subdued">
                           Latest summary
                         </Text>
-                        <Text as="p" variant="bodyMd">
-                          {displayBrandSummary}
-                        </Text>
+                        {displayBrandSummary.includes("\n") ? (
+                          <List type="bullet">
+                            {displayBrandSummary
+                              .split("\n")
+                              .map((line) => line.replace(/^•\s?/, "").trim())
+                              .filter(Boolean)
+                              .map((line, idx) => (
+                                <List.Item key={`${idx}-${line}`}>{line}</List.Item>
+                              ))}
+                          </List>
+                        ) : (
+                          <Text as="p" variant="bodyMd">
+                            {displayBrandSummary}
+                          </Text>
+                        )}
+                        {displayKeyFacts.length ? (
+                          <BlockStack gap="100">
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              Key facts
+                            </Text>
+                            <List type="bullet">
+                              {displayKeyFacts.map((fact, idx) => (
+                                <List.Item key={`${idx}-${fact}`}>{fact}</List.Item>
+                              ))}
+                            </List>
+                          </BlockStack>
+                        ) : null}
                         {brandUpdatedState ? (
                           <Text as="span" variant="bodySm" tone="subdued">
                             Updated: {new Date(brandUpdatedState).toLocaleDateString()}

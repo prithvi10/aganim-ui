@@ -1662,6 +1662,11 @@ function RewriterWorkspaceInner({
   }, [
     activeLocale,
     app,
+    autoConvertUnits,
+    brandSoulEnabled,
+    effectiveTone,
+    isStandardPlus,
+    removeIrrelevantContent,
     referenceDescription,
     referenceTitle,
     selectedLocales,

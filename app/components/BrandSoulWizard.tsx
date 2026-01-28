@@ -60,10 +60,28 @@ export function BrandSoulWizard({
   const [error, setError] = useState<string | null>(null);
 
   const getTokenOrThrow = useCallback(async () => {
-    if (!app || typeof (app as any).subscribe !== "function") {
-      throw new Error("App Bridge not available. Open this page inside Shopify admin.");
+    const host = new URLSearchParams(window.location.search).get("host");
+    const embedded = window.top !== window.self;
+    const appKeys = Object.keys((app as any) || {}).join(",") || "none";
+
+    if (!app) {
+      throw new Error(
+        `App Bridge not available (embedded=${embedded}, host=${host || "missing"}, appKeys=${appKeys})`,
+      );
     }
-    return await getSessionToken(app);
+
+    try {
+      const idToken = (app as any)?.idToken;
+      if (typeof idToken === "function") {
+        return await idToken();
+      }
+      return await getSessionToken(app as any);
+    } catch (e: any) {
+      const msg = String(e?.message || e || "unknown");
+      throw new Error(
+        `App Bridge token failed (embedded=${embedded}, host=${host || "missing"}, appKeys=${appKeys}): ${msg}`,
+      );
+    }
   }, [app]);
 
   const isStandardPlus = useMemo(() => {
