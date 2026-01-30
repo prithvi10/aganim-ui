@@ -87,6 +87,15 @@ type LoaderData = {
     culturalContext?: {id?: string | null; value?: string | null} | null;
     descHashMeta?: {id?: string | null; value?: string | null} | null;
     appDescHashMeta?: {id?: string | null; value?: string | null} | null;
+    draftsMeta?: {
+      edges: {
+        node: {
+          id: string;
+          key: string;
+          value: string;
+        };
+      }[];
+    };
     _contentHash?: string;
   } | null;
   translationsByLocale: Record<
@@ -306,6 +315,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { id value }
               descHashMeta: metafield(namespace: "crossborderagent", key: "desc_hash") { id value }
               appDescHashMeta: metafield(namespace: "crossborderagent", key: "app_desc_hash") { id value }
+              draftsMeta: metafields(namespace: "crossborderagent", first: 20) {
+                edges { node { id key value } }
+              }
             }
           }`,
         )
@@ -320,6 +332,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { id value }
               descHashMeta: metafield(namespace: "crossborderagent", key: "desc_hash") { id value }
               appDescHashMeta: metafield(namespace: "crossborderagent", key: "app_desc_hash") { id value }
+              draftsMeta: metafields(namespace: "crossborderagent", first: 20) {
+                edges { node { id key value } }
+              }
             }
           }`,
           {id: selectedProductId},
@@ -595,6 +610,33 @@ export const action = async ({request}: ActionFunctionArgs) => {
       localesJson?.data?.shopLocales ?? [];
     const primaryLocale = shopLocales.find((l) => l.primary)?.locale || 'en';
 
+    const clearDraft = async () => {
+      try {
+        await admin.graphql(
+          `mutation ClearDraft($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+              userErrors { field message }
+            }
+          }`,
+          {
+            variables: {
+              metafields: [
+                {
+                  ownerId: productId,
+                  namespace: 'crossborderagent',
+                  key: `draft_content_${targetLocale}`,
+                  type: 'json',
+                  value: '{}',
+                },
+              ],
+            },
+          },
+        );
+      } catch {
+        // best-effort
+      }
+    };
+
     // If saving to primary locale, update product directly
     if (!targetLocale || targetLocale === primaryLocale) {
     const resp = await admin.graphql(
@@ -665,6 +707,7 @@ export const action = async ({request}: ActionFunctionArgs) => {
         // best-effort
       }
     }
+    await clearDraft();
     return {ok: true};
     }
 
@@ -745,6 +788,7 @@ export const action = async ({request}: ActionFunctionArgs) => {
     if (userErrors.length > 0) {
       return {ok: false, error: userErrors[0]?.message ?? 'Translation save failed'};
     }
+    await clearDraft();
     return {ok: true};
   }
 
@@ -945,7 +989,7 @@ function RewriterWorkspaceInner({
 
   const [search, setSearch] = useState('');
   const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
-  const [activeLocale, setActiveLocale] = useState<string>('');
+  const [activeLocale, setActiveLocale] = useState<string>(primaryLocale || '');
   const [overLimit, setOverLimit] = useState(false);
   const [autoConvertUnits, setAutoConvertUnits] = useState(true);
   const [toneProfile, setToneProfile] = useState<'professional' | 'luxury' | 'minimalist' | 'playful'>('professional');
@@ -976,6 +1020,44 @@ function RewriterWorkspaceInner({
   const [culturalContextSaved, setCulturalContextSaved] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('⏳ Analyzing materials and craftsmanship...');
   const loadingTimerRef = useRef<number | null>(null);
+
+  // Hydrate drafts from metafields on load/product switch
+  useEffect(() => {
+    if (!selectedProduct?.draftsMeta?.edges) {
+      setDraftByLocale({});
+      return;
+    }
+    const initial: Record<string, any> = {};
+    let foundAny = false;
+    for (const edge of selectedProduct.draftsMeta.edges) {
+      const k = edge.node.key;
+      const v = edge.node.value;
+      if (k.startsWith('draft_content_')) {
+        const loc = k.replace('draft_content_', '');
+        try {
+          const p = JSON.parse(v);
+          // Only treat as valid if it has content (not empty object from clear)
+          if (Object.keys(p).length > 0) {
+            initial[loc] = {
+              title: p.title || '',
+              description: p.description || '',
+              seoTitle: p.seoTitle || p.seo_title || '',
+              seoDescription: p.seoDescription || p.seo_description || '',
+              seoAltText: p.seoAltText || p.seo_alt_text || '',
+            };
+            foundAny = true;
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+    if (foundAny) {
+      setDraftByLocale(initial);
+    } else {
+      setDraftByLocale({});
+    }
+  }, [selectedProduct?.id, selectedProduct?.draftsMeta]);
 
   const saveFetcher = useFetcher<typeof action>();
   const culturalFetcher = useFetcher<typeof action>();
@@ -1472,6 +1554,7 @@ function RewriterWorkspaceInner({
         tone_profile: effectiveTone,
         remove_irrelevant_content: Boolean(removeIrrelevantContent),
         brand_soul_enabled: Boolean(brandSoulEnabled && isStandardPlus),
+        save_to_shopify: false, // Save as draft only
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
