@@ -12,6 +12,7 @@ import {
   Box,
   List,
 } from "@shopify/polaris";
+import "../styles/optimize-button.css";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -162,6 +163,10 @@ export default function LandingPage() {
     ? `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/rewriter`
     : "https://admin.shopify.com/";
 
+  const optimizeUrl = shopSlug
+    ? `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/optimize`
+    : "https://admin.shopify.com/";
+
   const t = useMemo(() => {
     return lang === "jp"
       ? {
@@ -171,6 +176,8 @@ export default function LandingPage() {
             "商品情報を世界に通用するマーケティング文に変換します。",
           welcome: "ようこそ",
           howTo: "使い方（準備中）",
+          openOptimize: "🚀 全エージェントで最適化",
+          noteOptimize: "※ 全AIエージェント（コピーライター→マーケティング→価格→コンプライアンス）を実行",
           openWorkspace: "ワークスペースを開く（リライター）",
           openThemeEditor: "テーマエディタを開く（ウィジェット設定）",
           openProductRewriter: "商品リライターを開く",
@@ -186,6 +193,8 @@ export default function LandingPage() {
             "Transform product info into a world-class marketing copy.",
           welcome: "Welcome",
           howTo: "How to use (coming soon)",
+          openOptimize: "🚀 Optimize All",
+          noteOptimize: "Run all AI agents (Rewriter → SEO → Marketing → Pricing)",
           openWorkspace: "Open Rewriter Workspace",
           openThemeEditor: "Open Theme Editor (Widget Settings)",
           openProductRewriter: "Open Product Rewriter",
@@ -333,6 +342,24 @@ export default function LandingPage() {
                   </div>
 
                   <BlockStack gap="200">
+                    <div className="aiOptimizeCenter">
+                      <div className="aiOptimizeWrap">
+                        <div className="aiOptimizeInner">
+                          <Button
+                            size="large"
+                            onClick={() => {
+                              window.open(optimizeUrl, "_top");
+                            }}
+                          >
+                            {t.openOptimize}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                      {t.noteOptimize}
+                    </Text>
+
                     <Button
                       onClick={() => {
                         window.open(workspaceUrl, "_top");

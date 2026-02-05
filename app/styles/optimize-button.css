@@ -1,0 +1,78 @@
+@keyframes aiRainbowShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.aiOptimizeWrap {
+  position: relative;
+  display: inline-flex;
+  border-radius: 14px;
+  padding: 3px;
+  width: fit-content;
+}
+
+.aiOptimizeCenter {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Animated gradient border (video-style) */
+.aiOptimizeWrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    #ff2bd6,
+    #ff7a00,
+    #ffe600,
+    #2ee59d,
+    #34a7ff,
+    #7c3aed,
+    #ff2bd6
+  );
+  background-size: 400% 400%;
+  animation: aiRainbowShift 2.8s ease-in-out infinite;
+  filter: saturate(1.25);
+  opacity: 0.95;
+}
+
+/* Glow */
+.aiOptimizeWrap::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 18px;
+  background: linear-gradient(
+    90deg,
+    #ff2bd6,
+    #ff7a00,
+    #ffe600,
+    #2ee59d,
+    #34a7ff,
+    #7c3aed,
+    #ff2bd6
+  );
+  background-size: 400% 400%;
+  animation: aiRainbowShift 2.8s ease-in-out infinite;
+  filter: blur(10px) saturate(1.1);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.aiOptimizeInner {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  border-radius: 12px;
+  background: var(--p-color-bg-surface);
+  padding: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aiOptimizeWrap::before { animation: none; }
+  .aiOptimizeWrap::after { animation: none; }
+}

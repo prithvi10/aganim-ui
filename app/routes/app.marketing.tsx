@@ -14,6 +14,7 @@ import {
   Modal,
   Page,
   Scrollable,
+  Spinner,
   Text,
   TextField,
   Thumbnail,
@@ -22,6 +23,9 @@ import {
 import {useAppBridge} from '@shopify/app-bridge-react';
 import {getSessionToken} from '@shopify/app-bridge/utilities';
 import {useCallback, useEffect, useMemo, useState} from 'react';
+
+import {ComplianceTrafficLight} from '../components/ComplianceTrafficLight';
+import {MissionTimeline} from '../components/MissionTimeline';
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';

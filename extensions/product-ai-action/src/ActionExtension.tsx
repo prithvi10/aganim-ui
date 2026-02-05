@@ -4,9 +4,10 @@ import {
   AdminAction,
   Banner,
   BlockStack,
+  InlineStack,
   Button,
-  Heading,
   Text,
+  Divider,
   useApi,
 } from '@shopify/ui-extensions-react/admin';
 
@@ -40,6 +41,13 @@ function Extension() {
     };
   }, [api]);
 
+  const optimizeUrl = useMemo(() => {
+    if (!shopSlug) return '';
+    const base = `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/optimize`;
+    if (!productGid) return base;
+    return `${base}?productId=${encodeURIComponent(productGid)}`;
+  }, [productGid, shopSlug]);
+
   const rewriterUrl = useMemo(() => {
     if (!shopSlug) return '';
     const base = `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/rewriter`;
@@ -54,40 +62,90 @@ function Extension() {
     return `${base}?productId=${encodeURIComponent(productGid)}`;
   }, [productGid, shopSlug]);
 
-  return (
-    <AdminAction>
-      <BlockStack gap="base">
-        <Heading>Cross-Border AI</Heading>
-        <Text>
-          Open a dedicated workspace page (Rewriter or Marketing) instead of running complex flows inside this overlay.
-        </Text>
+  const seoUrl = useMemo(() => {
+    if (!shopSlug) return '';
+    const base = `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/seo`;
+    if (!productGid) return base;
+    return `${base}?productId=${encodeURIComponent(productGid)}`;
+  }, [productGid, shopSlug]);
 
+  const pricingUrl = useMemo(() => {
+    if (!shopSlug) return '';
+    const base = `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/pricing`;
+    if (!productGid) return base;
+    return `${base}?productId=${encodeURIComponent(productGid)}`;
+  }, [productGid, shopSlug]);
+
+  return (
+    <AdminAction
+      secondaryAction={
+        <Button onPress={() => api.close()}>Cancel</Button>
+      }
+    >
+      <BlockStack gap="large">
         {!productGid ? <Banner tone="warning">No product selected.</Banner> : null}
         {error ? <Banner tone="critical">{error}</Banner> : null}
 
-        <Button
-          variant="primary"
-          href={rewriterUrl || undefined}
-          target="_self"
-          onPress={() => api.close()}
-          disabled={!rewriterUrl}
-        >
-          Open Rewriter
-        </Button>
+        {/* Card 1: Complete Optimization */}
+        <BlockStack gap="base">
+          <Text fontWeight="bold">🚀 Complete Optimization</Text>
+          <Text>Run Copywriter → SEO → Marketing → Pricing</Text>
+          <Button
+            variant="primary"
+            href={optimizeUrl || undefined}
+            target="_self"
+            onPress={() => api.close()}
+            disabled={!optimizeUrl}
+          >
+            Optimize this Product
+          </Button>
+        </BlockStack>
 
-        <Button
-          variant="secondary"
-          href={marketingUrl || undefined}
-          target="_self"
-          onPress={() => api.close()}
-          disabled={!marketingUrl}
-        >
-          Open Marketing
-        </Button>
+        <Divider />
 
-        <Button variant="tertiary" onPress={() => api.close()}>
-          Cancel
-        </Button>
+        {/* Card 2: Individual Features */}
+        <BlockStack gap="base">
+          <Text fontWeight="bold">Individual Features</Text>
+          <Text>Access individual agents</Text>
+          <InlineStack gap="base" blockAlignment="center">
+            <Button
+              variant="secondary"
+              href={rewriterUrl || undefined}
+              target="_self"
+              onPress={() => api.close()}
+              disabled={!rewriterUrl}
+            >
+              Rewriter
+            </Button>
+            <Button
+              variant="secondary"
+              href={seoUrl || undefined}
+              target="_self"
+              onPress={() => api.close()}
+              disabled={!seoUrl}
+            >
+              SEO
+            </Button>
+            <Button
+              variant="secondary"
+              href={marketingUrl || undefined}
+              target="_self"
+              onPress={() => api.close()}
+              disabled={!marketingUrl}
+            >
+              Marketing
+            </Button>
+            <Button
+              variant="secondary"
+              href={pricingUrl || undefined}
+              target="_self"
+              onPress={() => api.close()}
+              disabled={!pricingUrl}
+            >
+              Pricing
+            </Button>
+          </InlineStack>
+        </BlockStack>
       </BlockStack>
     </AdminAction>
   );
