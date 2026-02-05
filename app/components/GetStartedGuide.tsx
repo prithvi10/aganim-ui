@@ -45,10 +45,11 @@ export function GetStartedGuide({ shop, host }: Props) {
     () => [
       {
         title: "Step 1: Product actions",
-        subtitle: "Start with Rewriter or Marketing",
+        subtitle: "Start with Rewriter, Marketing, or run all agents",
         imageSrc: "/guide-step-1.png",
-        body: "Pick what you want to do first. You can always come back and follow the rest of the steps.",
+        body: "Pick what you want to do first. Use 'Optimize All' to run the full AI pipeline (Rewriter → SEO → Marketing → Pricing) on a product.",
         actions: [
+          { label: "🚀 Optimize All", onClick: () => navigate(nav("/app/optimize")), primary: true },
           { label: "Open Rewriter", onClick: () => navigate(nav("/app/rewriter")) },
           { label: "Open Marketing", onClick: () => navigate(nav("/app/marketing")) },
         ],
@@ -164,10 +165,10 @@ export function GetStartedGuide({ shop, host }: Props) {
             </Text>
 
             <InlineStack gap="200">
-              {(current?.actions || []).map((a) => (
+              {(current?.actions || []).map((a: { label: string; onClick: () => void; primary?: boolean }) => (
                 <Button
                   key={a.label}
-                  variant="primary"
+                  variant={a.primary ? "primary" : "secondary"}
                   onClick={() => {
                     setOpen(false);
                     a.onClick();
