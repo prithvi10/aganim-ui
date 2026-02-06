@@ -8,8 +8,6 @@ import {
   Button,
   Banner,
   Divider,
-  Collapsible,
-  Link,
   TextField,
 } from "@shopify/polaris";
 import {
@@ -21,6 +19,7 @@ import {
 } from "@shopify/polaris-icons";
 import { useState, useCallback, useEffect } from "react";
 import { RichTextEditor, HtmlPreview } from "./RichTextEditor";
+import "../styles/optimize-button.css";
 
 export interface AgentOutput {
   // Copywriter outputs
@@ -35,7 +34,7 @@ export interface AgentOutput {
   seo_insights?: Record<string, unknown>;
   seo_recommendations?: Record<string, unknown>;
   ctr_check?: { score?: number; suggestions?: string[] };
-  serp_insights?: Array<{ title?: string; url?: string; position?: number }>;
+  serp_insights?: Array<{ title?: string; snippet?: string; link?: string; position?: number }>;
   social_hooks?: Array<{ 
     type?: string;
     caption?: string; 
@@ -67,10 +66,19 @@ interface StepApprovalProps {
   isLoading?: boolean;
   error?: string;
   onContinue: () => void;
+  /** Called when user wants to regenerate with feedback (opens modal for RewriterAgent) */
   onRegenerate: () => void;
+  /** Called for plain re-run without feedback modal (for non-Rewriter agents) */
+  onPlainRegenerate?: () => void;
   onSkip: () => void;
   /** Callback when user edits output fields (e.g., draft_title, draft_content) */
   onOutputChange?: (field: string, value: string) => void;
+  /** 
+   * Whether this agent supports feedback-based refinement (default: false).
+   * When true, clicking "Regenerate" opens a feedback modal.
+   * When false, clicking "Regenerate" does a plain re-run immediately.
+   */
+  supportsFeedback?: boolean;
 }
 
 function getAgentDisplayName(agentName: string): string {
@@ -84,8 +92,6 @@ function getAgentDisplayName(agentName: string): string {
       return "Social Media Marketing";
     case "PriceScoutAgent":
       return "Pricing Analysis";
-    case "ComplianceAgent":
-      return "Compliance Check";
     default:
       return agentName.replace("Agent", "");
   }
@@ -102,8 +108,6 @@ function getAgentIcon(agentName: string): string {
       return "📱";
     case "PriceScoutAgent":
       return "💰";
-    case "ComplianceAgent":
-      return "🛡️";
     default:
       return "🤖";
   }
@@ -120,8 +124,6 @@ function getAgentDescription(agentName: string): string {
       return "Generated social media captions and hooks for Instagram/TikTok";
     case "PriceScoutAgent":
       return "Analyzed market pricing and provided recommendations";
-    case "ComplianceAgent":
-      return "Checked content for regulatory compliance issues";
     default:
       return "Processed your product data";
   }
@@ -372,13 +374,21 @@ export function StepApproval({
   error,
   onContinue,
   onRegenerate,
+  onPlainRegenerate,
   onSkip,
   onOutputChange,
+  supportsFeedback = false,
 }: StepApprovalProps) {
   const [showFullOutput, setShowFullOutput] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(output?.draft_title || "");
   const [editedContent, setEditedContent] = useState(output?.draft_content || "");
+  
+  // SEO editing state
+  const [isEditingSeo, setIsEditingSeo] = useState(false);
+  const [editedSeoTitle, setEditedSeoTitle] = useState(output?.seo_title || "");
+  const [editedSeoDescription, setEditedSeoDescription] = useState(output?.seo_description || "");
+  
   const toggleOutput = useCallback(() => setShowFullOutput((prev) => !prev), []);
   
   // Sync edited values when output changes
@@ -386,6 +396,12 @@ export function StepApproval({
     if (output?.draft_title) setEditedTitle(output.draft_title);
     if (output?.draft_content) setEditedContent(output.draft_content);
   }, [output?.draft_title, output?.draft_content]);
+  
+  // Sync SEO values when output changes
+  useEffect(() => {
+    if (output?.seo_title) setEditedSeoTitle(output.seo_title);
+    if (output?.seo_description) setEditedSeoDescription(output.seo_description);
+  }, [output?.seo_title, output?.seo_description]);
   
   const handleTitleChange = useCallback((value: string) => {
     setEditedTitle(value);
@@ -395,6 +411,16 @@ export function StepApproval({
   const handleContentChange = useCallback((value: string) => {
     setEditedContent(value);
     onOutputChange?.("draft_content", value);
+  }, [onOutputChange]);
+  
+  const handleSeoTitleChange = useCallback((value: string) => {
+    setEditedSeoTitle(value);
+    onOutputChange?.("seo_title", value);
+  }, [onOutputChange]);
+  
+  const handleSeoDescriptionChange = useCallback((value: string) => {
+    setEditedSeoDescription(value);
+    onOutputChange?.("seo_description", value);
   }, [onOutputChange]);
   
   const displayName = getAgentDisplayName(agentName);
@@ -410,7 +436,7 @@ export function StepApproval({
       case "running":
         return <Badge tone="attention" progress="partiallyComplete">Running</Badge>;
       case "awaiting_approval":
-        return <Badge tone="warning">Awaiting Your Decision</Badge>;
+        return null;
       case "completed":
         return <Badge tone="success" icon={CheckCircleIcon}>Approved</Badge>;
       case "skipped":
@@ -508,20 +534,6 @@ export function StepApproval({
               </InlineStack>
             )}
             
-            {/* Discovered Values */}
-            {output.discovered_values && output.discovered_values.length > 0 && (
-              <Box>
-                <Text as="span" variant="bodySm" fontWeight="semibold">Discovered Cultural Values:</Text>
-                <Box paddingBlockStart="200">
-                  <InlineStack gap="200" wrap>
-                  {output.discovered_values.slice(0, 5).map((v, i) => (
-                    <Badge key={i} tone="info">{`${v.name}: ${v.value}`}</Badge>
-                  ))}
-                </InlineStack>
-                </Box>
-              </Box>
-            )}
-            
             {/* Completion Checkmarks - What Was Done */}
             <Divider />
             <Box>
@@ -553,6 +565,52 @@ export function StepApproval({
       case "SEOAgent":
         return (
           <BlockStack gap="500">
+            {/* Edit Mode Toggle */}
+            <InlineStack align="space-between" blockAlign="center">
+              <InlineStack gap="200" blockAlign="center">
+                <Badge tone={isEditingSeo ? "attention" : "info"}>
+                  {isEditingSeo ? "Editing Mode" : "Preview Mode"}
+                </Badge>
+                <Text as="span" variant="bodySm" tone="subdued">
+                  {isEditingSeo 
+                    ? "Edit your SEO title and description below" 
+                    : "Review how your product will appear in search results"}
+                </Text>
+              </InlineStack>
+              <Button
+                variant={isEditingSeo ? "primary" : "secondary"}
+                onClick={() => setIsEditingSeo(!isEditingSeo)}
+                icon={EditIcon}
+              >
+                {isEditingSeo ? "Done Editing" : "Edit SEO"}
+              </Button>
+            </InlineStack>
+
+            {/* Editable SEO Fields */}
+            {isEditingSeo && (
+              <Box padding="400" background="bg-surface-secondary" borderRadius="200">
+                <BlockStack gap="400">
+                  <TextField
+                    label="SEO Title"
+                    value={editedSeoTitle}
+                    onChange={handleSeoTitleChange}
+                    autoComplete="off"
+                    helpText={`${editedSeoTitle.length}/60 characters recommended`}
+                    maxLength={70}
+                  />
+                  <TextField
+                    label="SEO Description"
+                    value={editedSeoDescription}
+                    onChange={handleSeoDescriptionChange}
+                    autoComplete="off"
+                    multiline={3}
+                    helpText={`${editedSeoDescription.length}/160 characters recommended`}
+                    maxLength={200}
+                  />
+                </BlockStack>
+              </Box>
+            )}
+
             {/* Two-column layout for SEO */}
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
               {/* Left Column: Top 3 Google Ranks */}
@@ -567,8 +625,8 @@ export function StepApproval({
                         <SearchEnginePreview
                           key={`comp-${i}`}
                           title={s.title || "—"}
-                          url={s.url || "https://example.com"}
-                          snippet={"Competitor listing"}
+                          url={s.link || ""}
+                          snippet={s.snippet || "No description available"}
                           rank={s.position || i + 1}
                         />
                       ))
@@ -583,7 +641,7 @@ export function StepApproval({
                 </BlockStack>
               </div>
 
-              {/* Right Column: Your Product */}
+              {/* Right Column: Your Product (Real-time Preview) */}
               <div style={{ flex: "1 1 300px", minWidth: 280 }}>
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
@@ -593,9 +651,9 @@ export function StepApproval({
                     <Badge tone="success">Optimized</Badge>
                   </InlineStack>
                   <SearchEnginePreview
-                    title={output.seo_title || "Your SEO Title"}
+                    title={editedSeoTitle || "Your SEO Title"}
                     url="https://yourstore.myshopify.com"
-                    snippet={output.seo_description || "Your SEO description will appear here..."}
+                    snippet={editedSeoDescription || "Your SEO description will appear here..."}
                     isYours
                   />
                 </BlockStack>
@@ -625,8 +683,8 @@ export function StepApproval({
                 </InlineStack>
                 
                 <CTRScoreDisplay
-                  seoTitle={output.seo_title || ""}
-                  seoDescription={output.seo_description || ""}
+                  seoTitle={editedSeoTitle || ""}
+                  seoDescription={editedSeoDescription || ""}
                   ctrScore={output.ctr_check?.score}
                 />
               </BlockStack>
@@ -728,37 +786,6 @@ export function StepApproval({
           </BlockStack>
         );
         
-      case "ComplianceAgent":
-        return (
-          <BlockStack gap="300">
-            {output.compliance_flags && output.compliance_flags.length > 0 ? (
-              <Box>
-                <Banner tone="warning" title="Compliance Issues Found">
-                  <BlockStack gap="200">
-                    <Text as="p" variant="bodySm" fontWeight="semibold">
-                      These issues were found in the <strong>generated content</strong>. 
-                      Please review and edit before publishing.
-                    </Text>
-                  <BlockStack gap="100">
-                    {output.compliance_flags.map((flag, i) => (
-                      <Text key={i} as="p" variant="bodySm">• {flag}</Text>
-                    ))}
-                    </BlockStack>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Tip: Use the Copywriter step's "Edit Content" button to modify the generated 
-                      description and remove any problematic claims before finalizing.
-                    </Text>
-                  </BlockStack>
-                </Banner>
-              </Box>
-            ) : (
-              <Banner tone="success" title="Compliance Check Passed">
-                <Text as="p" variant="bodySm">No compliance issues detected in your content.</Text>
-              </Banner>
-            )}
-          </BlockStack>
-        );
-        
       default:
         return (
           <Box>
@@ -802,24 +829,7 @@ export function StepApproval({
             <>
               <Divider />
               <Box background="bg-surface-secondary" padding="300" borderRadius="200">
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center">
-                    <Text as="span" variant="bodySm" fontWeight="semibold">
-                      Agent Output
-                    </Text>
-                    <Button
-                      variant="plain"
-                      onClick={toggleOutput}
-                      icon={showFullOutput ? ChevronDownIcon : ChevronRightIcon}
-                    >
-                      {showFullOutput ? "Show Less" : "Show More"}
-                    </Button>
-                  </InlineStack>
-                  
-                  <Collapsible open={true} id="output-preview">
-                    {renderOutputPreview()}
-                  </Collapsible>
-                </BlockStack>
+                {renderOutputPreview()}
               </Box>
             </>
           )}
@@ -833,21 +843,37 @@ export function StepApproval({
                   Review the output above. Choose an action to proceed:
                 </Text>
                 <InlineStack gap="200" align="start">
-                  <Button
-                    variant="primary"
-                    onClick={onContinue}
-                    loading={isLoading}
-                    icon={CheckCircleIcon}
-                  >
-                    {isLastStep ? "Complete & Finish" : "Approve & Continue"}
-                  </Button>
-                  <Button
-                    onClick={onRegenerate}
-                    loading={isLoading}
-                    icon={RefreshIcon}
-                  >
-                    Regenerate
-                  </Button>
+                  <div className="cursorApproveWrap">
+                    <div className="cursorApproveInner">
+                      <Button
+                        variant="primary"
+                        onClick={onContinue}
+                        loading={isLoading}
+                        icon={CheckCircleIcon}
+                      >
+                        {isLastStep ? "Complete & Finish" : "Approve & Continue"}
+                      </Button>
+                    </div>
+                  </div>
+                  {supportsFeedback ? (
+                    /* RewriterAgent: "Refine" button opens feedback modal */
+                    <Button
+                      onClick={onRegenerate}
+                      loading={isLoading}
+                      icon={RefreshIcon}
+                    >
+                      Refine with Feedback
+                    </Button>
+                  ) : (
+                    /* Other agents: plain "Regenerate" does immediate re-run */
+                    <Button
+                      onClick={onPlainRegenerate || onRegenerate}
+                      loading={isLoading}
+                      icon={RefreshIcon}
+                    >
+                      Regenerate
+                    </Button>
+                  )}
                   <Button
                     variant="plain"
                     onClick={onSkip}
@@ -880,17 +906,10 @@ export function StepApproval({
             </Box>
           )}
           
-          {/* Completed state (minimal) */}
+          {/* Completed state - show output */}
           {status === "completed" && output && (
-            <Box>
-              <Link onClick={toggleOutput}>
-                {showFullOutput ? "Hide output" : "View output"}
-              </Link>
-              <Collapsible open={showFullOutput} id="completed-output">
-                <Box paddingBlockStart="200">
-                  {renderOutputPreview()}
-                </Box>
-              </Collapsible>
+            <Box paddingBlockStart="200">
+              {renderOutputPreview()}
             </Box>
           )}
           

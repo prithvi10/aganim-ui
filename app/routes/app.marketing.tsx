@@ -504,7 +504,13 @@ export default function MarketingWorkspace() {
         token = null;
       }
 
-      const resp = await fetch('/api/agent', {
+      // Use the backend API URL with shop parameter
+      const url = new URL(`${backendApiUrl}/api/agent`);
+      if (!token && shop) {
+        url.searchParams.set("shop", shop);
+      }
+
+      const resp = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -525,7 +531,7 @@ export default function MarketingWorkspace() {
       }
       return result;
     },
-    [app],
+    [app, backendApiUrl, shop],
   );
 
   const runSocialHooks = useCallback(async () => {
