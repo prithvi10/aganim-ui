@@ -320,6 +320,12 @@ export default function Dashboard() {
       (typeof window !== "undefined" ? new URL(window.location.href).searchParams.toString() : "");
     return qs ? `/app/rewriter?${qs}` : "/app/rewriter";
   }, [searchParams]);
+  const optimizeUrl = useMemo(() => {
+    const qs =
+      searchParams?.toString() ||
+      (typeof window !== "undefined" ? new URL(window.location.href).searchParams.toString() : "");
+    return qs ? `/app/optimize?${qs}` : "/app/optimize";
+  }, [searchParams]);
   const plansUrl = useMemo(() => {
     const qs =
       searchParams?.toString() ||
@@ -535,6 +541,25 @@ export default function Dashboard() {
         )}
 
         <Layout>
+          {/* AI OPTIMIZATION CTA */}
+          <Layout.Section>
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingLg">Optimize using AI</Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Run all AI agents to rewrite, optimize SEO, analyze pricing, and check compliance in one go.
+                    </Text>
+                  </BlockStack>
+                  <Button variant="primary" size="large" onClick={() => navigate(optimizeUrl)}>
+                    Start AI Optimization
+                  </Button>
+                </InlineStack>
+              </Box>
+            </Card>
+          </Layout.Section>
+
           {/* IMPACT METRICS */}
           <Layout.Section>
             <InlineStack gap="400" align="start">
