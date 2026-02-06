@@ -14,13 +14,13 @@ import {
   Scrollable,
   Badge,
   Divider,
+  Spinner,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
 import { useState, useCallback } from "react";
 
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
-import { MissionTimeline } from "../components/MissionTimeline";
 
 type ProductListItem = { id: string; title: string };
 type SelectedProduct = {
@@ -235,7 +235,6 @@ export default function SEOPage() {
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
 
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [missionId, setMissionId] = useState<string | null>(null);
   const [seoResult, setSeoResult] = useState<SEOResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -244,7 +243,6 @@ export default function SEOPage() {
     newParams.set("productId", productIdFromGid(value));
     setSearchParams(newParams);
     setSeoResult(null);
-    setMissionId(null);
   }, [searchParams, setSearchParams]);
 
   const handleOptimize = useCallback(async () => {
@@ -261,7 +259,8 @@ export default function SEOPage() {
     }
 
     try {
-      const url = new URL(`${backendApiUrl}/api/missions`);
+      // Use synchronous /api/agent endpoint - no DB storage
+      const url = new URL(`${backendApiUrl}/api/agent`);
       if (!token && shop) {
         url.searchParams.set("shop", shop);
       }
@@ -273,34 +272,40 @@ export default function SEOPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          product_id: productIdFromGid(selectedProduct.id),
-          product_name: selectedProduct.title,
-          japanese_description: selectedProduct.descriptionHtml,
-          category: selectedProduct.productType || "General",
-          target_locale: "en",
-          requested_agents: ["SEOAgent"],
+          action: "seo_optimize",
+          product_data: {
+            title: selectedProduct.title,
+            description: selectedProduct.descriptionHtml,
+            category: selectedProduct.productType || "General",
+          },
+          context: {
+            target_locale: "en",
+          },
         }),
       });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.detail || `API error: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setMissionId(data.mission_id);
+      const metadata = data?.data?.metadata || {};
+      
+      setSeoResult({
+        seo_title: metadata.seo_title,
+        seo_description: metadata.seo_description,
+        seo_alt_text: metadata.seo_alt_text,
+        seo_insights: metadata.seo_insights,
+        ctr_check: metadata.ctr_check,
+        serp_insights: metadata.serp_insights,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start SEO optimization");
+      setError(err instanceof Error ? err.message : "Failed to optimize SEO");
+    } finally {
       setIsOptimizing(false);
     }
   }, [selectedProduct, backendApiUrl, app, shop]);
-
-  const handleMissionComplete = useCallback((state: any) => {
-    setIsOptimizing(false);
-    setSeoResult({
-      seo_title: state.seo_title,
-      seo_description: state.seo_description,
-      seo_alt_text: state.seo_alt_text,
-      seo_insights: state.seo_insights,
-      ctr_check: state.ctr_check,
-      serp_insights: state.serp_insights,
-    });
-  }, []);
 
   const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
   const plainTextContent = selectedProduct ? stripHtml(selectedProduct.descriptionHtml) : "";
@@ -330,9 +335,18 @@ export default function SEOPage() {
 
             {error && <Banner tone="critical" title="Error" onDismiss={() => setError(null)}><p>{error}</p></Banner>}
 
-            {missionId && isOptimizing && (
-              <MissionTimeline missionId={missionId} apiBaseUrl={backendApiUrl} shop={shop} initialAgents={["SEOAgent"]}
-                onComplete={handleMissionComplete} onError={(err) => { setError(err); setIsOptimizing(false); }} showSummary={false} compact />
+            {isOptimizing && (
+              <Card>
+                <Box padding="600">
+                  <BlockStack gap="400" align="center">
+                    <Spinner size="large" />
+                    <Text variant="headingSm" as="h3" alignment="center">Optimizing SEO...</Text>
+                    <Text variant="bodySm" tone="subdued" alignment="center">
+                      Analyzing competitors and generating SEO metadata
+                    </Text>
+                  </BlockStack>
+                </Box>
+              </Card>
             )}
 
             {seoResult && (
@@ -347,7 +361,7 @@ export default function SEOPage() {
                           <SearchEnginePreview
                             key={`comp-${i}`}
                             title={r.title || "—"}
-                            url={r.link || "https://example.com"}
+                            url={r.link || ""}
                             snippet={r.snippet || "—"}
                             rank={r.position}
                           />
@@ -431,7 +445,7 @@ export default function SEOPage() {
               </BlockStack>
             )}
 
-            {!missionId && seoResult === null && !isOptimizing && (
+            {seoResult === null && !isOptimizing && (
               <Card>
                 <Box padding="600">
                   <BlockStack gap="300" align="center">

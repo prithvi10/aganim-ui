@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, Box, Text, BlockStack, InlineStack, Badge, Button, Banner, ProgressBar, Divider } from "@shopify/polaris";
 import { AgentCard, type AgentStatus } from "./AgentCard";
 import { MissionSummary, type MissionState as SummaryMissionState } from "./MissionSummary";
-import { ComplianceTrafficLight } from "./ComplianceTrafficLight";
 import { StepApproval, type AgentOutput } from "./StepApproval";
 import { RegenerateFeedbackModal } from "./RegenerateFeedbackModal";
 
@@ -500,9 +499,14 @@ export function MissionTimeline({
       const result = await response.json();
       
       if (result.is_complete) {
+        // Update state with COMPLETED status before showing summary
+        const completedState = missionState ? { ...missionState, status: "COMPLETED" } : null;
+        if (completedState) {
+          setMissionState(completedState);
+        }
         setShowSummaryCard(showSummary);
-        if (missionState && onComplete) {
-          onComplete(missionState);
+        if (completedState && onComplete) {
+          onComplete(completedState);
         }
       } else {
         // Run next step
@@ -558,6 +562,11 @@ export function MissionTimeline({
     }
   }, [missionId, apiBaseUrl, stepMode, shop, onStepRegenerate, onError, runCurrentStep]);
 
+  // Step mode: Plain regenerate (no feedback) - for non-Rewriter agents
+  const handlePlainRegenerate = useCallback(async () => {
+    await handleStepRegenerate("");
+  }, [handleStepRegenerate]);
+
   // Step mode: Skip current step
   const handleStepSkip = useCallback(async () => {
     if (!missionId || !stepMode) return;
@@ -578,9 +587,14 @@ export function MissionTimeline({
       const result = await response.json();
       
       if (result.is_complete) {
+        // Update state with COMPLETED status before showing summary
+        const completedState = missionState ? { ...missionState, status: "COMPLETED" } : null;
+        if (completedState) {
+          setMissionState(completedState);
+        }
         setShowSummaryCard(showSummary);
-        if (missionState && onComplete) {
-          onComplete(missionState);
+        if (completedState && onComplete) {
+          onComplete(completedState);
         }
       } else {
         // Update state to show skipped agent
@@ -609,12 +623,55 @@ export function MissionTimeline({
     }
   }, [missionId, apiBaseUrl, stepMode, shop, showSummary, onComplete, onStepSkip, onError, missionState, runCurrentStep]);
 
-  // Auto-start first step in step mode
+  // Fetch initial mission status for step mode
+  const fetchMissionStatus = useCallback(async () => {
+    if (!missionId) return null;
+    
+    try {
+      const statusUrl = `${apiBaseUrl}/api/missions/${missionId}/status${shop ? `?shop=${shop}` : ""}`;
+      const response = await fetch(statusUrl);
+      if (!response.ok) {
+        throw new Error("Failed to fetch mission status");
+      }
+      return await response.json();
+    } catch (e) {
+      console.error("Failed to fetch mission status:", e);
+      return null;
+    }
+  }, [missionId, apiBaseUrl, shop]);
+
+  // Auto-start first step in step mode (or show completed summary)
   useEffect(() => {
     if (stepMode && missionId && !missionState && !isStepLoading) {
-      runCurrentStep();
+      // First fetch status to check if mission is already completed
+      fetchMissionStatus().then((statusData) => {
+        if (statusData?.status === "COMPLETED") {
+          // Mission is already completed, show summary with the stored state
+          const completedState: MissionState = {
+            product_id: statusData.product_id || "",
+            shop_id: statusData.shop_id || "",
+            plan_tier: statusData.plan_tier || "Basic",
+            status: "COMPLETED",
+            ...(statusData.current_state || {}),
+          };
+          setMissionState(completedState);
+          setShowSummaryCard(showSummary);
+          if (onComplete) {
+            onComplete(completedState);
+          }
+        } else if (statusData?.status === "ERROR") {
+          // Mission errored, show error state
+          setError(statusData.error_message || "Mission failed");
+          if (onError) {
+            onError(statusData.error_message || "Mission failed");
+          }
+        } else {
+          // Mission is in progress or awaiting approval, run the step
+          runCurrentStep();
+        }
+      });
     }
-  }, [stepMode, missionId, missionState, isStepLoading, runCurrentStep]);
+  }, [stepMode, missionId, missionState, isStepLoading, runCurrentStep, fetchMissionStatus, showSummary, onComplete, onError]);
 
   return (
     <BlockStack gap="400">
@@ -627,12 +684,11 @@ export function MissionTimeline({
                 <Text as="h2" variant={compact ? "headingMd" : "headingLg"}>
                   {isAdhoc ? "Agent Run" : "Mission Timeline"}
                 </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {isAdhoc 
-                    ? `Running: ${agents.map(a => a.name).join(", ")}`
-                    : `${missionState?.plan_tier || "Basic"} workflow • ${totalAgents} agents`
-                  }
-                </Text>
+                {isAdhoc && (
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Running: {agents.map(a => a.name).join(", ")}
+                  </Text>
+                )}
               </BlockStack>
               <InlineStack gap="200">
                 {isConnected && (
@@ -703,15 +759,6 @@ export function MissionTimeline({
                         ? {
                             pricing: missionState.pricing_analysis,
                           }
-                        : agent.name === "Compliance" && missionState?.compliance_flags !== undefined
-                        ? {
-                            compliance: {
-                              has_violations: missionState.compliance_flags.length > 0,
-                              flags: missionState.compliance_flags,
-                              severity: missionState.compliance_flags.length > 2 ? "high" : 
-                                       missionState.compliance_flags.length > 0 ? "medium" : "low",
-                            },
-                          }
                         : undefined
                     }
                   />
@@ -753,7 +800,12 @@ export function MissionTimeline({
                     error={error || undefined}
                     onContinue={handleStepContinue}
                     onRegenerate={() => setShowRegenerateModal(true)}
+                    onPlainRegenerate={handlePlainRegenerate}
                     onSkip={handleStepSkip}
+                    supportsFeedback={
+                      stepCompleteData.current_agent === "RewriterAgent" ||
+                      stepCompleteData.current_agent === "CopywriterAgent"
+                    }
                   />
                 )}
 
@@ -785,17 +837,6 @@ export function MissionTimeline({
               </BlockStack>
             )}
 
-            {/* Quick compliance indicator */}
-            {missionState?.compliance_flags !== undefined && !showSummaryCard && (
-              <>
-                <Divider />
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text variant="bodySm" fontWeight="semibold">Compliance Status</Text>
-                  <ComplianceTrafficLight flags={missionState.compliance_flags} size="small" />
-                </InlineStack>
-              </>
-            )}
-
             {/* Inline actions when not showing summary */}
             {!showSummaryCard && missionState?.status === "COMPLETED" && (
               <Box paddingBlockStart="200">
@@ -808,26 +849,6 @@ export function MissionTimeline({
                   </Button>
                 </InlineStack>
               </Box>
-            )}
-
-            {/* Inline compliance review when not showing summary */}
-            {!showSummaryCard && missionState?.status === "COMPLIANCE_REVIEW" && (
-              <Banner tone="warning" title="Compliance Review Needed">
-                <p>
-                  {missionState.compliance_flags?.length || 0} potential compliance issues were found.
-                  Please review before publishing.
-                </p>
-                <Box paddingBlockStart="200">
-                  <InlineStack gap="200">
-                    <Button variant="primary" onClick={() => setShowSummaryCard(true)}>
-                      Review Issues
-                    </Button>
-                    <Button>
-                      Regenerate Content
-                    </Button>
-                  </InlineStack>
-                </Box>
-              </Banner>
             )}
           </BlockStack>
         </Box>

@@ -14,12 +14,10 @@ import {
   CheckCircleIcon,
   EditIcon,
   SearchIcon,
-  LockIcon,
   HashtagIcon,
   ClockIcon,
   AlertTriangleIcon,
 } from "@shopify/polaris-icons";
-import { ComplianceTrafficLight, getComplianceSeverity } from "./ComplianceTrafficLight";
 
 interface MissionState {
   product_id: string;
@@ -159,20 +157,6 @@ function getCompletedActions(state: MissionState): Array<{
     });
   }
   
-  // Compliance actions
-  if (state.compliance_flags !== undefined) {
-    const flagCount = state.compliance_flags.length;
-    const severity = getComplianceSeverity(state.compliance_flags);
-    actions.push({
-      icon: LockIcon,
-      title: "Compliance Checked",
-      description: flagCount === 0
-        ? "No compliance issues detected"
-        : `${flagCount} ${flagCount === 1 ? "issue" : "issues"} found (${severity})`,
-      success: flagCount === 0,
-    });
-  }
-  
   return actions;
 }
 
@@ -184,13 +168,9 @@ export function MissionSummary({
   isPublishing = false,
 }: MissionSummaryProps) {
   const completedActions = getCompletedActions(state);
-  const complianceFlags = state.compliance_flags || [];
-  const complianceSeverity = getComplianceSeverity(complianceFlags);
-  const hasBlockingIssues = complianceSeverity === "critical";
   
   const isSuccess = state.status === "COMPLETED";
   const isError = state.status === "ERROR";
-  const isComplianceReview = state.status === "COMPLIANCE_REVIEW";
   
   return (
     <Card>
@@ -203,11 +183,7 @@ export function MissionSummary({
               tone={isError ? "critical" : "success"}
             />
             <Text variant="headingMd" as="h2">
-              {isError
-                ? "Mission Failed"
-                : isComplianceReview
-                ? "Review Required"
-                : "Mission Complete"}
+              {isError ? "Mission Failed" : "Mission Complete"}
             </Text>
           </InlineStack>
           
@@ -225,11 +201,11 @@ export function MissionSummary({
           </Banner>
         )}
         
-        {/* Compliance Warning */}
-        {hasBlockingIssues && (
-          <Banner tone="critical" title="Critical Compliance Issues">
+        {/* Success Banner - Saved to Shopify */}
+        {isSuccess && (
+          <Banner tone="success" title="Changes Saved to Shopify">
             <Text variant="bodyMd">
-              This content has critical compliance violations that must be resolved before publishing.
+              Your product title, description, and AI-generated data (SEO, marketing captions, pricing analysis) have been saved to Shopify.
             </Text>
           </Banner>
         )}
@@ -261,21 +237,6 @@ export function MissionSummary({
             ))}
           </BlockStack>
         </BlockStack>
-        
-        {/* Compliance Status */}
-        {complianceFlags !== undefined && (
-          <>
-            <Divider />
-            <BlockStack gap="200">
-              <Text variant="headingSm" as="h3">Compliance Status</Text>
-              <ComplianceTrafficLight
-                flags={complianceFlags}
-                size="large"
-                showDetails={complianceFlags.length > 0 && complianceFlags.length <= 3}
-              />
-            </BlockStack>
-          </>
-        )}
         
         {/* Pricing Recommendation */}
         {state.pricing_analysis?.reasoning && (
@@ -372,33 +333,40 @@ export function MissionSummary({
         
         <Divider />
         
-        {/* Action Buttons */}
-        <InlineStack gap="300" align="start">
-          <Button
-            variant="primary"
-            onClick={onPublish}
-            loading={isPublishing}
-            disabled={hasBlockingIssues}
-            icon={CheckCircleIcon}
-          >
-            {hasBlockingIssues ? "Fix Issues to Publish" : "Publish to Shopify"}
-          </Button>
-          
-          {onEdit && (
-            <Button variant="secondary" onClick={onEdit} icon={EditIcon}>
-              Edit Fields
+        {/* Status & Action Buttons */}
+        {isSuccess ? (
+          <InlineStack gap="300" align="space-between" blockAlign="center">
+            <InlineStack gap="200" blockAlign="center">
+              <Badge tone="success" size="large">✓ Published to Shopify</Badge>
+              <Text variant="bodySm" tone="subdued">
+                All changes have been saved
+              </Text>
+            </InlineStack>
+            <Button onClick={onDiscard}>
+              Done
             </Button>
-          )}
-          
-          <Button variant="plain" tone="critical" onClick={onDiscard}>
-            Discard Changes
-          </Button>
-        </InlineStack>
-        
-        {hasBlockingIssues && (
-          <Text variant="bodySm" tone="subdued">
-            Resolve critical compliance issues before publishing, or edit the content manually.
-          </Text>
+          </InlineStack>
+        ) : (
+          <InlineStack gap="300" align="start">
+            <Button
+              variant="primary"
+              onClick={onPublish}
+              loading={isPublishing}
+              icon={CheckCircleIcon}
+            >
+              Publish to Shopify
+            </Button>
+            
+            {onEdit && (
+              <Button variant="secondary" onClick={onEdit} icon={EditIcon}>
+                Edit Fields
+              </Button>
+            )}
+            
+            <Button variant="plain" tone="critical" onClick={onDiscard}>
+              Discard Changes
+            </Button>
+          </InlineStack>
         )}
       </BlockStack>
     </Card>

@@ -11,6 +11,7 @@ import {
   Banner,
   Box,
   Select,
+  Spinner,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
@@ -18,7 +19,6 @@ import { useState, useCallback } from "react";
 
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { CompetitorMap, type Competitor } from "../components/CompetitorMap";
-import { MissionTimeline } from "../components/MissionTimeline";
 
 type ProductListItem = { id: string; title: string };
 type SelectedProduct = {
@@ -124,7 +124,6 @@ export default function PricingPage() {
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [missionId, setMissionId] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
     yourPrice: number;
     competitors: Competitor[];
@@ -140,7 +139,6 @@ export default function PricingPage() {
     newParams.set("productId", productIdFromGid(value));
     setSearchParams(newParams);
     setAnalysisResult(null);
-    setMissionId(null);
   }, [searchParams, setSearchParams]);
 
   const handleAnalyze = useCallback(async () => {
@@ -157,8 +155,8 @@ export default function PricingPage() {
     }
 
     try {
-      // Include shop param as fallback authentication when token isn't available
-      const url = new URL(`${backendApiUrl}/api/missions`);
+      // Use synchronous /api/agent endpoint - no DB storage
+      const url = new URL(`${backendApiUrl}/api/agent`);
       if (!token && shop) {
         url.searchParams.set("shop", shop);
       }
@@ -170,37 +168,41 @@ export default function PricingPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          product_id: productIdFromGid(selectedProduct.id),
-          product_name: selectedProduct.title,
-          japanese_description: selectedProduct.descriptionHtml,
-          category: selectedProduct.productType || "General",
-          target_locale: "en",
-          requested_agents: ["PriceScoutAgent"],
+          action: "price_scout",
+          product_data: {
+            title: selectedProduct.title,
+            description: selectedProduct.descriptionHtml,
+            category: selectedProduct.productType || "General",
+          },
+          context: {},
         }),
       });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.detail || `API error: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setMissionId(data.mission_id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start analysis");
-      setIsAnalyzing(false);
-    }
-  }, [selectedProduct, backendApiUrl, app, shop]);
-
-  const handleMissionComplete = useCallback((state: any) => {
-    setIsAnalyzing(false);
-    if (state.pricing_analysis) {
-      const analysis = state.pricing_analysis;
+      const analysis = data?.data?.metadata?.pricing_analysis || {};
+      
       setAnalysisResult({
         yourPrice: currentPrice,
         competitors: analysis.competitors?.map((c: any) => ({
-          name: c.name || c.source || "Competitor", price: c.price, link: c.link, position: c.position,
+          name: c.name || c.title || c.source || "Competitor",
+          price: c.price,
+          link: c.link,
+          position: c.position,
         })) || [],
         recommendedPrice: analysis.recommended_price,
         confidence: analysis.confidence,
       });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to analyze prices");
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [currentPrice]);
+  }, [selectedProduct, backendApiUrl, app, shop, currentPrice]);
 
   const handleApplyPrice = useCallback(async (price: number) => {
     alert(`Price would be updated to $${price.toFixed(2)}`);
@@ -231,9 +233,18 @@ export default function PricingPage() {
 
             {error && <Banner tone="critical" title="Analysis Error" onDismiss={() => setError(null)}><p>{error}</p></Banner>}
 
-            {missionId && isAnalyzing && (
-              <MissionTimeline missionId={missionId} apiBaseUrl={backendApiUrl} shop={shop} initialAgents={["PriceScoutAgent"]}
-                onComplete={handleMissionComplete} onError={(err) => { setError(err); setIsAnalyzing(false); }} showSummary={false} compact />
+            {isAnalyzing && (
+              <Card>
+                <Box padding="600">
+                  <BlockStack gap="400" align="center">
+                    <Spinner size="large" />
+                    <Text variant="headingSm" as="h3" alignment="center">Scouting Prices...</Text>
+                    <Text variant="bodySm" tone="subdued" alignment="center">
+                      Analyzing competitor pricing data
+                    </Text>
+                  </BlockStack>
+                </Box>
+              </Card>
             )}
 
             {analysisResult && (
@@ -241,7 +252,7 @@ export default function PricingPage() {
                 recommendedPrice={analysisResult.recommendedPrice} confidence={analysisResult.confidence} onApplyPrice={handleApplyPrice} />
             )}
 
-            {!missionId && !analysisResult && !isAnalyzing && (
+            {!analysisResult && !isAnalyzing && (
               <Card>
                 <Box padding="600">
                   <BlockStack gap="300" align="center">
