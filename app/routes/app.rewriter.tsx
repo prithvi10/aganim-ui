@@ -1880,12 +1880,9 @@ function RewriterWorkspaceInner({
           <Card>
             <Box padding="400">
               <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">
-                    Products
-                  </Text>
-                  <Badge tone={planName === 'Basic' ? 'warning' : 'success'}>{planName}</Badge>
-                </InlineStack>
+                <Text as="h2" variant="headingMd">
+                  Products
+                </Text>
 
                 {showDowngradeBanner && String(pendingPlanName || '').trim() && String(pendingPlanEffectiveAt || '').trim() ? (
                   <DowngradeScheduledBanner
