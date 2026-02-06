@@ -186,16 +186,28 @@ export default function PricingPage() {
       const data = await response.json();
       const analysis = data?.data?.metadata?.pricing_analysis || {};
       
+      // Use valid_competitors from Smart Price Discovery (Google Shopping)
+      // Falls back to legacy competitors array if valid_competitors not present
+      const competitorsData = analysis.valid_competitors || analysis.competitors || [];
+      
       setAnalysisResult({
         yourPrice: currentPrice,
-        competitors: analysis.competitors?.map((c: any) => ({
-          name: c.name || c.title || c.source || "Competitor",
-          price: c.price,
+        competitors: competitorsData.map((c: any) => ({
+          // Use source (merchant name) or title for display name
+          name: c.source || c.name || c.title || "Competitor",
+          // Use extracted_price (numeric) for the bar chart, fall back to price if it's a number
+          price: typeof c.extracted_price === 'number' ? c.extracted_price : 
+                 typeof c.price === 'number' ? c.price : 
+                 parseFloat(String(c.price || '0').replace(/[^0-9.]/g, '')) || undefined,
           link: c.link,
-          position: c.position,
-        })) || [],
+          // Include title for tooltip/display
+          title: c.title,
+        })),
         recommendedPrice: analysis.recommended_price,
-        confidence: analysis.confidence,
+        // Convert confidence from 0-1 to 0-100 if needed
+        confidence: analysis.confidence != null 
+          ? (analysis.confidence <= 1 ? Math.round(analysis.confidence * 100) : analysis.confidence)
+          : undefined,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze prices");
