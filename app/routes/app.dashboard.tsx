@@ -269,7 +269,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       backendError401,
       isAuthenticating: false,
       needsReauth: false,
-      isSyncing: false
+      isSyncing: false,
+      backendApiUrl,
     };
 
   } catch (e) {
@@ -289,7 +290,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       planName: "Basic",
       trialDays: 0,
       backendError401: false,
-      isSyncing: false
+      isSyncing: false,
+      backendApiUrl: process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com",
     };
   }
 };
@@ -307,7 +309,8 @@ export default function Dashboard() {
     backendError401, 
     isAuthenticating, 
     needsReauth, 
-    isSyncing 
+    isSyncing,
+    backendApiUrl,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -316,6 +319,12 @@ export default function Dashboard() {
       searchParams?.toString() ||
       (typeof window !== "undefined" ? new URL(window.location.href).searchParams.toString() : "");
     return qs ? `/app/rewriter?${qs}` : "/app/rewriter";
+  }, [searchParams]);
+  const optimizeUrl = useMemo(() => {
+    const qs =
+      searchParams?.toString() ||
+      (typeof window !== "undefined" ? new URL(window.location.href).searchParams.toString() : "");
+    return qs ? `/app/optimize?${qs}` : "/app/optimize";
   }, [searchParams]);
   const plansUrl = useMemo(() => {
     const qs =
@@ -337,6 +346,7 @@ export default function Dashboard() {
     const name = String(planName || "Free") as PlanName;
     return PLAN_CATALOG.find((p) => p.name === name) ?? PLAN_CATALOG[0];
   }, [planName]);
+
 
   const lockedFeatureSections = useMemo(() => {
     const order: PlanName[] = [PLAN_FREE, PLAN_BASIC, PLAN_STANDARD, PLAN_PRO];
@@ -531,6 +541,25 @@ export default function Dashboard() {
         )}
 
         <Layout>
+          {/* AI OPTIMIZATION CTA */}
+          <Layout.Section>
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingLg">Optimize using AI</Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Run all AI agents to rewrite, optimize SEO, analyze pricing, and check compliance in one go.
+                    </Text>
+                  </BlockStack>
+                  <Button variant="primary" size="large" onClick={() => navigate(optimizeUrl)}>
+                    Start AI Optimization
+                  </Button>
+                </InlineStack>
+              </Box>
+            </Card>
+          </Layout.Section>
+
           {/* IMPACT METRICS */}
           <Layout.Section>
             <InlineStack gap="400" align="start">
@@ -752,6 +781,7 @@ export default function Dashboard() {
           </Layout.Section>
         </Layout>
       </BlockStack>
+
     </Page>
   );
 }
