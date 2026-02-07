@@ -97,6 +97,9 @@ type LoaderData = {
   didSelfHeal?: boolean;
   contentHash: string | null;
   didResetMetaCache: boolean;
+  brandContextStatus?: string;
+  brandContextLastError?: string | null;
+  brandContextSummary?: string;
 };
 
 function firstOrNull<T>(arr: T[]): T | null {
@@ -226,6 +229,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let accessExpiresAt: string | null = null;
   let pendingPlanName: string | null = null;
   let pendingPlanEffectiveAt: string | null = null;
+  let brandContextStatus = 'idle';
+  let brandContextLastError: string | null = null;
+  let brandContextSummary = '';
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -264,6 +270,19 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     }
   } catch {
     // Best-effort: keep fallback gating.
+  }
+
+  try {
+    const statusUrl = `${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(sessionShop)}`;
+    const resp = await fetch(statusUrl);
+    if (resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      brandContextStatus = String(data?.status || 'idle');
+      brandContextLastError = data?.last_error ? String(data?.last_error) : null;
+      brandContextSummary = String(data?.summary || '').trim();
+    }
+  } catch {
+    // best-effort
   }
 
   const locales: ShopLocale[] = localesRes?.data?.shopLocales ?? [];
@@ -460,6 +479,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     didSelfHeal,
     contentHash: selectedProduct?._contentHash ?? null,
     didResetMetaCache,
+    brandContextStatus,
+    brandContextLastError,
+    brandContextSummary,
   } satisfies LoaderData;
 };
 
@@ -914,6 +936,9 @@ function RewriterWorkspaceInner({
   shop,
   backendApiUrl,
   shopSlug,
+  brandContextStatus,
+  brandContextLastError,
+  brandContextSummary,
 }: LoaderData) {
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as ClientApplication<any>;
@@ -961,6 +986,10 @@ function RewriterWorkspaceInner({
   const [seoIntelOpen, setSeoIntelOpen] = useState(false);
   const [jvOpen, setJvOpen] = useState(false);
   const [removeIrrelevantContent, setRemoveIrrelevantContent] = useState(true);
+  const [brandSoulEnabled, setBrandSoulEnabled] = useState(false);
+  const [brandStatus, setBrandStatus] = useState<string>(brandContextStatus || 'idle');
+  const [brandStatusError, setBrandStatusError] = useState<string | null>(brandContextLastError || null);
+  const [brandSummary, setBrandSummary] = useState<string>(brandContextSummary || '');
   const [miscInfoByLocale, setMiscInfoByLocale] = useState<Record<string, string>>({});
   const [seoIntelByLocale, setSeoIntelByLocale] = useState<
     Record<
@@ -991,6 +1020,7 @@ function RewriterWorkspaceInner({
   const isFreePlan =
     billingCycleType === 'lifetime' || (!billingCycleType && planName === 'Free');
   const isBasicPlan = planName === 'Basic' || isFreePlan;
+  const isStandardPlus = planName === 'Standard' || planName === 'Pro';
   const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = isBasicPlan
     ? 'professional'
     : toneProfile;
@@ -1011,6 +1041,39 @@ function RewriterWorkspaceInner({
     if (Number.isNaN(dt.getTime())) return false;
     return Date.now() > dt.getTime();
   }, [lastPlanName, accessExpiresAt]);
+
+  useEffect(() => {
+    setBrandStatus(brandContextStatus || 'idle');
+    setBrandStatusError(brandContextLastError || null);
+    setBrandSummary(brandContextSummary || '');
+  }, [brandContextStatus, brandContextLastError, brandContextSummary]);
+
+  useEffect(() => {
+    if (brandStatus !== 'running') return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const resp = await fetch(
+          `${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(shop)}`,
+        );
+        if (!resp.ok) return;
+        const data = await resp.json().catch(() => ({}));
+        if (!active) return;
+        const nextStatus = String(data?.status || 'idle');
+        setBrandStatus(nextStatus);
+        setBrandStatusError(data?.last_error ? String(data?.last_error) : null);
+        setBrandSummary(String(data?.summary || '').trim());
+      } catch {
+        // best-effort
+      }
+    };
+    const id = window.setInterval(poll, 10000);
+    poll();
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
+  }, [brandStatus, backendApiUrl, shop]);
 
   const publishedLocales = useMemo(
     () => locales.filter((l) => l.published),
@@ -1408,6 +1471,7 @@ function RewriterWorkspaceInner({
         auto_convert_units: Boolean(autoConvertUnits),
         tone_profile: effectiveTone,
         remove_irrelevant_content: Boolean(removeIrrelevantContent),
+        brand_soul_enabled: Boolean(brandSoulEnabled && isStandardPlus),
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
@@ -1598,6 +1662,11 @@ function RewriterWorkspaceInner({
   }, [
     activeLocale,
     app,
+    autoConvertUnits,
+    brandSoulEnabled,
+    effectiveTone,
+    isStandardPlus,
+    removeIrrelevantContent,
     referenceDescription,
     referenceTitle,
     selectedLocales,
@@ -1811,12 +1880,9 @@ function RewriterWorkspaceInner({
           <Card>
             <Box padding="400">
               <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">
-                    Products
-                  </Text>
-                  <Badge tone={planName === 'Basic' ? 'warning' : 'success'}>{planName}</Badge>
-                </InlineStack>
+                <Text as="h2" variant="headingMd">
+                  Products
+                </Text>
 
                 {showDowngradeBanner && String(pendingPlanName || '').trim() && String(pendingPlanEffectiveAt || '').trim() ? (
                   <DowngradeScheduledBanner
@@ -1897,6 +1963,16 @@ function RewriterWorkspaceInner({
                 ) : null}
 
                 {optimizeError ? <Banner tone="critical">{optimizeError}</Banner> : null}
+                {brandStatus === 'running' ? (
+                  <Banner tone="info">
+                    Generating brand intelligence… please check after a while.
+                  </Banner>
+                ) : null}
+                {brandStatus === 'failed' ? (
+                  <Banner tone="critical">
+                    Brand intelligence failed. Please retry in the Brand Soul wizard.
+                  </Banner>
+                ) : null}
 
                 <Divider />
 
@@ -2083,6 +2159,33 @@ function RewriterWorkspaceInner({
                       </Box>
 
                       <Box paddingBlockStart="200">
+                        <InlineStack align="space-between" blockAlign="center">
+                          <Checkbox
+                            label="Enhance description using your brand’s soul"
+                            checked={brandSoulEnabled}
+                            onChange={setBrandSoulEnabled}
+                            disabled={!isStandardPlus}
+                          />
+                          {!isStandardPlus ? <Icon source={LockIcon} tone="magic" /> : null}
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Pulls your brand story and pillars into the rewrite for richer storytelling.
+                        </Text>
+                        {!isStandardPlus ? (
+                          <Box paddingBlockStart="200">
+                            <LockedFeatureNotice
+                              title="Standard Plan Feature"
+                              description={
+                                <>Save your Brand Soul in the dashboard to unlock this toggle.</>
+                              }
+                              ctaLabel="Upgrade to Standard"
+                              ctaUrl={plansUrl}
+                            />
+                          </Box>
+                        ) : null}
+                      </Box>
+
+                      <Box paddingBlockStart="200">
                         <Checkbox
                           label="Remove irrelvant content"
                           checked={removeIrrelevantContent}
@@ -2150,382 +2253,6 @@ function RewriterWorkspaceInner({
                   </Banner>
                 </Box>
               ) : null}
-
-                <Card>
-                  <Box padding="300">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <BlockStack gap="100">
-                        <Text as="h3" variant="headingMd">
-                          SEO strategy crafted by AI
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Review SEO metadata and competitor insights.
-                        </Text>
-                      </BlockStack>
-                      <InlineStack gap="200" blockAlign="center">
-                        <Button onClick={() => setSeoIntelOpen(true)} variant="primary">
-                          View Details
-                        </Button>
-                      </InlineStack>
-                    </InlineStack>
-                  </Box>
-                </Card>
-
-                {miscInfoByLocale[activeLocale]?.trim() ? (
-                  <Box paddingBlockStart="200">
-                    <Banner tone="warning" title="Miscellaneous information (Recommended to be removed)">
-                      <Text as="p">{miscInfoByLocale[activeLocale]}</Text>
-                    </Banner>
-                  </Box>
-                ) : null}
-
-                <Modal
-                  open={seoIntelOpen}
-                  onClose={() => setSeoIntelOpen(false)}
-                  title="SEO Strategy & Competitor Intelligence"
-                  size="large"
-                >
-                  <Modal.Section>
-                    <div style={{maxWidth: 1400, width: '100%', overflowX: 'hidden'}}>
-                    <BlockStack gap="300">
-                      <div style={{ display: "flex", gap: 24, alignItems: "stretch", flexWrap: "wrap" }}>
-                        <div style={{ flex: "1 1 0", minWidth: 420 }}>
-                          <Card>
-                            <Box padding="300">
-                              <BlockStack gap="200">
-                                <Text as="h4" variant="headingSm">
-                                  Top 3 Ranks on Google Search
-                                </Text>
-                                {isBasicPlan ? (
-                                  <LockedFeatureNotice
-                                    title="Standard Plan Feature"
-                                    description={<>Unlock live competitor analysis (Top Google results) for your product.</>}
-                                    ctaLabel="Upgrade to Standard"
-                                    ctaUrl={plansUrl}
-                                  />
-                                ) : isOptimizing ? (
-                                  <BlockStack gap="200">
-                                    <Text as="p" tone="subdued">
-                                      Analyzing live US Google results...
-                                    </Text>
-                                    <SkeletonBodyText lines={3} />
-                                  </BlockStack>
-                                ) : (
-                                  <BlockStack gap="200">
-                                    {(() => {
-                                      const entries =
-                (seoIntelByLocale[activeLocale]?.competitor_results &&
-                  seoIntelByLocale[activeLocale]?.competitor_results?.length
-                  ? seoIntelByLocale[activeLocale]?.competitor_results
-                  : seoIntelByLocale[activeLocale]?.competitor_titles?.map((t) => ({
-                      title: t,
-                      snippet: undefined,
-                      link: undefined,
-                    })) || []) || [];
-                                      return entries.length ? (
-                                        entries.map((r, i) => (
-                                          <SearchEnginePreview
-                                            key={`comp-${i}`}
-                                            title={r?.title || '—'}
-                                            url={r?.link || 'https://example.com'}
-                                            snippet={r?.snippet || '—'}
-                                          />
-                                        ))
-                                      ) : (
-                                        <Text as="p" tone="subdued">
-                                          Currently unavailable.
-                                        </Text>
-                                      );
-                                    })()}
-                                  </BlockStack>
-                                )}
-                              </BlockStack>
-                            </Box>
-                          </Card>
-                        </div>
-
-                        <div style={{ flex: "1 1 0", minWidth: 420 }}>
-                          <Card>
-                            <Box padding="300">
-                              <BlockStack gap="200">
-                                <InlineStack gap="200" blockAlign="center">
-                                  <Icon source={LightbulbIcon} tone="magic" />
-                                  <Text as="h4" variant="headingSm">
-                                    AI Insight (Recommendations)
-                                  </Text>
-                                </InlineStack>
-
-                                <BlockStack gap="150">
-                                  <Text as="h4" variant="headingMd">
-                                    You have an advantage over above competitors
-                                  </Text>
-                                  {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim() ? (
-                                    <Text as="p">
-                                      {String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.headline || '').trim()}
-                                    </Text>
-                                  ) : null}
-                                  <Text as="p">
-                                    {seoIntelByLocale[activeLocale]?.competitive_edge ||
-                                      String(seoRecsByLocale?.[activeLocale]?.competitive_edge?.copy || '').trim() ||
-                                      'Run Optimize to generate a competitive edge suggestion.'}
-                                  </Text>
-                                </BlockStack>
-
-                                <BlockStack gap="150">
-                                  <Text as="h4" variant="headingMd">
-                                    Improve SEO further by applying Buyer Intent in your Description.
-                                  </Text>
-                                  {Array.isArray(seoRecsByLocale?.[activeLocale]?.buyer_intent?.strategy) &&
-                                  (seoRecsByLocale?.[activeLocale]?.buyer_intent?.strategy as any[]).length ? (
-                                    <BlockStack gap="100">
-                                      {(seoRecsByLocale?.[activeLocale]?.buyer_intent?.strategy as any[])
-                                        .slice(0, 6)
-                                        .map((s, i) => (
-                                          <Text key={`buyer-intent-${i}`} as="p">
-                                            • {String(s || '').trim()}
-                                          </Text>
-                                        ))}
-                                    </BlockStack>
-                                  ) : (
-                                    <Text as="p" tone="subdued">
-                                      Run Optimize to generate buyer intent recommendations.
-                                    </Text>
-                                  )}
-                                  <Text as="p" variant="bodySm" tone="subdued">
-                                    These are recommendations only—review and decide what to add.
-                                  </Text>
-                                </BlockStack>
-                              </BlockStack>
-                            </Box>
-                          </Card>
-                        </div>
-                      </div>
-
-                      {/* Second row: Our SEO Strategy (full width) */}
-                      <Card>
-                        <Box padding="300">
-                          <BlockStack gap="300">
-                            <InlineStack align="space-between" blockAlign="center">
-                              <Text as="h4" variant="headingSm">
-                                Our SEO Strategy
-                              </Text>
-                              <InlineStack gap="300" blockAlign="center">
-                                <Text
-                                  as="span"
-                                  variant="bodySm"
-                                  tone={(currentDraft.seoTitle || '').length > 70 ? 'critical' : 'subdued'}
-                                >
-                                  Title {(currentDraft.seoTitle || '').length}/70
-                                </Text>
-                                <Text
-                                  as="span"
-                                  variant="bodySm"
-                                  tone={(currentDraft.seoDescription || '').length > 160 ? 'critical' : 'subdued'}
-                                >
-                                  Description {(currentDraft.seoDescription || '').length}/160
-                                </Text>
-                              </InlineStack>
-                            </InlineStack>
-
-                            <BlockStack gap="300">
-                              <TextField
-                                label="SEO Title"
-                                value={currentDraft.seoTitle}
-                                placeholder={currentDraft.seoTitle ? '' : seoPlaceholders.title || 'Shop the authentic…'}
-                                multiline={2}
-                                onChange={(v) =>
-                                  setDraftByLocale((prev) => ({
-                                    ...prev,
-                                    [activeLocale]: {
-                                      title: currentDraft.title,
-                                      description: currentDraft.description,
-                                      seoTitle: v,
-                                      seoDescription: currentDraft.seoDescription,
-                                      seoAltText: currentDraft.seoAltText,
-                                    },
-                                  }))
-                                }
-                                autoComplete="off"
-                              />
-
-                              <TextField
-                                label="Meta Description"
-                                multiline={3}
-                                value={currentDraft.seoDescription}
-                                placeholder={
-                                  currentDraft.seoDescription ? '' : seoPlaceholders.description || 'Discover authentic craftsmanship…'
-                                }
-                                onChange={(v) =>
-                                  setDraftByLocale((prev) => ({
-                                    ...prev,
-                                    [activeLocale]: {
-                                      title: currentDraft.title,
-                                      description: currentDraft.description,
-                                      seoTitle: currentDraft.seoTitle,
-                                      seoDescription: v,
-                                      seoAltText: currentDraft.seoAltText,
-                                    },
-                                  }))
-                                }
-                                autoComplete="off"
-                              />
-
-                              <TextField
-                                label="SEO Alt Text (Main image)"
-                                value={currentDraft.seoAltText}
-                                placeholder="Black leather wallet - slim design"
-                                onChange={(v) =>
-                                  setDraftByLocale((prev) => ({
-                                    ...prev,
-                                    [activeLocale]: {
-                                      title: currentDraft.title,
-                                      description: currentDraft.description,
-                                      seoTitle: currentDraft.seoTitle,
-                                      seoDescription: currentDraft.seoDescription,
-                                      seoAltText: v,
-                                    },
-                                  }))
-                                }
-                                autoComplete="off"
-                              />
-
-                              <Box>
-                                <Text as="p" variant="bodySm" tone="subdued">
-                                  Preview (how it may appear in Google)
-                                </Text>
-                                <Box paddingBlockStart="200">
-                                  <SearchEnginePreview
-                                    title={String(currentDraft.seoTitle || '').trim() || 'SEO title preview…'}
-                                    url={`https://${String(shop || 'example.com')}`}
-                                    snippet={String(currentDraft.seoDescription || '').trim() || 'Meta description preview…'}
-                                  />
-                                </Box>
-                              </Box>
-
-                              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                                <BlockStack gap="200">
-                                  <InlineStack align="space-between" blockAlign="center">
-                                    <Text as="h4" variant="headingSm">
-                                      CTR Optimization Score
-                                    </Text>
-                                    <Text as="span" variant="bodySm" tone="subdued">
-                                      <span
-                                        style={{
-                                          display: "inline-block",
-                                          padding: "2px 8px",
-                                          borderRadius: 999,
-                                          background: "var(--p-color-bg-surface-brand)",
-                                          color: "var(--p-color-text-on-color)",
-                                          fontSize: 12,
-                                        }}
-                                      >
-                                        Optimized for US Search Patterns
-                                      </span>
-                                    </Text>
-                                  </InlineStack>
-
-                                  {(() => {
-                                    const titleLen = (currentDraft.seoTitle || "").length;
-                                    const desc = String(currentDraft.seoDescription || "");
-                                    const descLower = desc.toLowerCase();
-                                    const problemWords = [
-                                      "tired",
-                                      "struggling",
-                                      "problem",
-                                      "frustrated",
-                                      "looking for",
-                                      "need a",
-                                      "wish",
-                                    ];
-                                    const hasProblemSignal =
-                                      desc.includes("?") ||
-                                      problemWords.some((w) => descLower.includes(w));
-                                    const hasBrandTrust =
-                                      /japan/i.test(desc) ||
-                                      /handcrafted/i.test(desc) ||
-                                      /free shipping/i.test(desc);
-
-                                    const pstTone: "green" | "yellow" | "red" = hasProblemSignal
-                                      ? "green"
-                                      : /shop now|discover|order|buy/i.test(desc)
-                                        ? "yellow"
-                                        : "red";
-                                    const trustTone: "green" | "yellow" | "red" = hasBrandTrust
-                                      ? "green"
-                                      : /authentic|artisan|premium/i.test(desc)
-                                        ? "yellow"
-                                        : "red";
-                                    const lenTone: "green" | "yellow" | "red" =
-                                      titleLen > 50 && titleLen < 70
-                                        ? "green"
-                                        : titleLen >= 45 && titleLen <= 75
-                                          ? "yellow"
-                                          : "red";
-
-                                    const colorFor = (t: "green" | "yellow" | "red") =>
-                                      t === "green"
-                                        ? "var(--p-color-bg-fill-success)"
-                                        : t === "yellow"
-                                          ? "var(--p-color-bg-fill-warning)"
-                                          : "var(--p-color-bg-fill-critical)";
-
-                                    const Light = ({ tone }: { tone: "green" | "yellow" | "red" }) => (
-                                      <span
-                                        style={{
-                                          width: 10,
-                                          height: 10,
-                                          borderRadius: 999,
-                                          display: "inline-block",
-                                          background: colorFor(tone),
-                                          boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.6) inset",
-                                        }}
-                                      />
-                                    );
-
-                                    const Row = ({
-                                      label,
-                                      tone,
-                                      hint,
-                                    }: {
-                                      label: string;
-                                      tone: "green" | "yellow" | "red";
-                                      hint: string;
-                                    }) => (
-                                      <InlineStack align="space-between" blockAlign="center">
-                                        <InlineStack gap="200" blockAlign="center">
-                                          <Light tone={tone} />
-                                          <Text as="span" variant="bodySm">
-                                            {label}
-                                          </Text>
-                                        </InlineStack>
-                                        <Text as="span" variant="bodySm" tone="subdued">
-                                          {hint}
-                                        </Text>
-                                      </InlineStack>
-                                    );
-
-                                    return (
-                                      <BlockStack gap="200">
-                                        <Row label="PST Check" tone={pstTone} hint={hasProblemSignal ? "OK" : "Add a problem/question"} />
-                                        <Row
-                                          label="Brand Trust"
-                                          tone={trustTone}
-                                          hint={hasBrandTrust ? "OK" : 'Add “Japan”, “Handcrafted” or “Free Shipping”'}
-                                        />
-                                        <Row label="Length Check" tone={lenTone} hint={`${titleLen}/70`} />
-                                      </BlockStack>
-                                    );
-                                  })()}
-                                </BlockStack>
-                              </Box>
-                            </BlockStack>
-                          </BlockStack>
-                        </Box>
-                      </Card>
-                    </BlockStack>
-                    </div>
-                  </Modal.Section>
-                </Modal>
 
                 {(saveFetcher.data as any)?.error ? (
                   <Banner tone="critical">{(saveFetcher.data as any).error}</Banner>

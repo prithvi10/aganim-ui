@@ -1,7 +1,6 @@
 import type {ActionFunctionArgs, LoaderFunctionArgs} from 'react-router';
 import {useLoaderData, useSearchParams, useFetcher} from 'react-router';
 import {
-  Badge,
   Banner,
   BlockStack,
   Box,
@@ -14,8 +13,9 @@ import {
   Modal,
   Page,
   Scrollable,
+  Select,
+  Spinner,
   Text,
-  TextField,
   Thumbnail,
   Toast,
 } from '@shopify/polaris';
@@ -199,7 +199,11 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     productsRes?.data?.products?.edges?.map((e: any) => e.node) ?? [];
 
   const fallbackSelected = firstOrNull(products)?.id ?? '';
-  const selectedProductId = selectedProductIdParam || fallbackSelected;
+  // Convert numeric ID to full GID format if needed
+  let selectedProductId = selectedProductIdParam || fallbackSelected;
+  if (selectedProductId && !selectedProductId.startsWith('gid://')) {
+    selectedProductId = `gid://shopify/Product/${selectedProductId}`;
+  }
 
   const selectedProductRes = selectedProductId
     ? usingOfflineClient
@@ -438,7 +442,6 @@ export default function MarketingWorkspace() {
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge();
 
-  const [search, setSearch] = useState('');
   const [imagesOpen, setImagesOpen] = useState(false);
   const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
 
@@ -469,13 +472,20 @@ export default function MarketingWorkspace() {
 
   const [toastContent, setToastContent] = useState<string | null>(null);
 
-  const filteredProducts = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => p.title.toLowerCase().includes(q));
-  }, [products, search]);
-
   const selectedProductId = searchParams.get('productId') || (products[0]?.id ?? '');
+  
+  const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
+  
+  const handleProductChange = useCallback((value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("productId", productIdFromGid(value));
+    setSearchParams(newParams);
+    // Reset hooks state when product changes
+    setHooks([]);
+    setHooksError(null);
+    setHooksGenerated(false);
+    setOverlaySuggestions([]);
+  }, [searchParams, setSearchParams]);
   const shopMarketingUrl = useMemo(() => {
     if (!shopSlug) return '';
     return `https://admin.shopify.com/store/${shopSlug}/marketing`;
@@ -500,7 +510,13 @@ export default function MarketingWorkspace() {
         token = null;
       }
 
-      const resp = await fetch('/api/agent', {
+      // Use the backend API URL with shop parameter
+      const url = new URL(`${backendApiUrl}/api/agent`);
+      if (!token && shop) {
+        url.searchParams.set("shop", shop);
+      }
+
+      const resp = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -521,7 +537,7 @@ export default function MarketingWorkspace() {
       }
       return result;
     },
-    [app],
+    [app, backendApiUrl, shop],
   );
 
   const runSocialHooks = useCallback(async () => {
@@ -623,14 +639,15 @@ export default function MarketingWorkspace() {
     }
   }, [callAgent, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
-  // Run both panels when product changes
+  // Load cached hooks when product changes (but don't auto-generate)
   useEffect(() => {
     setHooks([]);
     setHooksError(null);
     setSeasonalError(null);
     setHooksGenerated(false);
+    setOverlaySuggestions([]);
     if (!selectedProduct?.id) return;
-    // Use cached hooks if present; otherwise generate once and persist to metafield.
+    // Load cached hooks if present (don't auto-generate)
     const cached = selectedProduct.socialHooksCache;
     if (cached?.hooks?.length) {
       setHooks(cached.hooks);
@@ -638,8 +655,6 @@ export default function MarketingWorkspace() {
       setSelectedHookIndex(0);
       // Only lock/disable the button when the cache matches the CURRENT product description.
       setHooksGenerated(Boolean(selectedProduct?._hooksIsFresh));
-    } else {
-      runSocialHooks();
     }
     if (didResetMetaCache) {
       setToastContent('Product description changed. Please generate hooks again.');
@@ -699,210 +714,145 @@ export default function MarketingWorkspace() {
       ) : null}
 
       <Layout>
-        <Layout.Section variant="oneThird">
-          <Card>
-            <Box padding="400">
-              <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">
-                    Products
-                  </Text>
-                  <Badge tone={planName === 'Basic' ? 'warning' : 'success'}>{planName}</Badge>
-                </InlineStack>
-
-                <TextField
-                  label="Search"
-                  labelHidden
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="Search products…"
-                  autoComplete="off"
-                />
-
-                <Divider />
-
-                <Scrollable style={{height: 720}}>
-                  <BlockStack gap="100">
-                    {filteredProducts.map((p) => {
-                      const isSelected = p.id === selectedProductId;
-                      return (
-                        <Box
-                          key={p.id}
-                          padding="200"
-                          background={isSelected ? 'bg-surface-secondary' : undefined}
-                          borderRadius="200"
-                        >
+        <Layout.Section>
+          <BlockStack gap="400">
+            {/* Product Selection Card - Similar to SEO page */}
+            <Card>
+              <BlockStack gap="300">
+                <Text variant="headingMd" as="h2">Select Product</Text>
+                <Select label="Product" labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
+                {selectedProduct && (
+                  <InlineStack align="space-between" blockAlign="center">
+                    <BlockStack gap="100">
+                      <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
+                      <Text variant="bodySm" tone="subdued">{selectedProduct.productType || "No category"}</Text>
+                      {adminProductUrl ? (
+                        <Link url={adminProductUrl} external>
+                          Open product details
+                        </Link>
+                      ) : null}
+                    </BlockStack>
+                    {selectedProduct.images?.length ? (
+                      <InlineStack gap="200" blockAlign="center">
+                        {selectedProduct.images.slice(0, 3).map((img, idx) => (
                           <button
+                            key={`${img.url}-${idx}`}
                             type="button"
-                            onClick={() => {
-                              const next = new URLSearchParams(searchParams);
-                              next.set('productId', p.id);
-                              setSearchParams(next);
-                            }}
+                            onClick={() => setImagesOpen(true)}
+                            aria-label="View product images"
                             style={{
-                              width: '100%',
-                              textAlign: 'left',
                               background: 'transparent',
                               border: 'none',
                               padding: 0,
                               cursor: 'pointer',
-                              whiteSpace: 'normal',
-                              wordBreak: 'break-word',
                             }}
-                            aria-current={isSelected ? 'true' : undefined}
                           >
-                            <Text as="span" variant="bodySm" breakWord>
-                              {p.title}
-                            </Text>
+                            <Thumbnail
+                              source={img.url}
+                              alt={img.altText || selectedProduct.title}
+                              size="small"
+                            />
                           </button>
-                        </Box>
-                      );
-                    })}
-                  </BlockStack>
-                </Scrollable>
-              </BlockStack>
-            </Box>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section>
-          <BlockStack gap="400">
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Selected product
-                  </Text>
-                  {selectedProduct ? (
-                    <>
-                      <InlineStack align="space-between" blockAlign="center">
-                        <BlockStack gap="100">
-                          <Text as="p" variant="bodyMd">
-                            <strong>{selectedProduct.title}</strong>
-                          </Text>
-                          <Text as="p" tone="subdued">
-                            Category: {selectedProduct.productType || '—'}
-                          </Text>
-                          {adminProductUrl ? (
-                            <Link url={adminProductUrl} external>
-                              Open product details
-                            </Link>
-                          ) : null}
-                        </BlockStack>
-
-                        {selectedProduct.images?.length ? (
-                          <InlineStack gap="200" blockAlign="center">
-                            {selectedProduct.images.slice(0, 3).map((img, idx) => (
-                              <button
-                                key={`${img.url}-${idx}`}
-                                type="button"
-                                onClick={() => setImagesOpen(true)}
-                                aria-label="View product images"
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  padding: 0,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <Thumbnail
-                                  source={img.url}
-                                  alt={img.altText || selectedProduct.title}
-                                  size="small"
-                                />
-                              </button>
-                            ))}
-                            {selectedProduct.images.length > 3 ? (
-                              <Button variant="plain" onClick={() => setImagesOpen(true)}>
-                                {`+${selectedProduct.images.length - 3}`}
-                              </Button>
-                            ) : null}
-                          </InlineStack>
+                        ))}
+                        {selectedProduct.images.length > 3 ? (
+                          <Button variant="plain" onClick={() => setImagesOpen(true)}>
+                            {`+${selectedProduct.images.length - 3}`}
+                          </Button>
                         ) : null}
                       </InlineStack>
-
-                      <Modal
-                        open={imagesOpen}
-                        onClose={() => setImagesOpen(false)}
-                        title="Product images"
-                      >
-                        <Modal.Section>
-                          {selectedProduct.images?.length ? (
-                            <Scrollable style={{maxHeight: 520}}>
-                              <BlockStack gap="300">
-                                {selectedProduct.images.map((img, idx) => (
-                                  <Card key={`${img.url}-${idx}`}>
-                                    <Box padding="300">
-                                      <BlockStack gap="200">
-                                        <Thumbnail
-                                          source={img.url}
-                                          alt={img.altText || selectedProduct.title}
-                                          size="large"
-                                        />
-                                        <Link url={img.url} external>
-                                          Open image
-                                        </Link>
-                                      </BlockStack>
-                                    </Box>
-                                  </Card>
-                                ))}
-                              </BlockStack>
-                            </Scrollable>
-                          ) : (
-                            <Text as="p" tone="subdued">
-                              No images found for this product.
-                            </Text>
-                          )}
-                        </Modal.Section>
-                      </Modal>
-                    </>
-                  ) : (
-                    <Banner tone="warning">No product selected.</Banner>
-                  )}
-                </BlockStack>
-              </Box>
+                    ) : null}
+                  </InlineStack>
+                )}
+              </BlockStack>
             </Card>
+
+            {/* Images Modal */}
+            <Modal
+              open={imagesOpen}
+              onClose={() => setImagesOpen(false)}
+              title="Product images"
+            >
+              <Modal.Section>
+                {selectedProduct?.images?.length ? (
+                  <Scrollable style={{maxHeight: 520}}>
+                    <BlockStack gap="300">
+                      {selectedProduct.images.map((img, idx) => (
+                        <Card key={`${img.url}-${idx}`}>
+                          <Box padding="300">
+                            <BlockStack gap="200">
+                              <Thumbnail
+                                source={img.url}
+                                alt={img.altText || selectedProduct.title}
+                                size="large"
+                              />
+                              <Link url={img.url} external>
+                                Open image
+                              </Link>
+                            </BlockStack>
+                          </Box>
+                        </Card>
+                      ))}
+                    </BlockStack>
+                  </Scrollable>
+                ) : (
+                  <Text as="p" tone="subdued">
+                    No images found for this product.
+                  </Text>
+                )}
+              </Modal.Section>
+            </Modal>
 
             <Card>
               <Box padding="400">
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
-                    <InlineStack gap="200" blockAlign="center">
-                      <img
-                        src="/instagram.svg"
-                        alt="Instagram"
-                        width={18}
-                        height={18}
-                        style={{width: 18, height: 18, borderRadius: 4}}
-                      />
+                    <BlockStack gap="200">
                       <Text as="h2" variant="headingMd">
-                        Instagram Marketing Assistant
+                        Social Media Captions
                       </Text>
-                    </InlineStack>
+                      <Button
+                        onClick={runSocialHooks}
+                        disabled={!selectedProduct?.id || hooksLoading || hooksGenerated}
+                        variant={hooksGenerated ? "secondary" : "primary"}
+                      >
+                        {hooksLoading
+                          ? 'Generating…'
+                          : hooksGenerated
+                            ? 'Generated ✓'
+                            : hooks.length
+                              ? 'Regenerate'
+                              : 'Generate'}
+                      </Button>
+                    </BlockStack>
                     <InlineStack gap="200" blockAlign="center">
-                      <Link url="https://www.instagram.com/reels/create/" external>
-                        Open Instagram Reels
-                      </Link>
+                      <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" title="Instagram" style={{display: 'inline-flex'}}>
+                        <img src="/instagram.svg" alt="Instagram" width={20} height={20} style={{width: 20, height: 20, borderRadius: 4}} />
+                      </a>
+                      <a href="https://www.tiktok.com/creator-center/upload" target="_blank" rel="noopener noreferrer" title="TikTok" style={{display: 'inline-flex'}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>
+                      </a>
+                      <a href="https://timeline.line.me/" target="_blank" rel="noopener noreferrer" title="LINE" style={{display: 'inline-flex'}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#00B900"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+                      </a>
+                      <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" title="Facebook" style={{display: 'inline-flex'}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                      </a>
+                      <a href="https://channels.weixin.qq.com/" target="_blank" rel="noopener noreferrer" title="WeChat" style={{display: 'inline-flex'}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#07C160"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178A1.17 1.17 0 014.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178 1.17 1.17 0 01-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 01.598.082l1.584.926a.272.272 0 00.139.045c.133 0 .241-.108.241-.243 0-.06-.023-.118-.039-.177l-.326-1.233a.49.49 0 01.178-.553C23.028 18.443 24 16.706 24 14.813c0-3.381-3.058-6.118-7.062-5.955zm-1.834 2.89c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.97-.982zm4.857 0c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.969-.982z"/></svg>
+                      </a>
+                      <a href="https://www.snapchat.com/" target="_blank" rel="noopener noreferrer" title="Snapchat" style={{display: 'inline-flex'}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#FFFC00"><path d="M12.206.793c.99 0 4.347.276 5.93 3.821.529 1.193.403 3.219.299 4.847l-.003.06c-.012.18-.022.345-.03.51.075.045.203.09.401.09.3-.016.659-.12 1.033-.301a.49.49 0 01.172-.03c.27 0 .48.12.55.254.12.209.015.553-.301.804-.42.326-1.378.658-1.652.814-.167.095-.27.213-.276.416-.014.302.168.599.381.928l.024.036c.96 1.43 2.013 2.305 3.162 2.611a.96.96 0 01.646.539c.108.267-.033.548-.09.675-.301.674-1.147 1.073-2.59 1.224-.066.008-.131.047-.136.165l-.007.123c-.01.127-.019.25-.03.377a.45.45 0 01-.359.378c-.195.047-.396.072-.6.072-.224 0-.45-.022-.677-.068-.657-.135-1.236.12-1.935.399l-.116.047c-.66.27-1.406.577-2.367.577-.028 0-.057 0-.085-.002-.92.019-1.662-.283-2.337-.561l-.152-.062c-.71-.283-1.293-.534-1.955-.397a3.975 3.975 0 01-.677.068c-.204 0-.405-.025-.6-.072a.45.45 0 01-.359-.378c-.01-.127-.02-.25-.03-.377l-.007-.123c-.005-.118-.07-.157-.136-.165-1.443-.151-2.289-.55-2.59-1.224-.057-.127-.198-.408-.09-.675a.96.96 0 01.646-.539c1.149-.306 2.202-1.181 3.162-2.611l.024-.036c.213-.329.395-.626.381-.928-.006-.203-.109-.32-.276-.416-.274-.156-1.232-.488-1.652-.814-.316-.251-.421-.595-.301-.804.07-.134.28-.254.55-.254a.49.49 0 01.172.03c.374.181.733.285 1.033.301.198 0 .326-.045.401-.09-.008-.165-.018-.33-.03-.51l-.003-.06c-.104-1.628-.23-3.654.299-4.847C7.859 1.069 11.216.793 12.206.793z"/></svg>
+                      </a>
+                      <a href="https://www.threads.net/" target="_blank" rel="noopener noreferrer" title="Threads" style={{display: 'inline-flex'}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.182.408-2.256 1.33-3.022.88-.73 2.082-1.146 3.48-1.206 1.007-.044 1.946.052 2.813.266-.07-.838-.316-1.457-.732-1.848-.478-.45-1.228-.673-2.227-.673h-.057c-.768.007-1.666.196-2.275.524l-.963-1.719c.906-.487 2.12-.741 3.296-.746h.082c1.488 0 2.659.404 3.476 1.199.772.75 1.227 1.845 1.336 3.226.392.142.762.31 1.108.5 1.199.658 2.095 1.598 2.59 2.725.628 1.432.663 3.972-1.452 6.038-1.798 1.756-4.02 2.537-7.186 2.56zm-.136-6.318c.071 0 .141-.002.211-.006 1.05-.057 2.27-.48 2.655-1.858a4.308 4.308 0 00-.01-.964c-.833-.242-1.736-.36-2.715-.317-.9.04-1.649.27-2.165.665-.473.363-.693.826-.66 1.377.052.878.76 1.103 2.684 1.103z"/></svg>
+                      </a>
+                      <a href="https://twitter.com/compose/tweet" target="_blank" rel="noopener noreferrer" title="X (Twitter)" style={{display: 'inline-flex'}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                      </a>
                     </InlineStack>
                   </InlineStack>
 
                   {hooksError ? <Banner tone="critical">{hooksError}</Banner> : null}
-
-                  <InlineStack align="end">
-                    <Button
-                      onClick={runSocialHooks}
-                      disabled={!selectedProduct?.id || hooksLoading || hooksGenerated}
-                      variant={hooksGenerated ? "secondary" : "primary"}
-                    >
-                      {hooksLoading
-                        ? 'Generating…'
-                        : hooksGenerated
-                          ? 'Generated ✓'
-                          : hooks.length
-                            ? 'Regenerate'
-                            : 'Generate'}
-                    </Button>
-                  </InlineStack>
 
                   <Banner tone="info">
                     Text overlay suggestions:{' '}
