@@ -22,6 +22,7 @@ import { useState, useCallback } from "react";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { MissionTimeline, type MissionState } from "../components/MissionTimeline";
 import { MissionSummary } from "../components/MissionSummary";
+import "../styles/optimize-button.css";
 
 type ProductListItem = { id: string; title: string };
 
@@ -406,9 +407,22 @@ export default function OptimizePage() {
                         <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
                         <Text variant="bodySm" tone="subdued">Category: {selectedProduct.productType || "General"}</Text>
 
-                        <Button variant="primary" onClick={handleOptimize} loading={isOptimizing} disabled={!selectedProduct || isOptimizing} fullWidth>
-                          Start AI Optimization
-                        </Button>
+                        <div className="aiOptimizeCenter">
+                          <div className="aiOptimizeWrap">
+                            <div className="aiOptimizeInner">
+                              <Button
+                                variant="primary"
+                                size="large"
+                                onClick={handleOptimize}
+                                loading={isOptimizing}
+                                disabled={!selectedProduct || isOptimizing}
+                                fullWidth
+                              >
+                                🚀 Optimize All
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
                       </BlockStack>
                     </Box>
                   )}
