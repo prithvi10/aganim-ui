@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useSearchParams } from "react-router";
+import { useLoaderData, useSearchParams, useNavigate } from "react-router";
 import {
   Page,
   Layout,
@@ -15,10 +15,11 @@ import {
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { CompetitorMap, type Competitor } from "../components/CompetitorMap";
+import "../styles/optimize-button.css";
 
 type ProductListItem = { id: string; title: string };
 type SelectedProduct = {
@@ -122,6 +123,13 @@ export default function PricingPage() {
   const { shop, backendApiUrl, products, selectedProduct } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
+  const navigate = useNavigate();
+  
+  const nav = (path: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (shop) params.set("shop", shop);
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{
@@ -139,13 +147,23 @@ export default function PricingPage() {
     newParams.set("productId", productIdFromGid(value));
     setSearchParams(newParams);
     setAnalysisResult(null);
+    setError(null);
   }, [searchParams, setSearchParams]);
+
+  // Reset analysis result when product changes
+  useEffect(() => {
+    setAnalysisResult(null);
+    setError(null);
+  }, [selectedProduct?.id]);
 
   const handleAnalyze = useCallback(async () => {
     if (!selectedProduct) return;
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
+
+    // Calculate current price from the selected product
+    const productPrice = selectedProduct?.variants?.[0]?.price ? parseFloat(selectedProduct.variants[0].price) : 0;
 
     let token: string | null = null;
     try {
@@ -191,7 +209,7 @@ export default function PricingPage() {
       const competitorsData = analysis.valid_competitors || analysis.competitors || [];
       
       setAnalysisResult({
-        yourPrice: currentPrice,
+        yourPrice: productPrice,
         competitors: competitorsData.map((c: any) => ({
           // Use source (merchant name) or title for display name
           name: c.source || c.name || c.title || "Competitor",
@@ -214,7 +232,7 @@ export default function PricingPage() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [selectedProduct, backendApiUrl, app, shop, currentPrice]);
+  }, [selectedProduct, backendApiUrl, app, shop]);
 
   const handleApplyPrice = useCallback(async (price: number) => {
     alert(`Price would be updated to $${price.toFixed(2)}`);
@@ -223,7 +241,14 @@ export default function PricingPage() {
   const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
 
   return (
-    <Page title="Pricing Intelligence" subtitle="Analyze competitor prices and get AI-powered pricing recommendations">
+    <Page 
+      title="Pricing Intelligence" 
+      subtitle="Analyze competitor prices and get AI-powered pricing recommendations"
+      backAction={{
+        content: "Back",
+        onAction: () => navigate(nav("/app")),
+      }}
+    >
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -237,7 +262,9 @@ export default function PricingPage() {
                       <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
                       <Text variant="bodySm" tone="subdued">Current Price: ${currentPrice.toFixed(2)}</Text>
                     </BlockStack>
-                    <Button variant="primary" onClick={handleAnalyze} loading={isAnalyzing} disabled={!selectedProduct || isAnalyzing}>Scout Prices</Button>
+                    <div className="agent-btn-border-4">
+                      <Button variant="primary" size="large" onClick={handleAnalyze} loading={isAnalyzing} disabled={!selectedProduct || isAnalyzing}>Scout Prices</Button>
+                    </div>
                   </InlineStack>
                 )}
               </BlockStack>

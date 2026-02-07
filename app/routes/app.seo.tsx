@@ -1,5 +1,5 @@
-import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useSearchParams } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useLoaderData, useSearchParams, useNavigate, useFetcher } from "react-router";
 import {
   Page,
   Layout,
@@ -15,12 +15,16 @@ import {
   Badge,
   Divider,
   Spinner,
+  TextField,
+  Toast,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { CheckIcon } from "@shopify/polaris-icons";
 
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
+import "../styles/optimize-button.css";
 
 type ProductListItem = { id: string; title: string };
 type SelectedProduct = {
@@ -28,6 +32,8 @@ type SelectedProduct = {
   title: string;
   descriptionHtml: string;
   productType: string;
+  seo?: { title?: string | null; description?: string | null } | null;
+  seoDataMeta?: { id?: string | null; value?: string | null } | null;
 };
 
 type LoaderData = {
@@ -113,10 +119,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (productGid) {
     const productQuery = offlineContext
-      ? `query { product(id: "${productGid}") { id title descriptionHtml productType } }`
-      : `query getProduct($id: ID!) { product(id: $id) { id title descriptionHtml productType } }`;
+      ? `query { product(id: "${productGid}") { id title descriptionHtml productType seo { title description } seoDataMeta: metafield(namespace: "crossborderagent", key: "seo_data") { id value } } }`
+      : `query getProduct($id: ID!) { product(id: $id) { id title descriptionHtml productType seo { title description } seoDataMeta: metafield(namespace: "crossborderagent", key: "seo_data") { id value } } }`;
     
-    const productBody = await graphqlQuery(productQuery, { id: productGid }) as { data?: { product?: { id: string; title: string; descriptionHtml: string; productType: string } } };
+    const productBody = await graphqlQuery(productQuery, { id: productGid }) as { data?: { product?: { id: string; title: string; descriptionHtml: string; productType: string; seo?: { title?: string | null; description?: string | null } | null; seoDataMeta?: { id?: string | null; value?: string | null } | null } } };
     const p = productBody?.data?.product;
     if (p) {
       selectedProduct = {
@@ -124,6 +130,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         title: p.title,
         descriptionHtml: p.descriptionHtml || "",
         productType: p.productType || "",
+        seo: p.seo || null,
+        seoDataMeta: p.seoDataMeta || null,
       };
     }
   }
@@ -142,6 +150,81 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   } catch { /* ignore */ }
 
   return { planName, shop: session.shop, backendApiUrl, products, selectedProduct };
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") || "");
+
+  const { admin } = await authenticate.admin(request);
+
+  if (intent === "save_seo") {
+    const productId = String(formData.get("productId") || "");
+    const seoTitle = String(formData.get("seoTitle") || "");
+    const seoDescription = String(formData.get("seoDescription") || "");
+
+    if (!productId) return { ok: false, error: "Missing productId" };
+
+    // Update product SEO fields
+    const resp = await admin.graphql(
+      `mutation UpdateProduct($input: ProductInput!) {
+        productUpdate(input: $input) {
+          product { id }
+          userErrors { message }
+        }
+      }`,
+      {
+        variables: {
+          input: {
+            id: productId,
+            ...((seoTitle || seoDescription)
+              ? { seo: { title: seoTitle || null, description: seoDescription || null } }
+              : {}),
+          },
+        },
+      },
+    );
+    const body = await resp.json();
+    const errors = body?.data?.productUpdate?.userErrors ?? [];
+    if (errors.length > 0) {
+      return { ok: false, error: errors[0]?.message ?? "Unknown error" };
+    }
+
+    // Also save to metafield for consistency
+    try {
+      const seoData = {
+        seo_title: seoTitle,
+        seo_description: seoDescription,
+      };
+      await admin.graphql(
+        `mutation SetMetafields($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { id }
+            userErrors { field message }
+          }
+        }`,
+        {
+          variables: {
+            metafields: [
+              {
+                ownerId: productId,
+                namespace: "crossborderagent",
+                key: "seo_data",
+                type: "json",
+                value: JSON.stringify(seoData),
+              },
+            ],
+          },
+        },
+      );
+    } catch {
+      // best-effort
+    }
+
+    return { ok: true };
+  }
+
+  return { ok: false, error: "Unknown intent" };
 };
 
 /**
@@ -233,10 +316,23 @@ export default function SEOPage() {
   const { shop, backendApiUrl, products, selectedProduct } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
+  const navigate = useNavigate();
+  const saveFetcher = useFetcher<typeof action>();
+  
+  const nav = (path: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (shop) params.set("shop", shop);
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [seoResult, setSeoResult] = useState<SEOResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingSeo, setIsEditingSeo] = useState(false);
+  const [editedSeoTitle, setEditedSeoTitle] = useState("");
+  const [editedSeoDescription, setEditedSeoDescription] = useState("");
+  const [toastContent, setToastContent] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
 
   const handleProductChange = useCallback((value: string) => {
     const newParams = new URLSearchParams(searchParams);
@@ -292,14 +388,17 @@ export default function SEOPage() {
       const data = await response.json();
       const metadata = data?.data?.metadata || {};
       
-      setSeoResult({
+      const newSeoResult = {
         seo_title: metadata.seo_title,
         seo_description: metadata.seo_description,
         seo_alt_text: metadata.seo_alt_text,
         seo_insights: metadata.seo_insights,
         ctr_check: metadata.ctr_check,
         serp_insights: metadata.serp_insights,
-      });
+      };
+      setSeoResult(newSeoResult);
+      setEditedSeoTitle(metadata.seo_title || "");
+      setEditedSeoDescription(metadata.seo_description || "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to optimize SEO");
     } finally {
@@ -307,11 +406,87 @@ export default function SEOPage() {
     }
   }, [selectedProduct, backendApiUrl, app, shop]);
 
+  // Load cached SEO data when product changes
+  useEffect(() => {
+    if (!selectedProduct?.id) {
+      setSeoResult(null);
+      setEditedSeoTitle("");
+      setEditedSeoDescription("");
+      return;
+    }
+
+    // Try to load from metafield first
+    let cachedSeo: SEOResult | null = null;
+    if (selectedProduct.seoDataMeta?.value) {
+      try {
+        const parsed = JSON.parse(selectedProduct.seoDataMeta.value);
+        if (parsed.seo_title || parsed.seo_description) {
+          cachedSeo = {
+            seo_title: parsed.seo_title || selectedProduct.seo?.title || undefined,
+            seo_description: parsed.seo_description || selectedProduct.seo?.description || undefined,
+            seo_alt_text: parsed.seo_alt_text || undefined,
+          };
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    // Fallback to product SEO fields if metafield not available
+    if (!cachedSeo && (selectedProduct.seo?.title || selectedProduct.seo?.description)) {
+      cachedSeo = {
+        seo_title: selectedProduct.seo.title || undefined,
+        seo_description: selectedProduct.seo.description || undefined,
+      };
+    }
+
+    if (cachedSeo) {
+      setSeoResult(cachedSeo);
+      setEditedSeoTitle(cachedSeo.seo_title || "");
+      setEditedSeoDescription(cachedSeo.seo_description || "");
+    } else {
+      setSeoResult(null);
+      setEditedSeoTitle("");
+      setEditedSeoDescription("");
+    }
+  }, [selectedProduct?.id, selectedProduct?.seoDataMeta?.value, selectedProduct?.seo]);
+
+  // Sync edited values when seoResult changes (from new generation)
+  useEffect(() => {
+    if (seoResult?.seo_title) setEditedSeoTitle(seoResult.seo_title);
+    if (seoResult?.seo_description) setEditedSeoDescription(seoResult.seo_description);
+  }, [seoResult?.seo_title, seoResult?.seo_description]);
+
+  // Handle save response
+  useEffect(() => {
+    if (saveFetcher.data) {
+      if (saveFetcher.data.ok) {
+        setToastContent("SEO metadata saved successfully!");
+        setIsSaved(true);
+      } else {
+        setError(saveFetcher.data.error || "Failed to save SEO metadata");
+        setIsSaved(false);
+      }
+    }
+  }, [saveFetcher.data]);
+
+  // Reset saved state when SEO result changes or product changes
+  useEffect(() => {
+    setIsSaved(false);
+  }, [seoResult, selectedProduct?.id]);
+
   const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
   const plainTextContent = selectedProduct ? stripHtml(selectedProduct.descriptionHtml) : "";
 
   return (
-    <Page title="SEO Optimization" subtitle="Generate SEO metadata and analyze competitors">
+    <Page 
+      title="SEO Optimization" 
+      subtitle="Generate SEO metadata and analyze competitors"
+      backAction={{
+        content: "Back",
+        onAction: () => navigate(nav("/app")),
+      }}
+    >
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -325,9 +500,11 @@ export default function SEOPage() {
                       <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
                       <Text variant="bodySm" tone="subdued">{selectedProduct.productType || "No category"}</Text>
                     </BlockStack>
-                    <Button variant="primary" onClick={handleOptimize} loading={isOptimizing} disabled={!selectedProduct || isOptimizing}>
-                      Optimize SEO
-                    </Button>
+                    <div className="agent-btn-border-6">
+                      <Button variant="primary" size="large" onClick={handleOptimize} loading={isOptimizing} disabled={!selectedProduct || isOptimizing}>
+                        Optimize SEO
+                      </Button>
+                    </div>
                   </InlineStack>
                 )}
               </BlockStack>
@@ -376,12 +553,46 @@ export default function SEOPage() {
                   <BlockStack gap="300">
                     <InlineStack align="space-between" blockAlign="center">
                       <Text variant="headingMd" as="h2">Your Product (SEO Preview)</Text>
-                      <Badge tone="success">Optimized</Badge>
+                      <InlineStack gap="200">
+                        <Badge tone="success">Optimized</Badge>
+                        <Button
+                          variant="secondary"
+                          onClick={() => setIsEditingSeo(!isEditingSeo)}
+                        >
+                          {isEditingSeo ? "Done Editing" : "Edit SEO"}
+                        </Button>
+                      </InlineStack>
                     </InlineStack>
+
+                    {/* Editable SEO Fields */}
+                    {isEditingSeo && (
+                      <Box padding="400" background="bg-surface-secondary" borderRadius="200">
+                        <BlockStack gap="400">
+                          <TextField
+                            label="SEO Title"
+                            value={editedSeoTitle}
+                            onChange={setEditedSeoTitle}
+                            autoComplete="off"
+                            helpText={`${editedSeoTitle.length}/60 characters recommended`}
+                            maxLength={70}
+                          />
+                          <TextField
+                            label="SEO Description"
+                            value={editedSeoDescription}
+                            onChange={setEditedSeoDescription}
+                            autoComplete="off"
+                            multiline={3}
+                            helpText={`${editedSeoDescription.length}/160 characters recommended`}
+                            maxLength={200}
+                          />
+                        </BlockStack>
+                      </Box>
+                    )}
+
                     <SearchEnginePreview
-                      title={seoResult.seo_title || "Your SEO Title"}
+                      title={isEditingSeo ? editedSeoTitle : (seoResult.seo_title || "Your SEO Title")}
                       url={`https://${shop}/products/${productIdFromGid(selectedProduct?.id)}`}
-                      snippet={seoResult.seo_description || "Your SEO description will appear here..."}
+                      snippet={isEditingSeo ? editedSeoDescription : (seoResult.seo_description || "Your SEO description will appear here...")}
                       isYours
                     />
                     {seoResult.seo_alt_text && (
@@ -457,9 +668,42 @@ export default function SEOPage() {
                 </Box>
               </Card>
             )}
+
+            {/* Save Button */}
+            {seoResult && selectedProduct && (
+              <Card>
+                <Box padding="400">
+                  <saveFetcher.Form method="post">
+                    <input type="hidden" name="intent" value="save_seo" />
+                    <input type="hidden" name="productId" value={selectedProduct.id} />
+                    <input type="hidden" name="seoTitle" value={isEditingSeo ? editedSeoTitle : (seoResult.seo_title || "")} />
+                    <input type="hidden" name="seoDescription" value={isEditingSeo ? editedSeoDescription : (seoResult.seo_description || "")} />
+                    <Button
+                      size="large"
+                      variant={isSaved ? "secondary" : "primary"}
+                      fullWidth
+                      submit
+                      disabled={
+                        !selectedProduct ||
+                        saveFetcher.state !== "idle" ||
+                        isOptimizing ||
+                        isSaved
+                      }
+                      icon={isSaved ? CheckIcon : undefined}
+                      tone={isSaved ? "success" : undefined}
+                    >
+                      {isSaved ? "Saved" : "Save"}
+                    </Button>
+                  </saveFetcher.Form>
+                </Box>
+              </Card>
+            )}
           </BlockStack>
         </Layout.Section>
       </Layout>
+      {toastContent ? (
+        <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
+      ) : null}
     </Page>
   );
 }

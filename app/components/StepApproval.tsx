@@ -717,9 +717,31 @@ export function StepApproval({
                           <Button
                             variant="plain"
                             size="slim"
-                            onClick={() => {
-                              const text = hook.copy_text || hook.caption || "";
-                              navigator.clipboard.writeText(text);
+                            onClick={async () => {
+                              try {
+                                const text = hook.copy_text || hook.caption || "";
+                                if (text) {
+                                  await navigator.clipboard.writeText(text);
+                                }
+                              } catch (err) {
+                                console.error("Failed to copy to clipboard:", err);
+                                // Fallback for older browsers
+                                const text = hook.copy_text || hook.caption || "";
+                                if (text) {
+                                  const textArea = document.createElement("textarea");
+                                  textArea.value = text;
+                                  textArea.style.position = "fixed";
+                                  textArea.style.opacity = "0";
+                                  document.body.appendChild(textArea);
+                                  textArea.select();
+                                  try {
+                                    document.execCommand("copy");
+                                  } catch (fallbackErr) {
+                                    console.error("Fallback copy failed:", fallbackErr);
+                                  }
+                                  document.body.removeChild(textArea);
+                                }
+                              }
                             }}
                           >
                             Copy
