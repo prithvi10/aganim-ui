@@ -1,23 +1,36 @@
 import {
   Page,
-  Layout,
   Card,
   Text,
   BlockStack,
   Button,
-  Link,
   InlineStack,
-  Divider,
   Banner,
   Box,
+  InlineGrid,
+  Collapsible,
+  FooterHelp,
+  ProgressBar,
+  Icon,
+  Spinner,
   List,
 } from "@shopify/polaris";
 import "../styles/optimize-button.css";
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useLoaderData, useNavigate } from "react-router";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { GetStartedGuide } from "../components/GetStartedGuide";
 import { BrandSoulWizard } from "../components/BrandSoulWizard";
+import {
+  StarIcon,
+  EditIcon,
+  CodeIcon,
+  SearchIcon,
+  SocialAdIcon,
+  ChartVerticalIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+} from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
@@ -134,8 +147,10 @@ export default function LandingPage() {
     brandUpdatedAt,
     brandLastError,
   } = useLoaderData<typeof loader>();
-  const [lang, setLang] = useState<"en" | "jp">("en");
+  const navigate = useNavigate();
   const [brandWizardOpen, setBrandWizardOpen] = useState(false);
+  const [brandSoulCollapsed, setBrandSoulCollapsed] = useState(false);
+  const [onboardingModalOpen, setOnboardingModalOpen] = useState(false);
   const [brandStatusState, setBrandStatusState] = useState(brandStatus);
   const [brandSummaryEnState, setBrandSummaryEnState] = useState(brandSummaryEn);
   const [brandSummaryJaState, setBrandSummaryJaState] = useState(brandSummaryJa);
@@ -148,62 +163,35 @@ export default function LandingPage() {
 
   const shopSlug = shop.replace(".myshopify.com", "");
   const themeEditorUrl = shopSlug
-    ? `https://admin.shopify.com/store/${shopSlug}/themes/current/editor`
-    : "https://admin.shopify.com/";
-
-  const productRewriterUrl = shopSlug
-    ? `https://admin.shopify.com/store/${shopSlug}/products/123`
-    : "https://admin.shopify.com/";
-
-  const bulkRewriterUrl = shopSlug
-    ? `https://admin.shopify.com/store/${shopSlug}/products`
-    : "https://admin.shopify.com/";
-
-  const workspaceUrl = shopSlug
-    ? `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/rewriter`
+    ? `https://admin.shopify.com/store/${shopSlug}/themes/current/editor?context=apps`
     : "https://admin.shopify.com/";
 
   const optimizeUrl = shopSlug
     ? `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/optimize`
     : "https://admin.shopify.com/";
 
-  const t = useMemo(() => {
-    return lang === "jp"
-      ? {
-          toggle: "English",
-          title: "越境 AI",
-          subtitle:
-            "商品情報を世界に通用するマーケティング文に変換します。",
-          welcome: "ようこそ",
-          howTo: "使い方（準備中）",
-          openOptimize: "🚀 全エージェントで最適化",
-          noteOptimize: "※ 全AIエージェント（コピーライター→マーケティング→価格→コンプライアンス）を実行",
-          openWorkspace: "ワークスペースを開く（リライター）",
-          openThemeEditor: "テーマエディタを開く（ウィジェット設定）",
-          openProductRewriter: "商品リライターを開く",
-          openBulkRewriter: "一括リライトを開く",
-          noteWorkspace: "※ ここからリライターのワークスペースを開きます。",
-          noteProductId: "※ いまはデモとして Product ID=123 を開きます。",
-          noteBulk: "※ 一括リライトは準備中（いまは商品一覧を開きます）。",
-        }
-      : {
-          toggle: "日本語",
-          title: "Cross-Border AI",
-          subtitle:
-            "Transform product info into a world-class marketing copy.",
-          welcome: "Welcome",
-          howTo: "How to use (coming soon)",
-          openOptimize: "🚀 Optimize All",
-          noteOptimize: "Run all AI agents (Rewriter → SEO → Marketing → Pricing)",
-          openWorkspace: "Open Rewriter Workspace",
-          openThemeEditor: "Open Theme Editor (Widget Settings)",
-          openProductRewriter: "Open Product Rewriter",
-          openBulkRewriter: "Open Bulk Rewriter",
-          noteWorkspace: "Opens the Rewriter workspace (side-by-side editor).",
-          noteProductId: "Note: currently opens a demo Product ID=123.",
-          noteBulk: "Note: bulk rewrite is not implemented yet (opens Products list).",
-        };
-  }, [lang]);
+  // Navigation helper to preserve query params
+  const nav = useCallback(
+    (path: string) => {
+      const params = new URLSearchParams();
+      if (host) params.set("host", host);
+      if (shop) params.set("shop", shop);
+      const qs = params.toString();
+      return qs ? `${path}?${qs}` : path;
+    },
+    [host, shop],
+  );
+
+  // Auto-launch onboarding modal if not seen
+  useEffect(() => {
+    const seen = localStorage.getItem("onboarding_seen");
+    if (!seen) {
+      // Trigger the GetStartedGuide modal by simulating a click
+      // We'll use a ref or trigger it via the component's internal state
+      // For now, we'll just set a flag and the guide will handle it
+      setOnboardingModalOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     setBrandStatusState(brandStatus);
@@ -226,25 +214,51 @@ export default function LandingPage() {
     brandUpdatedAt,
     brandLastError,
   ]);
-  const displayKeyFacts = useMemo(() => {
-    return lang === "jp"
-      ? brandKeyFactsJaState.length
-        ? brandKeyFactsJaState
-        : brandKeyFactsState
-      : brandKeyFactsEnState.length
-        ? brandKeyFactsEnState
-        : brandKeyFactsState;
-  }, [lang, brandKeyFactsEnState, brandKeyFactsJaState, brandKeyFactsState]);
-
 
   const displayBrandSummary = useMemo(() => {
-    return lang === "jp"
-      ? brandSummaryJaState || brandSummaryEnState || brandSummaryLegacyState
-      : brandSummaryEnState || brandSummaryJaState || brandSummaryLegacyState;
-  }, [lang, brandSummaryEnState, brandSummaryJaState, brandSummaryLegacyState]);
+    return brandSummaryEnState || brandSummaryJaState || brandSummaryLegacyState;
+  }, [brandSummaryEnState, brandSummaryJaState, brandSummaryLegacyState]);
 
+  const displayKeyFacts = useMemo(() => {
+    return brandKeyFactsEnState.length
+      ? brandKeyFactsEnState
+      : brandKeyFactsJaState.length
+        ? brandKeyFactsJaState
+        : brandKeyFactsState;
+  }, [brandKeyFactsEnState, brandKeyFactsJaState, brandKeyFactsState]);
+
+  const isBrandSoulActive = useMemo(() => {
+    return (brandStatusState === "ready" || brandStatusState === "completed") && !!displayBrandSummary;
+  }, [brandStatusState, displayBrandSummary]);
+
+  // Determine status icon
+  const brandStatusIcon = useMemo(() => {
+    if (brandStatusState === "running" || brandStatusState === "accepted") {
+      return (
+        <div className="brand-soul-spinner" style={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Spinner size="small" accessibilityLabel="Generating" />
+        </div>
+      );
+    }
+    if (isBrandSoulActive) {
+      return (
+        <div style={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon source={CheckCircleIcon} tone="success" />
+        </div>
+      );
+    }
+    return (
+      <div style={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon source={XCircleIcon} tone="critical" />
+      </div>
+    );
+  }, [brandStatusState, isBrandSoulActive]);
+
+  // Polling for brand status updates
   useEffect(() => {
-    if (brandStatusState !== "running") return;
+    // Poll when status is "running" or "accepted" (waiting for completion)
+    // Also poll once on mount to check current status
+    const shouldPoll = brandStatusState === "running" || brandStatusState === "accepted";
     let active = true;
     const poll = async () => {
       try {
@@ -255,7 +269,8 @@ export default function LandingPage() {
         const data = await resp.json().catch(() => ({}));
         if (!active) return;
         const ctx = data?.brand_context || {};
-        setBrandStatusState(String(data?.status || "idle"));
+        const newStatus = String(data?.status || "idle");
+        setBrandStatusState(newStatus);
         setBrandSummaryLegacyState(String(data?.summary || "").trim());
         setBrandSummaryEnState(String(ctx?.en?.clean_text || ctx?.summary_en || data?.summary_en || "").trim());
         setBrandSummaryJaState(String(ctx?.ja?.clean_text || ctx?.summary_ja || data?.summary_ja || "").trim());
@@ -288,164 +303,133 @@ export default function LandingPage() {
         // best-effort
       }
     };
-    const id = window.setInterval(poll, 10000);
+    
+    // Poll immediately on mount or when status changes to running/accepted
     poll();
+    
+    // Only set up interval if we should continue polling
+    if (!shouldPoll) return;
+    
+    const id = window.setInterval(poll, 10000);
     return () => {
       active = false;
       window.clearInterval(id);
     };
   }, [brandStatusState, backendApiUrl, shop]);
 
+  // Calculate onboarding progress (example: 40%)
+  const onboardingProgress = 40;
+
+  // Getting started checklist items
+  const onboardingSteps = [
+    { id: "soul", label: "Define Soul", completed: isBrandSoulActive },
+    { id: "optimize", label: "Optimize First Product", completed: false },
+    { id: "theme", label: "Configure Theme", completed: false },
+    { id: "review", label: "Review Results", completed: false },
+  ];
+
+
   return (
-    <Page title="Cross-Border AI">
-      <Layout>
-        <Layout.Section>
+    <Page fullWidth>
+      <BlockStack gap="500">
+        {/* App Header with Logo */}
           <Card>
-            <div style={{ padding: "var(--p-space-500)" }}>
-              <BlockStack gap="500">
-                <InlineStack align="space-between" blockAlign="center">
+          <Box padding="400">
                   <InlineStack align="start" blockAlign="center" gap="400">
                     <img
                       src="/Icon-final.png"
-                      alt={t.title}
+                alt="Cross-Border AI"
                       style={{ width: 56, height: 56 }}
                     />
                     <BlockStack gap="100">
                       <Text as="h1" variant="headingXl">
-                        {t.title}
+                  Cross-Border AI
                       </Text>
                       <Text as="p" variant="bodyMd" tone="subdued">
-                        {t.subtitle}
+                  Transform product info into a world-class marketing copy.
                       </Text>
                     </BlockStack>
                   </InlineStack>
-
-                  <Button
-                    variant="plain"
-                    onClick={() => setLang((prev) => (prev === "en" ? "jp" : "en"))}
-                  >
-                    {t.toggle}
-                  </Button>
-                </InlineStack>
-
-                <Divider />
-
-                <BlockStack gap="300">
-                  <Text as="h2" variant="headingMd">
-                    {t.welcome}
+          </Box>
+        </Card>
+        {/* Getting Started Guide */}
+        <Card>
+          <Box padding="400">
+            <BlockStack gap="400">
+              <BlockStack gap="200">
+                <Text as="h2" variant="headingLg">
+                  Getting Started
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Complete these steps to unlock the full power of Cross-Border AI.
                   </Text>
+              </BlockStack>
 
-                  <div>
-                    <Link url="#" removeUnderline>
-                      {t.howTo}
-                    </Link>
-                  </div>
+              <ProgressBar progress={onboardingProgress} size="medium" />
 
                   <BlockStack gap="200">
-                    <div className="aiOptimizeCenter">
-                      <div className="aiOptimizeWrap">
-                        <div className="aiOptimizeInner">
-                          <Button
-                            size="large"
-                            onClick={() => {
-                              window.open(optimizeUrl, "_top");
-                            }}
-                          >
-                            {t.openOptimize}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-                      {t.noteOptimize}
+                {onboardingSteps.map((step) => (
+                  <InlineStack key={step.id} align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodyMd">
+                      {step.label}
                     </Text>
-
-                    <Button
-                      onClick={() => {
-                        window.open(workspaceUrl, "_top");
-                      }}
-                    >
-                      {t.openWorkspace}
-                    </Button>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t.noteWorkspace}
+                    <Text as="p" variant="bodySm" tone={step.completed ? "success" : "subdued"}>
+                      {step.completed ? "✓" : "○"}
                     </Text>
-
-                    <Button
-                      onClick={() => {
-                        // Shopify admin cannot be iframed; escape the embedded iframe.
-                        window.open(themeEditorUrl, "_top");
-                      }}
-                    >
-                      {t.openThemeEditor}
-                    </Button>
-
-                    <Button
-                      onClick={() => {
-                        window.open(productRewriterUrl, "_top");
-                      }}
-                    >
-                      {t.openProductRewriter}
-                    </Button>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t.noteProductId}
-                    </Text>
-
-                    <Button
-                      onClick={() => {
-                        window.open(bulkRewriterUrl, "_top");
-                      }}
-                    >
-                      {t.openBulkRewriter}
-                    </Button>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t.noteBulk}
-                    </Text>
-                  </BlockStack>
-                </BlockStack>
+                  </InlineStack>
+                ))}
               </BlockStack>
-            </div>
-          </Card>
-        </Layout.Section>
 
-        <Layout.Section variant="oneThird">
-          <BlockStack gap="400">
-          <GetStartedGuide shop={shop} host={host} />
+                    <Button
+                variant="secondary"
+                onClick={() => setOnboardingModalOpen(true)}
+              >
+                View Full Guide
+                    </Button>
+                  </BlockStack>
+          </Box>
+          </Card>
+
+        {/* Brand Soul Identity Bar */}
             <Card>
-              <Box padding="400">
+          <Box padding="400" background="bg-surface-secondary">
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
-                    <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">
+                <InlineStack align="start" gap="200" blockAlign="center">
+                  <Text as="h2" variant="headingLg">
                         Brand Soul
                       </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Capture your brand story when you're ready.
-                      </Text>
-                    </BlockStack>
+                  {brandStatusIcon}
+                </InlineStack>
                     <Button variant="primary" onClick={() => setBrandWizardOpen(true)}>
-                      Open Wizard
+                  Edit Identity
                     </Button>
                   </InlineStack>
 
-                  {brandStatusState === "running" ? (
+              {brandStatusState === "running" || brandStatusState === "accepted" ? (
                     <Banner tone="info">
                       Generating brand intelligence… please check after a while.
                     </Banner>
                   ) : null}
-                  {brandStatusState === "failed" ? (
+              {brandStatusState === "failed" && (
                     <Banner tone="critical">
                       Brand intelligence failed. Please retry in the wizard.
                     </Banner>
-                  ) : null}
-                  {brandErrorState ? (
+              )}
+              {brandErrorState && (
                     <Text as="p" variant="bodySm" tone="subdued">
                       {brandErrorState}
                     </Text>
-                  ) : null}
+              )}
 
-                  {displayBrandSummary ? (
-                    <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+              {displayBrandSummary && (
+                <>
+                  <Collapsible
+                    open={!brandSoulCollapsed}
+                    id="brand-soul-collapsible"
+                    transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
+                  >
+                    <Box padding="300" background="bg-surface" borderRadius="200">
                       <BlockStack gap="200">
                         <Text as="p" variant="bodySm" tone="subdued">
                           Latest summary
@@ -465,36 +449,268 @@ export default function LandingPage() {
                             {displayBrandSummary}
                           </Text>
                         )}
-                        {displayKeyFacts.length ? (
+                        {displayKeyFacts.length > 0 && (
                           <BlockStack gap="100">
                             <Text as="p" variant="bodySm" tone="subdued">
                               Key facts
                             </Text>
                             <List type="bullet">
-                              {displayKeyFacts.map((fact, idx) => (
+                              {displayKeyFacts.map((fact: string, idx: number) => (
                                 <List.Item key={`${idx}-${fact}`}>{fact}</List.Item>
                               ))}
                             </List>
                           </BlockStack>
-                        ) : null}
-                        {brandUpdatedState ? (
+                        )}
+                        {brandUpdatedState && (
                           <Text as="span" variant="bodySm" tone="subdued">
                             Updated: {new Date(brandUpdatedState).toLocaleDateString()}
                           </Text>
-                        ) : null}
+                        )}
                       </BlockStack>
                     </Box>
-                  ) : (
-                    <Banner tone="info">
-                      Add your Brand Soul to unlock richer storytelling in Optimize.
-                    </Banner>
-                  )}
+                  </Collapsible>
+                  <Button
+                    variant="plain"
+                    onClick={() => setBrandSoulCollapsed(!brandSoulCollapsed)}
+                  >
+                    {brandSoulCollapsed ? "Show" : "Hide"}
+                  </Button>
+                </>
+              )}
+            </BlockStack>
+          </Box>
+        </Card>
+
+        {/* Features Grid */}
+        <BlockStack gap="400">
+          <Text as="h2" variant="headingLg">
+            Features
+          </Text>
+          <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
+            {/* Card 1: Complete Optimization */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      Complete Optimization
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={StarIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Run all (Rewriter → SEO → Marketing → Pricing)
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-1">
+                          <Button
+                        variant="primary"
+                            onClick={() => {
+                              window.open(optimizeUrl, "_top");
+                            }}
+                          >
+                        Open
+                          </Button>
+                        </div>
+                      </div>
                 </BlockStack>
               </Box>
             </Card>
+
+            {/* Card 2: Rewriter */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      Rewriter
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={EditIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Optimize product descriptions and content.
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-2">
+                    <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/rewriter"))}
+                    >
+                        Open
+                    </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+
+            {/* Card 3: Theme Editor */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      Theme Editor
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={CodeIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Configure theme settings and widget placement.
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-3">
+                      <Button
+                        variant="primary"
+                        onClick={() => window.open(themeEditorUrl, "_top")}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+
+            {/* Card 4: Price Scout */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      Price Scout
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={SearchIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Analyze competitor pricing and optimize your product prices.
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-4">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/pricing"))}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+
+            {/* Card 5: Marketing Agent */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      Marketing Agent
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={SocialAdIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Generate social hooks and marketing copy for your products.
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-5">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/marketing"))}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+          </Card>
+
+            {/* Card 6: SEO Manager */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      SEO Manager
+                      </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={ChartVerticalIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Optimize SEO titles, descriptions, and alt text.
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-6">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/seo"))}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+          </InlineGrid>
+        </BlockStack>
+
+        {/* Footer */}
+        <FooterHelp>
+          <a href="https://support.example.com" target="_blank" rel="noopener noreferrer">
+            Contact Support
+          </a>{" "}
+          or{" "}
+          <a href="https://guide.example.com" target="_blank" rel="noopener noreferrer">
+            Read the Guide
+          </a>
+        </FooterHelp>
           </BlockStack>
-        </Layout.Section>
-      </Layout>
+
+      {/* Modals */}
+      <GetStartedGuide
+        shop={shop}
+        host={host}
+        open={onboardingModalOpen}
+        onClose={() => {
+          setOnboardingModalOpen(false);
+          localStorage.setItem("onboarding_seen", "true");
+        }}
+      />
 
       <BrandSoulWizard
         open={brandWizardOpen}

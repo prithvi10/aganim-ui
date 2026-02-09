@@ -13,16 +13,28 @@ import {
 type Props = {
   shop: string;
   host: string;
+  open?: boolean;
+  onClose?: () => void;
 };
 
 function shopSlugFromDomain(shop: string) {
   return String(shop || "").replace(".myshopify.com", "");
 }
 
-export function GetStartedGuide({ shop, host }: Props) {
+export function GetStartedGuide({ shop, host, open: controlledOpen, onClose: controlledOnClose }: Props) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  
+  // Use controlled props if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const handleClose = () => {
+    if (controlledOnClose) {
+      controlledOnClose();
+    } else {
+      setInternalOpen(false);
+    }
+  };
 
   const qs = useMemo(() => {
     const p = new URLSearchParams();
@@ -108,27 +120,29 @@ export function GetStartedGuide({ shop, host }: Props) {
 
   return (
     <>
-      <Card>
-        <Box padding="400">
-          <BlockStack gap="200">
-            <Text as="h2" variant="headingMd">
-              Get started guide
-            </Text>
-            <Text as="p" variant="bodyMd" tone="subdued">
-              Learn how to use Cross-Border AI with a quick step-by-step guide.
-            </Text>
-            <div>
-              <Button variant="primary" onClick={() => setOpen(true)}>
-                Open guide
-              </Button>
-            </div>
-          </BlockStack>
-        </Box>
-      </Card>
+      {controlledOpen === undefined && (
+        <Card>
+          <Box padding="400">
+            <BlockStack gap="200">
+              <Text as="h2" variant="headingMd">
+                Get started guide
+              </Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Learn how to use Cross-Border AI with a quick step-by-step guide.
+              </Text>
+              <div>
+                <Button variant="primary" onClick={() => setInternalOpen(true)}>
+                  Open guide
+                </Button>
+              </div>
+            </BlockStack>
+          </Box>
+        </Card>
+      )}
 
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
         title="Get started with Cross-Border AI"
         size="large"
       >
@@ -170,7 +184,7 @@ export function GetStartedGuide({ shop, host }: Props) {
                   key={a.label}
                   variant={a.primary ? "primary" : "secondary"}
                   onClick={() => {
-                    setOpen(false);
+                    handleClose();
                     a.onClick();
                   }}
                 >

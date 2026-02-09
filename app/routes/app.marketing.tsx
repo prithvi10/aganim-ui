@@ -1,5 +1,5 @@
 import type {ActionFunctionArgs, LoaderFunctionArgs} from 'react-router';
-import {useLoaderData, useSearchParams, useFetcher} from 'react-router';
+import {useLoaderData, useSearchParams, useFetcher, useNavigate} from 'react-router';
 import {
   Banner,
   BlockStack,
@@ -9,14 +9,10 @@ import {
   Divider,
   InlineStack,
   Layout,
-  Link,
-  Modal,
   Page,
-  Scrollable,
   Select,
   Spinner,
   Text,
-  Thumbnail,
   Toast,
 } from '@shopify/polaris';
 import {useAppBridge} from '@shopify/app-bridge-react';
@@ -26,6 +22,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';
 import { DowngradeScheduledBanner } from "../components/DowngradeScheduledBanner";
+import "../styles/optimize-button.css";
 
 type ProductListItem = {id: string; title: string};
 type ProductImage = {url: string; altText?: string | null};
@@ -441,14 +438,19 @@ export default function MarketingWorkspace() {
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge();
+  const navigate = useNavigate();
+  
+  const nav = (path: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (shop) params.set("shop", shop);
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
 
-  const [imagesOpen, setImagesOpen] = useState(false);
   const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
 
   // Instagram Marketing Assistant
   const [hooksLoading, setHooksLoading] = useState(false);
   const [hooksError, setHooksError] = useState<string | null>(null);
-  const [hooksGenerated, setHooksGenerated] = useState(false);
   const [overlaySuggestions, setOverlaySuggestions] = useState<string[]>([]);
   const [hooks, setHooks] = useState<
     Array<{
@@ -483,8 +485,9 @@ export default function MarketingWorkspace() {
     // Reset hooks state when product changes
     setHooks([]);
     setHooksError(null);
-    setHooksGenerated(false);
     setOverlaySuggestions([]);
+    setSeasonalCaption("");
+    setSeasonalCaptionError(null);
   }, [searchParams, setSearchParams]);
   const shopMarketingUrl = useMemo(() => {
     if (!shopSlug) return '';
@@ -494,12 +497,6 @@ export default function MarketingWorkspace() {
     if (!shopSlug) return '';
     return `https://admin.shopify.com/store/${shopSlug}/marketing/campaigns`;
   }, [shopSlug]);
-  const adminProductUrl = useMemo(() => {
-    if (!shopSlug || !selectedProduct?.id) return '';
-    const id = productIdFromGid(selectedProduct.id);
-    if (!id) return '';
-    return `https://admin.shopify.com/store/${shopSlug}/products/${encodeURIComponent(id)}`;
-  }, [selectedProduct?.id, shopSlug]);
 
   const callAgent = useCallback(
     async (actionName: string, productData: Record<string, any>, context: Record<string, any>) => {
@@ -542,31 +539,53 @@ export default function MarketingWorkspace() {
 
   const runSocialHooks = useCallback(async () => {
     if (!selectedProduct?.id) return;
-    if (hooksGenerated) return; // safety valve: prevent spamming after generation
     setHooksLoading(true);
     setHooksError(null);
     setOverlaySuggestions([]);
+    setSeasonalCaptionError(null);
+    setSeasonalCaptionLoading(true);
+    
     try {
-      const result = await callAgent(
-        'social_hook_architect',
-        {
-          id: selectedProduct.id,
-          title: selectedProduct.title,
-          category: selectedProduct.productType,
-          productType: selectedProduct.productType,
-          tags: selectedProduct.tags,
-        },
-        {focus: 'Instagram Reels'},
-      );
-      const nextHooks = (result?.data?.metadata?.hooks ?? []) as any[];
-      const overlays = (result?.data?.metadata?.overlay_suggestions ?? []) as any[];
+      // Generate both social hooks and seasonal caption together
+      const [socialResult, seasonalResult] = await Promise.all([
+        callAgent(
+          'social_hook_architect',
+          {
+            id: selectedProduct.id,
+            title: selectedProduct.title,
+            category: selectedProduct.productType,
+            productType: selectedProduct.productType,
+            tags: selectedProduct.tags,
+          },
+          {focus: 'Instagram Reels'},
+        ),
+        callAgent(
+          'seasonal_campaign_caption',
+          {
+            id: selectedProduct.id,
+            title: selectedProduct.title,
+            category: selectedProduct.productType,
+            productType: selectedProduct.productType,
+            tags: selectedProduct.tags,
+          },
+          {current_date: new Date().toISOString()},
+        ),
+      ]);
+
+      // Process social hooks
+      const nextHooks = (socialResult?.data?.metadata?.hooks ?? []) as any[];
+      const overlays = (socialResult?.data?.metadata?.overlay_suggestions ?? []) as any[];
       const safeHooks = Array.isArray(nextHooks) ? nextHooks : [];
       const safeOverlays = Array.isArray(overlays) ? overlays.map(String) : [];
       setHooks(safeHooks);
       setOverlaySuggestions(safeOverlays);
       setSelectedHookIndex(0);
-      setHooksGenerated(true);
-      setToastContent('Generated Instagram hooks.');
+
+      // Process seasonal caption
+      const text = String(seasonalResult?.data?.metadata?.copy_text || seasonalResult?.data?.text || '');
+      setSeasonalCaption(text);
+
+      setToastContent('Generated Instagram hooks and seasonal caption.');
 
       // Persist cache on the product (Shopify metafield) to avoid re-calling the LLM.
       try {
@@ -585,10 +604,12 @@ export default function MarketingWorkspace() {
       }
     } catch (e: any) {
       setHooksError(e?.message ?? 'Failed to generate hooks.');
+      setSeasonalCaptionError(e?.message ?? 'Failed to generate seasonal caption.');
     } finally {
       setHooksLoading(false);
+      setSeasonalCaptionLoading(false);
     }
-  }, [callAgent, hooksGenerated, saveHooksFetcher, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
+  }, [callAgent, saveHooksFetcher, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
   const loadUpcomingHolidayOnce = useCallback(async () => {
     // Holiday window doesn't depend on product, so load once and keep the banner stable.
@@ -639,27 +660,35 @@ export default function MarketingWorkspace() {
     }
   }, [callAgent, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
-  // Load cached hooks when product changes (but don't auto-generate)
+  // Reset seasonal caption immediately when product changes (seasonal captions are not cached)
   useEffect(() => {
+    setSeasonalCaption("");
+    setSeasonalCaptionError(null);
+  }, [selectedProduct?.id]);
+
+  // Load cached hooks when product changes (display but allow regeneration)
+  useEffect(() => {
+    // Reset hooks state
     setHooks([]);
     setHooksError(null);
     setSeasonalError(null);
-    setHooksGenerated(false);
     setOverlaySuggestions([]);
+    
+    // If no product selected, we're done
     if (!selectedProduct?.id) return;
-    // Load cached hooks if present (don't auto-generate)
+    
+    // Load cached hooks if present (display but allow regeneration)
     const cached = selectedProduct.socialHooksCache;
     if (cached?.hooks?.length) {
       setHooks(cached.hooks);
       setOverlaySuggestions(Array.isArray(cached.overlay_suggestions) ? cached.overlay_suggestions : []);
       setSelectedHookIndex(0);
-      // Only lock/disable the button when the cache matches the CURRENT product description.
-      setHooksGenerated(Boolean(selectedProduct?._hooksIsFresh));
     }
+    // Note: Seasonal captions are not cached in metafields, so they must be regenerated for each product
     if (didResetMetaCache) {
       setToastContent('Product description changed. Please generate hooks again.');
     }
-  }, [selectedProduct?.id, contentHash]);
+  }, [selectedProduct?.id, contentHash, didResetMetaCache]);
 
   // Load holiday banner once per page load
   useEffect(() => {
@@ -695,7 +724,13 @@ export default function MarketingWorkspace() {
   }, [holidayInfo, selectedProduct?.id, selectedProduct?.productType]);
 
   return (
-    <Page title="Marketing Consultant">
+    <Page 
+      title="Marketing Consultant"
+      backAction={{
+        content: "Back",
+        onAction: () => navigate(nav("/app")),
+      }}
+    >
       {toastContent ? (
         <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
       ) : null}
@@ -726,104 +761,34 @@ export default function MarketingWorkspace() {
                     <BlockStack gap="100">
                       <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
                       <Text variant="bodySm" tone="subdued">{selectedProduct.productType || "No category"}</Text>
-                      {adminProductUrl ? (
-                        <Link url={adminProductUrl} external>
-                          Open product details
-                        </Link>
-                      ) : null}
                     </BlockStack>
-                    {selectedProduct.images?.length ? (
-                      <InlineStack gap="200" blockAlign="center">
-                        {selectedProduct.images.slice(0, 3).map((img, idx) => (
-                          <button
-                            key={`${img.url}-${idx}`}
-                            type="button"
-                            onClick={() => setImagesOpen(true)}
-                            aria-label="View product images"
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              padding: 0,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <Thumbnail
-                              source={img.url}
-                              alt={img.altText || selectedProduct.title}
-                              size="small"
-                            />
-                          </button>
-                        ))}
-                        {selectedProduct.images.length > 3 ? (
-                          <Button variant="plain" onClick={() => setImagesOpen(true)}>
-                            {`+${selectedProduct.images.length - 3}`}
-                          </Button>
-                        ) : null}
-                      </InlineStack>
-                    ) : null}
+                    <div className="agent-btn-border-5">
+                      <Button
+                        onClick={runSocialHooks}
+                        disabled={!selectedProduct?.id || hooksLoading}
+                        variant="primary"
+                        size="large"
+                        loading={hooksLoading}
+                      >
+                        {hooksLoading
+                          ? 'Generating…'
+                          : hooks.length
+                            ? 'Regenerate'
+                            : 'Generate'}
+                      </Button>
+                    </div>
                   </InlineStack>
                 )}
               </BlockStack>
             </Card>
 
-            {/* Images Modal */}
-            <Modal
-              open={imagesOpen}
-              onClose={() => setImagesOpen(false)}
-              title="Product images"
-            >
-              <Modal.Section>
-                {selectedProduct?.images?.length ? (
-                  <Scrollable style={{maxHeight: 520}}>
-                    <BlockStack gap="300">
-                      {selectedProduct.images.map((img, idx) => (
-                        <Card key={`${img.url}-${idx}`}>
-                          <Box padding="300">
-                            <BlockStack gap="200">
-                              <Thumbnail
-                                source={img.url}
-                                alt={img.altText || selectedProduct.title}
-                                size="large"
-                              />
-                              <Link url={img.url} external>
-                                Open image
-                              </Link>
-                            </BlockStack>
-                          </Box>
-                        </Card>
-                      ))}
-                    </BlockStack>
-                  </Scrollable>
-                ) : (
-                  <Text as="p" tone="subdued">
-                    No images found for this product.
-                  </Text>
-                )}
-              </Modal.Section>
-            </Modal>
-
             <Card>
               <Box padding="400">
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingMd">
-                        Social Media Captions
-                      </Text>
-                      <Button
-                        onClick={runSocialHooks}
-                        disabled={!selectedProduct?.id || hooksLoading || hooksGenerated}
-                        variant={hooksGenerated ? "secondary" : "primary"}
-                      >
-                        {hooksLoading
-                          ? 'Generating…'
-                          : hooksGenerated
-                            ? 'Generated ✓'
-                            : hooks.length
-                              ? 'Regenerate'
-                              : 'Generate'}
-                      </Button>
-                    </BlockStack>
+                    <Text as="h2" variant="headingMd">
+                      Social Media Captions
+                    </Text>
                     <InlineStack gap="200" blockAlign="center">
                       <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" title="Instagram" style={{display: 'inline-flex'}}>
                         <img src="/instagram.svg" alt="Instagram" width={20} height={20} style={{width: 20, height: 20, borderRadius: 4}} />
@@ -854,12 +819,11 @@ export default function MarketingWorkspace() {
 
                   {hooksError ? <Banner tone="critical">{hooksError}</Banner> : null}
 
-                  <Banner tone="info">
-                    Text overlay suggestions:{' '}
-                    {overlaySuggestions.length
-                      ? overlaySuggestions.join(' · ')
-                      : 'Generating…'}
-                  </Banner>
+                  {!hooks.length && !hooksLoading ? (
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Generate social media captions with different themes
+                    </Text>
+                  ) : null}
 
                   {hooks.length ? (
                     <BlockStack gap="200">
@@ -889,11 +853,7 @@ export default function MarketingWorkspace() {
                         </Card>
                       ))}
                     </BlockStack>
-                  ) : (
-                    <Text as="p" tone="subdued">
-                      Select a product to generate hooks.
-                    </Text>
-                  )}
+                  ) : null}
                 </BlockStack>
               </Box>
             </Card>
@@ -952,25 +912,20 @@ export default function MarketingWorkspace() {
                     <Text as="h3" variant="headingSm">
                       Seasonal caption
                     </Text>
-                    <InlineStack gap="200">
-                      <Button onClick={generateSeasonalCaption} disabled={!selectedProduct?.id}>
-                        {seasonalCaptionLoading ? 'Generating…' : 'Generate caption'}
-                      </Button>
-                      <Button
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(seasonalCaption || '');
-                            setToastContent('Caption copied.');
-                          } catch {
-                            setToastContent('Copy failed (clipboard not available).');
-                          }
-                        }}
-                        disabled={!seasonalCaption}
-                        variant="secondary"
-                      >
-                        Copy
-                      </Button>
-                    </InlineStack>
+                    <Button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(seasonalCaption || '');
+                          setToastContent('Caption copied.');
+                        } catch {
+                          setToastContent('Copy failed (clipboard not available).');
+                        }
+                      }}
+                      disabled={!seasonalCaption}
+                      variant="secondary"
+                    >
+                      Copy
+                    </Button>
                   </InlineStack>
 
                   {seasonalCaptionError ? <Banner tone="critical">{seasonalCaptionError}</Banner> : null}
@@ -982,7 +937,7 @@ export default function MarketingWorkspace() {
                     </Card>
                   ) : (
                     <Text as="p" tone="subdued">
-                      Generate an Instagram-ready caption tied to the upcoming holiday.
+                      Generate a caption tied to the upcoming holiday!
                     </Text>
                   )}
                 </BlockStack>

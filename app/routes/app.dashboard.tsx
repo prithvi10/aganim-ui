@@ -769,8 +769,9 @@ export default function Dashboard() {
                    <InlineStack gap="200">
                       <Badge tone="success" progress="complete">All Systems Operational</Badge>
                    </InlineStack>
-                   <InlineStack gap="400">
+                  <InlineStack gap="400">
                       <Text as="span" variant="bodySm" tone="subdued">{t.quickStart}:</Text>
+                      <Link url="/support" target="_blank">Quick help</Link>
                       <Link url="https://docs.crossborder.ai" target="_blank">{t.docs}</Link>
                       <Link url="#" target="_blank">{t.video}</Link>
                       <Link url="/privacy-policy" target="_blank">Privacy Policy</Link>
