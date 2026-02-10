@@ -425,3 +425,29 @@
   color: #0066cc !important;
   fill: #0066cc !important;
 }
+
+/* =============================================================================
+   Mission Architect – Pulse animation for AWAITING_APPROVAL
+   Signals "machine idle, waiting for human input"
+   ============================================================================= */
+
+@keyframes missionPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
+  }
+}
+
+.missionArchitectPulse {
+  animation: missionPulse 2s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .missionArchitectPulse {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3);
+  }
+}

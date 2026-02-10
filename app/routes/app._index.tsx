@@ -114,6 +114,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // best-effort
   }
 
+  // Fetch brand intelligence (strategic audit)
+  let brandIntelligence: Record<string, any> | null = null;
+  let brandIntelligenceUpdatedAt: string | null = null;
+  try {
+    const intelRes = await fetch(
+      `${backendApiUrl}/api/admin/brand-intelligence?shop=${encodeURIComponent(shopParam)}`,
+    );
+    if (intelRes.ok) {
+      const intelData: any = await intelRes.json().catch(() => ({}));
+      brandIntelligence = intelData?.intelligence || null;
+      brandIntelligenceUpdatedAt = intelData?.updated_at || null;
+    }
+  } catch {
+    // best-effort
+  }
+
   return {
     shop: shopParam,
     host,
@@ -128,6 +144,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     brandSummaryJa,
     brandUpdatedAt,
     brandLastError,
+    brandIntelligence,
+    brandIntelligenceUpdatedAt,
   };
 };
 
@@ -146,10 +164,13 @@ export default function LandingPage() {
     brandSummaryJa,
     brandUpdatedAt,
     brandLastError,
+    brandIntelligence,
+    brandIntelligenceUpdatedAt,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [brandWizardOpen, setBrandWizardOpen] = useState(false);
   const [brandSoulCollapsed, setBrandSoulCollapsed] = useState(false);
+  const [intelligenceOpen, setIntelligenceOpen] = useState(false);
   const [onboardingModalOpen, setOnboardingModalOpen] = useState(false);
   const [brandStatusState, setBrandStatusState] = useState(brandStatus);
   const [brandSummaryEnState, setBrandSummaryEnState] = useState(brandSummaryEn);
@@ -466,6 +487,129 @@ export default function LandingPage() {
                             Updated: {new Date(brandUpdatedState).toLocaleDateString()}
                           </Text>
                         )}
+
+                        {/* Brand Intelligence dropdown inside Brand Soul */}
+                        {brandIntelligence && (
+                          <BlockStack gap="200">
+                            <Button
+                              variant="plain"
+                              onClick={() => setIntelligenceOpen(!intelligenceOpen)}
+                              textAlign="start"
+                            >
+                              {intelligenceOpen ? "▾ Hide Brand Intelligence" : "▸ Show Brand Intelligence"}
+                            </Button>
+                            <Collapsible
+                              open={intelligenceOpen}
+                              id="brand-intelligence-collapsible"
+                              transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
+                            >
+                              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                                <BlockStack gap="300">
+                                  {/* Archetype */}
+                                  <BlockStack gap="100">
+                                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                                      Brand Archetype
+                                    </Text>
+                                    <InlineStack gap="200">
+                                      <Text as="span" variant="bodyMd">
+                                        {String(brandIntelligence.archetype || "")
+                                          .split("_")
+                                          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                                          .join(" ")}
+                                      </Text>
+                                      {brandIntelligence.archetype_confidence != null && (
+                                        <Text as="span" variant="bodySm" tone="subdued">
+                                          ({Math.round(brandIntelligence.archetype_confidence * 100)}%)
+                                        </Text>
+                                      )}
+                                    </InlineStack>
+                                    {brandIntelligence.secondary_archetype && (
+                                      <Text as="p" variant="bodySm" tone="subdued">
+                                        Secondary: {String(brandIntelligence.secondary_archetype)
+                                          .split("_")
+                                          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                                          .join(" ")}
+                                      </Text>
+                                    )}
+                                  </BlockStack>
+
+                                  {/* Tonal Guardrails */}
+                                  {brandIntelligence.tonal_guardrails && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        Tonal Guardrails
+                                      </Text>
+                                      <List type="bullet">
+                                        <List.Item>Formality: {brandIntelligence.tonal_guardrails.formality_level}</List.Item>
+                                        <List.Item>Energy: {brandIntelligence.tonal_guardrails.energy_level}</List.Item>
+                                        <List.Item>Emotion: {brandIntelligence.tonal_guardrails.emotional_register}</List.Item>
+                                        <List.Item>Technical: {brandIntelligence.tonal_guardrails.technical_depth}</List.Item>
+                                      </List>
+                                    </BlockStack>
+                                  )}
+
+                                  {/* Power Words */}
+                                  {Array.isArray(brandIntelligence.power_words) && brandIntelligence.power_words.length > 0 && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        Power Words
+                                      </Text>
+                                      <Text as="p" variant="bodySm">
+                                        {brandIntelligence.power_words.slice(0, 10).join(", ")}
+                                      </Text>
+                                    </BlockStack>
+                                  )}
+
+                                  {/* Banned Phrases */}
+                                  {Array.isArray(brandIntelligence.banned_phrases) && brandIntelligence.banned_phrases.length > 0 && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        Banned Phrases
+                                      </Text>
+                                      <Text as="p" variant="bodySm" tone="critical">
+                                        {brandIntelligence.banned_phrases.slice(0, 10).join(", ")}
+                                      </Text>
+                                    </BlockStack>
+                                  )}
+
+                                  {/* Core Value Props */}
+                                  {Array.isArray(brandIntelligence.core_value_props) && brandIntelligence.core_value_props.length > 0 && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        Core Value Propositions
+                                      </Text>
+                                      <List type="bullet">
+                                        {brandIntelligence.core_value_props.map((v: string, i: number) => (
+                                          <List.Item key={i}>{v}</List.Item>
+                                        ))}
+                                      </List>
+                                    </BlockStack>
+                                  )}
+
+                                  {/* Cultural Touchpoints */}
+                                  {Array.isArray(brandIntelligence.cultural_touchpoints) && brandIntelligence.cultural_touchpoints.length > 0 && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        Cultural Touchpoints
+                                      </Text>
+                                      <List type="bullet">
+                                        {brandIntelligence.cultural_touchpoints.map((t: string, i: number) => (
+                                          <List.Item key={i}>{t}</List.Item>
+                                        ))}
+                                      </List>
+                                    </BlockStack>
+                                  )}
+
+                                  {brandIntelligenceUpdatedAt && (
+                                    <Text as="span" variant="bodySm" tone="subdued">
+                                      Intelligence updated: {new Date(brandIntelligenceUpdatedAt).toLocaleDateString()}
+                                    </Text>
+                                  )}
+                                </BlockStack>
+                              </Box>
+                            </Collapsible>
+                          </BlockStack>
+                        )}
                       </BlockStack>
                     </Box>
                   </Collapsible>
@@ -522,13 +666,13 @@ export default function LandingPage() {
               </Box>
             </Card>
 
-            {/* Card 2: Rewriter */}
+            {/* Card 2: Writing Studio */}
             <Card>
               <Box padding="500" background="bg-surface-secondary">
                 <BlockStack gap="400">
                   <InlineStack align="space-between" blockAlign="start">
                     <Text as="h3" variant="headingLg">
-                      Rewriter
+                      Writing Studio
                     </Text>
                     <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <div style={{ transform: "scale(1.5)" }}>
@@ -538,14 +682,14 @@ export default function LandingPage() {
                   </InlineStack>
                   <div style={{ marginTop: "-12px" }}>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Optimize product descriptions and content.
+                      Product rewriter, content templates, and AI writing tools.
                     </Text>
                   </div>
                   <div style={{ display: "flex", justifyContent: "center" }}>
                     <div className="feature-btn-glow-2">
                     <Button
                         variant="primary"
-                        onClick={() => navigate(nav("/app/rewriter"))}
+                        onClick={() => navigate(nav("/app/writing-studio"))}
                     >
                         Open
                     </Button>

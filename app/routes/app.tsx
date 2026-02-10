@@ -64,8 +64,8 @@ export default function App() {
         <Frame>
           <s-app-nav>
             <s-link href={nav("/app")}>Home</s-link>
-            <s-link href={nav("/app/optimize")}>🚀 Optimize</s-link>
-            <s-link href={nav("/app/rewriter")}>Rewriter</s-link>
+            <s-link href={nav("/app/optimize")}>Optimize</s-link>
+            <s-link href={nav("/app/writing-studio")}>Writing Studio</s-link>
             <s-link href={nav("/app/seo")}>SEO</s-link>
             <s-link href={nav("/app/marketing")}>Marketing</s-link>
             <s-link href={nav("/app/pricing")}>Pricing</s-link>
