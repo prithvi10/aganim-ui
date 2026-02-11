@@ -15,6 +15,7 @@ import {
 import { EditIcon, NoteIcon } from '@shopify/polaris-icons';
 import { useCallback, useMemo } from 'react';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
+import '../styles/optimize-button.css';
 
 type LoaderData = {
   shop: string;
@@ -62,7 +63,7 @@ export default function WritingStudio() {
     <Page
       title="Writing Studio"
       backAction={{
-        content: 'Back',
+        content: 'Home',
         onAction: () => navigate(nav('/app')),
       }}
     >
@@ -73,8 +74,8 @@ export default function WritingStudio() {
             <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
               {/* Product Rewriter Card */}
               <Card>
-                <Box padding="400">
-                  <BlockStack gap="300">
+                <Box padding="500">
+                  <BlockStack gap="400">
                     <InlineStack gap="200" blockAlign="center">
                       <div style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Icon source={EditIcon} tone="base" />
@@ -83,24 +84,27 @@ export default function WritingStudio() {
                         Product Rewriter
                       </Text>
                     </InlineStack>
-                    <Text as="p" tone="subdued" variant="bodySm">
+                    <Text as="p" tone="subdued" variant="bodyMd">
                       Select a Shopify product, generate optimized descriptions, titles, and SEO copy. Results save directly to your store.
                     </Text>
-                    <Button
-                      variant="primary"
-                      onClick={() => navigate(nav('/app/rewriter'))}
-                      fullWidth
-                    >
-                      Open Product Rewriter
-                    </Button>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div className="feature-btn-glow-2">
+                        <Button
+                          variant="primary"
+                          onClick={() => navigate(nav('/app/rewriter'))}
+                        >
+                          Open
+                        </Button>
+                      </div>
+                    </div>
                   </BlockStack>
                 </Box>
               </Card>
 
               {/* Content Templates Card */}
               <Card>
-                <Box padding="400">
-                  <BlockStack gap="300">
+                <Box padding="500">
+                  <BlockStack gap="400">
                     <InlineStack gap="200" blockAlign="center">
                       <div style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Icon source={NoteIcon} tone="base" />
@@ -109,16 +113,19 @@ export default function WritingStudio() {
                         Content Templates
                       </Text>
                     </InlineStack>
-                    <Text as="p" tone="subdued" variant="bodySm">
+                    <Text as="p" tone="subdued" variant="bodyMd">
                       Generate product titles, FAQs, collection copy, and landing page content using AI-powered templates with brand voice.
                     </Text>
-                    <Button
-                      variant="primary"
-                      onClick={() => navigate(nav('/app/content-templates'))}
-                      fullWidth
-                    >
-                      Open Content Templates
-                    </Button>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div className="feature-btn-glow-1">
+                        <Button
+                          variant="primary"
+                          onClick={() => navigate(nav('/app/content-templates'))}
+                        >
+                          Open
+                        </Button>
+                      </div>
+                    </div>
                   </BlockStack>
                 </Box>
               </Card>

@@ -109,7 +109,7 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
     agentName: "RewriterAgent",
   },
   "product/landing-hero": {
-    displayName: "Landing Page Hero",
+    displayName: "Hero Section",
     icon: "🏆",
     description: "Hero section copy for landing pages",
     agentName: "RewriterAgent",
@@ -411,14 +411,9 @@ export function MissionArchitect({
             <BlockStack gap="300">
               <InlineStack gap="200" blockAlign="center">
                 <Text as="span" variant="headingMd">🎯</Text>
-                <BlockStack gap="050">
-                  <Text as="h3" variant="headingMd" fontWeight="bold">
-                    Quick Start — Mission Presets
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Pre-built agent + template chains for common use cases. Pick one and go.
-                  </Text>
-                </BlockStack>
+                <Text as="h3" variant="headingMd" fontWeight="bold">
+                  Quick Start — Mission Presets
+                </Text>
               </InlineStack>
               <Select
                 label="Preset"
@@ -462,29 +457,25 @@ export function MissionArchitect({
             <BlockStack gap="400">
               <InlineStack gap="200" blockAlign="center">
                 <Text as="span" variant="headingMd">🛠️</Text>
-                <BlockStack gap="050">
-                  <Text as="h3" variant="headingMd" fontWeight="bold">
-                    Build Your Own — Custom Mission
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Add agents and templates one by one to create a bespoke pipeline.
-                  </Text>
-                </BlockStack>
+                <Text as="h3" variant="headingMd" fontWeight="bold">
+                  Build Your Own — Custom Mission
+                </Text>
               </InlineStack>
 
               {/* Agent Library */}
-              <BlockStack gap="200">
+              <BlockStack gap="300">
                 <Text as="span" variant="bodySm" fontWeight="semibold">
                   Agents
                 </Text>
-                <InlineStack gap="200" wrap>
+                <InlineStack gap="300" wrap>
                   {AVAILABLE_AGENTS.map((agent) => (
-                    <div key={agent.name} style={{ minWidth: "140px" }}>
+                    <div key={agent.name} style={{ minWidth: "160px" }}>
                       <Button
                         onClick={() => addAgent(agent.name)}
                         disabled={isRunning}
-                        size="slim"
+                        size="medium"
                         icon={PlusIcon}
+                        fullWidth
                       >
                         {agent.icon} {agent.displayName}
                       </Button>
@@ -494,7 +485,7 @@ export function MissionArchitect({
               </BlockStack>
 
               {/* Template Library */}
-              <BlockStack gap="200">
+              <BlockStack gap="300">
                 <Text as="span" variant="bodySm" fontWeight="semibold">
                   Templates
                 </Text>
@@ -527,11 +518,11 @@ export function MissionArchitect({
           {/* ────────────── Pipeline Canvas (shared result) ──────────────── */}
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center">
-              <Text as="h3" variant="headingMd" fontWeight="bold">
+              <Text as="h3" variant="headingLg" fontWeight="bold">
                 Pipeline
               </Text>
               {pipeline.length > 0 && (
-                <Badge tone="success">{pipeline.length} step{pipeline.length !== 1 ? "s" : ""}</Badge>
+                <Badge tone="success">{`${pipeline.length} step${pipeline.length !== 1 ? "s" : ""}`}</Badge>
               )}
             </InlineStack>
 
@@ -558,9 +549,6 @@ export function MissionArchitect({
                       <InlineStack align="space-between" blockAlign="center" gap="200">
                         {/* Step info */}
                         <InlineStack gap="300" blockAlign="center">
-                          <Badge tone={info.color}>
-                            {index + 1}
-                          </Badge>
                           <BlockStack gap="050">
                             <InlineStack gap="100" blockAlign="center">
                               <Text as="span" variant="bodyMd" fontWeight="semibold">
@@ -632,7 +620,7 @@ export function MissionArchitect({
                       fullWidth
                       icon={PlayIcon}
                     >
-                      🚀 Start Mission ({pipeline.length} step{pipeline.length !== 1 ? "s" : ""})
+                      {`🚀 Start Mission (${pipeline.length} step${pipeline.length !== 1 ? "s" : ""})`}
                     </Button>
                   </div>
                 </div>

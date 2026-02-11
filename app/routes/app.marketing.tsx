@@ -14,6 +14,7 @@ import {
   Select,
   Text,
   Toast,
+  Tooltip,
 } from '@shopify/polaris';
 import {useAppBridge} from '@shopify/app-bridge-react';
 import {getSessionToken} from '@shopify/app-bridge/utilities';
@@ -887,21 +888,18 @@ function MarketingTemplateCard({
       <Box padding="300">
         <BlockStack gap="300">
           <InlineStack align="space-between" blockAlign="center">
-            <BlockStack gap="100">
-              <Text as="h3" variant="headingSm">
+            <Tooltip content={template.description} width="wide">
+              <Text as="h3" variant="headingMd">
                 {template.name}
               </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                {template.description}
-              </Text>
-            </BlockStack>
-              <Button
-                onClick={handleGenerate}
-                disabled={!selectedProduct?.id || loading}
-                loading={loading}
-              >
-                {loading ? 'Generating…' : result ? 'Regenerate' : 'Generate'}
-              </Button>
+            </Tooltip>
+            <Button
+              onClick={handleGenerate}
+              disabled={!selectedProduct?.id || loading}
+              loading={loading}
+            >
+              {loading ? 'Generating…' : result ? 'Regenerate' : 'Generate'}
+            </Button>
           </InlineStack>
 
           {error && <Banner tone="critical">{error}</Banner>}
@@ -1050,34 +1048,23 @@ export default function MarketingWorkspace() {
     setSeasonalCaptionError(null);
     setSeasonalCaptionLoading(true);
     
-    try {
-      // Generate both social hooks and seasonal caption together
-      const [socialResult, seasonalResult] = await Promise.all([
-        callAgent(
-          'social_hook_architect',
-          {
-            id: selectedProduct.id,
-            title: selectedProduct.title,
-            category: selectedProduct.productType,
-            productType: selectedProduct.productType,
-            tags: selectedProduct.tags,
-          },
-          {focus: 'Instagram Reels'},
-        ),
-        callAgent(
-          'seasonal_campaign_caption',
-          {
-            id: selectedProduct.id,
-            title: selectedProduct.title,
-            category: selectedProduct.productType,
-            productType: selectedProduct.productType,
-            tags: selectedProduct.tags,
-          },
-          {current_date: new Date().toISOString()},
-        ),
-      ]);
+    const productData = {
+      id: selectedProduct.id,
+      title: selectedProduct.title,
+      category: selectedProduct.productType,
+      productType: selectedProduct.productType,
+      tags: selectedProduct.tags,
+    };
 
-      // Process social hooks
+    // Run both calls independently so one failing doesn't block the other
+    const [socialSettled, seasonalSettled] = await Promise.allSettled([
+      callAgent('social_hook_architect', productData, {focus: 'Instagram Reels'}),
+      callAgent('seasonal_campaign_caption', productData, {current_date: new Date().toISOString()}),
+    ]);
+
+    // Process social hooks
+    if (socialSettled.status === 'fulfilled') {
+      const socialResult = socialSettled.value;
       const nextHooks = (socialResult?.data?.metadata?.hooks ?? []) as any[];
       const overlays = (socialResult?.data?.metadata?.overlay_suggestions ?? []) as any[];
       const safeHooks = Array.isArray(nextHooks) ? nextHooks : [];
@@ -1086,13 +1073,7 @@ export default function MarketingWorkspace() {
       setOverlaySuggestions(safeOverlays);
       setSelectedHookIndex(0);
 
-      // Process seasonal caption
-      const text = String(seasonalResult?.data?.metadata?.copy_text || seasonalResult?.data?.text || '');
-      setSeasonalCaption(text);
-
-      setToastContent('Generated Instagram hooks and seasonal caption.');
-
-      // Persist cache on the product (Shopify metafield) to avoid re-calling the LLM.
+      // Persist cache on the product (Shopify metafield)
       try {
         const payload = JSON.stringify({
           hooks: safeHooks,
@@ -1107,13 +1088,37 @@ export default function MarketingWorkspace() {
       } catch {
         // best-effort; ignore cache write failures
       }
-    } catch (e: any) {
-      setHooksError(e?.message ?? 'Failed to generate hooks.');
-      setSeasonalCaptionError(e?.message ?? 'Failed to generate seasonal caption.');
-    } finally {
-      setHooksLoading(false);
-      setSeasonalCaptionLoading(false);
+    } else {
+      setHooksError(socialSettled.reason?.message ?? 'Failed to generate hooks.');
     }
+
+    // Process seasonal caption
+    if (seasonalSettled.status === 'fulfilled') {
+      const seasonalResult = seasonalSettled.value;
+      const text = String(
+        seasonalResult?.data?.metadata?.copy_text ||
+        seasonalResult?.data?.metadata?.caption ||
+        seasonalResult?.data?.text ||
+        ''
+      );
+      setSeasonalCaption(text);
+    } else {
+      setSeasonalCaptionError(seasonalSettled.reason?.message ?? 'Failed to generate seasonal caption.');
+    }
+
+    // Toast
+    const hooksOk = socialSettled.status === 'fulfilled';
+    const captionOk = seasonalSettled.status === 'fulfilled';
+    if (hooksOk && captionOk) {
+      setToastContent('Generated Instagram hooks and seasonal caption.');
+    } else if (hooksOk) {
+      setToastContent('Generated Instagram hooks (seasonal caption failed).');
+    } else if (captionOk) {
+      setToastContent('Generated seasonal caption (hooks failed).');
+    }
+
+    setHooksLoading(false);
+    setSeasonalCaptionLoading(false);
   }, [callAgent, saveHooksFetcher, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
   const loadUpcomingHolidayOnce = useCallback(async () => {
@@ -1139,31 +1144,6 @@ export default function MarketingWorkspace() {
       setSeasonalLoading(false);
     }
   }, [callAgent]);
-
-  const generateSeasonalCaption = useCallback(async () => {
-    if (!selectedProduct?.id) return;
-    setSeasonalCaptionLoading(true);
-    setSeasonalCaptionError(null);
-    try {
-      const result = await callAgent(
-        'seasonal_campaign_caption',
-        {
-          id: selectedProduct.id,
-          title: selectedProduct.title,
-          category: selectedProduct.productType,
-          productType: selectedProduct.productType,
-          tags: selectedProduct.tags,
-        },
-        {current_date: new Date().toISOString()},
-      );
-      const text = String(result?.data?.metadata?.copy_text || result?.data?.text || '');
-      setSeasonalCaption(text);
-    } catch (e: any) {
-      setSeasonalCaptionError(e?.message ?? 'Failed to generate seasonal caption.');
-    } finally {
-      setSeasonalCaptionLoading(false);
-    }
-  }, [callAgent, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
   // Reset seasonal caption immediately when product changes (seasonal captions are not cached)
   useEffect(() => {
@@ -1232,7 +1212,7 @@ export default function MarketingWorkspace() {
     <Page 
       title="Marketing Consultant"
       backAction={{
-        content: "Back",
+        content: "Home",
         onAction: () => navigate(nav("/app")),
       }}
     >
@@ -1262,11 +1242,7 @@ export default function MarketingWorkspace() {
                 <Text variant="headingMd" as="h2">Select Product</Text>
                 <Select label="Product" labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
                 {selectedProduct && (
-                  <InlineStack align="space-between" blockAlign="center">
-                    <BlockStack gap="100">
-                      <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
-                      <Text variant="bodySm" tone="subdued">{selectedProduct.productType || "No category"}</Text>
-                    </BlockStack>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
                     <div className="agent-btn-border-5">
                       <Button
                         onClick={runSocialHooks}
@@ -1282,7 +1258,7 @@ export default function MarketingWorkspace() {
                             : 'Generate'}
                       </Button>
                     </div>
-                  </InlineStack>
+                  </div>
                 )}
               </BlockStack>
             </Card>
@@ -1434,7 +1410,11 @@ export default function MarketingWorkspace() {
                   </InlineStack>
 
                   {seasonalCaptionError ? <Banner tone="critical">{seasonalCaptionError}</Banner> : null}
-                  {seasonalCaption ? (
+                  {seasonalCaptionLoading ? (
+                    <Text as="p" tone="subdued">
+                      Generating seasonal caption…
+                    </Text>
+                  ) : seasonalCaption ? (
                     <Card>
                       <Box padding="300">
                         <Text as="p">{seasonalCaption}</Text>
@@ -1442,7 +1422,7 @@ export default function MarketingWorkspace() {
                     </Card>
                   ) : (
                     <Text as="p" tone="subdued">
-                      Generate a caption tied to the upcoming holiday!
+                      Click "Generate" above to create social hooks and a seasonal caption.
                     </Text>
                   )}
                 </BlockStack>

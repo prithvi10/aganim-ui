@@ -184,7 +184,7 @@ export function MissionHistory({
     <Card>
       <Box padding="400">
         <BlockStack gap="400">
-          <Text as="h3" variant="headingSm">
+          <Text as="h3" variant="headingMd">
             Recent Missions
           </Text>
 
