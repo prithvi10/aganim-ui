@@ -207,6 +207,12 @@ export default function PricingPage() {
       // Use valid_competitors from Smart Price Discovery (Google Shopping)
       // Falls back to legacy competitors array if valid_competitors not present
       const competitorsData = analysis.valid_competitors || analysis.competitors || [];
+
+      // If no competitors found (SERP API failed or no results), show an error
+      if (!competitorsData.length) {
+        const reason = analysis.reasoning || analysis.filter_reasoning || "No competitor pricing data found. The search API may be temporarily unavailable — please try again in a moment.";
+        throw new Error(reason);
+      }
       
       setAnalysisResult({
         yourPrice: productPrice,
@@ -245,7 +251,7 @@ export default function PricingPage() {
       title="Pricing Intelligence" 
       subtitle="Analyze competitor prices and get AI-powered pricing recommendations"
       backAction={{
-        content: "Back",
+        content: "Home",
         onAction: () => navigate(nav("/app")),
       }}
     >
@@ -257,15 +263,11 @@ export default function PricingPage() {
                 <Text variant="headingMd" as="h2">Select Product</Text>
                 <Select label="Product" labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
                 {selectedProduct && (
-                  <InlineStack align="space-between" blockAlign="center">
-                    <BlockStack gap="100">
-                      <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
-                      <Text variant="bodySm" tone="subdued">Current Price: ${currentPrice.toFixed(2)}</Text>
-                    </BlockStack>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
                     <div className="agent-btn-border-4">
                       <Button variant="primary" size="large" onClick={handleAnalyze} loading={isAnalyzing} disabled={!selectedProduct || isAnalyzing}>Scout Prices</Button>
                     </div>
-                  </InlineStack>
+                  </div>
                 )}
               </BlockStack>
             </Card>

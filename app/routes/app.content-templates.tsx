@@ -15,6 +15,7 @@ import {
   Text,
   TextField,
   Toast,
+  Tooltip,
 } from '@shopify/polaris';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
@@ -55,6 +56,12 @@ type LoaderData = {
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
   templates: ContentTemplate[];
+};
+
+// ─── Display name overrides ───────────────────────────────────────────────────
+
+const TEMPLATE_DISPLAY_NAMES: Record<string, string> = {
+  'product/landing-hero': 'Hero Section',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -610,15 +617,20 @@ function ContentTemplateCard({
     <Card>
       <Box padding="300">
         <BlockStack gap="300">
+          {/* Name + Generate button on the same row */}
           <InlineStack align="space-between" blockAlign="center">
-            <BlockStack gap="100">
-              <Text as="h3" variant="headingSm">
-                {template.name}
+            <Tooltip content={template.description} width="wide">
+              <Text as="h3" variant="headingMd">
+                {TEMPLATE_DISPLAY_NAMES[template.id] || template.name}
               </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                {template.description}
-              </Text>
-            </BlockStack>
+            </Tooltip>
+            <Button
+              onClick={handleGenerate}
+              disabled={!canGenerate || loading}
+              loading={loading}
+            >
+              {loading ? 'Generating…' : result ? 'Regenerate' : 'Generate'}
+            </Button>
           </InlineStack>
 
           {/* Blog Post — custom inputs */}
@@ -657,35 +669,8 @@ function ContentTemplateCard({
               onChange={setCollectionName}
               placeholder={selectedProduct?.title || 'Enter collection name'}
               autoComplete="off"
-              helpText="Leave blank to use the selected product title as the collection name"
             />
           )}
-
-          {/* Product context preview (for product-wired templates) */}
-          {needsProduct && selectedProduct && (
-            <div
-              style={{
-                background: '#f6f6f7',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                fontSize: '13px',
-                color: '#6d7175',
-              }}
-            >
-              Using: <strong>{selectedProduct.title}</strong>
-              {selectedProduct.productType ? ` · ${selectedProduct.productType}` : ''}
-            </div>
-          )}
-
-          <InlineStack align="end">
-            <Button
-              onClick={handleGenerate}
-              disabled={!canGenerate || loading}
-              loading={loading}
-            >
-              {loading ? 'Generating…' : result ? 'Regenerate' : 'Generate'}
-            </Button>
-          </InlineStack>
 
           {error && <Banner tone="critical">{error}</Banner>}
 
@@ -782,18 +767,6 @@ export default function ContentTemplatesPage() {
                 value={selectedProduct?.id || ''}
                 onChange={handleProductChange}
               />
-              {selectedProduct && (
-                <InlineStack align="space-between" blockAlign="center">
-                  <BlockStack gap="100">
-                    <Text variant="headingSm" as="h3">
-                      {selectedProduct.title}
-                    </Text>
-                    <Text variant="bodySm" tone="subdued">
-                      {selectedProduct.productType || 'No category'}
-                    </Text>
-                  </BlockStack>
-                </InlineStack>
-              )}
             </BlockStack>
           </Card>
         </Layout.Section>

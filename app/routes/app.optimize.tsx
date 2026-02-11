@@ -383,7 +383,7 @@ export default function OptimizePage() {
     <Frame>
       <Page
         title="AI-Powered Product Optimization"
-        backAction={{ content: "Dashboard", onAction: () => navigate("/app/dashboard") }}
+        backAction={{ content: "Home", onAction: () => navigate("/app") }}
       >
         <Layout>
           <Layout.Section>
@@ -393,7 +393,7 @@ export default function OptimizePage() {
               <Card>
                 <Box padding="400">
                   <BlockStack gap="300">
-                    <Text as="h2" variant="headingMd">Select Product to Optimize</Text>
+                    <Text as="h2" variant="headingLg">Select Product to Optimize</Text>
                     <Select
                       label="Product"
                       labelHidden
@@ -512,7 +512,6 @@ export default function OptimizePage() {
                   >
                     <InlineStack gap="300" blockAlign="center" align="space-between">
                       <InlineStack gap="200" blockAlign="center">
-                        <Badge tone={info.color}>{idx + 1}</Badge>
                         <BlockStack gap="050">
                           <Text variant="bodyMd" as="span" fontWeight="semibold">
                             {info.icon} {info.displayName}
