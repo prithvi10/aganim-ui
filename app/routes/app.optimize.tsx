@@ -14,6 +14,8 @@ import {
   Badge,
   Toast,
   Frame,
+  Divider,
+  Modal,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
@@ -22,6 +24,12 @@ import { useState, useCallback } from "react";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { MissionTimeline, type MissionState } from "../components/MissionTimeline";
 import { MissionSummary } from "../components/MissionSummary";
+import { MissionHistory } from "../components/MissionHistory";
+import {
+  MissionArchitect,
+  getStepDisplayInfo,
+  type WorkflowStep,
+} from "../components/MissionArchitect";
 import "../styles/optimize-button.css";
 
 type ProductListItem = { id: string; title: string };
@@ -196,6 +204,13 @@ export default function OptimizePage() {
   const [toastSuccess, setToastSuccess] = useState(true);
   const [viewingSavedMission, setViewingSavedMission] = useState(false);
 
+  // Pipeline state lifted from MissionArchitect
+  const [pipeline, setPipeline] = useState<WorkflowStep[]>([]);
+  // Mission preview modal
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // ── Product selection ─────────────────────────────────────────────────
+
   const handleProductChange = useCallback((value: string) => {
     const newParams = new URLSearchParams(searchParams);
     newParams.set("productId", productIdFromGid(value));
@@ -204,8 +219,16 @@ export default function OptimizePage() {
     setFinalState(null);
   }, [searchParams, setSearchParams]);
 
+  // ── Pipeline change from MissionArchitect ─────────────────────────────
+
+  const handlePipelineChange = useCallback((newPipeline: WorkflowStep[]) => {
+    setPipeline(newPipeline);
+  }, []);
+
+  // ── Start Optimize (sends workflow_config) ────────────────────────────
+
   const handleOptimize = useCallback(async () => {
-    if (!selectedProduct) return;
+    if (!selectedProduct || pipeline.length === 0) return;
     setIsOptimizing(true);
     setError(null);
     setFinalState(null);
@@ -236,7 +259,7 @@ export default function OptimizePage() {
           japanese_description: selectedProduct.descriptionHtml,
           category: selectedProduct.productType || "General",
           target_locale: "en",
-          // No requested_agents = full workflow based on plan tier
+          workflow_config: pipeline,
         }),
       });
       if (!response.ok) throw new Error(`API error: ${response.status}`);
@@ -246,7 +269,7 @@ export default function OptimizePage() {
       setError(err instanceof Error ? err.message : "Failed to start optimization");
       setIsOptimizing(false);
     }
-  }, [selectedProduct, backendApiUrl, app, shop]);
+  }, [selectedProduct, backendApiUrl, app, shop, pipeline]);
 
   const handleMissionComplete = useCallback((state: MissionState) => {
     setIsOptimizing(false);
@@ -271,6 +294,7 @@ export default function OptimizePage() {
   const handleDiscard = useCallback(() => {
     setMissionId(null);
     setFinalState(null);
+    setIsOptimizing(false);
   }, []);
 
   const handleEdit = useCallback((state: MissionState) => {
@@ -304,6 +328,15 @@ export default function OptimizePage() {
       } : null,
     };
   }, [selectedProduct]);
+
+  // ── Resume a paused mission from history ──────────────────────────────
+
+  const handleResumeMission = useCallback((resumeId: string) => {
+    setMissionId(resumeId);
+    setFinalState(null);
+    setIsOptimizing(true);
+    setError(null);
+  }, []);
 
   const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
 
@@ -350,98 +383,58 @@ export default function OptimizePage() {
     <Frame>
       <Page
         title="AI-Powered Product Optimization"
-        backAction={{ content: "Dashboard", onAction: () => navigate("/app/dashboard") }}
+        backAction={{ content: "Home", onAction: () => navigate("/app") }}
       >
         <Layout>
           <Layout.Section>
             <BlockStack gap="400">
-              {/* AI-Powered Product Optimization Card - First */}
-              {!missionId && !isOptimizing && (
-                <Card>
-                  <Box padding="600">
-                    <BlockStack gap="400" align="center">
-                      <BlockStack gap="200">
-                        <InlineStack gap="200" blockAlign="center">
-                          <Badge tone="success">1</Badge>
-                          <Text variant="bodyMd"><strong>Rewriter</strong> - Rewrites your description with brand voice</Text>
-                        </InlineStack>
-                        <InlineStack gap="200" blockAlign="center">
-                          <Badge tone="success">2</Badge>
-                          <Text variant="bodyMd"><strong>SEO</strong> - Optimizes title, description, and analyzes CTR</Text>
-                        </InlineStack>
-                        <InlineStack gap="200" blockAlign="center">
-                          <Badge tone="success">3</Badge>
-                          <Text variant="bodyMd"><strong>Marketing</strong> - Creates social media hooks and captions</Text>
-                        </InlineStack>
-                        <InlineStack gap="200" blockAlign="center">
-                          <Badge tone="success">4</Badge>
-                          <Text variant="bodyMd"><strong>Pricing</strong> - Analyzes competitors and suggests pricing</Text>
-                        </InlineStack>
-                      </BlockStack>
 
-                      <Box paddingBlockStart="200">
-                        <Banner tone="info">
-                          <Text variant="bodySm">
-                            After each agent completes, you can:
-                            <strong> Approve</strong> to continue,
-                            <strong> Regenerate</strong> with feedback, or
-                            <strong> Skip</strong> the step entirely.
-                          </Text>
-                        </Banner>
-                      </Box>
-                    </BlockStack>
-                  </Box>
-                </Card>
-              )}
-
-              {/* Product Selection Card - Second */}
+              {/* ── Card 1: Product Selection ─────────────────────────────── */}
               <Card>
-                <BlockStack gap="400">
-                  <Text variant="headingMd" as="h2">Select Product to Optimize</Text>
-
-                  <Select label="Product" labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
-
-                  {selectedProduct && !missionId && (
-                    <Box padding="400" background="bg-surface-secondary" borderRadius="200">
-                      <BlockStack gap="300">
-                        <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
-                        <Text variant="bodySm" tone="subdued">Category: {selectedProduct.productType || "General"}</Text>
-
-                        <div className="aiOptimizeCenter">
-                          <div className="aiOptimizeWrap">
-                            <div className="aiOptimizeInner">
-                              <Button
-                                variant="primary"
-                                size="large"
-                                onClick={handleOptimize}
-                                loading={isOptimizing}
-                                disabled={!selectedProduct || isOptimizing}
-                                fullWidth
-                              >
-                                🚀 Optimize All
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </BlockStack>
-                    </Box>
-                  )}
-                </BlockStack>
+                <Box padding="400">
+                  <BlockStack gap="300">
+                    <Text as="h2" variant="headingLg">Select Product to Optimize</Text>
+                    <Select
+                      label="Product"
+                      labelHidden
+                      options={productOptions}
+                      value={selectedProduct?.id || ""}
+                      onChange={handleProductChange}
+                      disabled={isOptimizing}
+                    />
+                  </BlockStack>
+                </Box>
               </Card>
 
-              {/* Most Recent Mission Card - Third (Single line with status) */}
-              {selectedProduct?.savedMissionData && !missionId && (
-                <Card>
-                  <InlineStack align="space-between" blockAlign="center">
-                    <InlineStack gap="300" blockAlign="center">
-                      <Text variant="headingSm" as="h3">Most Recent Mission</Text>
-                      <Badge tone="success">Completed</Badge>
-                    </InlineStack>
-                    <Button variant="plain" onClick={() => setViewingSavedMission(true)}>
-                      View Details
-                    </Button>
-                  </InlineStack>
-                </Card>
+              {/* ── Card 2: Mission Architect (presets + agents + pipeline) ─ */}
+              {selectedProduct && !missionId && (
+                <MissionArchitect
+                  onStartMission={handleOptimize}
+                  isRunning={isOptimizing}
+                  planTier={planName}
+                  onPipelineChange={handlePipelineChange}
+                  hideStartButton={true}
+                />
+              )}
+
+              {/* ── Launch Button (opens preview modal) ─────────────────── */}
+              {selectedProduct && !missionId && !isOptimizing && pipeline.length > 0 && (
+                <Box paddingBlockStart="100">
+                  <div className="aiOptimizeCenter">
+                    <div className="aiOptimizeWrap">
+                      <div className="aiOptimizeInner">
+                        <Button
+                          variant="primary"
+                          size="large"
+                          onClick={() => setShowPreviewModal(true)}
+                          fullWidth
+                        >
+                          🚀 Preview & Launch
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Box>
               )}
 
               {/* Error Banner */}
@@ -465,10 +458,103 @@ export default function OptimizePage() {
                   onStepSkip={() => console.log("[Optimize] Step skipped")}
                 />
               )}
+
+              {/* ── Card 4: Mission History ──────────────────────────────── */}
+              {!missionId && (
+                <MissionHistory
+                  apiBaseUrl={backendApiUrl}
+                  shop={shop}
+                  onResumeMission={handleResumeMission}
+                  limit={5}
+                />
+              )}
+
             </BlockStack>
           </Layout.Section>
         </Layout>
       </Page>
+
+      {/* ── Mission Preview Modal ────────────────────────────────────── */}
+      <Modal
+        open={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        title="Mission Preview"
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            {/* Product context */}
+            {selectedProduct && (
+              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                <InlineStack gap="200" blockAlign="center">
+                  <Text as="span" variant="bodySm" fontWeight="semibold">Product:</Text>
+                  <Text as="span" variant="bodySm">{selectedProduct.title}</Text>
+                </InlineStack>
+              </Box>
+            )}
+
+            {/* Step-by-step preview */}
+            <BlockStack gap="200">
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h3" variant="headingSm" fontWeight="bold">Execution Plan</Text>
+                <Badge tone="info">
+                  {pipeline.length} step{pipeline.length !== 1 ? "s" : ""}
+                </Badge>
+              </InlineStack>
+
+              {pipeline.map((step, idx) => {
+                const info = getStepDisplayInfo(step);
+                return (
+                  <Box
+                    key={`preview-${step.agent_name}-${step.template_id || ""}-${idx}`}
+                    padding="300"
+                    background="bg-surface-secondary"
+                    borderRadius="200"
+                  >
+                    <InlineStack gap="300" blockAlign="center" align="space-between">
+                      <InlineStack gap="200" blockAlign="center">
+                        <BlockStack gap="050">
+                          <Text variant="bodyMd" as="span" fontWeight="semibold">
+                            {info.icon} {info.displayName}
+                            {info.isTemplate ? " (Template)" : ""}
+                          </Text>
+                          <Text variant="bodySm" as="span" tone="subdued">
+                            {info.description}
+                          </Text>
+                        </BlockStack>
+                      </InlineStack>
+                    </InlineStack>
+                  </Box>
+                );
+              })}
+            </BlockStack>
+
+            <Divider />
+
+            {/* Optimize All button */}
+            <Box paddingBlockStart="100">
+              <div className="aiOptimizeCenter">
+                <div className="aiOptimizeWrap">
+                  <div className="aiOptimizeInner">
+                    <Button
+                      variant="primary"
+                      size="large"
+                      onClick={() => {
+                        setShowPreviewModal(false);
+                        handleOptimize();
+                      }}
+                      loading={isOptimizing}
+                      disabled={!selectedProduct || isOptimizing || pipeline.length === 0}
+                      fullWidth
+                    >
+                      🚀 Optimize All ({pipeline.length} step{pipeline.length !== 1 ? "s" : ""})
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Box>
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
 
       {/* Success/Error Toast */}
       {toastContent && (

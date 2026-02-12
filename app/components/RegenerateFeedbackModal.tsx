@@ -15,7 +15,8 @@ interface RegenerateFeedbackModalProps {
   isLoading?: boolean;
 }
 
-function getAgentDisplayName(agentName: string): string {
+function getAgentDisplayName(agentName: string | null | undefined): string {
+  if (!agentName) return "Agent";
   switch (agentName) {
     case "RewriterAgent":
     case "CopywriterAgent":  // Backward compat
@@ -33,7 +34,7 @@ function getAgentDisplayName(agentName: string): string {
   }
 }
 
-function getPlaceholderText(agentName: string): string {
+function getPlaceholderText(agentName: string | null | undefined): string {
   switch (agentName) {
     case "RewriterAgent":
     case "CopywriterAgent":  // Backward compat
@@ -51,7 +52,7 @@ function getPlaceholderText(agentName: string): string {
   }
 }
 
-function getHelpText(agentName: string): string {
+function getHelpText(agentName: string | null | undefined): string {
   switch (agentName) {
     case "RewriterAgent":
     case "CopywriterAgent":  // Backward compat

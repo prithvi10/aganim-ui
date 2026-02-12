@@ -17,8 +17,10 @@ import {
   ChevronDownIcon,
   EditIcon,
 } from "@shopify/polaris-icons";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { RichTextEditor, HtmlPreview } from "./RichTextEditor";
+import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
+import { templateOutputToHtml } from "../utils/templateHtmlParser";
 import "../styles/optimize-button.css";
 
 export interface AgentOutput {
@@ -43,6 +45,9 @@ export interface AgentOutput {
     copy_text?: string;
   }>;
   seasonal_campaign?: Record<string, unknown>;
+  
+  // Template outputs
+  template_id?: string;
   
   // PriceScout outputs
   pricing_analysis?: {
@@ -423,9 +428,12 @@ export function StepApproval({
     onOutputChange?.("seo_description", value);
   }, [onOutputChange]);
   
-  const displayName = getAgentDisplayName(agentName);
-  const icon = getAgentIcon(agentName);
-  const description = getAgentDescription(agentName);
+  // Template-aware display: use template info when available
+  const templateId = output?.template_id;
+  const templateDef = templateId ? TEMPLATE_DEFINITIONS[templateId] : undefined;
+  const displayName = templateDef ? templateDef.displayName : getAgentDisplayName(agentName);
+  const icon = templateDef ? templateDef.icon : getAgentIcon(agentName);
+  const description = templateDef ? templateDef.description : getAgentDescription(agentName);
   const isLastStep = stepIndex === totalSteps - 1;
   
   // Determine badge based on status
@@ -451,6 +459,39 @@ export function StepApproval({
   // Render agent-specific output preview
   const renderOutputPreview = () => {
     if (!output) return null;
+    
+    // ── Template step: parse JSON into rich HTML ────────────────────
+    if (output.template_id && output.draft_content) {
+      const parsedHtml = templateOutputToHtml(output.draft_content);
+      return (
+        <BlockStack gap="400">
+          {output.draft_title && (
+            <BlockStack gap="100">
+              <Text as="span" variant="bodySm" fontWeight="semibold">Generated Title:</Text>
+              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                <Text as="p" variant="headingMd">{output.draft_title}</Text>
+              </Box>
+            </BlockStack>
+          )}
+          <HtmlPreview
+            label="Generated Content"
+            value={parsedHtml}
+            height={showFullOutput ? 400 : 200}
+          />
+          {parsedHtml.length > 500 && (
+            <InlineStack align="center">
+              <Button
+                variant="plain"
+                onClick={toggleOutput}
+                icon={showFullOutput ? ChevronDownIcon : ChevronRightIcon}
+              >
+                {showFullOutput ? "Show Less" : "Show Full Content"}
+              </Button>
+            </InlineStack>
+          )}
+        </BlockStack>
+      );
+    }
     
     switch (agentName) {
       case "RewriterAgent":

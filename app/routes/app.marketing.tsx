@@ -6,22 +6,24 @@ import {
   Box,
   Button,
   Card,
+  Collapsible,
   Divider,
   InlineStack,
   Layout,
   Page,
   Select,
-  Spinner,
   Text,
   Toast,
+  Tooltip,
 } from '@shopify/polaris';
 import {useAppBridge} from '@shopify/app-bridge-react';
 import {getSessionToken} from '@shopify/app-bridge/utilities';
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';
 import { DowngradeScheduledBanner } from "../components/DowngradeScheduledBanner";
+import { RichTextEditor } from "../components/RichTextEditor";
 import "../styles/optimize-button.css";
 
 type ProductListItem = {id: string; title: string};
@@ -51,6 +53,22 @@ type SelectedProduct = {
   _hooksIsFresh?: boolean;
 };
 
+type MarketingTemplate = {
+  id: string;
+  name: string;
+  category: 'product' | 'marketing';
+  agent_type: 'rewriter' | 'marketing';
+  description: string;
+  output_format: string;
+  inputs: Array<{
+    name: string;
+    label: string;
+    required: boolean;
+    input_type: string;
+    description: string;
+  }>;
+};
+
 type LoaderData = {
   planName: 'Free' | 'Basic' | 'Standard' | 'Pro';
   shop: string;
@@ -64,6 +82,7 @@ type LoaderData = {
   selectedProduct: SelectedProduct | null;
   contentHash: string | null;
   didResetMetaCache: boolean;
+  marketingTemplates: MarketingTemplate[];
 };
 
 function firstOrNull<T>(arr: T[]): T | null {
@@ -335,6 +354,23 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       }
     : null;
 
+  // Fetch marketing templates for the content generator section
+  let marketingTemplates: MarketingTemplate[] = [];
+  try {
+    const templatesRes = await fetch(
+      `${backendApiUrl}/api/templates?category=marketing&shop=${encodeURIComponent(sessionShop)}`,
+      { headers: { 'X-Shopify-Shop-Domain': sessionShop } },
+    );
+    if (templatesRes.ok) {
+      const templatesData = await templatesRes.json();
+      marketingTemplates = (templatesData.templates || []).filter(
+        (t: MarketingTemplate) => t.category === 'marketing',
+      );
+    }
+  } catch {
+    // best-effort
+  }
+
   return {
     planName,
     shop,
@@ -348,6 +384,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     selectedProduct,
     contentHash: selectedProduct?._contentHash ?? null,
     didResetMetaCache,
+    marketingTemplates,
   } satisfies LoaderData;
 };
 
@@ -433,8 +470,474 @@ export const action = async ({request}: ActionFunctionArgs) => {
   return {ok: false, error: 'Unknown intent'};
 };
 
+/**
+ * Parse a Python-style dict string (e.g. {'key': "value with 'quotes'"}).
+ *
+ * Python's str(dict) uses single-quoted keys but switches to double quotes
+ * when a value contains single quotes. A naive replace-all-quotes approach
+ * breaks on embedded quotes. This state-machine parser handles mixed styles.
+ */
+function parsePythonDict(raw: string): Record<string, any> | null {
+  const s = raw.trim();
+  if (!s.startsWith('{') || !s.endsWith('}')) return null;
+
+  const inner = s.slice(1, -1);
+  const result: Record<string, any> = {};
+  let i = 0;
+
+  function skip() {
+    while (i < inner.length && /[\s]/.test(inner[i])) i++;
+  }
+
+  function readString(): string | null {
+    const q = inner[i];
+    if (q !== "'" && q !== '"') return null;
+    i++; // opening quote
+    let out = '';
+    while (i < inner.length) {
+      if (inner[i] === '\\' && i + 1 < inner.length) {
+        out += inner[i + 1];
+        i += 2;
+      } else if (inner[i] === q) {
+        i++; // closing quote
+        return out;
+      } else {
+        out += inner[i];
+        i++;
+      }
+    }
+    return out; // unterminated — return what we have
+  }
+
+  while (i < inner.length) {
+    skip();
+    if (i >= inner.length) break;
+
+    // ── key ──
+    const key = readString();
+    if (key === null) break;
+
+    skip();
+    if (inner[i] !== ':') break;
+    i++; // skip ':'
+    skip();
+
+    // ── value ──
+    const ch = inner[i];
+    if (ch === "'" || ch === '"') {
+      const val = readString();
+      if (val !== null) result[key] = val;
+    } else if (ch === '[') {
+      // Array — collect until matching ']'
+      let depth = 1;
+      let arr = '[';
+      i++;
+      while (i < inner.length && depth > 0) {
+        if (inner[i] === '[') depth++;
+        else if (inner[i] === ']') depth--;
+        arr += inner[i];
+        i++;
+      }
+      try {
+        result[key] = JSON.parse(arr.replace(/'/g, '"'));
+      } catch {
+        result[key] = arr;
+      }
+    } else if (ch === '{') {
+      // Nested dict — skip for now, store as string
+      let depth = 1;
+      let sub = '{';
+      i++;
+      while (i < inner.length && depth > 0) {
+        if (inner[i] === '{') depth++;
+        else if (inner[i] === '}') depth--;
+        sub += inner[i];
+        i++;
+      }
+      const nested = parsePythonDict(sub);
+      result[key] = nested ?? sub;
+    } else {
+      // Number / boolean / None
+      let val = '';
+      while (i < inner.length && inner[i] !== ',') {
+        val += inner[i];
+        i++;
+      }
+      const t = val.trim();
+      if (t === 'True') result[key] = true;
+      else if (t === 'False') result[key] = false;
+      else if (t === 'None') result[key] = null;
+      else if (!isNaN(Number(t)) && t !== '') result[key] = Number(t);
+      else result[key] = t;
+    }
+
+    skip();
+    if (i < inner.length && inner[i] === ',') i++; // skip ','
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+/**
+ * Convert structured marketing JSON/Python-dict into merchant-ready HTML.
+ *
+ * Handles email (subject/preheader/body/cta_text), ad copy
+ * (primary_text/headline/description/cta), Google Ads (headlines[]/descriptions[]),
+ * and blog posts (title/meta_description/content/tags).
+ */
+function marketingJsonToHtml(raw: string): string {
+  // 1. Try standard JSON
+  let parsed: Record<string, any> | null = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // 2. Fall back to Python-style dict parser (handles mixed quotes)
+    parsed = parsePythonDict(raw);
+  }
+
+  if (!parsed || typeof parsed !== 'object') return raw;
+
+  const parts: string[] = [];
+
+  // ── Email templates (subject / preheader / body / cta_text) ───────
+  if (parsed.subject) {
+    parts.push(
+      `<div style="background:#f6f6f7;border-radius:8px;padding:14px 18px;margin-bottom:14px">` +
+        `<p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Subject Line</p>` +
+        `<p style="margin:0;font-size:16px;font-weight:600">${parsed.subject}</p>` +
+      `</div>`,
+    );
+  }
+  if (parsed.preheader) {
+    parts.push(
+      `<div style="background:#f6f6f7;border-radius:8px;padding:12px 18px;margin-bottom:14px">` +
+        `<p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Preheader</p>` +
+        `<p style="margin:0;font-size:14px;color:#6d7175">${parsed.preheader}</p>` +
+      `</div>`,
+    );
+  }
+  if (parsed.body) {
+    parts.push(
+      `<div style="border:1px solid #e1e3e5;border-radius:8px;padding:20px;margin-bottom:14px">` +
+        `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Email Body</p>` +
+        `<div>${parsed.body}</div>` +
+      `</div>`,
+    );
+  }
+  if (parsed.cta_text) {
+    parts.push(
+      `<div style="text-align:center;margin:20px 0">` +
+        `<span style="display:inline-block;background:#000;color:#fff;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;letter-spacing:0.3px">${parsed.cta_text}</span>` +
+      `</div>`,
+    );
+  }
+
+  // ── Ad copy (primary_text / headline / description / cta) ─────────
+  if (parsed.primary_text) {
+    parts.push(
+      `<div style="border-left:3px solid #2c6ecb;padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:0 8px 8px 0">` +
+        `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Primary Text</p>` +
+        `<p style="margin:0;font-size:15px;line-height:1.6">${parsed.primary_text}</p>` +
+      `</div>`,
+    );
+  }
+  if (parsed.headline) {
+    parts.push(
+      `<div style="border-left:3px solid #2c6ecb;padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:0 8px 8px 0">` +
+        `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Headline</p>` +
+        `<h3 style="margin:0;font-size:18px;font-weight:700">${parsed.headline}</h3>` +
+      `</div>`,
+    );
+  }
+  if (parsed.description && typeof parsed.description === 'string') {
+    parts.push(
+      `<div style="border-left:3px solid #2c6ecb;padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:0 8px 8px 0">` +
+        `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Description</p>` +
+        `<p style="margin:0;font-size:14px;line-height:1.5;color:#303030">${parsed.description}</p>` +
+      `</div>`,
+    );
+  }
+  if (parsed.cta && !parsed.cta_text) {
+    parts.push(
+      `<div style="text-align:center;margin:20px 0">` +
+        `<span style="display:inline-block;background:#000;color:#fff;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;letter-spacing:0.3px">${parsed.cta}</span>` +
+      `</div>`,
+    );
+  }
+
+  // ── Google Ads (headlines[] / descriptions[]) ─────────────────────
+  if (Array.isArray(parsed.headlines)) {
+    const rows = parsed.headlines
+      .map((h: string, i: number) => `<li style="padding:6px 0;border-bottom:1px solid #ebebeb"><strong>H${i + 1}:</strong> ${h}</li>`)
+      .join('');
+    parts.push(
+      `<div style="margin-bottom:14px">` +
+        `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Headlines</p>` +
+        `<ul style="list-style:none;padding:0;margin:0;border:1px solid #e1e3e5;border-radius:8px;padding:4px 14px">${rows}</ul>` +
+      `</div>`,
+    );
+  }
+  if (Array.isArray(parsed.descriptions)) {
+    const rows = parsed.descriptions
+      .map((d: string, i: number) => `<li style="padding:6px 0;border-bottom:1px solid #ebebeb"><strong>D${i + 1}:</strong> ${d}</li>`)
+      .join('');
+    parts.push(
+      `<div style="margin-bottom:14px">` +
+        `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Descriptions</p>` +
+        `<ul style="list-style:none;padding:0;margin:0;border:1px solid #e1e3e5;border-radius:8px;padding:4px 14px">${rows}</ul>` +
+      `</div>`,
+    );
+  }
+  if (parsed.path1) {
+    parts.push(`<p style="font-size:13px;color:#6d7175">Display URL: example.com/<strong>${parsed.path1}</strong>/${parsed.path2 || ''}</p>`);
+  }
+
+  // ── Blog post (title / meta_description / content / tags) ─────────
+  if (parsed.title && parsed.content) {
+    parts.push(`<h2 style="margin:0 0 8px">${parsed.title}</h2>`);
+    if (parsed.meta_description) {
+      parts.push(`<p style="font-size:13px;color:#6d7175;margin:0 0 16px"><em>Meta: ${parsed.meta_description}</em></p>`);
+    }
+    parts.push(parsed.content);
+    if (Array.isArray(parsed.tags) && parsed.tags.length) {
+      parts.push(`<p style="font-size:13px;color:#6d7175;margin-top:16px">Tags: ${parsed.tags.join(', ')}</p>`);
+    }
+  }
+
+  // ── FAQs ──────────────────────────────────────────────────────────
+  if (Array.isArray(parsed.faqs)) {
+    const faqHtml = parsed.faqs
+      .map((f: any) => `<div style="margin-bottom:12px"><h4 style="margin:0 0 4px">Q: ${f.question}</h4><p style="margin:0;color:#303030">A: ${f.answer}</p></div>`)
+      .join('<hr style="border:none;border-top:1px solid #e1e3e5;margin:8px 0"/>');
+    parts.push(faqHtml);
+  }
+
+  // ── Fallback: render any remaining unknown keys as labeled sections ─
+  if (parts.length === 0) {
+    const knownKeys = new Set([
+      'subject', 'preheader', 'body', 'cta_text', 'cta',
+      'primary_text', 'headline', 'description',
+      'headlines', 'descriptions', 'path1', 'path2',
+      'title', 'content', 'meta_description', 'tags', 'faqs',
+    ]);
+    for (const [key, val] of Object.entries(parsed)) {
+      if (knownKeys.has(key) || val == null) continue;
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      const display = typeof val === 'string' ? val : JSON.stringify(val, null, 2);
+      parts.push(
+        `<div style="border-left:3px solid #2c6ecb;padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:0 8px 8px 0">` +
+          `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">${label}</p>` +
+          `<p style="margin:0;font-size:15px;line-height:1.5">${display}</p>` +
+        `</div>`,
+      );
+    }
+    // Also render known keys that matched but weren't caught above
+    // (handles case where e.g. only 'headline' exists without 'primary_text')
+    for (const [key, val] of Object.entries(parsed)) {
+      if (val == null || parts.length > 0) continue;
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      parts.push(
+        `<div style="padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:8px">` +
+          `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">${label}</p>` +
+          `<p style="margin:0;font-size:15px;line-height:1.5">${String(val)}</p>` +
+        `</div>`,
+      );
+    }
+  }
+
+  return parts.join('') || raw;
+}
+
+/**
+ * Renders a structured marketing result as editable rich HTML
+ * using the same RichTextEditor as the Rewriter draft.
+ */
+function MarketingResultDisplay({
+  content,
+  onContentChange,
+}: {
+  content: string;
+  onContentChange?: (html: string) => void;
+}) {
+  const html = useMemo(() => marketingJsonToHtml(content), [content]);
+  const [editableHtml, setEditableHtml] = useState(html);
+
+  // Sync when new content arrives (re-generation)
+  useEffect(() => {
+    setEditableHtml(html);
+  }, [html]);
+
+  const handleChange = useCallback(
+    (next: string) => {
+      setEditableHtml(next);
+      onContentChange?.(next);
+    },
+    [onContentChange],
+  );
+
+  return (
+    <RichTextEditor
+      label="Generated Content"
+      value={editableHtml}
+      onChange={handleChange}
+      height={320}
+      helpText="Edit the generated content above, then copy to use in your store."
+    />
+  );
+}
+
+/**
+ * Self-contained template card with one-click generate + inline result display.
+ */
+function MarketingTemplateCard({
+  template,
+  selectedProduct,
+  shop,
+  backendApiUrl,
+  onToast,
+}: {
+  template: MarketingTemplate;
+  selectedProduct: SelectedProduct | null;
+  shop: string;
+  backendApiUrl: string;
+  onToast: (msg: string) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
+  // Track the live editable HTML so Copy grabs the edited version
+  const editableHtmlRef = useRef<string>('');
+
+  // Strip HTML tags for plain-text description
+  const plainDesc = useMemo(() => {
+    if (!selectedProduct?.descriptionHtml) return '';
+    return selectedProduct.descriptionHtml.replace(/<[^>]*>/g, '').slice(0, 500);
+  }, [selectedProduct?.descriptionHtml]);
+
+  const handleGenerate = useCallback(async () => {
+    if (!selectedProduct?.id) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    editableHtmlRef.current = '';
+    try {
+      const body: Record<string, string> = {
+        title: selectedProduct.title,
+        category: selectedProduct.productType || 'General',
+        description: plainDesc,
+        target_locale: 'en',
+        product_id: selectedProduct.id,
+      };
+
+      // Template-specific extras
+      if (template.id === 'marketing/email-launch') {
+        body.launch_date = new Date().toISOString().split('T')[0];
+      }
+      if (template.id === 'marketing/ad-facebook') {
+        body.platform = 'Facebook & Instagram';
+      }
+      if (template.id === 'marketing/email-welcome') {
+        body.brand_name = shop.replace('.myshopify.com', '');
+      }
+
+      const resp = await fetch(
+        `${backendApiUrl}/api/generate/${template.id}?shop=${encodeURIComponent(shop)}`,
+        {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Shop-Domain': shop,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        },
+      );
+
+      const data = await resp.json();
+      if (resp.ok && data.status === 'success') {
+        const raw = typeof data.content === 'object'
+          ? JSON.stringify(data.content)
+          : (data.content || data.description || '');
+        setResult(raw);
+        setResultOpen(true);
+        onToast(`${template.name} generated successfully!`);
+      } else {
+        setError(data.detail || data.error || 'Generation failed');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedProduct, template, shop, backendApiUrl, plainDesc, onToast]);
+
+  const handleCopy = useCallback(async () => {
+    // Copy the latest edited HTML (or original result)
+    const toCopy = editableHtmlRef.current || result || '';
+    if (!toCopy) return;
+    try {
+      await navigator.clipboard.writeText(toCopy);
+      onToast('Content copied to clipboard!');
+    } catch {
+      onToast('Copy failed (clipboard not available).');
+    }
+  }, [result, onToast]);
+
+  return (
+    <Card>
+      <Box padding="300">
+        <BlockStack gap="300">
+          <InlineStack align="space-between" blockAlign="center">
+            <Tooltip content={template.description} width="wide">
+              <Text as="h3" variant="headingMd">
+                {template.name}
+              </Text>
+            </Tooltip>
+            <Button
+              onClick={handleGenerate}
+              disabled={!selectedProduct?.id || loading}
+              loading={loading}
+            >
+              {loading ? 'Generating…' : result ? 'Regenerate' : 'Generate'}
+            </Button>
+          </InlineStack>
+
+          {error && <Banner tone="critical">{error}</Banner>}
+
+          {result && (
+            <BlockStack gap="200">
+              <InlineStack align="space-between" blockAlign="center">
+                <Button
+                  variant="plain"
+                  onClick={() => setResultOpen(!resultOpen)}
+                  textAlign="start"
+                >
+                  {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
+                </Button>
+                <Button onClick={handleCopy} variant="secondary" size="slim">
+                  Copy
+                </Button>
+              </InlineStack>
+              <Collapsible
+                open={resultOpen}
+                id={`result-${template.id}`}
+                transition={{duration: '200ms', timingFunction: 'ease-in-out'}}
+              >
+                <MarketingResultDisplay
+                  content={result}
+                  onContentChange={(html) => { editableHtmlRef.current = html; }}
+                />
+              </Collapsible>
+            </BlockStack>
+          )}
+        </BlockStack>
+      </Box>
+    </Card>
+  );
+}
+
 export default function MarketingWorkspace() {
-  const {planName, pendingPlanName, pendingPlanEffectiveAt, lastPlanChangeType, products, selectedProduct, shopSlug, shop, backendApiUrl, contentHash, didResetMetaCache} =
+  const {planName, pendingPlanName, pendingPlanEffectiveAt, lastPlanChangeType, products, selectedProduct, shopSlug, shop, backendApiUrl, contentHash, didResetMetaCache, marketingTemplates} =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge();
@@ -545,34 +1048,23 @@ export default function MarketingWorkspace() {
     setSeasonalCaptionError(null);
     setSeasonalCaptionLoading(true);
     
-    try {
-      // Generate both social hooks and seasonal caption together
-      const [socialResult, seasonalResult] = await Promise.all([
-        callAgent(
-          'social_hook_architect',
-          {
-            id: selectedProduct.id,
-            title: selectedProduct.title,
-            category: selectedProduct.productType,
-            productType: selectedProduct.productType,
-            tags: selectedProduct.tags,
-          },
-          {focus: 'Instagram Reels'},
-        ),
-        callAgent(
-          'seasonal_campaign_caption',
-          {
-            id: selectedProduct.id,
-            title: selectedProduct.title,
-            category: selectedProduct.productType,
-            productType: selectedProduct.productType,
-            tags: selectedProduct.tags,
-          },
-          {current_date: new Date().toISOString()},
-        ),
-      ]);
+    const productData = {
+      id: selectedProduct.id,
+      title: selectedProduct.title,
+      category: selectedProduct.productType,
+      productType: selectedProduct.productType,
+      tags: selectedProduct.tags,
+    };
 
-      // Process social hooks
+    // Run both calls independently so one failing doesn't block the other
+    const [socialSettled, seasonalSettled] = await Promise.allSettled([
+      callAgent('social_hook_architect', productData, {focus: 'Instagram Reels'}),
+      callAgent('seasonal_campaign_caption', productData, {current_date: new Date().toISOString()}),
+    ]);
+
+    // Process social hooks
+    if (socialSettled.status === 'fulfilled') {
+      const socialResult = socialSettled.value;
       const nextHooks = (socialResult?.data?.metadata?.hooks ?? []) as any[];
       const overlays = (socialResult?.data?.metadata?.overlay_suggestions ?? []) as any[];
       const safeHooks = Array.isArray(nextHooks) ? nextHooks : [];
@@ -581,13 +1073,7 @@ export default function MarketingWorkspace() {
       setOverlaySuggestions(safeOverlays);
       setSelectedHookIndex(0);
 
-      // Process seasonal caption
-      const text = String(seasonalResult?.data?.metadata?.copy_text || seasonalResult?.data?.text || '');
-      setSeasonalCaption(text);
-
-      setToastContent('Generated Instagram hooks and seasonal caption.');
-
-      // Persist cache on the product (Shopify metafield) to avoid re-calling the LLM.
+      // Persist cache on the product (Shopify metafield)
       try {
         const payload = JSON.stringify({
           hooks: safeHooks,
@@ -602,13 +1088,37 @@ export default function MarketingWorkspace() {
       } catch {
         // best-effort; ignore cache write failures
       }
-    } catch (e: any) {
-      setHooksError(e?.message ?? 'Failed to generate hooks.');
-      setSeasonalCaptionError(e?.message ?? 'Failed to generate seasonal caption.');
-    } finally {
-      setHooksLoading(false);
-      setSeasonalCaptionLoading(false);
+    } else {
+      setHooksError(socialSettled.reason?.message ?? 'Failed to generate hooks.');
     }
+
+    // Process seasonal caption
+    if (seasonalSettled.status === 'fulfilled') {
+      const seasonalResult = seasonalSettled.value;
+      const text = String(
+        seasonalResult?.data?.metadata?.copy_text ||
+        seasonalResult?.data?.metadata?.caption ||
+        seasonalResult?.data?.text ||
+        ''
+      );
+      setSeasonalCaption(text);
+    } else {
+      setSeasonalCaptionError(seasonalSettled.reason?.message ?? 'Failed to generate seasonal caption.');
+    }
+
+    // Toast
+    const hooksOk = socialSettled.status === 'fulfilled';
+    const captionOk = seasonalSettled.status === 'fulfilled';
+    if (hooksOk && captionOk) {
+      setToastContent('Generated Instagram hooks and seasonal caption.');
+    } else if (hooksOk) {
+      setToastContent('Generated Instagram hooks (seasonal caption failed).');
+    } else if (captionOk) {
+      setToastContent('Generated seasonal caption (hooks failed).');
+    }
+
+    setHooksLoading(false);
+    setSeasonalCaptionLoading(false);
   }, [callAgent, saveHooksFetcher, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
   const loadUpcomingHolidayOnce = useCallback(async () => {
@@ -634,31 +1144,6 @@ export default function MarketingWorkspace() {
       setSeasonalLoading(false);
     }
   }, [callAgent]);
-
-  const generateSeasonalCaption = useCallback(async () => {
-    if (!selectedProduct?.id) return;
-    setSeasonalCaptionLoading(true);
-    setSeasonalCaptionError(null);
-    try {
-      const result = await callAgent(
-        'seasonal_campaign_caption',
-        {
-          id: selectedProduct.id,
-          title: selectedProduct.title,
-          category: selectedProduct.productType,
-          productType: selectedProduct.productType,
-          tags: selectedProduct.tags,
-        },
-        {current_date: new Date().toISOString()},
-      );
-      const text = String(result?.data?.metadata?.copy_text || result?.data?.text || '');
-      setSeasonalCaption(text);
-    } catch (e: any) {
-      setSeasonalCaptionError(e?.message ?? 'Failed to generate seasonal caption.');
-    } finally {
-      setSeasonalCaptionLoading(false);
-    }
-  }, [callAgent, selectedProduct?.id, selectedProduct?.productType, selectedProduct?.tags, selectedProduct?.title]);
 
   // Reset seasonal caption immediately when product changes (seasonal captions are not cached)
   useEffect(() => {
@@ -727,7 +1212,7 @@ export default function MarketingWorkspace() {
     <Page 
       title="Marketing Consultant"
       backAction={{
-        content: "Back",
+        content: "Home",
         onAction: () => navigate(nav("/app")),
       }}
     >
@@ -757,11 +1242,7 @@ export default function MarketingWorkspace() {
                 <Text variant="headingMd" as="h2">Select Product</Text>
                 <Select label="Product" labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
                 {selectedProduct && (
-                  <InlineStack align="space-between" blockAlign="center">
-                    <BlockStack gap="100">
-                      <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
-                      <Text variant="bodySm" tone="subdued">{selectedProduct.productType || "No category"}</Text>
-                    </BlockStack>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
                     <div className="agent-btn-border-5">
                       <Button
                         onClick={runSocialHooks}
@@ -777,7 +1258,7 @@ export default function MarketingWorkspace() {
                             : 'Generate'}
                       </Button>
                     </div>
-                  </InlineStack>
+                  </div>
                 )}
               </BlockStack>
             </Card>
@@ -786,7 +1267,7 @@ export default function MarketingWorkspace() {
               <Box padding="400">
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
-                    <Text as="h2" variant="headingMd">
+                    <Text as="h2" variant="headingLg">
                       Social Media Captions
                     </Text>
                     <InlineStack gap="200" blockAlign="center">
@@ -862,7 +1343,7 @@ export default function MarketingWorkspace() {
               <Box padding="400">
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
-                    <Text as="h2" variant="headingMd">
+                    <Text as="h2" variant="headingLg">
                       Seasonal Campaign
                     </Text>
                     <Button
@@ -929,7 +1410,11 @@ export default function MarketingWorkspace() {
                   </InlineStack>
 
                   {seasonalCaptionError ? <Banner tone="critical">{seasonalCaptionError}</Banner> : null}
-                  {seasonalCaption ? (
+                  {seasonalCaptionLoading ? (
+                    <Text as="p" tone="subdued">
+                      Generating seasonal caption…
+                    </Text>
+                  ) : seasonalCaption ? (
                     <Card>
                       <Box padding="300">
                         <Text as="p">{seasonalCaption}</Text>
@@ -937,7 +1422,7 @@ export default function MarketingWorkspace() {
                     </Card>
                   ) : (
                     <Text as="p" tone="subdued">
-                      Generate a caption tied to the upcoming holiday!
+                      Click "Generate" above to create social hooks and a seasonal caption.
                     </Text>
                   )}
                 </BlockStack>
@@ -945,9 +1430,40 @@ export default function MarketingWorkspace() {
             </Card>
           </BlockStack>
         </Layout.Section>
+
+        {/* Marketing Content Generator — One-Click Templates */}
+        {marketingTemplates.length > 0 && (
+          <Layout.Section>
+            <Card>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingLg">
+                      Marketing Content Generator
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Select a product above, then click Generate to create content instantly using your brand voice.
+                    </Text>
+                  </BlockStack>
+                  <Divider />
+                  <BlockStack gap="400">
+                    {marketingTemplates.map((template) => (
+                      <MarketingTemplateCard
+                        key={template.id}
+                        template={template}
+                        selectedProduct={selectedProduct}
+                        shop={shop}
+                        backendApiUrl={backendApiUrl}
+                        onToast={setToastContent}
+                      />
+                    ))}
+                  </BlockStack>
+                </BlockStack>
+              </Box>
+            </Card>
+          </Layout.Section>
+        )}
       </Layout>
     </Page>
   );
 }
-
-

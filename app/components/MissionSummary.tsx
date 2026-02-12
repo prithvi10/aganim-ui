@@ -17,7 +17,11 @@ import {
   HashtagIcon,
   ClockIcon,
   AlertTriangleIcon,
+  ClipboardIcon,
 } from "@shopify/polaris-icons";
+import { useState, useMemo, useCallback } from "react";
+import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
+import { templateOutputToHtml, stripHtml } from "../utils/templateHtmlParser";
 
 interface MissionState {
   product_id: string;
@@ -62,6 +66,9 @@ interface MissionState {
   };
   is_adhoc?: boolean;
   requested_agents?: string[];
+  agent_outputs?: Record<string, Record<string, unknown>>;
+  workflow_config?: Array<{ agent_name: string; has_gate: boolean; template_id?: string }>;
+  workflow_agents?: string[];
 }
 
 interface MissionSummaryProps {
@@ -144,6 +151,19 @@ function getCompletedActions(state: MissionState): Array<{
     });
   }
   
+  // Template outputs
+  const templateCount = Object.values(state.agent_outputs || {}).filter(
+    (v) => v?.template_id
+  ).length;
+  if (templateCount > 0) {
+    actions.push({
+      icon: EditIcon,
+      title: "Template Content Generated",
+      description: `${templateCount} template output${templateCount > 1 ? "s" : ""} ready (scroll down to copy)`,
+      success: true,
+    });
+  }
+  
   // Pricing actions
   if (state.pricing_analysis) {
     const { recommended_price, price_position, confidence, competitors } = state.pricing_analysis;
@@ -160,6 +180,108 @@ function getCompletedActions(state: MissionState): Array<{
   return actions;
 }
 
+/**
+ * Extract template outputs from agent_outputs for display in summary.
+ */
+function getTemplateOutputs(
+  state: MissionState,
+): Array<{ key: string; templateId: string; templateName: string; icon: string; content: string; html: string }> {
+  const outputs = state.agent_outputs || {};
+  const results: Array<{ key: string; templateId: string; templateName: string; icon: string; content: string; html: string }> = [];
+
+  for (const [key, val] of Object.entries(outputs)) {
+    const templateId = val?.template_id as string | undefined;
+    if (!templateId) continue;
+    const draftContent = (val?.draft_content as string) || "";
+    if (!draftContent) continue;
+    const def = TEMPLATE_DEFINITIONS[templateId];
+    results.push({
+      key,
+      templateId,
+      templateName: def?.displayName || templateId,
+      icon: def?.icon || "📄",
+      content: draftContent,
+      html: templateOutputToHtml(draftContent),
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Copyable template output card.
+ */
+function TemplateOutputCard({
+  icon,
+  templateName,
+  html,
+  rawContent,
+}: {
+  icon: string;
+  templateName: string;
+  html: string;
+  rawContent: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      // Try to copy the HTML for rich paste, fallback to plaintext
+      const plainText = stripHtml(html);
+      if (navigator.clipboard && typeof ClipboardItem !== "undefined") {
+        const blob = new Blob([html], { type: "text/html" });
+        const textBlob = new Blob([plainText], { type: "text/plain" });
+        await navigator.clipboard.write([
+          new ClipboardItem({ "text/html": blob, "text/plain": textBlob }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plainText);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = stripHtml(html);
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      try { document.execCommand("copy"); } catch { /* noop */ }
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [html]);
+
+  return (
+    <Box padding="400" background="bg-surface-secondary" borderRadius="200">
+      <BlockStack gap="300">
+        <InlineStack align="space-between" blockAlign="center">
+          <InlineStack gap="200" blockAlign="center">
+            <Text as="span" variant="headingMd">{icon}</Text>
+            <Text as="span" variant="headingSm" fontWeight="semibold">{templateName}</Text>
+          </InlineStack>
+          <Button
+            variant="secondary"
+            size="slim"
+            icon={ClipboardIcon}
+            onClick={handleCopy}
+          >
+            {copied ? "✓ Copied!" : "Copy"}
+          </Button>
+        </InlineStack>
+        <Box borderRadius="200" background="bg-surface" padding="300">
+          <div
+            style={{ fontSize: "14px", lineHeight: "1.6" }}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </Box>
+      </BlockStack>
+    </Box>
+  );
+}
+
 export function MissionSummary({
   state,
   onPublish,
@@ -168,6 +290,7 @@ export function MissionSummary({
   isPublishing = false,
 }: MissionSummaryProps) {
   const completedActions = getCompletedActions(state);
+  const templateOutputs = useMemo(() => getTemplateOutputs(state), [state]);
   
   const isSuccess = state.status === "COMPLETED";
   const isError = state.status === "ERROR";
@@ -335,6 +458,30 @@ export function MissionSummary({
           </>
         )}
         
+        {/* Template Outputs (Blog posts, Emails, Ads, FAQs, etc.) */}
+        {templateOutputs.length > 0 && (
+          <>
+            <Divider />
+            <BlockStack gap="300">
+              <Text variant="headingSm" as="h3">Generated Content</Text>
+              <Text variant="bodySm" tone="subdued">
+                Template outputs from this mission — copy any content below
+              </Text>
+              <BlockStack gap="300">
+                {templateOutputs.map((t) => (
+                  <TemplateOutputCard
+                    key={t.key}
+                    icon={t.icon}
+                    templateName={t.templateName}
+                    html={t.html}
+                    rawContent={t.content}
+                  />
+                ))}
+              </BlockStack>
+            </BlockStack>
+          </>
+        )}
+
         {/* Usage Stats */}
         {state.accumulated_usage && (
           <>

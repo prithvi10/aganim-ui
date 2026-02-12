@@ -4,6 +4,7 @@ import { AgentCard, type AgentStatus } from "./AgentCard";
 import { MissionSummary, type MissionState as SummaryMissionState } from "./MissionSummary";
 import { StepApproval, type AgentOutput } from "./StepApproval";
 import { RegenerateFeedbackModal } from "./RegenerateFeedbackModal";
+import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
 
 interface MissionState {
   product_id: string;
@@ -55,6 +56,7 @@ interface MissionState {
   agent_outputs?: Record<string, Record<string, unknown>>;
   regeneration_feedback?: string;
   workflow_agents?: string[];
+  workflow_config?: Array<{ agent_name: string; has_gate: boolean; template_id?: string }>;
 }
 
 interface AgentInfo {
@@ -125,6 +127,21 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
   "Compliance": "Compliance",
 };
 
+// Get display name for a step, checking workflow_config for template_id
+function getStepName(
+  agentName: string,
+  stepIndex: number,
+  workflowConfig?: Array<{ agent_name: string; has_gate: boolean; template_id?: string }>,
+): string {
+  if (workflowConfig && stepIndex < workflowConfig.length) {
+    const templateId = workflowConfig[stepIndex]?.template_id;
+    if (templateId && TEMPLATE_DEFINITIONS[templateId]) {
+      return `${TEMPLATE_DEFINITIONS[templateId].icon} ${TEMPLATE_DEFINITIONS[templateId].displayName}`;
+    }
+  }
+  return AGENT_DISPLAY_NAMES[agentName] || agentName;
+}
+
 // Parse agent name from log message
 function extractAgentFromLog(log: string): string | null {
   const match = log.match(/^([A-Za-z]+):/);
@@ -179,6 +196,8 @@ export function MissionTimeline({
   const receivedDataRef = useRef(false);
   // State for regenerate feedback modal
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  // Track agents that were auto-proceeded (no human gate)
+  const [autoProceededAgents, setAutoProceededAgents] = useState<string[]>([]);
 
   // Determine which agents to show
   const getAgentsToShow = useCallback((state: MissionState | null): string[] => {
@@ -192,7 +211,12 @@ export function MissionTimeline({
       return normalizeAgentNames(state.requested_agents);
     }
     
-    // Priority 3: plan tier default
+    // Priority 3: workflow_agents from orchestrator (set from workflow_config)
+    if (state?.workflow_agents && state.workflow_agents.length > 0) {
+      return normalizeAgentNames(state.workflow_agents);
+    }
+    
+    // Priority 4: plan tier default
     return getWorkflowAgents(state?.plan_tier || "Basic");
   }, [initialAgents]);
 
@@ -380,9 +404,18 @@ export function MissionTimeline({
     }
   }, [missionState, onEdit]);
 
-  // Calculate overall progress
-  const totalAgents = agents.length;
-  const completedAgents = agents.filter((a) => a.status === "done").length;
+  // Calculate overall progress — use different source of truth for step mode
+  const stepModeTotal = missionState?.workflow_agents?.length
+    || missionState?.workflow_config?.length
+    || stepCompleteData?.total_agents
+    || 0;
+  const stepModeCompleted = missionState?.status === "COMPLETED"
+    ? stepModeTotal
+    : (missionState?.current_agent_index || 0);
+  const totalAgents = stepMode && stepModeTotal > 0 ? stepModeTotal : agents.length;
+  const completedAgents = stepMode && stepModeTotal > 0
+    ? stepModeCompleted
+    : agents.filter((a) => a.status === "done").length;
   const progress = totalAgents > 0 ? Math.round((completedAgents / totalAgents) * 100) : 0;
 
   // Determine overall status
@@ -427,6 +460,24 @@ export function MissionTimeline({
         updateAgentFromLogs(state);
       } catch (e) {
         console.error("Failed to parse step state update:", e);
+      }
+    });
+
+    eventSource.addEventListener("step_auto_proceeded", (event) => {
+      receivedDataRef.current = true;
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Step auto-proceeded:", data);
+        // Track which agents were auto-proceeded for UI display
+        const workflowAgents = missionState?.workflow_agents || [];
+        const autoAgent = workflowAgents[data.auto_proceeded_from];
+        if (autoAgent) {
+          setAutoProceededAgents((prev) =>
+            prev.includes(autoAgent) ? prev : [...prev, autoAgent]
+          );
+        }
+      } catch (e) {
+        console.error("Failed to parse step_auto_proceeded:", e);
       }
     });
 
@@ -722,7 +773,7 @@ export function MissionTimeline({
                   Progress
                 </Text>
                 <Text as="span" variant="bodySm" tone="subdued">
-                  {completedAgents} of {totalAgents} agents complete
+                  {completedAgents} of {totalAgents} step{totalAgents !== 1 ? "s" : ""} complete
                 </Text>
               </InlineStack>
               <Box paddingBlockStart="200">
@@ -769,27 +820,34 @@ export function MissionTimeline({
             {/* Step-by-step mode: Show current step with approval buttons */}
             {stepMode && missionState && (
               <BlockStack gap="400">
-                {/* Progress overview for completed/skipped steps */}
+                {/* Progress overview for completed/skipped/auto-approved steps */}
                 {(missionState.current_agent_index || 0) > 0 && (
                   <Box>
                     <Text as="span" variant="bodySm" fontWeight="semibold" tone="subdued">
                       Completed Steps:
                     </Text>
                     <InlineStack gap="100" wrap>
-                      {(missionState.workflow_agents || []).slice(0, missionState.current_agent_index || 0).map((agent, i) => (
-                        <Badge 
-                          key={agent} 
-                          tone={(missionState.skipped_agents || []).includes(agent) ? "info" : "success"}
-                        >
-                          {(missionState.skipped_agents || []).includes(agent) ? "⏭️" : "✓"} {AGENT_DISPLAY_NAMES[agent] || agent}
-                        </Badge>
-                      ))}
+                      {(missionState.workflow_agents || []).slice(0, missionState.current_agent_index || 0).map((agent, i) => {
+                        const isSkipped = (missionState.skipped_agents || []).includes(agent);
+                        const isAutoProceeded = autoProceededAgents.includes(agent);
+                        const stepName = getStepName(agent, i, missionState.workflow_config);
+                        return (
+                          <Badge 
+                            key={`${agent}-${i}`} 
+                            tone={isSkipped ? "info" : isAutoProceeded ? "attention" : "success"}
+                          >
+                            {isSkipped ? "⏭️" : isAutoProceeded ? "⚡" : "✓"} {stepName}
+                            {isAutoProceeded && " (auto)"}
+                          </Badge>
+                        );
+                      })}
                     </InlineStack>
                   </Box>
                 )}
 
-                {/* Current step approval card */}
+                {/* Current step approval card - pulse animation signals "machine idle, waiting for human" */}
                 {stepCompleteData && missionState.status === "AWAITING_APPROVAL" && (
+                  <div className="missionArchitectPulse">
                   <StepApproval
                     agentName={stepCompleteData.current_agent}
                     stepIndex={stepCompleteData.current_agent_index}
@@ -807,6 +865,7 @@ export function MissionTimeline({
                       stepCompleteData.current_agent === "CopywriterAgent"
                     }
                   />
+                  </div>
                 )}
 
                 {/* Running state */}
@@ -824,7 +883,11 @@ export function MissionTimeline({
                             animation: "spin 1s linear infinite"
                           }} />
                           <Text as="span" variant="bodyMd">
-                            {AGENT_DISPLAY_NAMES[(missionState.workflow_agents || [])[missionState.current_agent_index || 0]] || "Agent"} is working...
+                            {getStepName(
+                              (missionState.workflow_agents || [])[missionState.current_agent_index || 0] || "",
+                              missionState.current_agent_index || 0,
+                              missionState.workflow_config,
+                            )} is working...
                           </Text>
                         </InlineStack>
                         <Text as="p" variant="bodySm" tone="subdued">
