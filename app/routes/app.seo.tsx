@@ -483,7 +483,7 @@ export default function SEOPage() {
       title="SEO Optimization" 
       subtitle="Generate SEO metadata and analyze competitors"
       backAction={{
-        content: "Back",
+        content: "Home",
         onAction: () => navigate(nav("/app")),
       }}
     >
@@ -495,17 +495,13 @@ export default function SEOPage() {
                 <Text variant="headingMd" as="h2">Select Product</Text>
                 <Select label="Product" labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
                 {selectedProduct && (
-                  <InlineStack align="space-between" blockAlign="center">
-                    <BlockStack gap="100">
-                      <Text variant="headingSm" as="h3">{selectedProduct.title}</Text>
-                      <Text variant="bodySm" tone="subdued">{selectedProduct.productType || "No category"}</Text>
-                    </BlockStack>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
                     <div className="agent-btn-border-6">
                       <Button variant="primary" size="large" onClick={handleOptimize} loading={isOptimizing} disabled={!selectedProduct || isOptimizing}>
                         Optimize SEO
                       </Button>
                     </div>
-                  </InlineStack>
+                  </div>
                 )}
               </BlockStack>
             </Card>
