@@ -24,6 +24,8 @@ import {
   Spinner,
   Toast,
   Modal,
+  TextField,
+  FormLayout,
 } from "@shopify/polaris";
 import { PlanCard } from "../components/PlanCard";
 import { DowngradeScheduledBanner } from "../components/DowngradeScheduledBanner";
@@ -139,6 +141,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let backendError401 = false;
   let planName = "Free";
   let trialDays = 0;
+  let metaCredentials = { access_token_present: false, page_id_present: false, page_id: null as string | null };
   try {
     // 3. FETCH DATA using the Master Key (No 302s)
     
@@ -261,6 +264,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       console.error("Backend usage fetch failed", e);
     }
 
+    // D. Fetch Meta credentials status (Pro users only)
+    if (planName === "Pro") {
+      try {
+        const metaResp = await fetch(`${backendApiUrl}/api/admin/meta-credentials?shop=${shop}`);
+        if (metaResp.ok) {
+          const metaData = await metaResp.json();
+          metaCredentials = {
+            access_token_present: Boolean(metaData.access_token_present),
+            page_id_present: Boolean(metaData.page_id_present),
+            page_id: metaData.page_id ?? null,
+          };
+        }
+      } catch (e) {
+        console.error("Meta credentials fetch failed", e);
+      }
+    }
+
     return {
       activeMarketsCount,
       usage,
@@ -271,6 +291,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       needsReauth: false,
       isSyncing: false,
       backendApiUrl,
+      metaCredentials,
     };
 
   } catch (e) {
@@ -292,6 +313,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       backendError401: false,
       isSyncing: false,
       backendApiUrl: process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com",
+      metaCredentials: { access_token_present: false, page_id_present: false, page_id: null },
     };
   }
 };
@@ -311,6 +333,7 @@ export default function Dashboard() {
     needsReauth, 
     isSyncing,
     backendApiUrl,
+    metaCredentials: initialMetaCredentials,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -340,6 +363,15 @@ export default function Dashboard() {
   const [toastContent, setToastContent] = useState<string | null>(null);
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   // NOTE: App Bridge instance is not needed on this page right now.
+
+  // Meta credentials state (Pro tier only)
+  const isPro = String(planName || "").trim() === "Pro";
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [metaPageId, setMetaPageId] = useState(initialMetaCredentials?.page_id ?? "");
+  const [metaConnected, setMetaConnected] = useState(
+    Boolean(initialMetaCredentials?.access_token_present && initialMetaCredentials?.page_id_present),
+  );
+  const [metaSaving, setMetaSaving] = useState(false);
   
   const t = useMemo(() => TRANSLATIONS[lang], [lang]);
   const activePlanCard = useMemo(() => {
@@ -445,6 +477,36 @@ export default function Dashboard() {
       setShowExpiredModal(true);
     }
   }, [(usage as any)?.accessExpiresAt]);
+  const handleMetaSave = async () => {
+    if (!metaAccessToken.trim() || !metaPageId.trim()) {
+      setToastContent("Please enter both Access Token and Page ID.");
+      return;
+    }
+    setMetaSaving(true);
+    try {
+      const shop = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("shop") || "";
+      const resp = await fetch(
+        `${backendApiUrl}/api/admin/meta-credentials?shop=${shop}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ access_token: metaAccessToken.trim(), page_id: metaPageId.trim() }),
+        },
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${resp.status}`);
+      }
+      setMetaConnected(true);
+      setMetaAccessToken(""); // clear the token from memory
+      setToastContent("Meta credentials saved successfully.");
+    } catch (e: any) {
+      setToastContent(`Failed to save Meta credentials: ${e.message || e}`);
+    } finally {
+      setMetaSaving(false);
+    }
+  };
+
   const isUnlimited = quotaCount === -1;
   const usagePercent = isUnlimited || quotaCount <= 0 ? 0 : Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
@@ -757,6 +819,79 @@ export default function Dashboard() {
 
             </BlockStack>
           </Layout.Section>
+
+          {/* META API CREDENTIALS – Pro Only */}
+          {isPro && (
+            <Layout.Section>
+              <Card>
+                <Box padding="400">
+                  <BlockStack gap="400">
+                    <InlineStack align="space-between" blockAlign="center">
+                      <BlockStack gap="100">
+                        <Text as="h2" variant="headingMd">Meta (Facebook / Instagram) Integration</Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Connect your Meta account to enable autonomous ad publishing from the Marketing tab.
+                        </Text>
+                      </BlockStack>
+                      {metaConnected ? (
+                        <Badge tone="success" progress="complete">Connected</Badge>
+                      ) : (
+                        <Badge tone="attention">Not connected</Badge>
+                      )}
+                    </InlineStack>
+
+                    {metaConnected ? (
+                      <Banner tone="success" title="Meta account connected">
+                        <Text as="p" variant="bodyMd">
+                          Page ID: <strong>{metaPageId || initialMetaCredentials?.page_id || "—"}</strong>.
+                          Autonomous publishing for ad templates is enabled.
+                        </Text>
+                        <div style={{ marginTop: 8 }}>
+                          <Button
+                            variant="plain"
+                            onClick={() => {
+                              setMetaConnected(false);
+                              setMetaAccessToken("");
+                            }}
+                          >
+                            Update credentials
+                          </Button>
+                        </div>
+                      </Banner>
+                    ) : (
+                      <FormLayout>
+                        <TextField
+                          label="Meta Access Token"
+                          type="password"
+                          value={metaAccessToken}
+                          onChange={setMetaAccessToken}
+                          placeholder="EAAxxxxxxx…"
+                          helpText="Long-lived Page token with pages_manage_posts permission."
+                          autoComplete="off"
+                        />
+                        <TextField
+                          label="Meta Page ID"
+                          value={metaPageId}
+                          onChange={setMetaPageId}
+                          placeholder="123456789012345"
+                          helpText="The numeric ID of the Facebook / Instagram page."
+                          autoComplete="off"
+                        />
+                        <Button
+                          variant="primary"
+                          onClick={handleMetaSave}
+                          loading={metaSaving}
+                          disabled={!metaAccessToken.trim() || !metaPageId.trim()}
+                        >
+                          Save Meta Credentials
+                        </Button>
+                      </FormLayout>
+                    )}
+                  </BlockStack>
+                </Box>
+              </Card>
+            </Layout.Section>
+          )}
 
           {/* FOOTER */}
           <Layout.Section>

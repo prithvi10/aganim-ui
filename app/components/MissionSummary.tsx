@@ -324,15 +324,6 @@ export function MissionSummary({
           </Banner>
         )}
         
-        {/* Success Banner - Saved to Shopify */}
-        {isSuccess && (
-          <Banner tone="success" title="Changes Saved to Shopify">
-            <Text variant="bodyMd">
-              Your product title, description, and AI-generated data (SEO, marketing captions, pricing analysis) have been saved to Shopify.
-            </Text>
-          </Banner>
-        )}
-        
         <Divider />
         
         {/* Completed Actions */}
