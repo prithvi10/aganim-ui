@@ -12,6 +12,7 @@ import {
   Box,
   Select,
   Spinner,
+  Toast,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
@@ -120,7 +121,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function PricingPage() {
-  const { shop, backendApiUrl, products, selectedProduct } = useLoaderData<typeof loader>();
+  const { planName, shop, backendApiUrl, products, selectedProduct } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
   const navigate = useNavigate();
@@ -240,9 +241,49 @@ export default function PricingPage() {
     }
   }, [selectedProduct, backendApiUrl, app, shop]);
 
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyToast, setApplyToast] = useState<string | null>(null);
+
   const handleApplyPrice = useCallback(async (price: number) => {
-    alert(`Price would be updated to $${price.toFixed(2)}`);
-  }, []);
+    if (planName !== 'Pro') {
+      alert(`Upgrade to Pro to automatically update prices. Recommended price: $${price.toFixed(2)}`);
+      return;
+    }
+    if (!selectedProduct?.id) return;
+
+    setIsApplying(true);
+    try {
+      // Extract variant ID from first variant, fallback to product ID
+      const variantId = selectedProduct.id; // TODO: pass actual variant GID when available
+
+      const resp = await fetch(
+        `${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
+          body: JSON.stringify({
+            action_name: 'price_scout',
+            product_id: selectedProduct.id,
+            content: JSON.stringify({ recommended_price: price }),
+            context: {
+              variant_id: variantId,
+              recommended_price: price,
+              product_title: selectedProduct.title,
+            },
+          }),
+        },
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || `Update failed: ${resp.status}`);
+      }
+      setApplyToast(`Price updated to $${price.toFixed(2)} successfully!`);
+    } catch (e: any) {
+      setApplyToast(`Failed to update price: ${e?.message || e}`);
+    } finally {
+      setIsApplying(false);
+    }
+  }, [planName, selectedProduct, shop, backendApiUrl]);
 
   const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
 
@@ -289,8 +330,18 @@ export default function PricingPage() {
             )}
 
             {analysisResult && (
-              <CompetitorMap yourPrice={analysisResult.yourPrice} competitors={analysisResult.competitors}
-                recommendedPrice={analysisResult.recommendedPrice} confidence={analysisResult.confidence} onApplyPrice={handleApplyPrice} />
+              <CompetitorMap
+                yourPrice={analysisResult.yourPrice}
+                competitors={analysisResult.competitors}
+                recommendedPrice={analysisResult.recommendedPrice}
+                confidence={analysisResult.confidence}
+                onApplyPrice={handleApplyPrice}
+                isApplying={isApplying}
+              />
+            )}
+
+            {applyToast && (
+              <Toast content={applyToast} onDismiss={() => setApplyToast(null)} />
             )}
 
             {!analysisResult && !isAnalyzing && (

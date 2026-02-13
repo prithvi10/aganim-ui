@@ -1,7 +1,16 @@
 import { Layout, Page, Text, BlockStack, Button, InlineStack, Banner, Badge, Select } from "@shopify/polaris";
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
 import { Form, useLoaderData, useLocation, useNavigation, redirect } from "react-router";
-import { authenticate } from "../shopify.server";
+import {
+  authenticate,
+  MONTHLY_PLAN_BASIC,
+  MONTHLY_PLAN_STANDARD,
+  MONTHLY_PLAN_PRO,
+  PROMO_PLAN_BASIC_MONTHLY,
+  PROMO_PLAN_BASIC_ANNUAL,
+  PROMO_PLAN_STANDARD_MONTHLY,
+  PROMO_PLAN_STANDARD_ANNUAL,
+} from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { PlanCard } from "../components/PlanCard";
 import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
@@ -135,10 +144,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { billing, session } = await authenticate.admin(request);
+  // IMPORTANT: Only call authenticate.admin ONCE per request.
+  // A second call performs another token exchange which can invalidate the
+  // access token from the first call, causing billing.request() to 401.
+  const { billing, session, admin } = await authenticate.admin(request);
   const { shop } = session;
   const formData = await request.formData();
-  const planKey = String(formData.get("plan") || "").trim();
   const url = new URL(request.url);
   const returningPaid = url.searchParams.get("returning_paid") === "1";
   const embeddedParam = url.searchParams.get("embedded");
@@ -149,7 +160,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const hostSuffix = hostParam ? `?host=${hostParam}` : "";
   const adminReturnUrl = `https://admin.shopify.com/store/${shopSubdomain}/apps/crossborderagent/app${hostSuffix}`;
 
-  const requestedTier: PlanName = tierFromPlanName(planKey);
+  // FIX: Read the raw tier name from a dedicated hidden field instead of
+  // relying only on the computed billing plan key ("plan").  A DOM / hydration
+  // issue in some browsers was causing the wrong form's "plan" value to be
+  // submitted (e.g. "Basic Promo Monthly" when clicking Pro's Upgrade button).
+  // The "tier" field is always the canonical plan name (Free/Basic/Standard/Pro).
+  const tierRaw = String(formData.get("tier") || "").trim();
+  const planFieldRaw = String(formData.get("plan") || "").trim();
+  const cycleRaw = String(formData.get("cycle") || "").trim();
+
+  // Determine the canonical tier — prefer the explicit "tier" field.
+  const requestedTier: PlanName = tierFromPlanName(tierRaw || planFieldRaw);
+
+  // Compute the correct Shopify billing plan key server-side.
+  // This ensures we always send the right plan to billing.request()
+  // regardless of client-side rendering anomalies.
+  let planKey: string;
+  const isPromo = cycleRaw === "promo-monthly" || cycleRaw === "promo-annual";
+  if (requestedTier === PLAN_PRO) {
+    planKey = MONTHLY_PLAN_PRO;  // always "Pro"
+  } else if (requestedTier === PLAN_STANDARD) {
+    if (cycleRaw === "promo-annual") planKey = PROMO_PLAN_STANDARD_ANNUAL;
+    else if (cycleRaw === "promo-monthly") planKey = PROMO_PLAN_STANDARD_MONTHLY;
+    else planKey = MONTHLY_PLAN_STANDARD;
+  } else if (requestedTier === PLAN_BASIC) {
+    if (cycleRaw === "promo-annual") planKey = PROMO_PLAN_BASIC_ANNUAL;
+    else if (cycleRaw === "promo-monthly") planKey = PROMO_PLAN_BASIC_MONTHLY;
+    else planKey = MONTHLY_PLAN_BASIC;
+  } else {
+    planKey = planFieldRaw || tierRaw;  // fallback (Free or unknown)
+  }
+  console.log(`[Plans Action] tier="${tierRaw}" plan="${planFieldRaw}" cycle="${cycleRaw}" → requestedTier="${requestedTier}" planKey="${planKey}"`);
 
   if (requestedTier === PLAN_FREE) {
     // Free is the default tier (no billing flow).
@@ -162,7 +203,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (requestedTier === PLAN_BASIC || requestedTier === PLAN_STANDARD || requestedTier === PLAN_PRO) {
     // Server-side guard: do not allow "upgrading" to the already-active plan.
     try {
-      const { admin } = await authenticate.admin(request);
       const resp = await admin.graphql(`
         query {
           currentAppInstallation {
@@ -176,7 +216,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const body = await resp.json();
       const subs: ActiveSub[] =
         body?.data?.currentAppInstallation?.activeSubscriptions ?? [];
-      let activePlan = normalizeActivePlan(subs);
+
+      // FIX: Only consider truly ACTIVE subscriptions for the upgrade guard.
+      // PENDING subscriptions (from incomplete previous upgrade attempts where the
+      // merchant closed the billing confirmation page) must NOT block retries.
+      // The loader can still show PENDING as "active" for UI purposes.
+      const activeOnlySubs = subs.filter(
+        (s) => String(s?.status ?? "").toUpperCase() === "ACTIVE"
+      );
+      let activePlan = normalizeActivePlan(activeOnlySubs);
 
       // Grace override: if Shopify thinks "Free" but backend says last paid + grace active,
       // treat that as the effective current plan to prevent re-purchasing the same tier.
@@ -199,6 +247,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       if (activePlan === requestedTier) {
+        // The merchant already has this plan on Shopify.  Make sure the
+        // backend DB is in sync (the subscription webhook may have failed).
+        try {
+          const backendApiUrl =
+            process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+          await fetch(
+            `${backendApiUrl}/api/admin/sync-plan`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                shop,
+                plan_name: requestedTier,           // e.g. "Pro"
+                subscription_status: "ACTIVE",
+              }),
+            }
+          ).catch(() => {});
+          console.log(`[Plans Action] Shopify already has "${requestedTier}" ACTIVE — synced DB.`);
+        } catch {
+          // best-effort
+        }
         return null;
       }
     } catch {
@@ -215,7 +284,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       isTest: process.env.NODE_ENV !== "production",
       // Redirect back to the embedded app root; prefer new admin URL
       returnUrl: adminReturnUrl,
-    });
+      // FIX: When upgrading from one paid plan to another, tell Shopify to
+      // replace the existing subscription immediately (with proration).
+      // Without this, the appSubscriptionCreate mutation may fail silently
+      // when the merchant already has an active subscription.
+      replacementBehavior: "APPLY_IMMEDIATELY",
+    } as any);
   }
 
   return null;
@@ -363,7 +437,20 @@ export default function PlansPage() {
                           />
                         ) : null}
                         <Form method="post" action={postAction}>
+                          {/* tier = canonical plan name; cycle = billing variant for server-side key computation */}
+                          <input type="hidden" name="tier" value={plan.name} />
                           <input type="hidden" name="plan" value={planKey} />
+                          <input
+                            type="hidden"
+                            name="cycle"
+                            value={
+                              isPromoEligible
+                                ? cycle === "annual"
+                                  ? "promo-annual"
+                                  : "promo-monthly"
+                                : ""
+                            }
+                          />
                           <Button
                             variant={isCurrent ? "secondary" : "primary"}
                             fullWidth
