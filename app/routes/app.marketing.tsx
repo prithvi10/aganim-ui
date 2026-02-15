@@ -795,17 +795,21 @@ function MarketingTemplateCard({
   shop,
   backendApiUrl,
   onToast,
+  planName,
 }: {
   template: MarketingTemplate;
   selectedProduct: SelectedProduct | null;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
+  planName?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState(false);
   // Track the live editable HTML so Copy grabs the edited version
   const editableHtmlRef = useRef<string>('');
 
@@ -883,6 +887,39 @@ function MarketingTemplateCard({
     }
   }, [result, onToast]);
 
+  const handlePublish = useCallback(async () => {
+    if (!result || !selectedProduct?.id) return;
+    setPublishing(true);
+    try {
+      const content = editableHtmlRef.current || result;
+      const resp = await fetch(
+        `${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
+          body: JSON.stringify({
+            template_id: template.id,
+            product_id: selectedProduct.id,
+            content,
+            context: { product_title: selectedProduct.title },
+          }),
+        },
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || `Publish failed: ${resp.status}`);
+      }
+      setPublished(true);
+      onToast(`Published ${template.name} successfully!`);
+    } catch (e: any) {
+      onToast(`Publish failed: ${e?.message || e}`);
+    } finally {
+      setPublishing(false);
+    }
+  }, [result, selectedProduct, template, shop, backendApiUrl, onToast]);
+
+  const isPro = planName === 'Pro';
+
   return (
     <Card>
       <Box padding="300">
@@ -914,9 +951,27 @@ function MarketingTemplateCard({
                 >
                   {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
                 </Button>
-                <Button onClick={handleCopy} variant="secondary" size="slim">
-                  Copy
-                </Button>
+                <InlineStack gap="200">
+                  {isPro && !published && (
+                    <Button
+                      onClick={handlePublish}
+                      variant="primary"
+                      size="slim"
+                      loading={publishing}
+                      disabled={publishing}
+                    >
+                      Publish
+                    </Button>
+                  )}
+                  {isPro && published && (
+                    <Button variant="plain" size="slim" disabled tone="success">
+                      ✓ Published
+                    </Button>
+                  )}
+                  <Button onClick={handleCopy} variant="secondary" size="slim">
+                    Copy
+                  </Button>
+                </InlineStack>
               </InlineStack>
               <Collapsible
                 open={resultOpen}
@@ -1455,6 +1510,7 @@ export default function MarketingWorkspace() {
                         shop={shop}
                         backendApiUrl={backendApiUrl}
                         onToast={setToastContent}
+                        planName={planName}
                       />
                     ))}
                   </BlockStack>

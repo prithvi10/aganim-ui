@@ -24,6 +24,7 @@ interface MissionListItem {
   completed_at: string | null;
   error_message: string | null;
   product_name: string | null;
+  mission_title: string | null;
 }
 
 interface MissionHistoryProps {
@@ -209,10 +210,17 @@ export function MissionHistory({
                           style={{ cursor: "pointer" }}
                           onClick={() => toggleExpand(mission.id)}
                         >
-                          <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            {isExpanded ? "▼" : "▶"}{" "}
-                            {mission.product_name || `Product ${mission.product_id}`}
-                          </Text>
+                          <BlockStack gap="050">
+                            <Text as="span" variant="bodyMd" fontWeight="semibold">
+                              {isExpanded ? "▼" : "▶"}{" "}
+                              {mission.mission_title || mission.product_name || `Product ${mission.product_id}`}
+                            </Text>
+                            {mission.mission_title && mission.product_name && (
+                              <Text as="span" variant="bodySm" tone="subdued">
+                                {mission.product_name}
+                              </Text>
+                            )}
+                          </BlockStack>
                         </div>
                         {getStatusBadge(mission.status)}
                       </InlineStack>
