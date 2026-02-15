@@ -10,6 +10,8 @@ import {
   Banner,
   Divider,
   Select,
+  TextField,
+  Checkbox,
 } from "@shopify/polaris";
 import {
   PlusIcon,
@@ -17,6 +19,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   PlayIcon,
+  ArrowLeftIcon,
 } from "@shopify/polaris-icons";
 import "../styles/optimize-button.css";
 
@@ -27,6 +30,22 @@ export interface WorkflowStep {
   has_gate: boolean;
   /** When set, the agent runs this specific template instead of its default */
   template_id?: string;
+}
+
+/** Extra context gathered from the wizard (Step 2) and passed to the backend */
+export interface MissionExtraContext {
+  /** Human-readable mission title (preset name or agent names joined by +) */
+  mission_title?: string;
+  blog_topic?: string;
+  blog_category?: string;
+  collection_name?: string;
+  /** GID list of products selected for collection missions */
+  product_ids?: string[];
+}
+
+interface ProductOption {
+  id: string;
+  title: string;
 }
 
 interface AgentDefinition {
@@ -46,18 +65,18 @@ interface TemplateDefinition {
 }
 
 interface MissionArchitectProps {
-  /** Callback when user clicks "Start Mission" with the pipeline config */
-  onStartMission: (workflowConfig: WorkflowStep[]) => void;
+  /** Available products for selection */
+  products: ProductOption[];
+  /** Currently selected product ID (GID) — managed by parent via URL params */
+  selectedProductId: string;
+  /** Called when user changes product — parent syncs to URL */
+  onProductChange: (productId: string) => void;
+  /** Callback when user clicks "Launch Mission" with the pipeline + extra context */
+  onStartMission: (pipeline: WorkflowStep[], extraContext?: MissionExtraContext) => void;
   /** Whether a mission is currently running */
   isRunning?: boolean;
   /** User's plan tier */
   planTier?: string;
-  /** Whether to show the product selector inside this component */
-  showProductSelector?: boolean;
-  /** Callback when pipeline changes — lets parent track the current pipeline */
-  onPipelineChange?: (pipeline: WorkflowStep[]) => void;
-  /** Hide the "Start Mission" button (parent renders its own) */
-  hideStartButton?: boolean;
 }
 
 // ─── Agent Library ──────────────────────────────────────────────────────────
@@ -102,12 +121,6 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
     description: "Generate FAQ from product details",
     agentName: "RewriterAgent",
   },
-  "product/collection": {
-    displayName: "Collection Description",
-    icon: "📦",
-    description: "Collection/category page copy",
-    agentName: "RewriterAgent",
-  },
   "product/landing-hero": {
     displayName: "Hero Section",
     icon: "🏆",
@@ -118,6 +131,12 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
     displayName: "Brand Blog Post",
     icon: "📝",
     description: "Blog about craft, manufacturing, etc.",
+    agentName: "RewriterAgent",
+  },
+  "product/collection": {
+    displayName: "Collection Description",
+    icon: "📦",
+    description: "Collection/category page copy",
     agentName: "RewriterAgent",
   },
   "marketing/email-launch": {
@@ -161,7 +180,6 @@ export function getStepDisplayInfo(step: WorkflowStep): {
   color: "success" | "info" | "attention" | "warning";
   isTemplate: boolean;
 } {
-  // Template step
   if (step.template_id && TEMPLATE_DEFINITIONS[step.template_id]) {
     const tmpl = TEMPLATE_DEFINITIONS[step.template_id];
     const agent = AVAILABLE_AGENTS.find((a) => a.name === tmpl.agentName);
@@ -173,7 +191,6 @@ export function getStepDisplayInfo(step: WorkflowStep): {
       isTemplate: true,
     };
   }
-  // Agent step
   const agent = AVAILABLE_AGENTS.find((a) => a.name === step.agent_name);
   if (agent) {
     return {
@@ -193,17 +210,24 @@ export function getStepDisplayInfo(step: WorkflowStep): {
   };
 }
 
+// ─── Context Types ──────────────────────────────────────────────────────────
+
+type ContextType = "product" | "product_blog" | "product_hero" | "collection";
+
 // ─── Presets ────────────────────────────────────────────────────────────────
 
 interface Preset {
   label: string;
+  icon: string;
   description: string;
   steps: WorkflowStep[];
+  contextType: ContextType;
 }
 
 const PRESETS: Record<string, Preset> = {
   full_launch: {
-    label: "🚀 Full Launch",
+    label: "Full Launch",
+    icon: "🚀",
     description: "All 4 agents with human approval at every step",
     steps: [
       { agent_name: "RewriterAgent", has_gate: true },
@@ -211,261 +235,563 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "MarketingAgent", has_gate: true },
       { agent_name: "PriceScoutAgent", has_gate: true },
     ],
+    contextType: "product",
   },
   competitor_rebuttal: {
-    label: "⚔️ The Competitor Rebuttal",
-    description: 'When a competitor is cheaper, use FAQ to explain the "Value Difference"',
+    label: "Competitor Rebuttal",
+    icon: "⚔️",
+    description:
+      'When a competitor is cheaper, use FAQ to explain the "Value Difference"',
     steps: [
       { agent_name: "PriceScoutAgent", has_gate: true },
       { agent_name: "RewriterAgent", has_gate: true, template_id: "product/faq" },
     ],
+    contextType: "product",
   },
   social_hype_man: {
-    label: "📱 The Social Hype-Man",
-    description: "Use Brand Soul-adapted description to feed a perfectly synced FB/IG ad",
+    label: "Social Hype-Man",
+    icon: "📱",
+    description:
+      "Use Brand Soul-adapted description to feed a perfectly synced FB/IG ad",
     steps: [
       { agent_name: "RewriterAgent", has_gate: true },
       { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/ad-facebook" },
     ],
+    contextType: "product",
   },
   abandoned_cart_fix: {
-    label: "🛒 The Abandoned Cart Fix",
-    description: 'Use competitor price data to craft a "Quality vs. Discount" recovery email',
+    label: "Abandoned Cart Fix",
+    icon: "🛒",
+    description:
+      'Use competitor price data to craft a "Quality vs. Discount" recovery email',
     steps: [
       { agent_name: "PriceScoutAgent", has_gate: true },
       { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-abandoned" },
     ],
+    contextType: "product",
   },
   seo_content_factory: {
-    label: "📝 The SEO Content Factory",
-    description: "Use SEO analysis to write a blog post that ranks for important keywords",
+    label: "SEO Content Factory",
+    icon: "📝",
+    description:
+      "Use SEO analysis to write a blog post that ranks for important keywords",
     steps: [
       { agent_name: "SEOAgent", has_gate: true },
       { agent_name: "RewriterAgent", has_gate: true, template_id: "product/blog-post" },
     ],
+    contextType: "product_blog",
   },
   artisan_storyteller: {
-    label: "🏆 The Artisan Storyteller",
-    description: 'Turn raw Japanese specs into a "Hero" section for US/Global audience',
+    label: "Artisan Storyteller",
+    icon: "🏆",
+    description:
+      'Turn raw Japanese specs into a "Hero" section for US/Global audience',
     steps: [
       { agent_name: "RewriterAgent", has_gate: true },
       { agent_name: "RewriterAgent", has_gate: true, template_id: "product/landing-hero" },
     ],
+    contextType: "product_hero",
   },
   new_arrival_blast: {
-    label: '🎯 The "New Arrival" Blast',
-    description: "Rewrite for Brand Soul alignment, then instantly generate launch email",
+    label: "New Arrival Blast",
+    icon: "🎯",
+    description:
+      "Rewrite for Brand Soul alignment, then instantly generate launch email",
     steps: [
       { agent_name: "RewriterAgent", has_gate: true },
       { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-launch" },
     ],
+    contextType: "product",
   },
   collection_refresher: {
-    label: "📦 The Collection Refresher",
-    description: "Optimize SEO and rewrite collection description for better CTR",
+    label: "Collection Refresher",
+    icon: "📦",
+    description:
+      "Select products, name your collection, and generate optimized SEO + description",
     steps: [
       { agent_name: "SEOAgent", has_gate: true },
       { agent_name: "RewriterAgent", has_gate: true, template_id: "product/collection" },
     ],
+    contextType: "collection",
   },
   google_ads_shield: {
-    label: "🔎 The Google Ads Shield",
-    description: "Use SEO keyword research to feed Google Ads for high-intent traffic",
+    label: "Google Ads Shield",
+    icon: "🔎",
+    description:
+      "Use SEO keyword research to feed Google Ads for high-intent traffic",
     steps: [
       { agent_name: "SEOAgent", has_gate: true },
       { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/ad-google" },
     ],
+    contextType: "product",
   },
   welcome_journey: {
-    label: "👋 The Welcome Journey",
-    description: "Use Brand Soul to ensure welcome email sounds like your store's personality",
+    label: "Welcome Journey",
+    icon: "👋",
+    description:
+      "Use Brand Soul to ensure welcome email sounds like your store's personality",
     steps: [
       { agent_name: "RewriterAgent", has_gate: true },
       { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-welcome" },
     ],
+    contextType: "product",
   },
   market_awareness_audit: {
-    label: '📊 The Market Awareness Audit',
-    description: 'Analyze if you\'re "Outpriced" or "Outranked" vs competitors',
+    label: "Market Awareness Audit",
+    icon: "📊",
+    description:
+      'Analyze if you\'re "Outpriced" or "Outranked" vs competitors',
     steps: [
       { agent_name: "PriceScoutAgent", has_gate: true },
       { agent_name: "SEOAgent", has_gate: true },
     ],
+    contextType: "product",
   },
 };
 
-// ─── Template options for manual "Add Template" ─────────────────────────────
+// ─── Mission Card ───────────────────────────────────────────────────────────
 
-const TEMPLATE_ADD_OPTIONS = Object.entries(TEMPLATE_DEFINITIONS).map(([id, tmpl]) => ({
-  label: `${tmpl.icon} ${tmpl.displayName}`,
-  value: id,
-}));
+function MissionCard({
+  icon,
+  label,
+  description,
+  stepCount,
+  onClick,
+  isCustom,
+}: {
+  icon: string;
+  label: string;
+  description: string;
+  stepCount?: number;
+  onClick: () => void;
+  isCustom?: boolean;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && onClick()}
+      style={{
+        padding: "20px",
+        borderRadius: "12px",
+        border: `2px solid ${
+          isCustom
+            ? "var(--p-color-border-emphasis)"
+            : "var(--p-color-border)"
+        }`,
+        background: isCustom
+          ? "var(--p-color-bg-surface-secondary)"
+          : "var(--p-color-bg-surface)",
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "var(--p-color-border-emphasis)";
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = isCustom
+          ? "var(--p-color-border-emphasis)"
+          : "var(--p-color-border)";
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      <BlockStack gap="200">
+        <Text as="span" variant="headingXl">
+          {icon}
+        </Text>
+        <Text as="h3" variant="headingSm" fontWeight="bold">
+          {label}
+        </Text>
+        <Text as="p" variant="bodySm" tone="subdued">
+          {description}
+        </Text>
+        {typeof stepCount === "number" && (
+          <div>
+            <Badge tone="info" size="small">
+              {`${stepCount} step${stepCount !== 1 ? "s" : ""}`}
+            </Badge>
+          </div>
+        )}
+      </BlockStack>
+    </div>
+  );
+}
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Main Component ─────────────────────────────────────────────────────────
 
 export function MissionArchitect({
+  products,
+  selectedProductId,
+  onProductChange,
   onStartMission,
   isRunning = false,
   planTier = "Basic",
-  onPipelineChange,
-  hideStartButton = false,
 }: MissionArchitectProps) {
+  // ── Wizard state ────────────────────────────────────────────────────────
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
+  const [selectedMissionKey, setSelectedMissionKey] = useState<string>("");
   const [pipeline, setPipeline] = useState<WorkflowStep[]>([]);
-  const [selectedPreset, setSelectedPreset] = useState<string>("");
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
 
-  // Notify parent whenever pipeline changes
-  const updatePipeline = useCallback(
-    (updater: WorkflowStep[] | ((prev: WorkflowStep[]) => WorkflowStep[])) => {
-      setPipeline((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : updater;
-        onPipelineChange?.(next);
-        return next;
-      });
+  // Blog context
+  const [blogTopic, setBlogTopic] = useState("");
+  const [blogCategory, setBlogCategory] = useState("");
+
+  // Collection context
+  const [collectionName, setCollectionName] = useState("");
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+  // Derived
+  const isCustom = selectedMissionKey === "custom";
+  const preset = !isCustom ? PRESETS[selectedMissionKey] : null;
+  const contextType: ContextType = isCustom
+    ? "product"
+    : preset?.contextType || "product";
+
+  // ── Mission selection (Step 1 → Step 2) ─────────────────────────────────
+
+  const handleMissionSelect = useCallback(
+    (key: string) => {
+      setSelectedMissionKey(key);
+      if (key === "custom") {
+        setPipeline([]);
+      } else if (PRESETS[key]) {
+        setPipeline([...PRESETS[key].steps]);
+      }
+      setWizardStep(2);
     },
-    [onPipelineChange],
+    [],
   );
 
-  // ── Preset handling ─────────────────────────────────────────────────────
+  const handleBack = useCallback(() => {
+    setWizardStep(1);
+    setSelectedMissionKey("");
+    setPipeline([]);
+    setBlogTopic("");
+    setBlogCategory("");
+    setCollectionName("");
+    setSelectedProductIds([]);
+  }, []);
 
-  const handlePresetChange = useCallback((value: string) => {
-    setSelectedPreset(value);
-    if (value && PRESETS[value]) {
-      updatePipeline([...PRESETS[value].steps]);
-    }
-  }, [updatePipeline]);
-
-  // ── Pipeline manipulation ─────────────────────────────────────────────
+  // ── Custom pipeline manipulation ────────────────────────────────────────
 
   const addAgent = useCallback((agentName: string) => {
-    updatePipeline((prev) => [...prev, { agent_name: agentName, has_gate: true }]);
-    setSelectedPreset(""); // Clear preset when manually editing
-  }, [updatePipeline]);
-
-  const addTemplate = useCallback((templateId: string) => {
-    const tmpl = TEMPLATE_DEFINITIONS[templateId];
-    if (!tmpl) return;
-    updatePipeline((prev) => [
+    setPipeline((prev) => [
       ...prev,
-      { agent_name: tmpl.agentName, has_gate: true, template_id: templateId },
+      { agent_name: agentName, has_gate: true },
     ]);
-    setSelectedPreset("");
-    setSelectedTemplate("");
-  }, [updatePipeline]);
+  }, []);
 
   const removeStep = useCallback((index: number) => {
-    updatePipeline((prev) => prev.filter((_, i) => i !== index));
-    setSelectedPreset("");
-  }, [updatePipeline]);
+    setPipeline((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const moveStep = useCallback((index: number, direction: "up" | "down") => {
-    updatePipeline((prev) => {
-      const newPipeline = [...prev];
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
-      if (targetIndex < 0 || targetIndex >= newPipeline.length) return prev;
-      [newPipeline[index], newPipeline[targetIndex]] = [newPipeline[targetIndex], newPipeline[index]];
-      return newPipeline;
+    setPipeline((prev) => {
+      const next = [...prev];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
     });
-    setSelectedPreset("");
-  }, [updatePipeline]);
+  }, []);
 
-  // ── Start Mission ─────────────────────────────────────────────────────
+  // ── Collection product toggle ───────────────────────────────────────────
 
-  const handleStartMission = useCallback(() => {
+  const toggleProductSelection = useCallback((productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId],
+    );
+  }, []);
+
+  // ── Launch ──────────────────────────────────────────────────────────────
+
+  const handleLaunch = useCallback(() => {
     if (pipeline.length === 0) return;
-    onStartMission(pipeline);
-  }, [pipeline, onStartMission]);
 
-  // ── Preset options ────────────────────────────────────────────────────
+    // Compute a human-readable mission title
+    let missionTitle: string;
+    if (isCustom) {
+      // Deduplicate agent names and join with " + "
+      const agentNames = pipeline.map((step) => {
+        const agent = AVAILABLE_AGENTS.find((a) => a.name === step.agent_name);
+        return agent?.displayName || step.agent_name;
+      });
+      const unique = [...new Set(agentNames)];
+      missionTitle = unique.join(" + ");
+    } else if (preset) {
+      missionTitle = `${preset.icon} ${preset.label}`;
+    } else {
+      missionTitle = "Mission";
+    }
 
-  const presetOptions = [
-    { label: "Choose a preset...", value: "" },
-    ...Object.entries(PRESETS).map(([key, preset]) => ({
-      label: preset.label,
-      value: key,
-    })),
+    const ctx: MissionExtraContext = { mission_title: missionTitle };
+    if (blogTopic) ctx.blog_topic = blogTopic;
+    if (blogCategory) ctx.blog_category = blogCategory;
+    if (collectionName) ctx.collection_name = collectionName;
+    if (selectedProductIds.length > 0) ctx.product_ids = selectedProductIds;
+    onStartMission(pipeline, ctx);
+  }, [
+    pipeline,
+    isCustom,
+    preset,
+    blogTopic,
+    blogCategory,
+    collectionName,
+    selectedProductIds,
+    onStartMission,
+  ]);
+
+  // ── Can launch? ─────────────────────────────────────────────────────────
+
+  const canLaunch =
+    pipeline.length > 0 &&
+    !isRunning &&
+    (contextType === "collection"
+      ? selectedProductIds.length > 0 && collectionName.trim().length > 0
+      : !!selectedProductId) &&
+    (contextType === "product_blog" ? blogTopic.trim().length > 0 : true);
+
+  // ── Product dropdown options ────────────────────────────────────────────
+
+  const productOptions = [
+    { label: "Choose a product…", value: "" },
+    ...products.map((p) => ({ label: p.title, value: p.id })),
   ];
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // STEP 1: Choose Your Mission
+  // ═════════════════════════════════════════════════════════════════════════
+
+  if (wizardStep === 1) {
+    return (
+      <Card>
+        <Box padding="500">
+          <BlockStack gap="500">
+            <BlockStack gap="200">
+              <InlineStack gap="200" blockAlign="center">
+                <Text as="span" variant="headingXl">
+                  🎯
+                </Text>
+                <Text as="h2" variant="headingLg">
+                  Choose Your Mission
+                </Text>
+              </InlineStack>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Pick a ready-made mission or build your own custom pipeline.
+              </Text>
+            </BlockStack>
+
+            <Divider />
+
+            {/* Mission cards grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              {Object.entries(PRESETS).map(([key, p]) => (
+                <MissionCard
+                  key={key}
+                  icon={p.icon}
+                  label={p.label}
+                  description={p.description}
+                  stepCount={p.steps.length}
+                  onClick={() => handleMissionSelect(key)}
+                />
+              ))}
+
+              {/* Custom Mission card */}
+              <MissionCard
+                icon="🛠️"
+                label="Custom Mission"
+                description="Build your own pipeline with any agent combination"
+                onClick={() => handleMissionSelect("custom")}
+                isCustom
+              />
+            </div>
+          </BlockStack>
+        </Box>
+      </Card>
+    );
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // STEP 2: Configure & Launch
+  // ═════════════════════════════════════════════════════════════════════════
 
   return (
     <Card>
       <Box padding="500">
         <BlockStack gap="500">
-          {/* Header */}
-          <BlockStack gap="200">
+          {/* ── Header with Back ────────────────────────────────────── */}
+          <InlineStack gap="300" blockAlign="center">
+            <Button
+              icon={ArrowLeftIcon}
+              variant="plain"
+              onClick={handleBack}
+              disabled={isRunning}
+              accessibilityLabel="Back to mission selection"
+            />
+            <InlineStack gap="200" blockAlign="center">
+              <Text as="span" variant="headingXl">
+                {isCustom ? "🛠️" : preset?.icon}
+              </Text>
             <Text as="h2" variant="headingLg">
-              Mission Architect
+                {isCustom ? "Custom Mission" : preset?.label}
             </Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              Choose a ready-made preset or build a fully custom pipeline from scratch.
+            </InlineStack>
+          </InlineStack>
+
+          {!isCustom && preset && (
+            <Banner tone="info">
+              <Text as="p" variant="bodySm">
+                {preset.description}
             </Text>
-          </BlockStack>
+            </Banner>
+          )}
 
           <Divider />
 
-          {/* ────────────── OPTION A: Mission Presets ─────────────────────── */}
-          <Box
-            padding="400"
-            background="bg-surface-secondary"
-            borderRadius="300"
-          >
+          {/* ── Product Selector (non-collection modes) ──────────── */}
+          {contextType !== "collection" && (
             <BlockStack gap="300">
-              <InlineStack gap="200" blockAlign="center">
-                <Text as="span" variant="headingMd">🎯</Text>
-                <Text as="h3" variant="headingMd" fontWeight="bold">
-                  Quick Start — Mission Presets
+              <Text as="h3" variant="headingMd">
+                Select Product
                 </Text>
-              </InlineStack>
               <Select
-                label="Preset"
+                label="Product"
                 labelHidden
-                options={presetOptions}
-                value={selectedPreset}
-                onChange={handlePresetChange}
+                options={productOptions}
+                value={selectedProductId}
+                onChange={onProductChange}
                 disabled={isRunning}
               />
-              {selectedPreset && PRESETS[selectedPreset] && (
-                <Banner tone="info">
+              {!selectedProductId && (
+                <Banner tone="warning">
                   <Text as="p" variant="bodySm">
-                    {PRESETS[selectedPreset].description}
+                    Please select a product to continue.
                   </Text>
                 </Banner>
               )}
             </BlockStack>
-          </Box>
+          )}
 
-          {/* ────────────── OR Divider ────────────────────────────────────── */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "16px",
-            }}
-          >
-            <div style={{ flex: 1, height: "1px", background: "var(--p-color-border-secondary)" }} />
-            <Text as="span" variant="bodySm" fontWeight="semibold" tone="subdued">
-              OR
+          {/* ── Blog Context (SEO Content Factory) ───────────────── */}
+          {contextType === "product_blog" && (
+            <BlockStack gap="300">
+              <Text as="h3" variant="headingMd">
+                Blog Details
+              </Text>
+              <TextField
+                label="Blog Topic"
+                placeholder="e.g. 'Our wood-kiln firing process', 'The art of Bizen pottery'"
+                value={blogTopic}
+                onChange={setBlogTopic}
+                autoComplete="off"
+                helpText="What should the blog post be about?"
+              />
+              <TextField
+                label="Category"
+                placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability"
+                value={blogCategory}
+                onChange={setBlogCategory}
+                autoComplete="off"
+                helpText="Optional — helps the AI choose the right angle."
+              />
+            </BlockStack>
+          )}
+
+          {/* ── Hero Context (Artisan Storyteller) ───────────────── */}
+          {contextType === "product_hero" && (
+            <BlockStack gap="200">
+              <Banner tone="info">
+                <Text as="p" variant="bodySm">
+                  The hero section will be generated from the selected product
+                  and prepended to the product description.
             </Text>
-            <div style={{ flex: 1, height: "1px", background: "var(--p-color-border-secondary)" }} />
-          </div>
+              </Banner>
+            </BlockStack>
+          )}
 
-          {/* ────────────── OPTION B: Custom Mission ─────────────────────── */}
-          <Box
-            padding="400"
-            background="bg-surface-secondary"
-            borderRadius="300"
-          >
+          {/* ── Collection Context ───────────────────────────────── */}
+          {contextType === "collection" && (
             <BlockStack gap="400">
-              <InlineStack gap="200" blockAlign="center">
-                <Text as="span" variant="headingMd">🛠️</Text>
-                <Text as="h3" variant="headingMd" fontWeight="bold">
-                  Build Your Own — Custom Mission
-                </Text>
-              </InlineStack>
-
-              {/* Agent Library */}
               <BlockStack gap="300">
-                <Text as="span" variant="bodySm" fontWeight="semibold">
-                  Agents
+                <Text as="h3" variant="headingMd">
+                  Collection Details
+                </Text>
+                <TextField
+                  label="Collection Name"
+                  placeholder="e.g. Spring 2026 Collection, Artisan Ceramics"
+                  value={collectionName}
+                  onChange={setCollectionName}
+                  autoComplete="off"
+                />
+              </BlockStack>
+
+              <BlockStack gap="300">
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="h3" variant="headingMd">
+                    Select Products
+                  </Text>
+                  <Badge
+                    tone={selectedProductIds.length > 0 ? "success" : "attention"}
+                  >
+                    {`${selectedProductIds.length} selected`}
+                  </Badge>
+                </InlineStack>
+
+                <div
+                  style={{
+                    maxHeight: "280px",
+                    overflowY: "auto",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    background: "var(--p-color-bg-surface-secondary)",
+                    border: "1px solid var(--p-color-border)",
+                  }}
+                >
+                  <BlockStack gap="200">
+                    {products.map((p) => (
+                      <Checkbox
+                        key={p.id}
+                        label={p.title}
+                        checked={selectedProductIds.includes(p.id)}
+                        onChange={() => toggleProductSelection(p.id)}
+                      />
+                    ))}
+                    {products.length === 0 && (
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        No products available.
+                      </Text>
+                    )}
+                  </BlockStack>
+                </div>
+
+                {selectedProductIds.length === 0 && (
+                  <Banner tone="warning">
+                    <Text as="p" variant="bodySm">
+                      Select at least one product for this collection.
+                    </Text>
+                  </Banner>
+                )}
+              </BlockStack>
+            </BlockStack>
+          )}
+
+          {/* ── Custom Mission: Agent Builder ────────────────────── */}
+          {isCustom && (
+            <BlockStack gap="400">
+              <Text as="h3" variant="headingMd">
+                Add Agents
                 </Text>
                 <InlineStack gap="300" wrap>
                   {AVAILABLE_AGENTS.map((agent) => (
@@ -483,62 +809,44 @@ export function MissionArchitect({
                   ))}
                 </InlineStack>
               </BlockStack>
-
-              {/* Template Library */}
-              <BlockStack gap="300">
-                <Text as="span" variant="bodySm" fontWeight="semibold">
-                  Templates
-                </Text>
-                <InlineStack gap="200" blockAlign="end">
-                  <div style={{ flex: 1, minWidth: "200px" }}>
-                    <Select
-                      label="Template"
-                      labelHidden
-                      options={[{ label: "Choose a template...", value: "" }, ...TEMPLATE_ADD_OPTIONS]}
-                      value={selectedTemplate}
-                      onChange={setSelectedTemplate}
-                      disabled={isRunning}
-                    />
-                  </div>
-                  <Button
-                    onClick={() => selectedTemplate && addTemplate(selectedTemplate)}
-                    disabled={isRunning || !selectedTemplate}
-                    size="slim"
-                    icon={PlusIcon}
-                  >
-                    Add
-                  </Button>
-                </InlineStack>
-              </BlockStack>
-            </BlockStack>
-          </Box>
+          )}
 
           <Divider />
 
-          {/* ────────────── Pipeline Canvas (shared result) ──────────────── */}
+          {/* ── Pipeline Preview ─────────────────────────────────── */}
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center">
-              <Text as="h3" variant="headingLg" fontWeight="bold">
+              <Text as="h3" variant="headingMd" fontWeight="bold">
                 Pipeline
               </Text>
               {pipeline.length > 0 && (
-                <Badge tone="success">{`${pipeline.length} step${pipeline.length !== 1 ? "s" : ""}`}</Badge>
+                <Badge tone="success">
+                  {`${pipeline.length} step${pipeline.length !== 1 ? "s" : ""}`}
+                </Badge>
               )}
             </InlineStack>
 
             {pipeline.length === 0 ? (
-              <Box padding="400" background="bg-surface-secondary" borderRadius="200">
-                <BlockStack gap="200" inlineAlign="center">
-                  <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                    Your pipeline is empty. Select a preset above or build a custom mission to get started.
+              <Box
+                padding="400"
+                background="bg-surface-secondary"
+                borderRadius="200"
+              >
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                  alignment="center"
+                >
+                  {isCustom
+                    ? "Add agents above to build your pipeline."
+                    : "No steps configured."}
                   </Text>
-                </BlockStack>
               </Box>
             ) : (
               <BlockStack gap="200">
                 {pipeline.map((step, index) => {
                   const info = getStepDisplayInfo(step);
-
                   return (
                     <Box
                       key={`${step.agent_name}-${step.template_id || ""}-${index}`}
@@ -546,16 +854,26 @@ export function MissionArchitect({
                       background="bg-surface-secondary"
                       borderRadius="200"
                     >
-                      <InlineStack align="space-between" blockAlign="center" gap="200">
+                      <InlineStack
+                        align="space-between"
+                        blockAlign="center"
+                        gap="200"
+                      >
                         {/* Step info */}
                         <InlineStack gap="300" blockAlign="center">
                           <BlockStack gap="050">
                             <InlineStack gap="100" blockAlign="center">
-                              <Text as="span" variant="bodyMd" fontWeight="semibold">
+                              <Text
+                                as="span"
+                                variant="bodyMd"
+                                fontWeight="semibold"
+                              >
                                 {info.icon} {info.displayName}
                               </Text>
                               {info.isTemplate && (
-                                <Badge tone="info" size="small">Template</Badge>
+                                <Badge tone="info" size="small">
+                                  Template
+                                </Badge>
                               )}
                             </InlineStack>
                             <Text as="span" variant="bodySm" tone="subdued">
@@ -564,9 +882,9 @@ export function MissionArchitect({
                           </BlockStack>
                         </InlineStack>
 
-                        {/* Controls */}
+                        {/* Controls — only for custom missions */}
+                        {isCustom && (
                         <InlineStack gap="200" blockAlign="center">
-                          {/* Reorder buttons */}
                           <InlineStack gap="100">
                             <Button
                               icon={ArrowUpIcon}
@@ -581,12 +899,12 @@ export function MissionArchitect({
                               size="slim"
                               variant="plain"
                               onClick={() => moveStep(index, "down")}
-                              disabled={index === pipeline.length - 1 || isRunning}
+                                disabled={
+                                  index === pipeline.length - 1 || isRunning
+                                }
                               accessibilityLabel="Move down"
                             />
                           </InlineStack>
-
-                          {/* Remove */}
                           <Button
                             icon={DeleteIcon}
                             size="slim"
@@ -597,6 +915,7 @@ export function MissionArchitect({
                             accessibilityLabel="Remove step"
                           />
                         </InlineStack>
+                        )}
                       </InlineStack>
                     </Box>
                   );
@@ -605,8 +924,7 @@ export function MissionArchitect({
             )}
           </BlockStack>
 
-          {/* Start Mission Button (hidden when parent provides its own) */}
-          {!hideStartButton && (
+          {/* ── Launch Button ─────────────────────────────────────── */}
             <Box paddingBlockStart="200">
               <div className="aiOptimizeCenter">
                 <div className="aiOptimizeWrap">
@@ -614,23 +932,22 @@ export function MissionArchitect({
                     <Button
                       variant="primary"
                       size="large"
-                      onClick={handleStartMission}
-                      disabled={pipeline.length === 0 || isRunning}
+                    onClick={handleLaunch}
+                    disabled={!canLaunch}
                       loading={isRunning}
                       fullWidth
                       icon={PlayIcon}
                     >
-                      {`🚀 Start Mission (${pipeline.length} step${pipeline.length !== 1 ? "s" : ""})`}
+                    {`🚀 Launch Mission (${pipeline.length} step${pipeline.length !== 1 ? "s" : ""})`}
                     </Button>
                   </div>
                 </div>
               </div>
             </Box>
-          )}
         </BlockStack>
       </Box>
     </Card>
   );
 }
 
-export type { MissionArchitectProps };
+export type { MissionArchitectProps, ProductOption, MissionExtraContext as ExtraContext };

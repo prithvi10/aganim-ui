@@ -56,6 +56,7 @@ type LoaderData = {
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
   templates: ContentTemplate[];
+  planName: string;
 };
 
 // ─── Display name overrides ───────────────────────────────────────────────────
@@ -165,7 +166,19 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     // best-effort
   }
 
-  return {shop, backendApiUrl, products, selectedProduct, templates} satisfies LoaderData;
+  // Fetch plan name from backend
+  let planName = 'Free';
+  try {
+    const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`);
+    if (usageResp.ok) {
+      const usageData = await usageResp.json();
+      planName = String(usageData.effective_plan_name || usageData.plan_name || 'Free').trim() || 'Free';
+    }
+  } catch {
+    // best-effort
+  }
+
+  return {shop, backendApiUrl, products, selectedProduct, templates, planName} satisfies LoaderData;
 };
 
 // ─── Python dict parser (handles mixed single/double quotes) ──────────────────
@@ -498,17 +511,21 @@ function ContentTemplateCard({
   shop,
   backendApiUrl,
   onToast,
+  planName,
 }: {
   template: ContentTemplate;
   selectedProduct: SelectedProduct | null;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
+  planName?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState(false);
   const editableHtmlRef = useRef<string>('');
 
   // Blog post has its own fields
@@ -610,6 +627,39 @@ function ContentTemplateCard({
     }
   }, [result, onToast]);
 
+  const handlePublish = useCallback(async () => {
+    if (!result) return;
+    setPublishing(true);
+    try {
+      const content = editableHtmlRef.current || result;
+      const resp = await fetch(
+        `${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
+          body: JSON.stringify({
+            template_id: template.id,
+            product_id: selectedProduct?.id || '',
+            content,
+            context: { product_title: selectedProduct?.title || '' },
+          }),
+        },
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || `Publish failed: ${resp.status}`);
+      }
+      setPublished(true);
+      onToast(`Published ${TEMPLATE_DISPLAY_NAMES[template.id] || template.name} to Shopify!`);
+    } catch (e: any) {
+      onToast(`Publish failed: ${e?.message || e}`);
+    } finally {
+      setPublishing(false);
+    }
+  }, [result, selectedProduct, template, shop, backendApiUrl, onToast]);
+
+  const isPro = planName === 'Pro';
+
   // Determine if Generate should be disabled
   const canGenerate = isBlogPost ? Boolean(blogTopic.trim()) : Boolean(selectedProduct?.id);
 
@@ -684,9 +734,27 @@ function ContentTemplateCard({
                 >
                   {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
                 </Button>
-                <Button onClick={handleCopy} variant="secondary" size="slim">
-                  Copy
-                </Button>
+                <InlineStack gap="200">
+                  {isPro && !published && (
+                    <Button
+                      onClick={handlePublish}
+                      variant="primary"
+                      size="slim"
+                      loading={publishing}
+                      disabled={publishing}
+                    >
+                      Publish to Shopify
+                    </Button>
+                  )}
+                  {isPro && published && (
+                    <Button variant="plain" size="slim" disabled tone="success">
+                      ✓ Published
+                    </Button>
+                  )}
+                  <Button onClick={handleCopy} variant="secondary" size="slim">
+                    Copy
+                  </Button>
+                </InlineStack>
               </InlineStack>
               <Collapsible
                 open={resultOpen}
@@ -711,7 +779,7 @@ function ContentTemplateCard({
 // ─── Page Component ───────────────────────────────────────────────────────────
 
 export default function ContentTemplatesPage() {
-  const {shop, backendApiUrl, products, selectedProduct, templates} =
+  const {shop, backendApiUrl, products, selectedProduct, templates, planName} =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -796,6 +864,7 @@ export default function ContentTemplatesPage() {
                         shop={shop}
                         backendApiUrl={backendApiUrl}
                         onToast={setToastContent}
+                        planName={planName}
                       />
                     ))}
                   </BlockStack>
@@ -827,6 +896,7 @@ export default function ContentTemplatesPage() {
                     shop={shop}
                     backendApiUrl={backendApiUrl}
                     onToast={setToastContent}
+                    planName={planName}
                   />
                 </BlockStack>
               </Box>
