@@ -3,19 +3,11 @@ import { useLoaderData, useSearchParams, useNavigate } from "react-router";
 import {
   Page,
   Layout,
-  Card,
   BlockStack,
-  InlineStack,
   Text,
-  Button,
   Banner,
-  Box,
-  Select,
-  Badge,
   Toast,
   Frame,
-  Divider,
-  Modal,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
@@ -27,8 +19,8 @@ import { MissionSummary } from "../components/MissionSummary";
 import { MissionHistory } from "../components/MissionHistory";
 import {
   MissionArchitect,
-  getStepDisplayInfo,
   type WorkflowStep,
+  type MissionExtraContext,
 } from "../components/MissionArchitect";
 import "../styles/optimize-button.css";
 
@@ -108,7 +100,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     .map((e) => ({ id: e.node.id, title: e.node.title }));
 
   let selectedProduct: SelectedProduct | null = null;
-  // Handle both numeric ID and full GID formats
   let productGid = "";
   if (selectedProductIdParam) {
     productGid = selectedProductIdParam.startsWith("gid://") 
@@ -119,8 +110,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   if (productGid) {
-    // For offline client, inline the ID since it doesn't support variables
-    // Include metafields from crossborder_agent namespace to show saved mission data
     const productQuery = offlineContext
       ? `query { product(id: "${productGid}") { id title descriptionHtml productType metafields(first: 10, namespace: "crossborder_agent") { edges { node { key value } } } } }`
       : `query getProduct($id: ID!) { product(id: $id) { id title descriptionHtml productType metafields(first: 10, namespace: "crossborder_agent") { edges { node { key value } } } } }`;
@@ -142,7 +131,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const productBody = await graphqlQuery(productQuery, { id: productGid }) as ProductQueryResult;
     const p = productBody?.data?.product;
     if (p) {
-      // Parse metafields into savedMissionData
       const metafields = p.metafields?.edges || [];
       const savedMissionData: SavedMissionData = {};
       
@@ -191,7 +179,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function OptimizePage() {
-  const { planName, shop, backendApiUrl, products, selectedProduct } = useLoaderData<typeof loader>();
+  const { planName, shop, backendApiUrl, products, selectedProduct } =
+    useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
@@ -204,78 +193,77 @@ export default function OptimizePage() {
   const [toastSuccess, setToastSuccess] = useState(true);
   const [viewingSavedMission, setViewingSavedMission] = useState(false);
 
-  // Pipeline state lifted from MissionArchitect
-  const [pipeline, setPipeline] = useState<WorkflowStep[]>([]);
-  // Mission preview modal
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  // ── Product selection (syncs to URL) ────────────────────────────────────
 
-  // ── Product selection ─────────────────────────────────────────────────
+  const handleProductChange = useCallback(
+    (value: string) => {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("productId", productIdFromGid(value));
+      setSearchParams(newParams);
+      setMissionId(null);
+      setFinalState(null);
+    },
+    [searchParams, setSearchParams],
+  );
 
-  const handleProductChange = useCallback((value: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set("productId", productIdFromGid(value));
-    setSearchParams(newParams);
-    setMissionId(null);
-    setFinalState(null);
-  }, [searchParams, setSearchParams]);
+  // ── Start Mission (called from MissionArchitect wizard) ─────────────────
 
-  // ── Pipeline change from MissionArchitect ─────────────────────────────
+  const handleOptimize = useCallback(
+    async (pipeline: WorkflowStep[], extraContext?: MissionExtraContext) => {
+      if (!selectedProduct || pipeline.length === 0) return;
+      setIsOptimizing(true);
+      setError(null);
+      setFinalState(null);
 
-  const handlePipelineChange = useCallback((newPipeline: WorkflowStep[]) => {
-    setPipeline(newPipeline);
-  }, []);
-
-  // ── Start Optimize (sends workflow_config) ────────────────────────────
-
-  const handleOptimize = useCallback(async () => {
-    if (!selectedProduct || pipeline.length === 0) return;
-    setIsOptimizing(true);
-    setError(null);
-    setFinalState(null);
-
-    let token: string | null = null;
-    try {
-      token = await getSessionToken(app);
-    } catch {
-      token = null;
-    }
-
-    try {
-      // Include shop param as fallback authentication when token isn't available
-      const url = new URL(`${backendApiUrl}/api/missions`);
-      if (!token && shop) {
-        url.searchParams.set("shop", shop);
+      let token: string | null = null;
+      try {
+        token = await getSessionToken(app);
+      } catch {
+        token = null;
       }
-      
-      const response = await fetch(url.toString(), {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          product_id: productIdFromGid(selectedProduct.id),
-          product_name: selectedProduct.title,
-          japanese_description: selectedProduct.descriptionHtml,
-          category: selectedProduct.productType || "General",
-          target_locale: "en",
-          workflow_config: pipeline,
-        }),
-      });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      const data = await response.json();
-      setMissionId(data.mission_id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start optimization");
-      setIsOptimizing(false);
-    }
-  }, [selectedProduct, backendApiUrl, app, shop, pipeline]);
+
+      try {
+        const url = new URL(`${backendApiUrl}/api/missions`);
+        if (!token && shop) {
+          url.searchParams.set("shop", shop);
+        }
+
+        const response = await fetch(url.toString(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            product_id: productIdFromGid(selectedProduct.id),
+            product_name: selectedProduct.title,
+            japanese_description: selectedProduct.descriptionHtml,
+            category: selectedProduct.productType || "General",
+            target_locale: "en",
+            workflow_config: pipeline,
+            // Extra wizard context (blog topic, collection info, etc.)
+            ...(extraContext ? { extra_context: extraContext } : {}),
+          }),
+        });
+
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const data = await response.json();
+        setMissionId(data.mission_id);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to start optimization",
+        );
+        setIsOptimizing(false);
+      }
+    },
+    [selectedProduct, backendApiUrl, app, shop],
+  );
+
+  // ── Mission callbacks ──────────────────────────────────────────────────
 
   const handleMissionComplete = useCallback((state: MissionState) => {
     setIsOptimizing(false);
     setFinalState(state);
-    
-    // Show success toast when mission completes
     if (state.status === "COMPLETED") {
       setToastSuccess(true);
       setToastContent("Mission complete! Your product has been updated in Shopify.");
@@ -286,7 +274,6 @@ export default function OptimizePage() {
   }, []);
 
   const handlePublish = useCallback(async (state: MissionState) => {
-    // TODO: Implement publishing logic via Shopify API
     console.log("Publishing state:", state);
     alert("Changes would be published to Shopify!");
   }, []);
@@ -297,17 +284,18 @@ export default function OptimizePage() {
     setIsOptimizing(false);
   }, []);
 
-  const handleEdit = useCallback((state: MissionState) => {
-    // Navigate to rewriter with the draft content
-    const params = new URLSearchParams(searchParams);
-    params.set("productId", productIdFromGid(selectedProduct?.id));
-    navigate(`/app/rewriter?${params.toString()}`);
-  }, [navigate, searchParams, selectedProduct]);
+  const handleEdit = useCallback(
+    (state: MissionState) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("productId", productIdFromGid(selectedProduct?.id));
+      navigate(`/app/rewriter?${params.toString()}`);
+    },
+    [navigate, searchParams, selectedProduct],
+  );
 
-  // Build a MissionState from saved metafield data to display in MissionSummary
+  // Build a MissionState from saved metafield data
   const buildSavedMissionState = useCallback((): MissionState | null => {
     if (!selectedProduct?.savedMissionData) return null;
-    
     const saved = selectedProduct.savedMissionData;
     return {
       mission_id: "saved",
@@ -320,16 +308,18 @@ export default function OptimizePage() {
       seo_description: saved.seo_data?.seo_description || null,
       seo_alt_text: saved.seo_data?.seo_alt_text || null,
       social_hooks: saved.social_hooks || null,
-      pricing_analysis: saved.pricing_analysis ? {
-        recommended_price: saved.pricing_analysis.recommended_price || 0,
-        price_position: saved.pricing_analysis.price_position || "",
-        confidence: saved.pricing_analysis.confidence || 0,
-        reasoning: saved.pricing_analysis.reasoning || "",
-      } : null,
+      pricing_analysis: saved.pricing_analysis
+        ? {
+            recommended_price: saved.pricing_analysis.recommended_price || 0,
+            price_position: saved.pricing_analysis.price_position || "",
+            confidence: saved.pricing_analysis.confidence || 0,
+            reasoning: saved.pricing_analysis.reasoning || "",
+          }
+        : null,
     };
   }, [selectedProduct]);
 
-  // ── Resume a paused mission from history ──────────────────────────────
+  // ── Resume a paused mission from history ────────────────────────────────
 
   const handleResumeMission = useCallback((resumeId: string) => {
     setMissionId(resumeId);
@@ -338,15 +328,19 @@ export default function OptimizePage() {
     setError(null);
   }, []);
 
-  const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
+  // ── Viewing saved mission ───────────────────────────────────────────────
 
-  // When viewing saved mission details, show the MissionSummary component
   if (viewingSavedMission && selectedProduct?.savedMissionData) {
     const savedState = buildSavedMissionState();
     if (savedState) {
       return (
         <Frame>
-          <Page backAction={{ content: "Back", onAction: () => setViewingSavedMission(false) }}>
+          <Page
+            backAction={{
+              content: "Back",
+              onAction: () => setViewingSavedMission(false),
+            }}
+          >
             <Layout>
               <Layout.Section>
                 <MissionSummary
@@ -359,7 +353,10 @@ export default function OptimizePage() {
                   onDiscard={() => setViewingSavedMission(false)}
                   onEdit={() => {
                     const params = new URLSearchParams(searchParams);
-                    params.set("productId", productIdFromGid(selectedProduct?.id));
+                    params.set(
+                      "productId",
+                      productIdFromGid(selectedProduct?.id),
+                    );
                     navigate(`/app/rewriter?${params.toString()}`);
                   }}
                 />
@@ -379,6 +376,10 @@ export default function OptimizePage() {
     }
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // Main render
+  // ══════════════════════════════════════════════════════════════════════════
+
   return (
     <Frame>
       <Page
@@ -388,78 +389,59 @@ export default function OptimizePage() {
         <Layout>
           <Layout.Section>
             <BlockStack gap="400">
-
-              {/* ── Card 1: Product Selection ─────────────────────────────── */}
-              <Card>
-                <Box padding="400">
-                  <BlockStack gap="300">
-                    <Text as="h2" variant="headingLg">Select Product to Optimize</Text>
-                    <Select
-                      label="Product"
-                      labelHidden
-                      options={productOptions}
-                      value={selectedProduct?.id || ""}
-                      onChange={handleProductChange}
-                      disabled={isOptimizing}
-                    />
-                  </BlockStack>
-                </Box>
-              </Card>
-
-              {/* ── Card 2: Mission Architect (presets + agents + pipeline) ─ */}
-              {selectedProduct && !missionId && (
+              {/* ── Mission Architect Wizard ─────────────────────────────── */}
+              {!missionId && (
                 <MissionArchitect
+                  products={products}
+                  selectedProductId={selectedProduct?.id || ""}
+                  onProductChange={handleProductChange}
                   onStartMission={handleOptimize}
                   isRunning={isOptimizing}
                   planTier={planName}
-                  onPipelineChange={handlePipelineChange}
-                  hideStartButton={true}
                 />
               )}
 
-              {/* ── Launch Button (opens preview modal) ─────────────────── */}
-              {selectedProduct && !missionId && !isOptimizing && pipeline.length > 0 && (
-                <Box paddingBlockStart="100">
-                  <div className="aiOptimizeCenter">
-                    <div className="aiOptimizeWrap">
-                      <div className="aiOptimizeInner">
-                        <Button
-                          variant="primary"
-                          size="large"
-                          onClick={() => setShowPreviewModal(true)}
-                          fullWidth
-                        >
-                          🚀 Preview & Launch
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </Box>
+              {/* Error Banner */}
+              {error && (
+                <Banner
+                  tone="critical"
+                  title="Optimization Error"
+                  onDismiss={() => setError(null)}
+                >
+                  <p>{error}</p>
+                </Banner>
               )}
 
-              {/* Error Banner */}
-              {error && <Banner tone="critical" title="Optimization Error" onDismiss={() => setError(null)}><p>{error}</p></Banner>}
-
-              {/* Mission Timeline - Step-by-step mode for merchant control */}
+              {/* Mission Timeline — step-by-step mode */}
               {missionId && (
                 <MissionTimeline
                   missionId={missionId}
                   apiBaseUrl={backendApiUrl}
                   shop={shop}
                   onComplete={handleMissionComplete}
-                  onError={(err) => { setError(err); setIsOptimizing(false); }}
+                  onError={(err) => {
+                    setError(err);
+                    setIsOptimizing(false);
+                  }}
                   onPublish={handlePublish}
                   onDiscard={handleDiscard}
                   onEdit={handleEdit}
                   showSummary={true}
                   stepMode={true}
-                  onStepApprove={() => console.log("[Optimize] Step approved")}
-                  onStepRegenerate={(feedback) => console.log("[Optimize] Step regenerated with feedback:", feedback)}
+                  onStepApprove={() =>
+                    console.log("[Optimize] Step approved")
+                  }
+                  onStepRegenerate={(feedback) =>
+                    console.log(
+                      "[Optimize] Step regenerated with feedback:",
+                      feedback,
+                    )
+                  }
                   onStepSkip={() => console.log("[Optimize] Step skipped")}
                 />
               )}
 
-              {/* ── Card 4: Mission History ──────────────────────────────── */}
+              {/* Mission History */}
               {!missionId && (
                 <MissionHistory
                   apiBaseUrl={backendApiUrl}
@@ -468,93 +450,10 @@ export default function OptimizePage() {
                   limit={5}
                 />
               )}
-
             </BlockStack>
           </Layout.Section>
         </Layout>
       </Page>
-
-      {/* ── Mission Preview Modal ────────────────────────────────────── */}
-      <Modal
-        open={showPreviewModal}
-        onClose={() => setShowPreviewModal(false)}
-        title="Mission Preview"
-      >
-        <Modal.Section>
-          <BlockStack gap="400">
-            {/* Product context */}
-            {selectedProduct && (
-              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                <InlineStack gap="200" blockAlign="center">
-                  <Text as="span" variant="bodySm" fontWeight="semibold">Product:</Text>
-                  <Text as="span" variant="bodySm">{selectedProduct.title}</Text>
-                </InlineStack>
-              </Box>
-            )}
-
-            {/* Step-by-step preview */}
-            <BlockStack gap="200">
-              <InlineStack align="space-between" blockAlign="center">
-                <Text as="h3" variant="headingSm" fontWeight="bold">Execution Plan</Text>
-                <Badge tone="info">
-                  {pipeline.length} step{pipeline.length !== 1 ? "s" : ""}
-                </Badge>
-              </InlineStack>
-
-              {pipeline.map((step, idx) => {
-                const info = getStepDisplayInfo(step);
-                return (
-                  <Box
-                    key={`preview-${step.agent_name}-${step.template_id || ""}-${idx}`}
-                    padding="300"
-                    background="bg-surface-secondary"
-                    borderRadius="200"
-                  >
-                    <InlineStack gap="300" blockAlign="center" align="space-between">
-                      <InlineStack gap="200" blockAlign="center">
-                        <BlockStack gap="050">
-                          <Text variant="bodyMd" as="span" fontWeight="semibold">
-                            {info.icon} {info.displayName}
-                            {info.isTemplate ? " (Template)" : ""}
-                          </Text>
-                          <Text variant="bodySm" as="span" tone="subdued">
-                            {info.description}
-                          </Text>
-                        </BlockStack>
-                      </InlineStack>
-                    </InlineStack>
-                  </Box>
-                );
-              })}
-            </BlockStack>
-
-            <Divider />
-
-            {/* Optimize All button */}
-            <Box paddingBlockStart="100">
-              <div className="aiOptimizeCenter">
-                <div className="aiOptimizeWrap">
-                  <div className="aiOptimizeInner">
-                    <Button
-                      variant="primary"
-                      size="large"
-                      onClick={() => {
-                        setShowPreviewModal(false);
-                        handleOptimize();
-                      }}
-                      loading={isOptimizing}
-                      disabled={!selectedProduct || isOptimizing || pipeline.length === 0}
-                      fullWidth
-                    >
-                      🚀 Optimize All ({pipeline.length} step{pipeline.length !== 1 ? "s" : ""})
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Box>
-          </BlockStack>
-        </Modal.Section>
-      </Modal>
 
       {/* Success/Error Toast */}
       {toastContent && (
