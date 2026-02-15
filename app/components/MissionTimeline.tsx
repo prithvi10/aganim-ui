@@ -852,6 +852,7 @@ export function MissionTimeline({
                     agentName={stepCompleteData.current_agent}
                     stepIndex={stepCompleteData.current_agent_index}
                     totalSteps={stepCompleteData.total_agents}
+                    workflowAgents={missionState.workflow_agents}
                     status="awaiting_approval"
                     output={stepCompleteData.agent_output as AgentOutput | undefined}
                     isLoading={isStepLoading}

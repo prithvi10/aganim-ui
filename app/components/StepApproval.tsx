@@ -84,6 +84,8 @@ interface StepApprovalProps {
    * When false, clicking "Regenerate" does a plain re-run immediately.
    */
   supportsFeedback?: boolean;
+  /** Ordered list of agent class names in the actual workflow */
+  workflowAgents?: string[];
 }
 
 function getAgentDisplayName(agentName: string): string {
@@ -383,6 +385,7 @@ export function StepApproval({
   onSkip,
   onOutputChange,
   supportsFeedback = false,
+  workflowAgents,
 }: StepApprovalProps) {
   const [showFullOutput, setShowFullOutput] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -945,12 +948,9 @@ export function StepApproval({
                     Skip
                   </Button>
                 </InlineStack>
-                {!isLastStep && (
+                {!isLastStep && workflowAgents && stepIndex + 1 < workflowAgents.length && (
                   <Text as="p" variant="bodySm" tone="subdued">
-                    Next: {getAgentDisplayName(
-                           (agentName === "RewriterAgent" || agentName === "CopywriterAgent") ? "SEOAgent" : 
-                           agentName === "SEOAgent" ? "MarketingAgent" :
-                           agentName === "MarketingAgent" ? "PriceScoutAgent" : "")}
+                    Next: {getAgentDisplayName(workflowAgents[stepIndex + 1])}
                   </Text>
                 )}
               </BlockStack>
