@@ -11,7 +11,6 @@ const VISUAL_LOADING_MESSAGES = [
   "Isolating product and removing background...",
   "Regenerating brand-aligned background...",
   "Creating marketing ad with typography...",
-  "Expanding to hero banner...",
 ];
 
 interface AgentCardProps {
