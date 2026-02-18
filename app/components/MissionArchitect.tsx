@@ -110,6 +110,20 @@ export const AVAILABLE_AGENTS: AgentDefinition[] = [
     icon: "💰",
     color: "warning",
   },
+  {
+    name: "ImageRefinementAgent",
+    displayName: "Image Refinement",
+    description: "AI product photo cleanup and background refinement (Pro)",
+    icon: "✨",
+    color: "info",
+  },
+  {
+    name: "VisualMarketingAgent",
+    displayName: "Visual Marketing",
+    description: "Marketing ad and hero banner generation (Pro)",
+    icon: "📸",
+    color: "info",
+  },
 ];
 
 // ─── Template Definitions ───────────────────────────────────────────────────
@@ -222,20 +236,37 @@ interface Preset {
   description: string;
   steps: WorkflowStep[];
   contextType: ContextType;
+  /** When true, only Pro-tier users can select this preset */
+  proOnly?: boolean;
 }
 
 const PRESETS: Record<string, Preset> = {
   full_launch: {
     label: "Full Launch",
     icon: "🚀",
-    description: "All 4 agents with human approval at every step",
+    description: "Full pipeline — rewrite, image refinement, SEO, pricing, marketing, and visual ads",
     steps: [
       { agent_name: "RewriterAgent", has_gate: true },
+      { agent_name: "ImageRefinementAgent", has_gate: true },
       { agent_name: "SEOAgent", has_gate: true },
-      { agent_name: "MarketingAgent", has_gate: true },
       { agent_name: "PriceScoutAgent", has_gate: true },
+      { agent_name: "MarketingAgent", has_gate: true },
+      { agent_name: "VisualMarketingAgent", has_gate: true },
     ],
     contextType: "product",
+    proOnly: true,
+  },
+  visual_ad_blitz: {
+    label: "Visual Ad Blitz",
+    icon: "📸",
+    description:
+      "Generate social hooks then produce ready-to-post marketing ads and hero banners",
+    steps: [
+      { agent_name: "MarketingAgent", has_gate: true },
+      { agent_name: "VisualMarketingAgent", has_gate: true },
+    ],
+    contextType: "product",
+    proOnly: true,
   },
   competitor_rebuttal: {
     label: "Competitor Rebuttal",
@@ -358,6 +389,8 @@ function MissionCard({
   stepCount,
   onClick,
   isCustom,
+  proOnly,
+  isProUser,
 }: {
   icon: string;
   label: string;
@@ -365,57 +398,70 @@ function MissionCard({
   stepCount?: number;
   onClick: () => void;
   isCustom?: boolean;
+  proOnly?: boolean;
+  isProUser?: boolean;
 }) {
+  const isLocked = proOnly && !isProUser;
+
   return (
     <div
-      onClick={onClick}
+      onClick={isLocked ? undefined : onClick}
       role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
+      tabIndex={isLocked ? -1 : 0}
+      onKeyDown={(e) => !isLocked && e.key === "Enter" && onClick()}
       style={{
         padding: "20px",
         borderRadius: "12px",
         border: `2px solid ${
           isCustom
             ? "var(--p-color-border-emphasis)"
-            : "var(--p-color-border)"
+            : proOnly
+              ? "var(--p-color-border-caution)"
+              : "var(--p-color-border)"
         }`,
-        background: isCustom
-          ? "var(--p-color-bg-surface-secondary)"
-          : "var(--p-color-bg-surface)",
-        cursor: "pointer",
+        background: isLocked
+          ? "var(--p-color-bg-surface-disabled)"
+          : isCustom
+            ? "var(--p-color-bg-surface-secondary)"
+            : "var(--p-color-bg-surface)",
+        cursor: isLocked ? "not-allowed" : "pointer",
+        opacity: isLocked ? 0.65 : 1,
         transition: "all 0.15s ease",
       }}
       onMouseEnter={(e) => {
+        if (isLocked) return;
         e.currentTarget.style.borderColor = "var(--p-color-border-emphasis)";
         e.currentTarget.style.transform = "translateY(-2px)";
         e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
       }}
       onMouseLeave={(e) => {
+        if (isLocked) return;
         e.currentTarget.style.borderColor = isCustom
           ? "var(--p-color-border-emphasis)"
-          : "var(--p-color-border)";
+          : proOnly
+            ? "var(--p-color-border-caution)"
+            : "var(--p-color-border)";
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.boxShadow = "none";
       }}
     >
       <BlockStack gap="200">
-        <Text as="span" variant="headingXl">
-          {icon}
-        </Text>
-        <Text as="h3" variant="headingSm" fontWeight="bold">
-          {label}
-        </Text>
-        <Text as="p" variant="bodySm" tone="subdued">
-          {description}
-        </Text>
-        {typeof stepCount === "number" && (
-          <div>
-            <Badge tone="info" size="small">
-              {`${stepCount} step${stepCount !== 1 ? "s" : ""}`}
+        <InlineStack gap="200" blockAlign="center" wrap={false}>
+          <Text as="span" variant="headingXl">
+            {icon}
+          </Text>
+          <Text as="h3" variant="headingSm" fontWeight="bold">
+            {label}
+          </Text>
+          {proOnly && (
+            <Badge tone="warning" size="small">
+              Pro
             </Badge>
-          </div>
-        )}
+          )}
+        </InlineStack>
+        <Text as="p" variant="bodySm" tone="subdued">
+          {isLocked ? "Upgrade to Pro to unlock AI visual generation" : description}
+        </Text>
       </BlockStack>
     </div>
   );
@@ -431,6 +477,8 @@ export function MissionArchitect({
   isRunning = false,
   planTier = "Basic",
 }: MissionArchitectProps) {
+  const isPro = String(planTier || "").trim().toLowerCase() === "pro";
+
   // ── Wizard state ────────────────────────────────────────────────────────
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
   const [selectedMissionKey, setSelectedMissionKey] = useState<string>("");
@@ -603,8 +651,9 @@ export function MissionArchitect({
                   icon={p.icon}
                   label={p.label}
                   description={p.description}
-                  stepCount={p.steps.length}
                   onClick={() => handleMissionSelect(key)}
+                  proOnly={p.proOnly}
+                  isProUser={isPro}
                 />
               ))}
 
@@ -794,7 +843,9 @@ export function MissionArchitect({
                 Add Agents
                 </Text>
                 <InlineStack gap="300" wrap>
-                  {AVAILABLE_AGENTS.map((agent) => (
+                  {AVAILABLE_AGENTS
+                    .filter((agent) => !["ImageRefinementAgent", "VisualMarketingAgent"].includes(agent.name) || isPro)
+                    .map((agent) => (
                     <div key={agent.name} style={{ minWidth: "160px" }}>
                       <Button
                         onClick={() => addAgent(agent.name)}

@@ -22,6 +22,7 @@ import {
 import { useState, useMemo, useCallback } from "react";
 import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
 import { templateOutputToHtml, stripHtml } from "../utils/templateHtmlParser";
+import { ImageCarousel, type CarouselSlide } from "./VisualStepCard";
 
 interface MissionState {
   product_id: string;
@@ -69,6 +70,13 @@ interface MissionState {
   agent_outputs?: Record<string, Record<string, unknown>>;
   workflow_config?: Array<{ agent_name: string; has_gate: boolean; template_id?: string }>;
   workflow_agents?: string[];
+  // Visual agent fields (Pro tier)
+  visual_assets?: {
+    refined_url?: string | null;
+    ad_url?: string | null;
+    hero_url?: string | null;
+    original_image_url?: string | null;
+  } | null;
 }
 
 interface MissionSummaryProps {
@@ -164,6 +172,21 @@ function getCompletedActions(state: MissionState): Array<{
     });
   }
   
+  // Visual assets
+  if (state.visual_assets?.refined_url) {
+    const assetCount = [
+      state.visual_assets.refined_url,
+      state.visual_assets.ad_url,
+      state.visual_assets.hero_url,
+    ].filter(Boolean).length;
+    actions.push({
+      icon: EditIcon,
+      title: "Visual Assets Generated",
+      description: `${assetCount} AI-generated image${assetCount > 1 ? "s" : ""} (refined product added to Shopify)`,
+      success: true,
+    });
+  }
+
   // Pricing actions
   if (state.pricing_analysis) {
     const { recommended_price, price_position, confidence, competitors } = state.pricing_analysis;
@@ -469,6 +492,81 @@ export function MissionSummary({
                   />
                 ))}
               </BlockStack>
+            </BlockStack>
+          </>
+        )}
+
+        {/* Visual Assets Gallery */}
+        {state.visual_assets && (state.visual_assets.refined_url || state.visual_assets.ad_url || state.visual_assets.hero_url) && (
+          <>
+            <Divider />
+            <BlockStack gap="300">
+              <Text variant="headingSm" as="h3">Generated Visual Assets</Text>
+              <Text variant="bodySm" tone="subdued">
+                The refined product image has been added to your Shopify product gallery.
+                Marketing ad and hero banner are saved in your Media Library.
+              </Text>
+
+              {/* Reuse the ImageCarousel from VisualStepCard */}
+              {(() => {
+                const slides: CarouselSlide[] = [];
+                if (state.visual_assets!.refined_url) {
+                  slides.push({
+                    url: state.visual_assets!.refined_url!,
+                    label: "Refined Product",
+                    sublabel: "Added to product gallery",
+                    aspectRatio: "1 / 1",
+                  });
+                }
+                if (state.visual_assets!.ad_url) {
+                  slides.push({
+                    url: state.visual_assets!.ad_url!,
+                    label: "Marketing Ad",
+                    sublabel: "Saved to Media Library",
+                    aspectRatio: "1 / 1",
+                  });
+                }
+                if (state.visual_assets!.hero_url) {
+                  slides.push({
+                    url: state.visual_assets!.hero_url!,
+                    label: "Hero Banner",
+                    sublabel: "Saved to Media Library",
+                    aspectRatio: "16 / 9",
+                  });
+                }
+                return slides.length > 0 ? <ImageCarousel slides={slides} /> : null;
+              })()}
+
+              {/* Download buttons */}
+              <InlineStack gap="200" align="start">
+                {state.visual_assets!.refined_url && (
+                  <Button
+                    size="slim"
+                    url={state.visual_assets!.refined_url!}
+                    external
+                  >
+                    ⬇ Refined Image
+                  </Button>
+                )}
+                {state.visual_assets!.ad_url && (
+                  <Button
+                    size="slim"
+                    url={state.visual_assets!.ad_url!}
+                    external
+                  >
+                    ⬇ Marketing Ad
+                  </Button>
+                )}
+                {state.visual_assets!.hero_url && (
+                  <Button
+                    size="slim"
+                    url={state.visual_assets!.hero_url!}
+                    external
+                  >
+                    ⬇ Hero Banner
+                  </Button>
+                )}
+              </InlineStack>
             </BlockStack>
           </>
         )}

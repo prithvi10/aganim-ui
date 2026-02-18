@@ -12,7 +12,7 @@ import {
   Box,
   Icon,
 } from '@shopify/polaris';
-import { EditIcon, NoteIcon } from '@shopify/polaris-icons';
+import { EditIcon, NoteIcon, ImageIcon } from '@shopify/polaris-icons';
 import { useCallback, useMemo } from 'react';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
 import '../styles/optimize-button.css';
@@ -71,7 +71,7 @@ export default function WritingStudio() {
         <Layout.Section>
           <BlockStack gap="500">
             {/* Quick Navigation: Rewriter vs Templates */}
-            <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
+            <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
               {/* Product Rewriter Card */}
               <Card>
                 <Box padding="500">
@@ -92,6 +92,35 @@ export default function WritingStudio() {
                         <Button
                           variant="primary"
                           onClick={() => navigate(nav('/app/rewriter'))}
+                        >
+                          Open
+                        </Button>
+                      </div>
+                    </div>
+                  </BlockStack>
+                </Box>
+              </Card>
+
+              {/* Product Image Refinement Card */}
+              <Card>
+                <Box padding="500">
+                  <BlockStack gap="400">
+                    <InlineStack gap="200" blockAlign="center">
+                      <div style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Icon source={ImageIcon} tone="base" />
+                      </div>
+                      <Text as="h2" variant="headingLg">
+                        Image Refinement
+                      </Text>
+                    </InlineStack>
+                    <Text as="p" tone="subdued" variant="bodyMd">
+                      AI-powered product photo refinement. Clean backgrounds, generate marketing ads, and hero banners from any product image.
+                    </Text>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div className="feature-btn-glow-1">
+                        <Button
+                          variant="primary"
+                          onClick={() => navigate(nav('/app/writing-studio/image-refinement'))}
                         >
                           Open
                         </Button>
