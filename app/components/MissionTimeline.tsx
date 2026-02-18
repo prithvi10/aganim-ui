@@ -113,6 +113,8 @@ interface MissionTimelineProps {
   onStepRegenerate?: (feedback: string) => void;
   /** Callback when merchant wants to skip current agent */
   onStepSkip?: () => void;
+  /** External social hooks (used as fallback when mission state has no hooks, e.g. Digital Marketing page) */
+  externalSocialHooks?: Array<{ type: string; caption: string; hashtags?: string[] }>;
 }
 
 // Map agent class names to display names
@@ -187,6 +189,7 @@ export function MissionTimeline({
   onStepApprove,
   onStepRegenerate,
   onStepSkip,
+  externalSocialHooks,
 }: MissionTimelineProps) {
   const [missionState, setMissionState] = useState<MissionState | null>(null);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
@@ -818,12 +821,6 @@ export function MissionTimeline({
                     "VisualMarketing", "VisualMarketingAgent", "Visual Marketing",
                   ].includes(agent.name);
 
-                  // In compact mode, skip rendering AgentCard for visual agents
-                  // entirely — the parent page handles its own loading UI.
-                  if (compact && isVisual) {
-                    return null;
-                  }
-
                   return (
                     <AgentCard
                       key={agent.name}
@@ -871,7 +868,7 @@ export function MissionTimeline({
                           <Text as="h3" variant="headingMd">📱 Instagram Preview</Text>
                           <InstaPreview
                             imageUrl={va.ad_url}
-                            caption={missionState?.social_hooks?.[0]?.caption || ""}
+                            caption={missionState?.social_hooks?.[0]?.caption || externalSocialHooks?.[0]?.caption || ""}
                             brandName={missionState?.shop_id?.replace(".myshopify.com", "") || ""}
                           />
                         </BlockStack>
