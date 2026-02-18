@@ -12,7 +12,7 @@ import {
   Box,
   Icon,
 } from '@shopify/polaris';
-import { SocialAdIcon, TemplateIcon } from '@shopify/polaris-icons';
+import { SocialAdIcon, ThemeTemplateIcon } from '@shopify/polaris-icons';
 import { useCallback, useMemo } from 'react';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
 import '../styles/optimize-button.css';
@@ -106,7 +106,7 @@ export default function MarketingHub() {
                   <BlockStack gap="400">
                     <InlineStack gap="200" blockAlign="center">
                       <div style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Icon source={TemplateIcon} tone="base" />
+                        <Icon source={ThemeTemplateIcon} tone="base" />
                       </div>
                       <Text as="h2" variant="headingLg">
                         Marketing Templates

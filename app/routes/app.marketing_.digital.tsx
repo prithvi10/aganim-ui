@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { useLoaderData, useSearchParams, useFetcher, useNavigate } from 'react-router';
 import {
+  Badge,
   Banner,
   BlockStack,
   Box,
@@ -659,41 +660,47 @@ export default function DigitalMarketing() {
     if (planName === 'Pro' && selectedProduct?.id && selectedProduct?.images?.[0]?.url) {
       try {
         setVisualMissionRunning(true);
+        const hookText =
+          socialSettled.status === 'fulfilled'
+            ? (socialSettled.value?.data?.metadata?.hooks?.[0]?.overlay
+               || socialSettled.value?.data?.metadata?.hooks?.[0]?.caption
+               || '')
+            : '';
         const missionResp = await fetch(
           `${backendApiUrl}/api/missions?shop=${encodeURIComponent(shop)}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
             body: JSON.stringify({
-              product_id: selectedProduct.id,
-              product_data: {
-                title: selectedProduct.title,
-                image_url: selectedProduct.images[0].url,
-                image_src: selectedProduct.images[0].url,
-                product_name: selectedProduct.title,
-                brand_name: shop.replace('.myshopify.com', ''),
-                hook_text:
-                  socialSettled.status === 'fulfilled'
-                    ? (socialSettled.value?.data?.metadata?.hooks?.[0]?.caption ?? '')
-                    : '',
-              },
-              plan_tier: 'Pro',
+              product_id: productIdFromGid(selectedProduct.id),
+              product_name: selectedProduct.title,
+              japanese_description: selectedProduct.descriptionHtml || selectedProduct.title,
+              category: selectedProduct.productType || 'General',
+              image_url: selectedProduct.images[0].url,
               workflow_config: [{ agent_name: 'VisualMarketingAgent', has_gate: false }],
+              extra_context: {
+                brand_name: shop.replace('.myshopify.com', ''),
+                hook_text: hookText,
+                image_src: selectedProduct.images[0].url,
+              },
             }),
           },
         );
         if (missionResp.ok) {
           const mData = await missionResp.json();
           setVisualMissionId(mData.mission_id || null);
+        } else {
+          setVisualMissionRunning(false);
         }
       } catch {
-        // best-effort
+        setVisualMissionRunning(false);
       }
     }
   }, [
     callAgent,
     saveHooksFetcher,
     selectedProduct?.id,
+    selectedProduct?.descriptionHtml,
     selectedProduct?.productType,
     selectedProduct?.tags,
     selectedProduct?.title,
@@ -917,17 +924,23 @@ export default function DigitalMarketing() {
               </Box>
             </Card>
 
-            {/* Visual Marketing Assets (Pro) */}
-            {visualMissionId && (
-              <Card>
-                <Box padding="400">
-                  <BlockStack gap="300">
+            {/* Visual Marketing Assets */}
+            <Card>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
                     <Text as="h2" variant="headingLg">
                       Visual Marketing Assets
                     </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      AI-generated marketing ad and hero banner for your product
-                    </Text>
+                    {planName !== 'Pro' && (
+                      <Badge tone="info">Pro</Badge>
+                    )}
+                  </InlineStack>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    AI-generated marketing ad and hero banner for your product
+                  </Text>
+
+                  {visualMissionId ? (
                     <MissionTimeline
                       missionId={visualMissionId}
                       apiBaseUrl={backendApiUrl}
@@ -937,11 +950,42 @@ export default function DigitalMarketing() {
                       initialAgents={['VisualMarketingAgent']}
                       onComplete={() => setVisualMissionRunning(false)}
                       onError={() => setVisualMissionRunning(false)}
+                      externalSocialHooks={hooks}
                     />
-                  </BlockStack>
-                </Box>
-              </Card>
-            )}
+                  ) : (
+                    <BlockStack gap="200">
+                      <InlineStack gap="300" blockAlign="center">
+                        <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f6f6f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="24" height="24" viewBox="0 0 20 20" fill="#8c9196"><path d="M2 4a1 1 0 011-1h14a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V4zm2 1v8.586l2.293-2.293a1 1 0 011.32-.083l.094.083 3.293 3.293 2.293-2.293a1 1 0 011.32-.083l.094.083L17 14.586V5H4z" /></svg>
+                        </div>
+                        <BlockStack gap="050">
+                          <Text as="p" variant="bodySm" fontWeight="semibold">Ad Banner (1:1)</Text>
+                          <Text as="p" variant="bodySm" tone="subdued">Ideogram v3 typography ad</Text>
+                        </BlockStack>
+                      </InlineStack>
+                      <InlineStack gap="300" blockAlign="center">
+                        <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f6f6f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="24" height="24" viewBox="0 0 20 20" fill="#8c9196"><path d="M1 4.5A2.5 2.5 0 013.5 2h13A2.5 2.5 0 0119 4.5v11a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 011 15.5v-11zM3.5 4a.5.5 0 00-.5.5v11a.5.5 0 00.5.5h13a.5.5 0 00.5-.5v-11a.5.5 0 00-.5-.5h-13z" /></svg>
+                        </div>
+                        <BlockStack gap="050">
+                          <Text as="p" variant="bodySm" fontWeight="semibold">Hero Banner (16:9)</Text>
+                          <Text as="p" variant="bodySm" tone="subdued">SD 3.5 outpainted banner</Text>
+                        </BlockStack>
+                      </InlineStack>
+                      {planName === 'Pro' ? (
+                        <Banner tone="info">
+                          Click <strong>Generate</strong> above to create social hooks, ad banner, and hero image in one step.
+                        </Banner>
+                      ) : (
+                        <Banner tone="warning">
+                          Visual asset generation requires the Pro plan. Social hooks and captions are available on all plans.
+                        </Banner>
+                      )}
+                    </BlockStack>
+                  )}
+                </BlockStack>
+              </Box>
+            </Card>
 
             {/* Retail Campaign Card */}
             <RetailCampaignCard

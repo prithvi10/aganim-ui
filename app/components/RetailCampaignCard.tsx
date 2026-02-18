@@ -1,14 +1,12 @@
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import {
   Badge,
-  Banner,
   BlockStack,
   Box,
   Button,
   Card,
   Divider,
   InlineStack,
-  ProgressBar,
   SkeletonBodyText,
   Text,
   Tooltip,
@@ -122,13 +120,6 @@ export function RetailCampaignCard({
     }
   }, [activeIndex]);
 
-  const progressPercent = useMemo(() => {
-    if (!nextHoliday || nextHoliday.days_until <= 0) return 100;
-    const maxWindow = 42;
-    const elapsed = maxWindow - Math.min(nextHoliday.days_until, maxWindow);
-    return Math.round((elapsed / maxWindow) * 100);
-  }, [nextHoliday]);
-
   return (
     <Card>
       <Box padding="400">
@@ -164,34 +155,6 @@ export function RetailCampaignCard({
                 />
               ))}
             </div>
-          )}
-
-          <Divider />
-
-          {/* Section 2: Progress Bar + Next Holiday */}
-          {nextHoliday ? (
-            <BlockStack gap="200">
-              <ProgressBar progress={progressPercent} tone="primary" size="small" />
-              <InlineStack align="space-between" blockAlign="center">
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {nextHoliday.days_until} days to {nextHoliday.name}
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {formatDate(nextHoliday.date)}
-                </Text>
-              </InlineStack>
-              {nextHoliday.retail_context && (
-                <Banner tone="info">
-                  <Text as="p" variant="bodySm">
-                    {nextHoliday.retail_context}
-                  </Text>
-                </Banner>
-              )}
-            </BlockStack>
-          ) : (
-            <Banner tone="info">
-              No upcoming holiday within 6 weeks.
-            </Banner>
           )}
 
           <Divider />
