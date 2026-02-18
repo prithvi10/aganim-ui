@@ -937,7 +937,7 @@ export default function DigitalMarketing() {
                     )}
                   </InlineStack>
                   <Text as="p" variant="bodySm" tone="subdued">
-                    AI-generated marketing ad and hero banner for your product
+                    AI-generated marketing ad for your product
                   </Text>
 
                   {visualMissionId ? (
@@ -963,18 +963,9 @@ export default function DigitalMarketing() {
                           <Text as="p" variant="bodySm" tone="subdued">Ideogram v3 typography ad</Text>
                         </BlockStack>
                       </InlineStack>
-                      <InlineStack gap="300" blockAlign="center">
-                        <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f6f6f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="24" height="24" viewBox="0 0 20 20" fill="#8c9196"><path d="M1 4.5A2.5 2.5 0 013.5 2h13A2.5 2.5 0 0119 4.5v11a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 011 15.5v-11zM3.5 4a.5.5 0 00-.5.5v11a.5.5 0 00.5.5h13a.5.5 0 00.5-.5v-11a.5.5 0 00-.5-.5h-13z" /></svg>
-                        </div>
-                        <BlockStack gap="050">
-                          <Text as="p" variant="bodySm" fontWeight="semibold">Hero Banner (16:9)</Text>
-                          <Text as="p" variant="bodySm" tone="subdued">SD 3.5 outpainted banner</Text>
-                        </BlockStack>
-                      </InlineStack>
                       {planName === 'Pro' ? (
                         <Banner tone="info">
-                          Click <strong>Generate</strong> above to create social hooks, ad banner, and hero image in one step.
+                          Click <strong>Generate</strong> above to create social hooks and ad banner in one step.
                         </Banner>
                       ) : (
                         <Banner tone="warning">

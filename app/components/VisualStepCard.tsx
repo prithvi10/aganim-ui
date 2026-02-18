@@ -4,7 +4,6 @@ import { Card, Box, Text, BlockStack, InlineStack, Badge, ProgressBar } from "@s
 interface VisualAssets {
   refined_url?: string | null;
   ad_url?: string | null;
-  hero_url?: string | null;
   original_image_url?: string | null;
 }
 
@@ -234,14 +233,6 @@ export function VisualStepCard({ progress, assets, isComplete }: VisualStepCardP
       label: "Marketing Ad",
       sublabel: "Ready-to-post social creative",
       aspectRatio: "1 / 1",
-    });
-  }
-  if (assets?.hero_url) {
-    slides.push({
-      url: assets.hero_url,
-      label: "Hero Banner",
-      sublabel: "16:9 banner for collections & blogs",
-      aspectRatio: "16 / 9",
     });
   }
 

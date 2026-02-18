@@ -183,6 +183,12 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
     description: "Search ad copy for Google",
     agentName: "MarketingAgent",
   },
+  "visual/content-hero": {
+    displayName: "Content Hero Image",
+    icon: "🖼️",
+    description: "Generate hero banner for blog or collection",
+    agentName: "ContentHeroAgent",
+  },
 };
 
 // ─── Helper: Get display info for a workflow step ───────────────────────────

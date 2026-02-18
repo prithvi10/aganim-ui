@@ -74,7 +74,6 @@ interface MissionState {
   visual_assets?: {
     refined_url?: string | null;
     ad_url?: string | null;
-    hero_url?: string | null;
     original_image_url?: string | null;
   } | null;
 }
@@ -177,7 +176,6 @@ function getCompletedActions(state: MissionState): Array<{
     const assetCount = [
       state.visual_assets.refined_url,
       state.visual_assets.ad_url,
-      state.visual_assets.hero_url,
     ].filter(Boolean).length;
     actions.push({
       icon: EditIcon,
@@ -497,7 +495,7 @@ export function MissionSummary({
         )}
 
         {/* Visual Assets Gallery */}
-        {state.visual_assets && (state.visual_assets.refined_url || state.visual_assets.ad_url || state.visual_assets.hero_url) && (
+        {state.visual_assets && (state.visual_assets.refined_url || state.visual_assets.ad_url) && (
           <>
             <Divider />
             <BlockStack gap="300">
@@ -526,14 +524,6 @@ export function MissionSummary({
                     aspectRatio: "1 / 1",
                   });
                 }
-                if (state.visual_assets!.hero_url) {
-                  slides.push({
-                    url: state.visual_assets!.hero_url!,
-                    label: "Hero Banner",
-                    sublabel: "Saved to Media Library",
-                    aspectRatio: "16 / 9",
-                  });
-                }
                 return slides.length > 0 ? <ImageCarousel slides={slides} /> : null;
               })()}
 
@@ -555,15 +545,6 @@ export function MissionSummary({
                     external
                   >
                     ⬇ Marketing Ad
-                  </Button>
-                )}
-                {state.visual_assets!.hero_url && (
-                  <Button
-                    size="slim"
-                    url={state.visual_assets!.hero_url!}
-                    external
-                  >
-                    ⬇ Hero Banner
                   </Button>
                 )}
               </InlineStack>

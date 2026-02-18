@@ -505,6 +505,13 @@ const PRODUCT_WIRED_TEMPLATES = new Set([
   'product/landing-hero',
 ]);
 
+/** Templates eligible for hero banner generation */
+const HERO_ELIGIBLE_TEMPLATES = new Set([
+  'product/blog-post',
+  'product/collection',
+  'product/landing-hero',
+]);
+
 function ContentTemplateCard({
   template,
   selectedProduct,
@@ -526,6 +533,7 @@ function ContentTemplateCard({
   const [resultOpen, setResultOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const editableHtmlRef = useRef<string>('');
 
   // Blog post has its own fields
@@ -548,6 +556,7 @@ function ContentTemplateCard({
     setLoading(true);
     setError(null);
     setResult(null);
+    setHeroUrl(null);
     editableHtmlRef.current = '';
 
     try {
@@ -565,11 +574,14 @@ function ContentTemplateCard({
         body.products = selectedProduct?.title || '';
         if (selectedProduct?.id) body.product_id = selectedProduct.id;
       } else {
-        // FAQ & Landing Hero — auto-fill from product
         body.title = selectedProduct?.title || '';
         body.category = selectedProduct?.productType || 'General';
         body.description = plainDesc;
         if (selectedProduct?.id) body.product_id = selectedProduct.id;
+      }
+
+      if (selectedProduct?.images?.[0]?.url && HERO_ELIGIBLE_TEMPLATES.has(template.id)) {
+        body.image_url = selectedProduct.images[0].url;
       }
 
       const resp = await fetch(
@@ -592,6 +604,7 @@ function ContentTemplateCard({
             : data.content || data.description || '';
         setResult(raw);
         setResultOpen(true);
+        setHeroUrl(data.hero_url || null);
         onToast(`${template.name} generated successfully!`);
       } else {
         setError(data.detail || data.error || 'Generation failed');
@@ -769,6 +782,19 @@ function ContentTemplateCard({
                 />
               </Collapsible>
             </BlockStack>
+          )}
+
+          {heroUrl && (
+            <Card>
+              <Box padding="300">
+                <BlockStack gap="200">
+                  <Text as="h3" variant="headingSm">Hero Banner</Text>
+                  <div style={{ borderRadius: 8, overflow: 'hidden' }}>
+                    <img src={heroUrl} alt="Hero banner" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }} />
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
           )}
         </BlockStack>
       </Box>

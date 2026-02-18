@@ -52,6 +52,12 @@ interface MissionState {
   // Visual agent fields (Pro tier)
   visual_assets?: VisualAssets | null;
   visual_progress?: VisualProgress | null;
+  // Content hero agent fields (blog/collection hero banners)
+  content_hero_assets?: {
+    hero_url?: string;
+    content_type?: string;
+    theme_context?: string;
+  } | null;
   // Ad-hoc mode fields
   is_adhoc?: boolean;
   requested_agents?: string[];
@@ -137,6 +143,8 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
   "Visual": "Visual",
   "ImageRefinement": "Image Refinement",
   "VisualMarketing": "Visual Marketing",
+  "ContentHeroAgent": "Content Hero",
+  "ContentHero": "Content Hero",
   "Compliance": "Compliance",
 };
 
@@ -819,6 +827,7 @@ export function MissionTimeline({
                     "Visual", "VisualAgent",
                     "ImageRefinement", "ImageRefinementAgent", "Image Refinement",
                     "VisualMarketing", "VisualMarketingAgent", "Visual Marketing",
+                    "ContentHeroAgent", "ContentHero", "Content Hero",
                   ].includes(agent.name);
 
                   return (
@@ -858,7 +867,6 @@ export function MissionTimeline({
                   const slides: CarouselSlide[] = [];
                   if (va.refined_url) slides.push({ url: va.refined_url, label: "Refined Product", sublabel: "AI-enhanced product image", aspectRatio: "1 / 1" });
                   if (va.ad_url) slides.push({ url: va.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" });
-                  if (va.hero_url) slides.push({ url: va.hero_url, label: "Hero Banner", sublabel: "16:9 banner for collections & blogs", aspectRatio: "16 / 9" });
                   if (slides.length === 0) return null;
                   return (
                     <BlockStack gap="300">
@@ -876,6 +884,19 @@ export function MissionTimeline({
                     </BlockStack>
                   );
                 })()}
+
+                {/* Content hero banner */}
+                {missionState?.content_hero_assets?.hero_url && (
+                  <BlockStack gap="200">
+                    <Text as="h3" variant="headingMd">🖼️ Content Hero Banner</Text>
+                    <ImageCarousel slides={[{
+                      url: missionState.content_hero_assets.hero_url,
+                      label: "Hero Banner",
+                      sublabel: `${missionState.content_hero_assets.content_type || "Content"} hero image`,
+                      aspectRatio: "16 / 9",
+                    }]} />
+                  </BlockStack>
+                )}
               </BlockStack>
             )}
 
@@ -911,7 +932,7 @@ export function MissionTimeline({
                 {stepCompleteData && missionState.status === "AWAITING_APPROVAL" && (
                   <div className="missionArchitectPulse">
                   {/* Visual Agent: single card with carousel + InstaPreview inside, buttons at bottom */}
-                  {["VisualAgent", "Visual", "ImageRefinementAgent", "ImageRefinement", "VisualMarketingAgent", "VisualMarketing"].includes(stepCompleteData.current_agent) ? (
+                  {["VisualAgent", "Visual", "ImageRefinementAgent", "ImageRefinement", "VisualMarketingAgent", "VisualMarketing", "ContentHeroAgent", "ContentHero"].includes(stepCompleteData.current_agent) ? (
                     <StepApproval
                       agentName={stepCompleteData.current_agent}
                       stepIndex={stepCompleteData.current_agent_index}
@@ -936,9 +957,6 @@ export function MissionTimeline({
                           if (missionState.visual_assets?.ad_url) {
                             slides.push({ url: missionState.visual_assets.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" });
                           }
-                          if (missionState.visual_assets?.hero_url) {
-                            slides.push({ url: missionState.visual_assets.hero_url, label: "Hero Banner", sublabel: "16:9 banner for collections & blogs", aspectRatio: "16 / 9" });
-                          }
                           return slides.length > 0 ? <ImageCarousel slides={slides} /> : null;
                         })()}
 
@@ -958,6 +976,19 @@ export function MissionTimeline({
                                 missionState.shop_id?.replace(".myshopify.com", "") || ""
                               }
                             />
+                          </BlockStack>
+                        )}
+
+                        {/* Content hero banner */}
+                        {missionState.content_hero_assets?.hero_url && (
+                          <BlockStack gap="200">
+                            <Text as="h3" variant="headingMd">🖼️ Content Hero Banner</Text>
+                            <ImageCarousel slides={[{
+                              url: missionState.content_hero_assets.hero_url,
+                              label: "Hero Banner",
+                              sublabel: `${missionState.content_hero_assets.content_type || "Content"} hero image`,
+                              aspectRatio: "16 / 9",
+                            }]} />
                           </BlockStack>
                         )}
                       </BlockStack>
@@ -991,6 +1022,7 @@ export function MissionTimeline({
                     {/* Show VisualStepCard when a visual agent is running */}
                     {["VisualAgent", "Visual", "ImageRefinementAgent", "ImageRefinement", "Image Refinement",
                       "VisualMarketingAgent", "VisualMarketing", "Visual Marketing",
+                      "ContentHeroAgent", "ContentHero", "Content Hero",
                     ].includes((missionState.workflow_agents || [])[missionState.current_agent_index || 0] || "") ? (
                       <VisualStepCard
                         progress={missionState.visual_progress}
