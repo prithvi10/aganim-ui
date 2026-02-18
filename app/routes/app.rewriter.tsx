@@ -83,6 +83,7 @@ type LoaderData = {
     title: string;
     descriptionHtml: string;
     productType: string;
+    featuredImageUrl: string;
     seo?: {title?: string | null; description?: string | null} | null;
     culturalContext?: {id?: string | null; value?: string | null} | null;
     descHashMeta?: {id?: string | null; value?: string | null} | null;
@@ -302,6 +303,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               title
               descriptionHtml
               productType
+              featuredImage { url }
               seo { title description }
               culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { id value }
               descHashMeta: metafield(namespace: "crossborderagent", key: "desc_hash") { id value }
@@ -316,6 +318,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
               title
               descriptionHtml
               productType
+              featuredImage { url }
               seo { title description }
               culturalContext: metafield(namespace: "crossborderagent", key: "cultural_context") { id value }
               descHashMeta: metafield(namespace: "crossborderagent", key: "desc_hash") { id value }
@@ -326,7 +329,10 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
         )
     : null;
 
-  let selectedProduct = selectedProductRes?.data?.product ?? null;
+  const rawProduct = selectedProductRes?.data?.product ?? null;
+  let selectedProduct: LoaderData['selectedProduct'] = rawProduct
+    ? { ...rawProduct, featuredImageUrl: rawProduct.featuredImage?.url ?? '' }
+    : null;
 
   const currentContentHash = selectedProduct?.descriptionHtml
     ? descriptionHash(String(selectedProduct.descriptionHtml ?? ''))
@@ -2433,6 +2439,7 @@ function RewriterWorkspaceInner({
                     </Button>
                   </saveFetcher.Form>
                 </Box>
+
               </BlockStack>
             </Box>
           </Card>

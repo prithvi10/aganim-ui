@@ -86,6 +86,8 @@ interface StepApprovalProps {
   supportsFeedback?: boolean;
   /** Ordered list of agent class names in the actual workflow */
   workflowAgents?: string[];
+  /** Custom content rendered between header and action buttons (replaces output preview) */
+  children?: React.ReactNode;
 }
 
 function getAgentDisplayName(agentName: string): string {
@@ -386,6 +388,7 @@ export function StepApproval({
   onOutputChange,
   supportsFeedback = false,
   workflowAgents,
+  children,
 }: StepApprovalProps) {
   const [showFullOutput, setShowFullOutput] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -851,6 +854,11 @@ export function StepApproval({
             )}
           </BlockStack>
         );
+
+      case "VisualAgent":
+      case "Visual":
+        // Visual output is shown in the VisualStepCard carousel, not here
+        return null;
         
       default:
         return (
@@ -890,8 +898,16 @@ export function StepApproval({
             </Banner>
           )}
           
-          {/* Output Preview (when awaiting approval) */}
-          {status === "awaiting_approval" && output && (
+          {/* Custom content (e.g. Visual agent carousel + InstaPreview) */}
+          {status === "awaiting_approval" && children && (
+            <>
+              <Divider />
+              {children}
+            </>
+          )}
+
+          {/* Output Preview (when awaiting approval, and no custom children) */}
+          {status === "awaiting_approval" && !children && output && (
             <>
               <Divider />
               <Box background="bg-surface-secondary" padding="300" borderRadius="200">
