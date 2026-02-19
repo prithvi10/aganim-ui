@@ -6,7 +6,7 @@ import { StepApproval, type AgentOutput } from "./StepApproval";
 import { RegenerateFeedbackModal } from "./RegenerateFeedbackModal";
 import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
 import { VisualStepCard, ImageCarousel, type VisualAssets, type VisualProgress, type CarouselSlide } from "./VisualStepCard";
-import { InstaPreview } from "./InstaPreview";
+
 
 interface MissionState {
   product_id: string;
@@ -868,21 +868,7 @@ export function MissionTimeline({
                   if (va.refined_url) slides.push({ url: va.refined_url, label: "Refined Product", sublabel: "AI-enhanced product image", aspectRatio: "1 / 1" });
                   if (va.ad_url) slides.push({ url: va.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" });
                   if (slides.length === 0) return null;
-                  return (
-                    <BlockStack gap="300">
-                      <ImageCarousel slides={slides} />
-                      {va.ad_url && (
-                        <BlockStack gap="200">
-                          <Text as="h3" variant="headingMd">📱 Instagram Preview</Text>
-                          <InstaPreview
-                            imageUrl={va.ad_url}
-                            caption={missionState?.social_hooks?.[0]?.caption || externalSocialHooks?.[0]?.caption || ""}
-                            brandName={missionState?.shop_id?.replace(".myshopify.com", "") || ""}
-                          />
-                        </BlockStack>
-                      )}
-                    </BlockStack>
-                  );
+                  return <ImageCarousel slides={slides} />;
                 })()}
 
                 {/* Content hero banner */}
@@ -959,25 +945,6 @@ export function MissionTimeline({
                           }
                           return slides.length > 0 ? <ImageCarousel slides={slides} /> : null;
                         })()}
-
-                        {/* InstaPreview for the ad asset */}
-                        {missionState.visual_assets?.ad_url && (
-                          <BlockStack gap="200">
-                            <Text as="h3" variant="headingMd">
-                              📱 Instagram Preview
-                            </Text>
-                            <InstaPreview
-                              imageUrl={missionState.visual_assets.ad_url}
-                              caption={
-                                missionState.social_hooks?.[0]?.caption || ""
-                              }
-                              brandName={
-                                (missionState as Record<string, unknown>).brand_name as string ||
-                                missionState.shop_id?.replace(".myshopify.com", "") || ""
-                              }
-                            />
-                          </BlockStack>
-                        )}
 
                         {/* Content hero banner */}
                         {missionState.content_hero_assets?.hero_url && (

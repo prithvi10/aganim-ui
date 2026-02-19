@@ -10,6 +10,8 @@ interface InstaPreviewProps {
   brandName?: string;
   /** Brand avatar URL (optional, falls back to initials) */
   avatarUrl?: string;
+  /** Product name to display below the preview */
+  productName?: string;
 }
 
 function HeartIcon() {
@@ -45,7 +47,7 @@ function BookmarkIcon() {
   );
 }
 
-export function InstaPreview({ imageUrl, caption, brandName, avatarUrl }: InstaPreviewProps) {
+export function InstaPreview({ imageUrl, caption, brandName, avatarUrl, productName }: InstaPreviewProps) {
   const [copied, setCopied] = useState(false);
   const displayName = brandName || "your_brand";
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -162,10 +164,11 @@ export function InstaPreview({ imageUrl, caption, brandName, avatarUrl }: InstaP
       </div>
 
       {/* Caption */}
-      {caption && (
+      {(caption || productName) && (
         <div style={{ padding: "0 14px 10px", fontSize: "13px", color: "#262626", lineHeight: 1.4 }}>
           <span style={{ fontWeight: 600 }}>{displayName}</span>{" "}
-          {caption.length > 140 ? `${caption.slice(0, 140)}...` : caption}
+          {productName && !caption && productName}
+          {caption && (caption.length > 140 ? `${caption.slice(0, 140)}...` : caption)}
         </div>
       )}
 
