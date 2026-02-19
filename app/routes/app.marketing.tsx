@@ -12,7 +12,7 @@ import {
   Box,
   Icon,
 } from '@shopify/polaris';
-import { SocialAdIcon, ThemeTemplateIcon } from '@shopify/polaris-icons';
+import { CalendarTimeIcon, SocialAdIcon, ThemeTemplateIcon } from '@shopify/polaris-icons';
 import { useCallback, useMemo } from 'react';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
 import '../styles/optimize-button.css';
@@ -70,7 +70,7 @@ export default function MarketingHub() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
-            <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
+            <InlineGrid columns={{ xs: 1, sm: 2, lg: 3 }} gap="400">
               {/* Digital Marketing Card */}
               <Card>
                 <Box padding="500">
@@ -100,6 +100,35 @@ export default function MarketingHub() {
                 </Box>
               </Card>
 
+              {/* Retail Campaigns Card */}
+              <Card>
+                <Box padding="500">
+                  <BlockStack gap="400">
+                    <InlineStack gap="200" blockAlign="center">
+                      <div style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Icon source={CalendarTimeIcon} tone="base" />
+                      </div>
+                      <Text as="h2" variant="headingLg">
+                        Retail Campaigns
+                      </Text>
+                    </InlineStack>
+                    <Text as="p" tone="subdued" variant="bodyMd">
+                      Seasonal retail calendar, auto-generated campaign codes, and holiday-themed captions. Stay ahead of every retail moment.
+                    </Text>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div className="feature-btn-glow-2">
+                        <Button
+                          variant="primary"
+                          onClick={() => navigate(nav('/app/marketing/campaigns'))}
+                        >
+                          Open
+                        </Button>
+                      </div>
+                    </div>
+                  </BlockStack>
+                </Box>
+              </Card>
+
               {/* Marketing Templates Card */}
               <Card>
                 <Box padding="500">
@@ -109,7 +138,7 @@ export default function MarketingHub() {
                         <Icon source={ThemeTemplateIcon} tone="base" />
                       </div>
                       <Text as="h2" variant="headingLg">
-                        Marketing Templates
+                        Templates
                       </Text>
                     </InlineStack>
                     <Text as="p" tone="subdued" variant="bodyMd">

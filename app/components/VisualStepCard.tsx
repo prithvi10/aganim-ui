@@ -21,10 +21,15 @@ interface VisualStepCardProps {
 
 // Phase label and icon mapping
 const PHASE_META: Record<string, { icon: string; color: string }> = {
+  generating: { icon: "\uD83C\uDFA8", color: "#2c6ecb" },
   masking: { icon: "\u2702\uFE0F", color: "#9c6ade" },
+  splitting: { icon: "\uD83E\uDDE9", color: "#8e6fba" },
+  layout: { icon: "\uD83D\uDCCF", color: "#7c5daa" },
+  compositing: { icon: "\uD83D\uDDBC\uFE0F", color: "#6b4e9a" },
   text_removal: { icon: "\uD83D\uDDD1\uFE0F", color: "#8e44ad" },
   object_removal: { icon: "\uD83E\uDDF9", color: "#6c3483" },
   inpainting: { icon: "\uD83C\uDFA8", color: "#2c6ecb" },
+  text_overlay: { icon: "\uD83C\uDFF7\uFE0F", color: "#e67e22" },
   ad_generation: { icon: "\uD83D\uDCF8", color: "#e67e22" },
   outpainting: { icon: "\uD83D\uDDBC\uFE0F", color: "#27ae60" },
   uploading: { icon: "\u2601\uFE0F", color: "#3498db" },
@@ -217,16 +222,8 @@ export function VisualStepCard({ progress, assets, isComplete }: VisualStepCardP
   const label = progress?.label || (isComplete ? "Visual pipeline complete" : "Initializing visual pipeline...");
   const meta = PHASE_META[phase] || PHASE_META.masking;
 
-  // Build carousel slides from available assets
   const slides: CarouselSlide[] = [];
-  if (assets?.refined_url) {
-    slides.push({
-      url: assets.refined_url,
-      label: "Refined Product",
-      sublabel: "AI-enhanced product image",
-      aspectRatio: "1 / 1",
-    });
-  }
+
   if (assets?.ad_url) {
     slides.push({
       url: assets.ad_url,
@@ -280,23 +277,10 @@ export function VisualStepCard({ progress, assets, isComplete }: VisualStepCardP
             </Text>
           </InlineStack>
 
-          {/* Shimmer placeholders during generation */}
+          {/* Shimmer placeholder during generation */}
           {!isComplete && !hasAssets && (
             <div style={{ position: "relative", width: "100%", borderRadius: "10px", overflow: "hidden" }}>
               <ShimmerPlaceholder width="100%" height="300px" borderRadius="10px" />
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "14px",
-                  left: "14px",
-                  display: "flex",
-                  gap: "6px",
-                }}
-              >
-                <ShimmerPlaceholder width="18px" height="6px" borderRadius="3px" />
-                <ShimmerPlaceholder width="6px" height="6px" borderRadius="3px" />
-                <ShimmerPlaceholder width="6px" height="6px" borderRadius="3px" />
-              </div>
             </div>
           )}
 
