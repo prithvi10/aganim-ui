@@ -53,6 +53,7 @@ type SelectedProduct = {
   title: string;
   descriptionHtml: string;
   productType: string;
+  featuredImageUrl: string;
   savedMissionData: SavedMissionData | null;
 };
 
@@ -111,8 +112,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (productGid) {
     const productQuery = offlineContext
-      ? `query { product(id: "${productGid}") { id title descriptionHtml productType metafields(first: 10, namespace: "crossborder_agent") { edges { node { key value } } } } }`
-      : `query getProduct($id: ID!) { product(id: $id) { id title descriptionHtml productType metafields(first: 10, namespace: "crossborder_agent") { edges { node { key value } } } } }`;
+      ? `query { product(id: "${productGid}") { id title descriptionHtml productType featuredImage { url } metafields(first: 10, namespace: "crossborder_agent") { edges { node { key value } } } } }`
+      : `query getProduct($id: ID!) { product(id: $id) { id title descriptionHtml productType featuredImage { url } metafields(first: 10, namespace: "crossborder_agent") { edges { node { key value } } } } }`;
     
     type ProductQueryResult = {
       data?: {
@@ -121,6 +122,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           title: string;
           descriptionHtml: string;
           productType: string;
+          featuredImage?: { url: string } | null;
           metafields?: {
             edges?: Array<{ node: { key: string; value: string } }>;
           };
@@ -156,6 +158,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         title: p.title,
         descriptionHtml: p.descriptionHtml || "",
         productType: p.productType || "",
+        featuredImageUrl: p.featuredImage?.url || "",
         savedMissionData: hasSavedData ? savedMissionData : null,
       };
     }
@@ -239,6 +242,7 @@ export default function OptimizePage() {
             product_name: selectedProduct.title,
             japanese_description: selectedProduct.descriptionHtml,
             category: selectedProduct.productType || "General",
+            image_url: selectedProduct.featuredImageUrl || "",
             target_locale: "en",
             workflow_config: pipeline,
             // Extra wizard context (blog topic, collection info, etc.)
