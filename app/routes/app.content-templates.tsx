@@ -1,11 +1,13 @@
 import type {LoaderFunctionArgs} from 'react-router';
-import {useLoaderData, useSearchParams, useNavigate} from 'react-router';
+import {useLoaderData, useNavigate, useSearchParams} from 'react-router';
 import {
+  Badge,
   Banner,
   BlockStack,
   Box,
   Button,
   Card,
+  Checkbox,
   Collapsible,
   Divider,
   InlineStack,
@@ -279,10 +281,6 @@ function parsePythonDict(raw: string): Record<string, any> | null {
   return Object.keys(result).length > 0 ? result : null;
 }
 
-/**
- * Parse a Python-style list string: [{'key': 'val'}, {'key': 'val'}]
- * Uses parsePythonDict for each item.
- */
 function parsePythonList(raw: string): any[] | null {
   const s = raw.trim();
   if (!s.startsWith('[') || !s.endsWith(']')) return null;
@@ -290,7 +288,6 @@ function parsePythonList(raw: string): any[] | null {
   const inner = s.slice(1, -1).trim();
   if (!inner) return [];
 
-  // Split on top-level `}, {` boundaries (respecting nested braces)
   const items: string[] = [];
   let depth = 0;
   let current = '';
@@ -318,26 +315,21 @@ function parsePythonList(raw: string): any[] | null {
 
 // ─── JSON → HTML converter for product template output ────────────────────────
 
-function contentJsonToHtml(raw: string): string {
-  // 1. Try standard JSON (covers both objects and arrays)
+function contentJsonToHtml(raw: string, heroUrl?: string | null): string {
   let parsed: any = null;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    // 2. Try Python dict
     parsed = parsePythonDict(raw);
-    // 3. Try Python list (bare FAQ array)
     if (!parsed) {
       const arr = parsePythonList(raw);
       if (arr) {
-        // Detect FAQ-style array: items have question/answer keys
         const looksLikeFaqs = arr.length > 0 && arr[0].question && arr[0].answer;
         parsed = looksLikeFaqs ? { faqs: arr } : arr;
       }
     }
   }
 
-  // Handle JSON arrays returned by JSON.parse
   if (Array.isArray(parsed)) {
     const looksLikeFaqs = parsed.length > 0 && parsed[0]?.question && parsed[0]?.answer;
     parsed = looksLikeFaqs ? { faqs: parsed } : { items: parsed };
@@ -347,8 +339,14 @@ function contentJsonToHtml(raw: string): string {
 
   const parts: string[] = [];
 
+  // Hero image (prepend when available)
+  const heroImgHtml = heroUrl
+    ? `<div style="margin-bottom:16px;border-radius:8px;overflow:hidden"><img src="${heroUrl}" alt="Hero banner" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block" /></div>`
+    : '';
+
   // Collection description
   if (parsed.description && !parsed.faqs && !parsed.body_html) {
+    if (heroImgHtml) parts.push(heroImgHtml);
     parts.push(
       `<div style="border-left:3px solid #2c6ecb;padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:0 8px 8px 0">` +
         `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Collection Description</p>` +
@@ -365,7 +363,7 @@ function contentJsonToHtml(raw: string): string {
     );
   }
 
-  // FAQs
+  // FAQs (no hero image)
   if (Array.isArray(parsed.faqs)) {
     parts.push(
       `<p style="margin:0 0 10px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Frequently Asked Questions</p>`,
@@ -382,6 +380,7 @@ function contentJsonToHtml(raw: string): string {
 
   // Landing page hero
   if (parsed.headline && !parsed.faqs) {
+    if (heroImgHtml && parts.length === 0) parts.push(heroImgHtml);
     parts.push(
       `<div style="border-left:3px solid #2c6ecb;padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:0 8px 8px 0">` +
         `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Headline</p>` +
@@ -427,6 +426,7 @@ function contentJsonToHtml(raw: string): string {
 
   // Blog post
   if (parsed.title && parsed.body_html) {
+    if (heroImgHtml) parts.push(heroImgHtml);
     parts.push(`<h2 style="margin:0 0 8px;font-size:22px">${parsed.title}</h2>`);
     if (parsed.meta_description) {
       parts.push(
@@ -443,8 +443,9 @@ function contentJsonToHtml(raw: string): string {
     }
   }
 
-  // Fallback: render all keys as labelled sections
+  // Fallback
   if (parts.length === 0) {
+    if (heroImgHtml) parts.push(heroImgHtml);
     for (const [key, val] of Object.entries(parsed)) {
       if (val == null) continue;
       const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -465,16 +466,19 @@ function contentJsonToHtml(raw: string): string {
 
 function ContentResultDisplay({
   content,
+  heroUrl,
   onContentChange,
 }: {
   content: string;
+  heroUrl?: string | null;
   onContentChange?: (html: string) => void;
 }) {
-  const html = useMemo(() => contentJsonToHtml(content), [content]);
+  const html = useMemo(() => contentJsonToHtml(content, heroUrl), [content, heroUrl]);
   const [editableHtml, setEditableHtml] = useState(html);
 
   useEffect(() => {
     setEditableHtml(html);
+    onContentChange?.(html);
   }, [html]);
 
   const handleChange = useCallback(
@@ -496,36 +500,197 @@ function ContentResultDisplay({
   );
 }
 
-// ─── Template Card (mirrors MarketingTemplateCard pattern) ────────────────────
+// ─── Shared result + actions block ────────────────────────────────────────────
 
-/** Templates that need product selection */
-const PRODUCT_WIRED_TEMPLATES = new Set([
-  'product/collection',
-  'product/faq',
-  'product/landing-hero',
-]);
+function ResultBlock({
+  templateId,
+  templateName,
+  result,
+  heroUrl,
+  resultOpen,
+  setResultOpen,
+  isPro,
+  published,
+  publishing,
+  handlePublish,
+  handleCopy,
+  editableHtmlRef,
+}: {
+  templateId: string;
+  templateName: string;
+  result: string;
+  heroUrl: string | null;
+  resultOpen: boolean;
+  setResultOpen: (v: boolean) => void;
+  isPro: boolean;
+  published: boolean;
+  publishing: boolean;
+  handlePublish: () => void;
+  handleCopy: () => void;
+  editableHtmlRef: React.MutableRefObject<string>;
+}) {
+  return (
+    <BlockStack gap="200">
+      <InlineStack align="space-between" blockAlign="center">
+        <Button variant="plain" onClick={() => setResultOpen(!resultOpen)} textAlign="start">
+          {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
+        </Button>
+        <InlineStack gap="200">
+          {isPro && !published && (
+            <Button onClick={handlePublish} variant="primary" size="slim" loading={publishing} disabled={publishing}>
+              Publish to Shopify
+            </Button>
+          )}
+          {isPro && published && (
+            <Button variant="plain" size="slim" disabled tone="success">
+              ✓ Published
+            </Button>
+          )}
+          <Button onClick={handleCopy} variant="secondary" size="slim">
+            Copy
+          </Button>
+        </InlineStack>
+      </InlineStack>
+      <Collapsible open={resultOpen} id={`result-${templateId}`} transition={{duration: '200ms', timingFunction: 'ease-in-out'}}>
+        <ContentResultDisplay
+          content={result}
+          heroUrl={heroUrl}
+          onContentChange={(html) => { editableHtmlRef.current = html; }}
+        />
+      </Collapsible>
+    </BlockStack>
+  );
+}
 
-/** Templates eligible for hero banner generation */
-const HERO_ELIGIBLE_TEMPLATES = new Set([
-  'product/blog-post',
-  'product/collection',
-  'product/landing-hero',
-]);
+// ─── FAQ Card (with inline product selector) ──────────────────────────────────
 
-function ContentTemplateCard({
+function FaqCard({
   template,
-  selectedProduct,
+  products,
+  initialProduct,
   shop,
   backendApiUrl,
   onToast,
   planName,
 }: {
   template: ContentTemplate;
-  selectedProduct: SelectedProduct | null;
+  products: ProductListItem[];
+  initialProduct: SelectedProduct | null;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
-  planName?: string;
+  planName: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState(false);
+  const editableHtmlRef = useRef<string>('');
+  const [selectedProductId, setSelectedProductId] = useState(initialProduct?.id || products[0]?.id || '');
+
+  const productOptions = useMemo(() => products.map((p) => ({label: p.title, value: p.id})), [products]);
+  const selectedTitle = useMemo(() => products.find((p) => p.id === selectedProductId)?.title || '', [products, selectedProductId]);
+
+  const handleGenerate = useCallback(async () => {
+    if (!selectedProductId) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    editableHtmlRef.current = '';
+
+    try {
+      const body: Record<string, string> = {
+        target_locale: 'en',
+        title: selectedTitle,
+        product_id: selectedProductId,
+      };
+
+      const resp = await fetch(
+        `${backendApiUrl}/api/generate/${template.id}?shop=${encodeURIComponent(shop)}`,
+        { method: 'POST', headers: { 'X-Shopify-Shop-Domain': shop, 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      );
+      const data = await resp.json();
+      if (resp.ok && data.status === 'success') {
+        const raw = typeof data.content === 'object' ? JSON.stringify(data.content) : data.content || '';
+        setResult(raw);
+        setResultOpen(true);
+        onToast('Product FAQ generated successfully!');
+      } else {
+        setError(data.detail || data.error || 'Generation failed');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast]);
+
+  const handleCopy = useCallback(async () => {
+    const toCopy = editableHtmlRef.current || result || '';
+    if (!toCopy) return;
+    try { await navigator.clipboard.writeText(toCopy); onToast('Copied!'); } catch { onToast('Copy failed.'); }
+  }, [result, onToast]);
+
+  const handlePublish = useCallback(async () => {
+    if (!result) return;
+    setPublishing(true);
+    try {
+      const content = editableHtmlRef.current || result;
+      const resp = await fetch(`${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
+        body: JSON.stringify({ template_id: template.id, product_id: selectedProductId, content, context: { product_title: selectedTitle } }),
+      });
+      if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
+      setPublished(true);
+      onToast('Published FAQ to Shopify!');
+    } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
+  }, [result, selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast]);
+
+  const isPro = planName === 'Pro';
+
+  return (
+    <Card>
+      <Box padding="400">
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h2" variant="headingLg">Product FAQ</Text>
+            <Text as="p" variant="bodyMd" tone="subdued">Generate frequently asked questions from a product's details.</Text>
+          </BlockStack>
+          <Divider />
+          <Select label="Select Product" options={productOptions} value={selectedProductId} onChange={setSelectedProductId} />
+          <InlineStack align="end">
+            <Button onClick={handleGenerate} disabled={!selectedProductId || loading} loading={loading}>
+              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+            </Button>
+          </InlineStack>
+          {error && <Banner tone="critical">{error}</Banner>}
+          {result && (
+            <ResultBlock templateId={template.id} templateName="FAQ" result={result} heroUrl={null} resultOpen={resultOpen} setResultOpen={setResultOpen} isPro={isPro} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+          )}
+        </BlockStack>
+      </Box>
+    </Card>
+  );
+}
+
+// ─── Collection Card (multi-product + name + description) ─────────────────────
+
+function CollectionCard({
+  template,
+  products,
+  shop,
+  backendApiUrl,
+  onToast,
+  planName,
+}: {
+  template: ContentTemplate;
+  products: ProductListItem[];
+  shop: string;
+  backendApiUrl: string;
+  onToast: (msg: string) => void;
+  planName: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -536,23 +701,154 @@ function ContentTemplateCard({
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const editableHtmlRef = useRef<string>('');
 
-  // Blog post has its own fields
-  const isBlogPost = template.id === 'product/blog-post';
-  const needsProduct = PRODUCT_WIRED_TEMPLATES.has(template.id);
-  const [blogTopic, setBlogTopic] = useState('');
-  const [blogCategory, setBlogCategory] = useState('');
-  const [blogContext, setBlogContext] = useState('');
   const [collectionName, setCollectionName] = useState('');
+  const [collectionDescription, setCollectionDescription] = useState('');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
-  const plainDesc = useMemo(() => {
-    if (!selectedProduct?.descriptionHtml) return '';
-    return selectedProduct.descriptionHtml.replace(/<[^>]*>/g, '').slice(0, 500);
-  }, [selectedProduct?.descriptionHtml]);
+  const toggleProduct = useCallback((id: string) => {
+    setSelectedProductIds((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
+  }, []);
+
+  const selectedProductNames = useMemo(
+    () => selectedProductIds.map((id) => products.find((p) => p.id === id)?.title || '').filter(Boolean),
+    [selectedProductIds, products],
+  );
+
+  const canGenerate = Boolean(collectionName.trim() && collectionDescription.trim());
 
   const handleGenerate = useCallback(async () => {
-    if (needsProduct && !selectedProduct?.id) return;
-    if (isBlogPost && !blogTopic.trim()) return;
+    if (!canGenerate) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setHeroUrl(null);
+    editableHtmlRef.current = '';
 
+    try {
+      const body: Record<string, any> = {
+        target_locale: 'en',
+        collection_name: collectionName,
+        description: collectionDescription,
+        products: selectedProductNames.join(', '),
+        product_names: selectedProductNames,
+      };
+
+      const resp = await fetch(
+        `${backendApiUrl}/api/generate/${template.id}?shop=${encodeURIComponent(shop)}`,
+        { method: 'POST', headers: { 'X-Shopify-Shop-Domain': shop, 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      );
+      const data = await resp.json();
+      if (resp.ok && data.status === 'success') {
+        const raw = typeof data.content === 'object' ? JSON.stringify(data.content) : data.content || '';
+        setResult(raw);
+        setResultOpen(true);
+        setHeroUrl(data.hero_url || null);
+        onToast('Collection content generated!');
+      } else {
+        setError(data.detail || data.error || 'Generation failed');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  }, [canGenerate, collectionName, collectionDescription, selectedProductNames, template, shop, backendApiUrl, onToast]);
+
+  const handleCopy = useCallback(async () => {
+    const toCopy = editableHtmlRef.current || result || '';
+    if (!toCopy) return;
+    try { await navigator.clipboard.writeText(toCopy); onToast('Copied!'); } catch { onToast('Copy failed.'); }
+  }, [result, onToast]);
+
+  const handlePublish = useCallback(async () => {
+    if (!result) return;
+    setPublishing(true);
+    try {
+      const content = editableHtmlRef.current || result;
+      const resp = await fetch(`${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
+        body: JSON.stringify({ template_id: template.id, content, collection_name: collectionName, hero_url: heroUrl, product_ids: selectedProductIds, context: { collection_name: collectionName } }),
+      });
+      if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
+      setPublished(true);
+      onToast('Published collection to Shopify!');
+    } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
+  }, [result, collectionName, heroUrl, selectedProductIds, template, shop, backendApiUrl, onToast]);
+
+  const isPro = planName === 'Pro';
+
+  return (
+    <Card>
+      <Box padding="400">
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h2" variant="headingLg">Collection Description</Text>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              Generate collection page copy with a hero banner. Select the products in this collection below.
+            </Text>
+          </BlockStack>
+          <Divider />
+          <TextField label="Collection Name" value={collectionName} onChange={setCollectionName} placeholder="e.g. Premium Sake Collection" autoComplete="off" requiredIndicator />
+          <TextField label="Short Description" value={collectionDescription} onChange={setCollectionDescription} placeholder="A curated selection of our finest artisan sake" multiline={2} autoComplete="off" requiredIndicator />
+
+          <BlockStack gap="200">
+            <InlineStack align="space-between" blockAlign="center">
+              <Text as="span" variant="bodyMd" fontWeight="semibold">Select Products</Text>
+              <Badge>{`${selectedProductIds.length} selected`}</Badge>
+            </InlineStack>
+            <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #e1e3e5', borderRadius: 8, padding: 8 }}>
+              {products.map((p) => (
+                <Checkbox key={p.id} label={p.title} checked={selectedProductIds.includes(p.id)} onChange={() => toggleProduct(p.id)} />
+              ))}
+            </div>
+          </BlockStack>
+
+          <InlineStack align="end">
+            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
+              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+            </Button>
+          </InlineStack>
+          {error && <Banner tone="critical">{error}</Banner>}
+          {result && (
+            <ResultBlock templateId={template.id} templateName="Collection" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} isPro={isPro} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+          )}
+        </BlockStack>
+      </Box>
+    </Card>
+  );
+}
+
+// ─── Hero Section Card ────────────────────────────────────────────────────────
+
+function HeroSectionCard({
+  template,
+  shop,
+  backendApiUrl,
+  onToast,
+  planName,
+}: {
+  template: ContentTemplate;
+  shop: string;
+  backendApiUrl: string;
+  onToast: (msg: string) => void;
+  planName: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState(false);
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const editableHtmlRef = useRef<string>('');
+
+  const [heroSubject, setHeroSubject] = useState('');
+  const [overlayText, setOverlayText] = useState('');
+
+  const canGenerate = Boolean(heroSubject.trim());
+
+  const handleGenerate = useCallback(async () => {
+    if (!canGenerate) return;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -562,50 +858,22 @@ function ContentTemplateCard({
     try {
       const body: Record<string, string> = {
         target_locale: 'en',
+        title: heroSubject,
+        subject_text: heroSubject,
+        overlay_text: overlayText,
       };
-
-      if (isBlogPost) {
-        body.topic = blogTopic;
-        body.category = blogCategory || 'General';
-        body.context = blogContext;
-      } else if (template.id === 'product/collection') {
-        body.collection_name = collectionName || selectedProduct?.title || '';
-        body.category = selectedProduct?.productType || 'General';
-        body.products = selectedProduct?.title || '';
-        if (selectedProduct?.id) body.product_id = selectedProduct.id;
-      } else {
-        body.title = selectedProduct?.title || '';
-        body.category = selectedProduct?.productType || 'General';
-        body.description = plainDesc;
-        if (selectedProduct?.id) body.product_id = selectedProduct.id;
-      }
-
-      if (selectedProduct?.images?.[0]?.url && HERO_ELIGIBLE_TEMPLATES.has(template.id)) {
-        body.image_url = selectedProduct.images[0].url;
-      }
 
       const resp = await fetch(
         `${backendApiUrl}/api/generate/${template.id}?shop=${encodeURIComponent(shop)}`,
-        {
-          method: 'POST',
-          headers: {
-            'X-Shopify-Shop-Domain': shop,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-        },
+        { method: 'POST', headers: { 'X-Shopify-Shop-Domain': shop, 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
       );
-
       const data = await resp.json();
       if (resp.ok && data.status === 'success') {
-        const raw =
-          typeof data.content === 'object'
-            ? JSON.stringify(data.content)
-            : data.content || data.description || '';
+        const raw = typeof data.content === 'object' ? JSON.stringify(data.content) : data.content || '';
         setResult(raw);
         setResultOpen(true);
         setHeroUrl(data.hero_url || null);
-        onToast(`${template.name} generated successfully!`);
+        onToast('Hero section generated!');
       } else {
         setError(data.detail || data.error || 'Generation failed');
       }
@@ -614,30 +882,12 @@ function ContentTemplateCard({
     } finally {
       setLoading(false);
     }
-  }, [
-    selectedProduct,
-    template,
-    shop,
-    backendApiUrl,
-    plainDesc,
-    onToast,
-    isBlogPost,
-    needsProduct,
-    blogTopic,
-    blogCategory,
-    blogContext,
-    collectionName,
-  ]);
+  }, [canGenerate, heroSubject, overlayText, template, shop, backendApiUrl, onToast]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
     if (!toCopy) return;
-    try {
-      await navigator.clipboard.writeText(toCopy);
-      onToast('Content copied to clipboard!');
-    } catch {
-      onToast('Copy failed (clipboard not available).');
-    }
+    try { await navigator.clipboard.writeText(toCopy); onToast('Copied!'); } catch { onToast('Copy failed.'); }
   }, [result, onToast]);
 
   const handlePublish = useCallback(async () => {
@@ -645,156 +895,158 @@ function ContentTemplateCard({
     setPublishing(true);
     try {
       const content = editableHtmlRef.current || result;
-      const resp = await fetch(
-        `${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
-          body: JSON.stringify({
-            template_id: template.id,
-            product_id: selectedProduct?.id || '',
-            content,
-            context: { product_title: selectedProduct?.title || '' },
-          }),
-        },
-      );
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.detail || `Publish failed: ${resp.status}`);
-      }
+      const resp = await fetch(`${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
+        body: JSON.stringify({ template_id: template.id, content, context: {} }),
+      });
+      if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
       setPublished(true);
-      onToast(`Published ${TEMPLATE_DISPLAY_NAMES[template.id] || template.name} to Shopify!`);
-    } catch (e: any) {
-      onToast(`Publish failed: ${e?.message || e}`);
-    } finally {
-      setPublishing(false);
-    }
-  }, [result, selectedProduct, template, shop, backendApiUrl, onToast]);
+      onToast('Published hero section to Shopify!');
+    } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
+  }, [result, template, shop, backendApiUrl, onToast]);
 
   const isPro = planName === 'Pro';
 
-  // Determine if Generate should be disabled
-  const canGenerate = isBlogPost ? Boolean(blogTopic.trim()) : Boolean(selectedProduct?.id);
+  return (
+    <Card>
+      <Box padding="400">
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h2" variant="headingLg">Hero Section</Text>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              Generate a landing page hero section with a cinematic banner image. Enter a theme or subject to inspire the visual.
+            </Text>
+          </BlockStack>
+          <Divider />
+          <TextField label="Subject / Theme" value={heroSubject} onChange={setHeroSubject} placeholder="e.g. Spring Flowers, Winter Snowboards, Summer Beach Vibes, Luxury Skincare" autoComplete="off" requiredIndicator />
+          <TextField label="Overlay Text (optional)" value={overlayText} onChange={setOverlayText} placeholder="e.g. Discover our new collection" autoComplete="off" />
+          <InlineStack align="end">
+            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
+              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+            </Button>
+          </InlineStack>
+          {error && <Banner tone="critical">{error}</Banner>}
+          {result && (
+            <ResultBlock templateId={template.id} templateName="Hero Section" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} isPro={isPro} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+          )}
+        </BlockStack>
+      </Box>
+    </Card>
+  );
+}
+
+// ─── Blog Post Card ───────────────────────────────────────────────────────────
+
+function BlogPostCard({
+  template,
+  shop,
+  backendApiUrl,
+  onToast,
+  planName,
+}: {
+  template: ContentTemplate;
+  shop: string;
+  backendApiUrl: string;
+  onToast: (msg: string) => void;
+  planName: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState(false);
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const editableHtmlRef = useRef<string>('');
+
+  const [blogTopic, setBlogTopic] = useState('');
+  const [blogCategory, setBlogCategory] = useState('');
+  const [blogContext, setBlogContext] = useState('');
+
+  const canGenerate = Boolean(blogTopic.trim() && blogCategory.trim());
+
+  const handleGenerate = useCallback(async () => {
+    if (!canGenerate) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setHeroUrl(null);
+    editableHtmlRef.current = '';
+
+    try {
+      const body: Record<string, string> = {
+        target_locale: 'en',
+        topic: blogTopic,
+        category: blogCategory,
+        context: blogContext,
+      };
+
+      const resp = await fetch(
+        `${backendApiUrl}/api/generate/${template.id}?shop=${encodeURIComponent(shop)}`,
+        { method: 'POST', headers: { 'X-Shopify-Shop-Domain': shop, 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      );
+      const data = await resp.json();
+      if (resp.ok && data.status === 'success') {
+        const raw = typeof data.content === 'object' ? JSON.stringify(data.content) : data.content || '';
+        setResult(raw);
+        setResultOpen(true);
+        setHeroUrl(data.hero_url || null);
+        onToast('Blog post generated!');
+      } else {
+        setError(data.detail || data.error || 'Generation failed');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  }, [canGenerate, blogTopic, blogCategory, blogContext, template, shop, backendApiUrl, onToast]);
+
+  const handleCopy = useCallback(async () => {
+    const toCopy = editableHtmlRef.current || result || '';
+    if (!toCopy) return;
+    try { await navigator.clipboard.writeText(toCopy); onToast('Copied!'); } catch { onToast('Copy failed.'); }
+  }, [result, onToast]);
+
+  const handlePublish = useCallback(async () => {
+    if (!result) return;
+    setPublishing(true);
+    try {
+      const content = editableHtmlRef.current || result;
+      const resp = await fetch(`${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
+        body: JSON.stringify({ template_id: template.id, content, hero_url: heroUrl, blog_title: blogTopic, context: {} }),
+      });
+      if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
+      setPublished(true);
+      onToast('Published blog post to Shopify!');
+    } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
+  }, [result, heroUrl, blogTopic, template, shop, backendApiUrl, onToast]);
+
+  const isPro = planName === 'Pro';
 
   return (
     <Card>
-      <Box padding="300">
-        <BlockStack gap="300">
-          {/* Name + Generate button on the same row */}
-          <InlineStack align="space-between" blockAlign="center">
-            <Tooltip content={template.description} width="wide">
-              <Text as="h3" variant="headingMd">
-                {TEMPLATE_DISPLAY_NAMES[template.id] || template.name}
-              </Text>
-            </Tooltip>
-            <Button
-              onClick={handleGenerate}
-              disabled={!canGenerate || loading}
-              loading={loading}
-            >
-              {loading ? 'Generating…' : result ? 'Regenerate' : 'Generate'}
+      <Box padding="400">
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h2" variant="headingLg">Brand Blog Post</Text>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              Write long-form blog posts about your craft, manufacturing process, artisan techniques, and more. A hero banner image will be generated automatically.
+            </Text>
+          </BlockStack>
+          <Divider />
+          <TextField label="Subject / Topic" value={blogTopic} onChange={setBlogTopic} placeholder="e.g. 'Our wood-kiln firing process', 'How we source Shigaraki clay'" autoComplete="off" requiredIndicator />
+          <TextField label="Category" value={blogCategory} onChange={setBlogCategory} placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability" autoComplete="off" requiredIndicator />
+          <TextField label="Additional Context" value={blogContext} onChange={setBlogContext} multiline={3} placeholder="Any extra details, product mentions, or angles to include" autoComplete="off" />
+          <InlineStack align="end">
+            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
+              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
             </Button>
           </InlineStack>
-
-          {/* Blog Post — custom inputs */}
-          {isBlogPost && (
-            <BlockStack gap="300">
-              <TextField
-                label="Subject / Topic"
-                value={blogTopic}
-                onChange={setBlogTopic}
-                placeholder="e.g. 'Our wood-kiln firing process', 'How we source Shigaraki clay'"
-                autoComplete="off"
-              />
-              <TextField
-                label="Category"
-                value={blogCategory}
-                onChange={setBlogCategory}
-                placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability"
-                autoComplete="off"
-              />
-              <TextField
-                label="Additional Context"
-                value={blogContext}
-                onChange={setBlogContext}
-                multiline={3}
-                placeholder="Any extra details, product mentions, or angles to include"
-                autoComplete="off"
-              />
-            </BlockStack>
-          )}
-
-          {/* Collection — extra collection name field */}
-          {template.id === 'product/collection' && (
-            <TextField
-              label="Collection Name"
-              value={collectionName}
-              onChange={setCollectionName}
-              placeholder={selectedProduct?.title || 'Enter collection name'}
-              autoComplete="off"
-            />
-          )}
-
           {error && <Banner tone="critical">{error}</Banner>}
-
           {result && (
-            <BlockStack gap="200">
-              <InlineStack align="space-between" blockAlign="center">
-                <Button
-                  variant="plain"
-                  onClick={() => setResultOpen(!resultOpen)}
-                  textAlign="start"
-                >
-                  {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
-                </Button>
-                <InlineStack gap="200">
-                  {isPro && !published && (
-                    <Button
-                      onClick={handlePublish}
-                      variant="primary"
-                      size="slim"
-                      loading={publishing}
-                      disabled={publishing}
-                    >
-                      Publish to Shopify
-                    </Button>
-                  )}
-                  {isPro && published && (
-                    <Button variant="plain" size="slim" disabled tone="success">
-                      ✓ Published
-                    </Button>
-                  )}
-                  <Button onClick={handleCopy} variant="secondary" size="slim">
-                    Copy
-                  </Button>
-                </InlineStack>
-              </InlineStack>
-              <Collapsible
-                open={resultOpen}
-                id={`result-${template.id}`}
-                transition={{duration: '200ms', timingFunction: 'ease-in-out'}}
-              >
-                <ContentResultDisplay
-                  content={result}
-                  onContentChange={(html) => {
-                    editableHtmlRef.current = html;
-                  }}
-                />
-              </Collapsible>
-            </BlockStack>
-          )}
-
-          {heroUrl && (
-            <Card>
-              <Box padding="300">
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingSm">Hero Banner</Text>
-                  <div style={{ borderRadius: 8, overflow: 'hidden' }}>
-                    <img src={heroUrl} alt="Hero banner" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }} />
-                  </div>
-                </BlockStack>
-              </Box>
-            </Card>
+            <ResultBlock templateId={template.id} templateName="Blog Post" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} isPro={isPro} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
           )}
         </BlockStack>
       </Box>
@@ -807,7 +1059,7 @@ function ContentTemplateCard({
 export default function ContentTemplatesPage() {
   const {shop, backendApiUrl, products, selectedProduct, templates, planName} =
     useLoaderData<typeof loader>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const nav = (path: string) => {
@@ -818,115 +1070,46 @@ export default function ContentTemplatesPage() {
 
   const [toastContent, setToastContent] = useState<string | null>(null);
 
-  const selectedProductId = searchParams.get('productId') || (products[0]?.id ?? '');
-  const productOptions = products.map((p) => ({label: p.title, value: p.id}));
-
-  const handleProductChange = useCallback(
-    (value: string) => {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('productId', productIdFromGid(value));
-      setSearchParams(newParams);
-    },
-    [searchParams, setSearchParams],
-  );
-
-  // Separate blog post from product-wired templates
-  const productTemplates = templates.filter((t) => t.id !== 'product/blog-post');
+  const faqTemplate = templates.find((t) => t.id === 'product/faq');
+  const collectionTemplate = templates.find((t) => t.id === 'product/collection');
+  const heroTemplate = templates.find((t) => t.id === 'product/landing-hero');
   const blogTemplate = templates.find((t) => t.id === 'product/blog-post');
 
   return (
     <Page
       title="Content Templates"
-      subtitle="Generate product titles, FAQs, collection copy, and landing page content using AI-powered templates with brand voice."
+      subtitle="Generate FAQs, collection copy, hero sections, and blog posts using AI-powered templates with brand voice."
       backAction={{
         content: 'Writing Studio',
         onAction: () => navigate(nav('/app/writing-studio')),
       }}
     >
       <Layout>
-        {/* Product Selection */}
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="300">
-              <Text variant="headingMd" as="h2">
-                Select Product
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Choose a product to auto-fill template inputs (title, category, description).
-              </Text>
-              <Select
-                label="Product"
-                labelHidden
-                options={productOptions}
-                value={selectedProduct?.id || ''}
-                onChange={handleProductChange}
-              />
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-
-        {/* Product-Wired Templates */}
-        {productTemplates.length > 0 && (
+        {/* Product FAQ */}
+        {faqTemplate && (
           <Layout.Section>
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="400">
-                  <BlockStack gap="200">
-                    <Text as="h2" variant="headingLg">
-                      Product Content Generator
-                    </Text>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Select a product above, then click Generate to create content instantly using
-                      your brand voice.
-                    </Text>
-                  </BlockStack>
-                  <Divider />
-                  <BlockStack gap="400">
-                    {productTemplates.map((template) => (
-                      <ContentTemplateCard
-                        key={template.id}
-                        template={template}
-                        selectedProduct={selectedProduct}
-                        shop={shop}
-                        backendApiUrl={backendApiUrl}
-                        onToast={setToastContent}
-                        planName={planName}
-                      />
-                    ))}
-                  </BlockStack>
-                </BlockStack>
-              </Box>
-            </Card>
+            <FaqCard template={faqTemplate} products={products} initialProduct={selectedProduct} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} planName={planName} />
           </Layout.Section>
         )}
 
-        {/* Blog Post Template (no product wiring) */}
+        {/* Collection Description */}
+        {collectionTemplate && (
+          <Layout.Section>
+            <CollectionCard template={collectionTemplate} products={products} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} planName={planName} />
+          </Layout.Section>
+        )}
+
+        {/* Hero Section */}
+        {heroTemplate && (
+          <Layout.Section>
+            <HeroSectionCard template={heroTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} planName={planName} />
+          </Layout.Section>
+        )}
+
+        {/* Brand Blog Post */}
         {blogTemplate && (
           <Layout.Section>
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="400">
-                  <BlockStack gap="200">
-                    <Text as="h2" variant="headingLg">
-                      Brand Blog Post
-                    </Text>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Write long-form blog posts about your craft, manufacturing process, artisan
-                      techniques, and more. No product selection needed.
-                    </Text>
-                  </BlockStack>
-                  <Divider />
-                  <ContentTemplateCard
-                    template={blogTemplate}
-                    selectedProduct={null}
-                    shop={shop}
-                    backendApiUrl={backendApiUrl}
-                    onToast={setToastContent}
-                    planName={planName}
-                  />
-                </BlockStack>
-              </Box>
-            </Card>
+            <BlogPostCard template={blogTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} planName={planName} />
           </Layout.Section>
         )}
       </Layout>

@@ -6,6 +6,7 @@ import { StepApproval, type AgentOutput } from "./StepApproval";
 import { RegenerateFeedbackModal } from "./RegenerateFeedbackModal";
 import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
 import { VisualStepCard, ImageCarousel, type VisualAssets, type VisualProgress, type CarouselSlide } from "./VisualStepCard";
+import { InstaPreview } from "./InstaPreview";
 
 
 interface MissionState {
@@ -863,26 +864,13 @@ export function MissionTimeline({
                 {/* Visual assets carousel — rendered incrementally as images arrive */}
                 {(() => {
                   const va = missionState?.visual_assets;
-                  if (!va) return null;
-                  const slides: CarouselSlide[] = [];
-                  if (va.refined_url) slides.push({ url: va.refined_url, label: "Refined Product", sublabel: "AI-enhanced product image", aspectRatio: "1 / 1" });
-                  if (va.ad_url) slides.push({ url: va.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" });
-                  if (slides.length === 0) return null;
+                  if (!va?.ad_url) return null;
+                  const slides: CarouselSlide[] = [
+                    { url: va.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" },
+                  ];
                   return <ImageCarousel slides={slides} />;
                 })()}
 
-                {/* Content hero banner */}
-                {missionState?.content_hero_assets?.hero_url && (
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingMd">🖼️ Content Hero Banner</Text>
-                    <ImageCarousel slides={[{
-                      url: missionState.content_hero_assets.hero_url,
-                      label: "Hero Banner",
-                      sublabel: `${missionState.content_hero_assets.content_type || "Content"} hero image`,
-                      aspectRatio: "16 / 9",
-                    }]} />
-                  </BlockStack>
-                )}
               </BlockStack>
             )}
 
@@ -935,29 +923,24 @@ export function MissionTimeline({
                     >
                       <BlockStack gap="400">
                         {/* Image carousel */}
-                        {(() => {
-                          const slides: CarouselSlide[] = [];
-                          if (missionState.visual_assets?.refined_url) {
-                            slides.push({ url: missionState.visual_assets.refined_url, label: "Refined Product", sublabel: "AI-enhanced product image", aspectRatio: "1 / 1" });
-                          }
-                          if (missionState.visual_assets?.ad_url) {
-                            slides.push({ url: missionState.visual_assets.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" });
-                          }
-                          return slides.length > 0 ? <ImageCarousel slides={slides} /> : null;
-                        })()}
-
-                        {/* Content hero banner */}
-                        {missionState.content_hero_assets?.hero_url && (
-                          <BlockStack gap="200">
-                            <Text as="h3" variant="headingMd">🖼️ Content Hero Banner</Text>
-                            <ImageCarousel slides={[{
-                              url: missionState.content_hero_assets.hero_url,
-                              label: "Hero Banner",
-                              sublabel: `${missionState.content_hero_assets.content_type || "Content"} hero image`,
-                              aspectRatio: "16 / 9",
-                            }]} />
-                          </BlockStack>
+                        {missionState.visual_assets?.ad_url && (
+                          <ImageCarousel slides={[
+                            { url: missionState.visual_assets.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" },
+                          ]} />
                         )}
+
+                        {/* Instagram preview for marketing ad */}
+                        {missionState.visual_assets?.ad_url && (
+                          <InstaPreview
+                            imageUrl={missionState.visual_assets.ad_url}
+                            caption={(() => {
+                              const hooks = missionState.social_hooks || externalSocialHooks;
+                              return hooks?.[0]?.caption || "";
+                            })()}
+                            brandName={missionState.shop_id?.replace(".myshopify.com", "") || undefined}
+                          />
+                        )}
+
                       </BlockStack>
                     </StepApproval>
                   ) : (
