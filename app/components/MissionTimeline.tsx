@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Card, Box, Text, BlockStack, InlineStack, Badge, Button, Banner, ProgressBar, Divider } from "@shopify/polaris";
+import { Card, Box, Text, BlockStack, InlineStack, Badge, Button, Banner, ProgressBar, Divider, Spinner } from "@shopify/polaris";
 import { AgentCard, type AgentStatus } from "./AgentCard";
 import { MissionSummary, type MissionState as SummaryMissionState } from "./MissionSummary";
 import { StepApproval, type AgentOutput } from "./StepApproval";
 import { RegenerateFeedbackModal } from "./RegenerateFeedbackModal";
 import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
+import { VisualStepCard, ImageCarousel, type VisualAssets, type VisualProgress, type CarouselSlide } from "./VisualStepCard";
+import { InstaPreview } from "./InstaPreview";
+
 
 interface MissionState {
   product_id: string;
@@ -47,6 +50,15 @@ interface MissionState {
     total_tokens?: number;
     call_count?: number;
   };
+  // Visual agent fields (Pro tier)
+  visual_assets?: VisualAssets | null;
+  visual_progress?: VisualProgress | null;
+  // Content hero agent fields (blog/collection hero banners)
+  content_hero_assets?: {
+    hero_url?: string;
+    content_type?: string;
+    theme_context?: string;
+  } | null;
   // Ad-hoc mode fields
   is_adhoc?: boolean;
   requested_agents?: string[];
@@ -108,6 +120,8 @@ interface MissionTimelineProps {
   onStepRegenerate?: (feedback: string) => void;
   /** Callback when merchant wants to skip current agent */
   onStepSkip?: () => void;
+  /** External social hooks (used as fallback when mission state has no hooks, e.g. Digital Marketing page) */
+  externalSocialHooks?: Array<{ type: string; caption: string; hashtags?: string[] }>;
 }
 
 // Map agent class names to display names
@@ -117,6 +131,9 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
   "SEOAgent": "SEO",
   "MarketingAgent": "Marketing",
   "PriceScoutAgent": "PriceScout",
+  "VisualAgent": "Visual",
+  "ImageRefinementAgent": "Image Refinement",
+  "VisualMarketingAgent": "Visual Marketing",
   "ComplianceAgent": "Compliance",  // Kept for backward compat
   // Display name to display name (for backward compat)
   "Rewriter": "Rewriter",
@@ -124,6 +141,11 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
   "SEO": "SEO",
   "Marketing": "Marketing",
   "PriceScout": "PriceScout",
+  "Visual": "Visual",
+  "ImageRefinement": "Image Refinement",
+  "VisualMarketing": "Visual Marketing",
+  "ContentHeroAgent": "Content Hero",
+  "ContentHero": "Content Hero",
   "Compliance": "Compliance",
 };
 
@@ -176,6 +198,7 @@ export function MissionTimeline({
   onStepApprove,
   onStepRegenerate,
   onStepSkip,
+  externalSocialHooks,
 }: MissionTimelineProps) {
   const [missionState, setMissionState] = useState<MissionState | null>(null);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
@@ -194,16 +217,28 @@ export function MissionTimeline({
   const eventSourceRef = useRef<EventSource | null>(null);
   // Track if we received any data - to prevent auto-reconnection loops
   const receivedDataRef = useRef(false);
+  // Stable refs for callbacks & state — used inside EventSource handlers to avoid
+  // re-creating the EventSource whenever mission state / callbacks change.
+  const missionStateRef = useRef<MissionState | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  const onErrorRef = useRef(onError);
+  onCompleteRef.current = onComplete;
+  onErrorRef.current = onError;
   // State for regenerate feedback modal
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   // Track agents that were auto-proceeded (no human gate)
   const [autoProceededAgents, setAutoProceededAgents] = useState<string[]>([]);
+  // Stable ref for initialAgents — prevents the getAgentsToShow → updateAgentFromLogs
+  // → SSE useEffect dependency chain from re-firing on every render when the parent
+  // passes an inline array literal (e.g. initialAgents={['ImageRefinementAgent']}).
+  const initialAgentsRef = useRef(initialAgents);
+  initialAgentsRef.current = initialAgents;
 
   // Determine which agents to show
   const getAgentsToShow = useCallback((state: MissionState | null): string[] => {
     // Priority 1: initialAgents prop (for ad-hoc mode)
-    if (initialAgents && initialAgents.length > 0) {
-      return normalizeAgentNames(initialAgents);
+    if (initialAgentsRef.current && initialAgentsRef.current.length > 0) {
+      return normalizeAgentNames(initialAgentsRef.current);
     }
     
     // Priority 2: requested_agents from state
@@ -218,7 +253,7 @@ export function MissionTimeline({
     
     // Priority 4: plan tier default
     return getWorkflowAgents(state?.plan_tier || "Basic");
-  }, [initialAgents]);
+  }, []);
 
   // Update agent status based on logs
   const updateAgentFromLogs = useCallback((state: MissionState) => {
@@ -246,8 +281,9 @@ export function MissionTimeline({
         const agentName = extractAgentFromLog(log);
         if (!agentName) continue;
 
+        const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, "");
         const agentIndex = newAgents.findIndex(
-          (a) => a.name.toLowerCase() === agentName.toLowerCase()
+          (a) => normalize(a.name) === normalize(agentName)
         );
         if (agentIndex === -1) continue;
 
@@ -257,14 +293,17 @@ export function MissionTimeline({
         }
 
         // Update agent status based on log content
-        if (log.includes("Perceiving") || log.includes("Planning") || log.includes("Executing") || log.includes("Running")) {
+        const isActivityLog = log.includes("Perceiving") || log.includes("Planning") ||
+          log.includes("Executing") || log.includes("Running") || /\[\d+%\]/.test(log);
+        if (isActivityLog) {
           if (newAgents[agentIndex].status !== "done" && newAgents[agentIndex].status !== "failed") {
             newAgents[agentIndex].status = "thinking";
             if (!newAgents[agentIndex].startTime) {
               newAgents[agentIndex].startTime = Date.now();
             }
           }
-        } else if (log.includes("Completed") || log.includes("complete")) {
+        }
+        if (log.includes("Completed") || log.includes("complete")) {
           newAgents[agentIndex].status = "done";
           newAgents[agentIndex].endTime = Date.now();
         }
@@ -315,6 +354,7 @@ export function MissionTimeline({
       try {
         const state = JSON.parse(event.data) as MissionState;
         setMissionState(state);
+        missionStateRef.current = state;
         updateAgentFromLogs(state);
         
         // Show summary when complete
@@ -331,8 +371,10 @@ export function MissionTimeline({
       try {
         const data = JSON.parse(event.data);
         console.log("Mission complete:", data);
-        if (missionState && onComplete) {
-          onComplete(missionState);
+        // Use ref to read the latest missionState without adding it to deps
+        const latestState = missionStateRef.current;
+        if (latestState && onCompleteRef.current) {
+          onCompleteRef.current(latestState);
         }
       } catch (e) {
         console.error("Failed to parse complete event:", e);
@@ -348,8 +390,8 @@ export function MissionTimeline({
         if (customEvent.data) {
           const data = JSON.parse(customEvent.data);
           setError(data.error || "Unknown error");
-          if (onError) {
-            onError(data.error || "Unknown error");
+          if (onErrorRef.current) {
+            onErrorRef.current(data.error || "Unknown error");
           }
           // Close on error event to prevent reconnection
           eventSource.close();
@@ -377,7 +419,10 @@ export function MissionTimeline({
     return () => {
       eventSource.close();
     };
-  }, [missionId, apiBaseUrl, stepMode, updateAgentFromLogs, onComplete, onError, missionState, showSummary, shop]);
+    // NOTE: missionState, onComplete, onError intentionally excluded — accessed
+    // via refs inside handlers to prevent re-creating the EventSource on every
+    // state update (which was causing a reconnection storm).
+  }, [missionId, apiBaseUrl, stepMode, updateAgentFromLogs, showSummary, shop]);
 
   // Handle publish action
   const handlePublish = useCallback(async () => {
@@ -731,22 +776,12 @@ export function MissionTimeline({
           <BlockStack gap="400">
             {/* Header */}
             <InlineStack align="space-between" blockAlign="center">
-              <BlockStack gap="100">
-                <Text as="h2" variant={compact ? "headingMd" : "headingLg"}>
-                  {isAdhoc ? "Agent Run" : "Mission Timeline"}
-                </Text>
-                {isAdhoc && (
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Running: {agents.map(a => a.name).join(", ")}
-                  </Text>
-                )}
-              </BlockStack>
+              <Text as="h2" variant={compact ? "headingMd" : "headingLg"}>
+                {isAdhoc ? "Agent Run" : "Mission Timeline"}
+              </Text>
               <InlineStack gap="200">
                 {isConnected && (
                   <Badge tone="success">Live</Badge>
-                )}
-                {isAdhoc && (
-                  <Badge tone="info">Ad-hoc</Badge>
                 )}
                 <Badge tone={
                   missionState?.status === "ERROR" ? "critical" :
@@ -788,32 +823,54 @@ export function MissionTimeline({
             {/* Agent cards - shown in auto-flow mode or as overview in step mode */}
             {!stepMode && (
               <BlockStack gap="300">
-                {agents.map((agent) => (
-                  <AgentCard
-                    key={agent.name}
-                    agentName={agent.name}
-                    status={agent.status}
-                    logs={agent.logs}
-                    duration={agent.endTime && agent.startTime ? agent.endTime - agent.startTime : undefined}
-                    output={
-                      agent.name === "Copywriter" && missionState?.draft_title
-                        ? {
-                            title: missionState.draft_title,
-                            description: missionState.draft_content?.slice(0, 200) + "...",
-                          }
-                        : agent.name === "Marketing" && (missionState?.seo_title || missionState?.social_hooks)
-                        ? {
-                            title: missionState.seo_title,
-                            description: missionState.seo_description,
-                          }
-                        : agent.name === "PriceScout" && missionState?.pricing_analysis
-                        ? {
-                            pricing: missionState.pricing_analysis,
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
+                {agents.map((agent) => {
+                  const isVisual = [
+                    "Visual", "VisualAgent",
+                    "ImageRefinement", "ImageRefinementAgent", "Image Refinement",
+                    "VisualMarketing", "VisualMarketingAgent", "Visual Marketing",
+                    "ContentHeroAgent", "ContentHero", "Content Hero",
+                  ].includes(agent.name);
+
+                  return (
+                    <AgentCard
+                      key={agent.name}
+                      agentName={agent.name}
+                      status={agent.status}
+                      logs={agent.logs}
+                      duration={agent.endTime && agent.startTime ? agent.endTime - agent.startTime : undefined}
+                      hideStatusBadge={isVisual}
+                      visualLoading={isVisual}
+                      output={
+                        agent.name === "Copywriter" && missionState?.draft_title
+                          ? {
+                              title: missionState.draft_title,
+                              description: missionState.draft_content?.slice(0, 200) + "...",
+                            }
+                          : agent.name === "Marketing" && (missionState?.seo_title || missionState?.social_hooks)
+                          ? {
+                              title: missionState.seo_title,
+                              description: missionState.seo_description,
+                            }
+                          : agent.name === "PriceScout" && missionState?.pricing_analysis
+                          ? {
+                              pricing: missionState.pricing_analysis,
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })}
+
+                {/* Visual assets carousel — rendered incrementally as images arrive */}
+                {(() => {
+                  const va = missionState?.visual_assets;
+                  if (!va?.ad_url) return null;
+                  const slides: CarouselSlide[] = [
+                    { url: va.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" },
+                  ];
+                  return <ImageCarousel slides={slides} />;
+                })()}
+
               </BlockStack>
             )}
 
@@ -848,55 +905,109 @@ export function MissionTimeline({
                 {/* Current step approval card - pulse animation signals "machine idle, waiting for human" */}
                 {stepCompleteData && missionState.status === "AWAITING_APPROVAL" && (
                   <div className="missionArchitectPulse">
-                  <StepApproval
-                    agentName={stepCompleteData.current_agent}
-                    stepIndex={stepCompleteData.current_agent_index}
-                    totalSteps={stepCompleteData.total_agents}
-                    workflowAgents={missionState.workflow_agents}
-                    status="awaiting_approval"
-                    output={stepCompleteData.agent_output as AgentOutput | undefined}
-                    isLoading={isStepLoading}
-                    error={error || undefined}
-                    onContinue={handleStepContinue}
-                    onRegenerate={() => setShowRegenerateModal(true)}
-                    onPlainRegenerate={handlePlainRegenerate}
-                    onSkip={handleStepSkip}
-                    supportsFeedback={
-                      stepCompleteData.current_agent === "RewriterAgent" ||
-                      stepCompleteData.current_agent === "CopywriterAgent"
-                    }
-                  />
+                  {/* Visual Agent: single card with carousel + InstaPreview inside, buttons at bottom */}
+                  {["VisualAgent", "Visual", "ImageRefinementAgent", "ImageRefinement", "VisualMarketingAgent", "VisualMarketing", "ContentHeroAgent", "ContentHero"].includes(stepCompleteData.current_agent) ? (
+                    <StepApproval
+                      agentName={stepCompleteData.current_agent}
+                      stepIndex={stepCompleteData.current_agent_index}
+                      totalSteps={stepCompleteData.total_agents}
+                      workflowAgents={missionState.workflow_agents}
+                      status="awaiting_approval"
+                      isLoading={isStepLoading}
+                      error={error || undefined}
+                      onContinue={handleStepContinue}
+                      onRegenerate={() => setShowRegenerateModal(true)}
+                      onPlainRegenerate={handlePlainRegenerate}
+                      onSkip={handleStepSkip}
+                      supportsFeedback={false}
+                    >
+                      <BlockStack gap="400">
+                        {/* Image carousel */}
+                        {missionState.visual_assets?.ad_url && (
+                          <ImageCarousel slides={[
+                            { url: missionState.visual_assets.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" },
+                          ]} />
+                        )}
+
+                        {/* Instagram preview for marketing ad */}
+                        {missionState.visual_assets?.ad_url && (
+                          <InstaPreview
+                            imageUrl={missionState.visual_assets.ad_url}
+                            caption={(() => {
+                              const hooks = missionState.social_hooks || externalSocialHooks;
+                              return hooks?.[0]?.caption || "";
+                            })()}
+                            brandName={missionState.shop_id?.replace(".myshopify.com", "") || undefined}
+                          />
+                        )}
+
+                      </BlockStack>
+                    </StepApproval>
+                  ) : (
+                    <StepApproval
+                      agentName={stepCompleteData.current_agent}
+                      stepIndex={stepCompleteData.current_agent_index}
+                      totalSteps={stepCompleteData.total_agents}
+                      workflowAgents={missionState.workflow_agents}
+                      status="awaiting_approval"
+                      output={stepCompleteData.agent_output as AgentOutput | undefined}
+                      isLoading={isStepLoading}
+                      error={error || undefined}
+                      onContinue={handleStepContinue}
+                      onRegenerate={() => setShowRegenerateModal(true)}
+                      onPlainRegenerate={handlePlainRegenerate}
+                      onSkip={handleStepSkip}
+                      supportsFeedback={
+                        stepCompleteData.current_agent === "RewriterAgent" ||
+                        stepCompleteData.current_agent === "CopywriterAgent"
+                      }
+                    />
+                  )}
                   </div>
                 )}
 
                 {/* Running state */}
                 {missionState.status === "IN_PROGRESS" && !stepCompleteData && (
-                  <Card>
-                    <Box padding="400">
-                      <BlockStack gap="200">
-                        <InlineStack gap="200" blockAlign="center">
-                          <div className="spinner" style={{ 
-                            width: "20px", 
-                            height: "20px", 
-                            border: "2px solid #e1e3e5",
-                            borderTopColor: "#2c6ecb",
-                            borderRadius: "50%",
-                            animation: "spin 1s linear infinite"
-                          }} />
-                          <Text as="span" variant="bodyMd">
-                            {getStepName(
-                              (missionState.workflow_agents || [])[missionState.current_agent_index || 0] || "",
-                              missionState.current_agent_index || 0,
-                              missionState.workflow_config,
-                            )} is working...
-                          </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Step {(missionState.current_agent_index || 0) + 1} of {(missionState.workflow_agents || []).length}
-                        </Text>
-                      </BlockStack>
-                    </Box>
-                  </Card>
+                  <>
+                    {/* Show VisualStepCard when a visual agent is running */}
+                    {["VisualAgent", "Visual", "ImageRefinementAgent", "ImageRefinement", "Image Refinement",
+                      "VisualMarketingAgent", "VisualMarketing", "Visual Marketing",
+                      "ContentHeroAgent", "ContentHero", "Content Hero",
+                    ].includes((missionState.workflow_agents || [])[missionState.current_agent_index || 0] || "") ? (
+                      <VisualStepCard
+                        progress={missionState.visual_progress}
+                        assets={missionState.visual_assets}
+                        isComplete={false}
+                      />
+                    ) : (
+                      <Card>
+                        <Box padding="400">
+                          <BlockStack gap="200">
+                            <InlineStack gap="200" blockAlign="center">
+                              <div className="spinner" style={{ 
+                                width: "20px", 
+                                height: "20px", 
+                                border: "2px solid #e1e3e5",
+                                borderTopColor: "#2c6ecb",
+                                borderRadius: "50%",
+                                animation: "spin 1s linear infinite"
+                              }} />
+                              <Text as="span" variant="bodyMd">
+                                {getStepName(
+                                  (missionState.workflow_agents || [])[missionState.current_agent_index || 0] || "",
+                                  missionState.current_agent_index || 0,
+                                  missionState.workflow_config,
+                                )} is working...
+                              </Text>
+                            </InlineStack>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              Step {(missionState.current_agent_index || 0) + 1} of {(missionState.workflow_agents || []).length}
+                            </Text>
+                          </BlockStack>
+                        </Box>
+                      </Card>
+                    )}
+                  </>
                 )}
               </BlockStack>
             )}

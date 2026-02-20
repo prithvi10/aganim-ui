@@ -168,8 +168,8 @@ export default function MarketingContentGenerator() {
     <Page
       title={template.name}
       backAction={{
-        content: 'Marketing',
-        onAction: () => navigate(nav('/app/marketing')),
+        content: 'Marketing Templates',
+        onAction: () => navigate(nav('/app/marketing/templates')),
       }}
     >
       <Layout>

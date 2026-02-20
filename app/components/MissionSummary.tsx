@@ -22,6 +22,8 @@ import {
 import { useState, useMemo, useCallback } from "react";
 import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
 import { templateOutputToHtml, stripHtml } from "../utils/templateHtmlParser";
+import { ImageCarousel, type CarouselSlide } from "./VisualStepCard";
+import { InstaPreview } from "./InstaPreview";
 
 interface MissionState {
   product_id: string;
@@ -69,6 +71,12 @@ interface MissionState {
   agent_outputs?: Record<string, Record<string, unknown>>;
   workflow_config?: Array<{ agent_name: string; has_gate: boolean; template_id?: string }>;
   workflow_agents?: string[];
+  // Visual agent fields (Pro tier)
+  visual_assets?: {
+    refined_url?: string | null;
+    ad_url?: string | null;
+    original_image_url?: string | null;
+  } | null;
 }
 
 interface MissionSummaryProps {
@@ -164,6 +172,20 @@ function getCompletedActions(state: MissionState): Array<{
     });
   }
   
+  // Visual assets
+  if (state.visual_assets?.refined_url) {
+    const assetCount = [
+      state.visual_assets.refined_url,
+      state.visual_assets.ad_url,
+    ].filter(Boolean).length;
+    actions.push({
+      icon: EditIcon,
+      title: "Visual Assets Generated",
+      description: `${assetCount} AI-generated image${assetCount > 1 ? "s" : ""} (refined product added to Shopify)`,
+      success: true,
+    });
+  }
+
   // Pricing actions
   if (state.pricing_analysis) {
     const { recommended_price, price_position, confidence, competitors } = state.pricing_analysis;
@@ -469,6 +491,26 @@ export function MissionSummary({
                   />
                 ))}
               </BlockStack>
+            </BlockStack>
+          </>
+        )}
+
+        {/* Visual Assets Gallery */}
+        {state.visual_assets?.ad_url && (
+          <>
+            <Divider />
+            <BlockStack gap="300">
+              <Text variant="headingSm" as="h3">Generated Marketing Ad</Text>
+              <Text variant="bodySm" tone="subdued">
+                Your marketing ad is ready. Download the image or copy the caption to post on social media.
+              </Text>
+
+              {/* Instagram Preview */}
+              <InstaPreview
+                imageUrl={state.visual_assets.ad_url}
+                caption={state.social_hooks?.[0]?.caption || ""}
+                brandName={state.shop_id?.replace(".myshopify.com", "") || undefined}
+              />
             </BlockStack>
           </>
         )}
