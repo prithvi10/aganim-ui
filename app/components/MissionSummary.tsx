@@ -23,6 +23,7 @@ import { useState, useMemo, useCallback } from "react";
 import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
 import { templateOutputToHtml, stripHtml } from "../utils/templateHtmlParser";
 import { ImageCarousel, type CarouselSlide } from "./VisualStepCard";
+import { InstaPreview } from "./InstaPreview";
 
 interface MissionState {
   product_id: string;
@@ -495,59 +496,21 @@ export function MissionSummary({
         )}
 
         {/* Visual Assets Gallery */}
-        {state.visual_assets && (state.visual_assets.refined_url || state.visual_assets.ad_url) && (
+        {state.visual_assets?.ad_url && (
           <>
             <Divider />
             <BlockStack gap="300">
-              <Text variant="headingSm" as="h3">Generated Visual Assets</Text>
+              <Text variant="headingSm" as="h3">Generated Marketing Ad</Text>
               <Text variant="bodySm" tone="subdued">
-                The refined product image has been added to your Shopify product gallery.
-                Marketing ad and hero banner are saved in your Media Library.
+                Your marketing ad is ready. Download the image or copy the caption to post on social media.
               </Text>
 
-              {/* Reuse the ImageCarousel from VisualStepCard */}
-              {(() => {
-                const slides: CarouselSlide[] = [];
-                if (state.visual_assets!.refined_url) {
-                  slides.push({
-                    url: state.visual_assets!.refined_url!,
-                    label: "Refined Product",
-                    sublabel: "Added to product gallery",
-                    aspectRatio: "1 / 1",
-                  });
-                }
-                if (state.visual_assets!.ad_url) {
-                  slides.push({
-                    url: state.visual_assets!.ad_url!,
-                    label: "Marketing Ad",
-                    sublabel: "Saved to Media Library",
-                    aspectRatio: "1 / 1",
-                  });
-                }
-                return slides.length > 0 ? <ImageCarousel slides={slides} /> : null;
-              })()}
-
-              {/* Download buttons */}
-              <InlineStack gap="200" align="start">
-                {state.visual_assets!.refined_url && (
-                  <Button
-                    size="slim"
-                    url={state.visual_assets!.refined_url!}
-                    external
-                  >
-                    ⬇ Refined Image
-                  </Button>
-                )}
-                {state.visual_assets!.ad_url && (
-                  <Button
-                    size="slim"
-                    url={state.visual_assets!.ad_url!}
-                    external
-                  >
-                    ⬇ Marketing Ad
-                  </Button>
-                )}
-              </InlineStack>
+              {/* Instagram Preview */}
+              <InstaPreview
+                imageUrl={state.visual_assets.ad_url}
+                caption={state.social_hooks?.[0]?.caption || ""}
+                brandName={state.shop_id?.replace(".myshopify.com", "") || undefined}
+              />
             </BlockStack>
           </>
         )}
