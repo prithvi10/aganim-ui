@@ -8,6 +8,7 @@ import {
   Banner,
   Toast,
   Frame,
+  InlineStack,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
@@ -22,6 +23,7 @@ import {
   type WorkflowStep,
   type MissionExtraContext,
 } from "../components/MissionArchitect";
+import { formatUsage, type Entitlements, type FeatureUsageMap } from "../utils/entitlements";
 import "../styles/optimize-button.css";
 
 type ProductListItem = { id: string; title: string };
@@ -63,6 +65,8 @@ type LoaderData = {
   backendApiUrl: string;
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
+  entitlements: Entitlements;
+  feature_usage: FeatureUsageMap;
 };
 
 function productIdFromGid(gid: string | null | undefined) {
@@ -169,20 +173,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let planName: LoaderData["planName"] = "Free";
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
 
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`);
     if (usageResp.ok) {
       const data = await usageResp.json();
       const eff = String(data.effective_plan_name || data.plan_name || "").trim();
       if (eff === "Basic" || eff === "Standard" || eff === "Pro") planName = eff as LoaderData["planName"];
+      entitlements = data.entitlements || {};
+      feature_usage = data.feature_usage || {};
     }
   } catch { /* ignore */ }
 
-  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct };
+  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage };
 };
 
 export default function OptimizePage() {
-  const { planName, shop, backendApiUrl, products, selectedProduct } =
+  const { planName, shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -393,6 +401,18 @@ export default function OptimizePage() {
         <Layout>
           <Layout.Section>
             <BlockStack gap="400">
+              {/* ── Mission usage counter ───────────────────────────────── */}
+              {!missionId && (() => {
+                const missionsStr = formatUsage(feature_usage.missions, false);
+                return missionsStr ? (
+                  <InlineStack gap="200" blockAlign="center">
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      Missions used: {missionsStr}
+                    </Text>
+                  </InlineStack>
+                ) : null;
+              })()}
+
               {/* ── Mission Architect Wizard ─────────────────────────────── */}
               {!missionId && (
                 <MissionArchitect
@@ -402,6 +422,8 @@ export default function OptimizePage() {
                   onStartMission={handleOptimize}
                   isRunning={isOptimizing}
                   planTier={planName}
+                  entitlements={entitlements}
+                  feature_usage={feature_usage}
                 />
               )}
 
