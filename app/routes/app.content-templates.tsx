@@ -22,7 +22,9 @@ import {
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
+import {PlanGateBadge} from '../components/PlanGateBadge';
 import {RichTextEditor} from '../components/RichTextEditor';
+import {canAccess, formatUsage, type Entitlements, type FeatureUsageMap} from '../utils/entitlements';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +61,8 @@ type LoaderData = {
   selectedProduct: SelectedProduct | null;
   templates: ContentTemplate[];
   planName: string;
+  entitlements: Entitlements;
+  feature_usage: FeatureUsageMap;
 };
 
 // ─── Display name overrides ───────────────────────────────────────────────────
@@ -168,19 +172,23 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     // best-effort
   }
 
-  // Fetch plan name from backend
+  // Fetch plan name and entitlements from backend
   let planName = 'Free';
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`);
     if (usageResp.ok) {
       const usageData = await usageResp.json();
       planName = String(usageData.effective_plan_name || usageData.plan_name || 'Free').trim() || 'Free';
+      entitlements = usageData.entitlements || {};
+      feature_usage = usageData.feature_usage || {};
     }
   } catch {
     // best-effort
   }
 
-  return {shop, backendApiUrl, products, selectedProduct, templates, planName} satisfies LoaderData;
+  return {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage} satisfies LoaderData;
 };
 
 // ─── Python dict parser (handles mixed single/double quotes) ──────────────────
@@ -509,7 +517,7 @@ function ResultBlock({
   heroUrl,
   resultOpen,
   setResultOpen,
-  isPro,
+  canPublish,
   published,
   publishing,
   handlePublish,
@@ -522,7 +530,7 @@ function ResultBlock({
   heroUrl: string | null;
   resultOpen: boolean;
   setResultOpen: (v: boolean) => void;
-  isPro: boolean;
+  canPublish: boolean;
   published: boolean;
   publishing: boolean;
   handlePublish: () => void;
@@ -536,16 +544,17 @@ function ResultBlock({
           {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
         </Button>
         <InlineStack gap="200">
-          {isPro && !published && (
+          {canPublish && !published && (
             <Button onClick={handlePublish} variant="primary" size="slim" loading={publishing} disabled={publishing}>
               Publish to Shopify
             </Button>
           )}
-          {isPro && published && (
+          {canPublish && published && (
             <Button variant="plain" size="slim" disabled tone="success">
               ✓ Published
             </Button>
           )}
+          {!canPublish && <PlanGateBadge tierName="Pro" />}
           <Button onClick={handleCopy} variant="secondary" size="slim">
             Copy
           </Button>
@@ -571,7 +580,7 @@ function FaqCard({
   shop,
   backendApiUrl,
   onToast,
-  planName,
+  entitlements,
 }: {
   template: ContentTemplate;
   products: ProductListItem[];
@@ -579,7 +588,7 @@ function FaqCard({
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
-  planName: string;
+  entitlements: Entitlements;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -648,7 +657,7 @@ function FaqCard({
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
   }, [result, selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast]);
 
-  const isPro = planName === 'Pro';
+  const canPublish = canAccess(entitlements, 'publish');
 
   return (
     <Card>
@@ -667,7 +676,7 @@ function FaqCard({
           </InlineStack>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
-            <ResultBlock templateId={template.id} templateName="FAQ" result={result} heroUrl={null} resultOpen={resultOpen} setResultOpen={setResultOpen} isPro={isPro} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+            <ResultBlock templateId={template.id} templateName="FAQ" result={result} heroUrl={null} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
           )}
         </BlockStack>
       </Box>
@@ -683,14 +692,14 @@ function CollectionCard({
   shop,
   backendApiUrl,
   onToast,
-  planName,
+  entitlements,
 }: {
   template: ContentTemplate;
   products: ProductListItem[];
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
-  planName: string;
+  entitlements: Entitlements;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -775,7 +784,7 @@ function CollectionCard({
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
   }, [result, collectionName, heroUrl, selectedProductIds, template, shop, backendApiUrl, onToast]);
 
-  const isPro = planName === 'Pro';
+  const canPublish = canAccess(entitlements, 'publish');
 
   return (
     <Card>
@@ -810,7 +819,7 @@ function CollectionCard({
           </InlineStack>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
-            <ResultBlock templateId={template.id} templateName="Collection" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} isPro={isPro} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+            <ResultBlock templateId={template.id} templateName="Collection" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
           )}
         </BlockStack>
       </Box>
@@ -825,13 +834,13 @@ function HeroSectionCard({
   shop,
   backendApiUrl,
   onToast,
-  planName,
+  entitlements,
 }: {
   template: ContentTemplate;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
-  planName: string;
+  entitlements: Entitlements;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -905,7 +914,7 @@ function HeroSectionCard({
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
   }, [result, template, shop, backendApiUrl, onToast]);
 
-  const isPro = planName === 'Pro';
+  const canPublish = canAccess(entitlements, 'publish');
 
   return (
     <Card>
@@ -927,7 +936,7 @@ function HeroSectionCard({
           </InlineStack>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
-            <ResultBlock templateId={template.id} templateName="Hero Section" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} isPro={isPro} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+            <ResultBlock templateId={template.id} templateName="Hero Section" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
           )}
         </BlockStack>
       </Box>
@@ -942,13 +951,13 @@ function BlogPostCard({
   shop,
   backendApiUrl,
   onToast,
-  planName,
+  entitlements,
 }: {
   template: ContentTemplate;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
-  planName: string;
+  entitlements: Entitlements;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1023,7 +1032,7 @@ function BlogPostCard({
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
   }, [result, heroUrl, blogTopic, template, shop, backendApiUrl, onToast]);
 
-  const isPro = planName === 'Pro';
+  const canPublish = canAccess(entitlements, 'publish');
 
   return (
     <Card>
@@ -1046,7 +1055,7 @@ function BlogPostCard({
           </InlineStack>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
-            <ResultBlock templateId={template.id} templateName="Blog Post" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} isPro={isPro} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+            <ResultBlock templateId={template.id} templateName="Blog Post" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
           )}
         </BlockStack>
       </Box>
@@ -1057,15 +1066,18 @@ function BlogPostCard({
 // ─── Page Component ───────────────────────────────────────────────────────────
 
 export default function ContentTemplatesPage() {
-  const {shop, backendApiUrl, products, selectedProduct, templates, planName} =
+  const {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage} =
     useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const nav = (path: string) => {
-    const params = new URLSearchParams(searchParams);
+    const [basePath, existingQs] = path.split('?');
+    const params = new URLSearchParams(existingQs || '');
+    const sp = new URLSearchParams(searchParams);
+    sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
     if (shop) params.set('shop', shop);
-    return params.toString() ? `${path}?${params.toString()}` : path;
+    return params.toString() ? `${basePath}?${params.toString()}` : basePath;
   };
 
   const [toastContent, setToastContent] = useState<string | null>(null);
@@ -1088,28 +1100,28 @@ export default function ContentTemplatesPage() {
         {/* Product FAQ */}
         {faqTemplate && (
           <Layout.Section>
-            <FaqCard template={faqTemplate} products={products} initialProduct={selectedProduct} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} planName={planName} />
+            <FaqCard template={faqTemplate} products={products} initialProduct={selectedProduct} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
           </Layout.Section>
         )}
 
         {/* Collection Description */}
         {collectionTemplate && (
           <Layout.Section>
-            <CollectionCard template={collectionTemplate} products={products} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} planName={planName} />
+            <CollectionCard template={collectionTemplate} products={products} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
           </Layout.Section>
         )}
 
         {/* Hero Section */}
         {heroTemplate && (
           <Layout.Section>
-            <HeroSectionCard template={heroTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} planName={planName} />
+            <HeroSectionCard template={heroTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
           </Layout.Section>
         )}
 
         {/* Brand Blog Post */}
         {blogTemplate && (
           <Layout.Section>
-            <BlogPostCard template={blogTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} planName={planName} />
+            <BlogPostCard template={blogTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
           </Layout.Section>
         )}
       </Layout>

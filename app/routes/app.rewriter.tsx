@@ -3,6 +3,7 @@ import {
   useFetcher,
   useLoaderData,
   useSearchParams,
+  useNavigate,
 } from 'react-router';
 import {
   Page,
@@ -35,7 +36,6 @@ import {getSessionToken} from '@shopify/app-bridge/utilities';
 import {
   CheckIcon,
   LightbulbIcon,
-  LockIcon,
   LinkIcon,
   ListBulletedIcon,
   ListNumberedIcon,
@@ -48,6 +48,7 @@ import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';
 import { DowngradeScheduledBanner } from '../components/DowngradeScheduledBanner';
 import { LockedFeatureNotice } from '../components/LockedFeatureNotice';
+import { type Entitlements, type FeatureUsageMap } from '../utils/entitlements';
 
 type ShopLocale = {
   locale: string;
@@ -65,6 +66,8 @@ type LoaderData = {
   shop: string;
   shopSlug: string;
   planName: 'Free' | 'Basic' | 'Standard' | 'Pro';
+  entitlements: Entitlements;
+  feature_usage: FeatureUsageMap;
   maxLocales: number; // 1 = single-locale, -1 = unlimited
   billingCycleType?: 'lifetime' | 'recurring';
   rewriteLimit?: number | null;
@@ -233,6 +236,8 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let brandContextStatus = 'idle';
   let brandContextLastError: string | null = null;
   let brandContextSummary = '';
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -268,6 +273,8 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
         // Back-compat fallback (older backends)
         planName = lastPlanName;
       }
+      entitlements = data.entitlements || {};
+      feature_usage = data.feature_usage || {};
     }
   } catch {
     // Best-effort: keep fallback gating.
@@ -466,6 +473,8 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     shop: sessionShop,
     shopSlug,
     planName,
+    entitlements,
+    feature_usage,
     maxLocales,
     billingCycleType,
     rewriteLimit,
@@ -921,6 +930,8 @@ function RichTextEditor({
 
 function RewriterWorkspaceInner({
   planName,
+  entitlements,
+  feature_usage,
   maxLocales,
   billingCycleType,
   rewriteLimit,
@@ -947,6 +958,7 @@ function RewriterWorkspaceInner({
   brandContextSummary,
 }: LoaderData) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const app = useAppBridge() as unknown as ClientApplication<any>;
 
   const [search, setSearch] = useState('');
@@ -1021,21 +1033,12 @@ function RewriterWorkspaceInner({
   >({});
 
   const allowsMultiLocale = maxLocales !== 1;
-  // IMPORTANT: determine Free by billingCycleType (source-of-truth from backend usage),
-  // not by Shopify billing planName (which may show "Free" after uninstall).
-  const isFreePlan =
-    billingCycleType === 'lifetime' || (!billingCycleType && planName === 'Free');
-  const isBasicPlan = planName === 'Basic' || isFreePlan;
-  const isStandardPlus = planName === 'Standard' || planName === 'Pro';
-  const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = isBasicPlan
-    ? 'professional'
-    : toneProfile;
+  const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = toneProfile;
   const isOutOfFreeCredits =
-    isFreePlan && Number(lifetimeRewritesRemaining ?? 0) <= 0;
+    billingCycleType === 'lifetime' && Number(lifetimeRewritesRemaining ?? 0) <= 0;
 
-  const localeLimitMsg = isFreePlan
-    ? 'Free plan allows selecting 1 locale. Upgrade to Standard to select multiple.'
-    : 'Basic plan allows selecting 1 locale. Upgrade to Standard to select multiple.';
+  const localeLimitMsg =
+    'Upgrade to Standard to select multiple markets.';
 
   const isExpiredPaid = useMemo(() => {
     // If last plan is paid and access_expires_at has passed, the merchant must upgrade.
@@ -1477,7 +1480,7 @@ function RewriterWorkspaceInner({
         auto_convert_units: Boolean(autoConvertUnits),
         tone_profile: effectiveTone,
         remove_irrelevant_content: Boolean(removeIrrelevantContent),
-        brand_soul_enabled: Boolean(brandSoulEnabled && isStandardPlus),
+        brand_soul_enabled: Boolean(brandSoulEnabled),
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
@@ -1671,7 +1674,6 @@ function RewriterWorkspaceInner({
     autoConvertUnits,
     brandSoulEnabled,
     effectiveTone,
-    isStandardPlus,
     removeIrrelevantContent,
     referenceDescription,
     referenceTitle,
@@ -1742,16 +1744,25 @@ function RewriterWorkspaceInner({
   return (
     <Page title="Rewriter" titleHidden fullWidth>
       <Box padding="400">
-        <InlineStack gap="300" blockAlign="center">
-          <img
-            src="/Icon-final.png"
-            alt="Cross-Border AI"
-            style={{width: 24, height: 24}}
-          />
-          <Text as="h1" variant="headingLg">
-            Rewriter
-          </Text>
-        </InlineStack>
+        <BlockStack gap="200">
+          <InlineStack gap="300" blockAlign="center">
+            <img
+              src="/Icon-final.png"
+              alt="Cross-Border AI"
+              style={{width: 24, height: 24}}
+            />
+            <Text as="h1" variant="headingLg">
+              Rewriter
+            </Text>
+          </InlineStack>
+          {feature_usage?.rewriter ? (
+            <Text as="p" variant="bodySm" tone="subdued">
+              {feature_usage.rewriter.limit === -1
+                ? `${feature_usage.rewriter.used} products used`
+                : `${feature_usage.rewriter.used} / ${feature_usage.rewriter.limit} products used`}
+            </Text>
+          ) : null}
+        </BlockStack>
       </Box>
       <style>
         {`
@@ -2079,17 +2090,13 @@ function RewriterWorkspaceInner({
                     <div style={{flex: "1 1 auto"}}>
                       <BlockStack gap="200">
                       <Box>
-                        <InlineStack align="space-between" blockAlign="center">
-                          <Text as="p" variant="bodyMd" tone="subdued">
-                            Market Persona / Brand Tone
-                          </Text>
-                          {isBasicPlan ? <Icon source={LockIcon} tone="magic" /> : null}
-                        </InlineStack>
+                        <Text as="p" variant="bodyMd" tone="subdued">
+                          Market Persona / Brand Tone
+                        </Text>
                         <div style={{maxWidth: 420}}>
                           <Select
                             label=""
                             labelHidden
-                            disabled={isBasicPlan}
                             options={[
                               {label: 'Professional (Standard English)', value: 'professional'},
                               {label: 'Luxury (Sophisticated & Heritage)', value: 'luxury'},
@@ -2100,20 +2107,6 @@ function RewriterWorkspaceInner({
                             onChange={(v) => setToneProfile(v as any)}
                           />
                         </div>
-                        {isBasicPlan ? (
-                          <Box paddingBlockStart="200">
-                            <LockedFeatureNotice
-                              title="Standard Plan Feature"
-                              description={
-                                <>
-                                  Unlock Luxury, Minimalist, and Playful tones to match your brand&apos;s voice.
-                                </>
-                              }
-                              ctaLabel="Upgrade to Standard"
-                              ctaUrl={plansUrl}
-                            />
-                          </Box>
-                        ) : null}
                       </Box>
 
                       <Box paddingBlockStart="200">
@@ -2125,7 +2118,7 @@ function RewriterWorkspaceInner({
                         {overLimit ? (
                           <Box paddingBlockStart="200">
                             <LockedFeatureNotice
-                              title="Standard Plan Feature"
+                              title="Standard plan required"
                               description={<>{localeLimitMsg}</>}
                               ctaLabel="Upgrade to Standard"
                               ctaUrl={plansUrl}
@@ -2170,25 +2163,11 @@ function RewriterWorkspaceInner({
                             label="Enhance description using your brand’s soul"
                             checked={brandSoulEnabled}
                             onChange={setBrandSoulEnabled}
-                            disabled={!isStandardPlus}
                           />
-                          {!isStandardPlus ? <Icon source={LockIcon} tone="magic" /> : null}
                         </InlineStack>
                         <Text as="p" variant="bodySm" tone="subdued">
                           Pulls your brand story and pillars into the rewrite for richer storytelling.
                         </Text>
-                        {!isStandardPlus ? (
-                          <Box paddingBlockStart="200">
-                            <LockedFeatureNotice
-                              title="Standard Plan Feature"
-                              description={
-                                <>Save your Brand Soul in the dashboard to unlock this toggle.</>
-                              }
-                              ctaLabel="Upgrade to Standard"
-                              ctaUrl={plansUrl}
-                            />
-                          </Box>
-                        ) : null}
                       </Box>
 
                       <Box paddingBlockStart="200">
@@ -2205,11 +2184,11 @@ function RewriterWorkspaceInner({
                     <div className="aiActions" style={{paddingTop: '32px', flex: '0 0 auto'}}>
                       <InlineStack align="end" gap="300" blockAlign="center">
                         {isExpiredPaid ? (
-                          <Button size="large" variant="primary" url={dashboardUrl}>
+                          <Button size="large" variant="primary" onClick={() => navigate(dashboardUrl)}>
                             Go to Dashboard
                           </Button>
                         ) : isOutOfFreeCredits ? (
-                          <Button size="large" variant="primary" url={dashboardUrl}>
+                          <Button size="large" variant="primary" onClick={() => navigate(dashboardUrl)}>
                             Go to Dashboard
                           </Button>
                         ) : (

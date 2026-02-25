@@ -19,7 +19,9 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
+import { PlanGateBadge } from '../components/PlanGateBadge';
 import { RichTextEditor } from '../components/RichTextEditor';
+import { canAccess, formatUsage, type Entitlements, type FeatureUsageMap } from '../utils/entitlements';
 import '../styles/optimize-button.css';
 
 // ---------------------------------------------------------------------------
@@ -60,6 +62,8 @@ type LoaderData = {
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
   marketingTemplates: MarketingTemplate[];
+  entitlements: Entitlements;
+  feature_usage: FeatureUsageMap;
 };
 
 // ---------------------------------------------------------------------------
@@ -376,6 +380,7 @@ function MarketingTemplateCard({
   backendApiUrl,
   onToast,
   planName,
+  entitlements,
 }: {
   template: MarketingTemplate;
   selectedProduct: SelectedProduct | null;
@@ -383,6 +388,7 @@ function MarketingTemplateCard({
   backendApiUrl: string;
   onToast: (msg: string) => void;
   planName?: string;
+  entitlements: Entitlements;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -494,7 +500,7 @@ function MarketingTemplateCard({
     }
   }, [result, selectedProduct, template, shop, backendApiUrl, onToast]);
 
-  const isPro = planName === 'Pro';
+  const canPublish = canAccess(entitlements, 'publish');
 
   return (
     <Card>
@@ -528,7 +534,7 @@ function MarketingTemplateCard({
                   {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
                 </Button>
                 <InlineStack gap="200">
-                  {isPro && !published && (
+                  {canPublish && !published && (
                     <Button
                       onClick={handlePublish}
                       variant="primary"
@@ -539,11 +545,12 @@ function MarketingTemplateCard({
                       Publish
                     </Button>
                   )}
-                  {isPro && published && (
+                  {canPublish && published && (
                     <Button variant="plain" size="slim" disabled tone="success">
                       ✓ Published
                     </Button>
                   )}
+                  {!canPublish && <PlanGateBadge tierName="Pro" />}
                   <Button onClick={handleCopy} variant="secondary" size="slim">
                     Copy
                   </Button>
@@ -634,6 +641,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let planName: LoaderData['planName'] =
     tiers.includes('Pro') ? 'Pro' : tiers.includes('Standard') ? 'Standard' : tiers.includes('Basic') ? 'Basic' : 'Free';
 
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -642,6 +651,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (eff === 'Free' || eff === 'Basic' || eff === 'Standard' || eff === 'Pro') {
         planName = eff as LoaderData['planName'];
       }
+      entitlements = data.entitlements || {};
+      feature_usage = data.feature_usage || {};
     }
   } catch {
     // best-effort
@@ -717,15 +728,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // ---------------------------------------------------------------------------
 
 export default function MarketingTemplates() {
-  const { planName, shop, backendApiUrl, products, selectedProduct, marketingTemplates } =
+  const { planName, shop, backendApiUrl, products, selectedProduct, marketingTemplates, entitlements, feature_usage } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const nav = (path: string) => {
-    const params = new URLSearchParams(searchParams);
+    const [basePath, existingQs] = path.split('?');
+    const params = new URLSearchParams(existingQs || '');
+    const sp = new URLSearchParams(searchParams);
+    sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
     if (shop) params.set('shop', shop);
-    return params.toString() ? `${path}?${params.toString()}` : path;
+    return params.toString() ? `${basePath}?${params.toString()}` : basePath;
   };
 
   const [toastContent, setToastContent] = useState<string | null>(null);
@@ -795,7 +809,7 @@ export default function MarketingTemplates() {
                           shop={shop}
                           backendApiUrl={backendApiUrl}
                           onToast={setToastContent}
-                          planName={planName}
+                          entitlements={entitlements}
                         />
                       ))}
                     </BlockStack>
