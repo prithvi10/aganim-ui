@@ -9,70 +9,187 @@ export type PlanName =
   | typeof PLAN_STANDARD
   | typeof PLAN_PRO;
 
+export type PlanFeature = {
+  label: string;
+  included: boolean;
+};
+
+export type PlanSection = {
+  title: string;
+  subtitle?: string;
+  features: PlanFeature[];
+};
+
 export type PlanCardModel = {
   name: PlanName;
   price: string;
-  rewrites: string;
-  rewriterFeatures: string[];
-  marketingFeatures: string[];
-  otherFeatures: string[];
+  tagline: string;
+  productLimit: string;
+  sections: PlanSection[];
 };
 
 export const PLAN_CATALOG: PlanCardModel[] = [
   {
     name: PLAN_FREE,
     price: "$0",
-    rewrites: "10 lifetime credits",
-    rewriterFeatures: [
-      "AI product rewrite (title + description)",
-      "SEO details (title + meta description)",
-      "SEO editor + preview",
-      "1 market at a time (1 locale)",
+    tagline: "Try everything, limited access",
+    productLimit: "10 products (1 week trial)",
+    sections: [
+      {
+        title: "Rewriter",
+        features: [
+          { label: "AI product rewrite (title + description)", included: true },
+          { label: "Key Details auto-detected", included: true },
+        ],
+      },
+      {
+        title: "SEO",
+        features: [
+          { label: "SEO title + meta description", included: true },
+          { label: "SEO editor + preview", included: true },
+        ],
+      },
+      {
+        title: "Marketing",
+        features: [
+          { label: "Instagram captions + hashtags", included: true },
+          { label: "Seasonal campaign ideas", included: true },
+        ],
+      },
+      {
+        title: "Price Scout",
+        features: [{ label: "Competitive pricing analysis", included: true }],
+      },
+      {
+        title: "Missions",
+        features: [
+          { label: "Full product launch (incl. images)", included: true },
+        ],
+      },
+      {
+        title: "Images",
+        features: [
+          { label: "Image refinement", included: true },
+        ],
+      },
     ],
-    marketingFeatures: [
-      "Instagram captions + hashtags",
-      "Seasonal campaign ideas + caption",
-    ],
-    otherFeatures: [],
   },
   {
     name: PLAN_BASIC,
-    price: "$49",
-    rewrites: "50 rewrites / month",
-    rewriterFeatures: [
-      "AI product rewrite (title + description)",
-      "SEO details (title + meta description)",
-      "SEO editor + preview",
-      "Key Details (Nuance) auto-detected",
-      "EN unit conversion (metric + US)",
-      "1 market at a time (1 locale)",
+    price: "$29",
+    tagline: "",
+    productLimit: "50 products / month",
+    sections: [
+      {
+        title: "Rewriter",
+        features: [
+          { label: "AI product rewrite (title + description)", included: true },
+          { label: "Key Details auto-detected", included: true },
+          { label: "EN unit conversion (metric + US)", included: true },
+        ],
+      },
+      {
+        title: "Marketing",
+        features: [
+          { label: "Instagram captions + hashtags", included: true },
+          { label: "Seasonal campaign ideas", included: true },
+        ],
+      },
+      {
+        title: "Missions",
+        features: [
+          { label: "Text-only mission (Rewriter + Marketing)", included: true },
+        ],
+      },
     ],
-    marketingFeatures: [
-      "Instagram captions + hashtags",
-      "Seasonal campaign ideas + caption",
-    ],
-    otherFeatures: [],
   },
   {
     name: PLAN_STANDARD,
-    price: "$99",
-    rewrites: "100 rewrites / month",
-    rewriterFeatures: [
-      "Everything in Basic (Rewriter)",
-      "Multi-market (multiple locales per run)",
-      "Brand tones: Luxury / Minimalist / Playful",
-      "Bulk market optimization",
+    price: "$79",
+    tagline: "",
+    productLimit: "Unlimited products",
+    sections: [
+      {
+        title: "Rewriter",
+        features: [
+          { label: "Everything in Basic", included: true },
+          { label: "Multi-market (multiple locales)", included: true },
+          { label: "Brand tones: Luxury / Minimalist / Playful", included: true },
+        ],
+      },
+      {
+        title: "SEO",
+        features: [
+          { label: "SEO title + meta description", included: true },
+          { label: "SEO editor + preview", included: true },
+        ],
+      },
+      {
+        title: "Marketing",
+        features: [
+          { label: "Everything in Basic", included: true },
+        ],
+      },
+      {
+        title: "Price Scout",
+        features: [{ label: "Competitive pricing analysis", included: true }],
+      },
+      {
+        title: "Missions",
+        features: [
+          { label: "Full text pipeline (no image agents)", included: true },
+        ],
+      },
     ],
-    marketingFeatures: ["Everything in Basic (Marketing)"],
-    otherFeatures: [],
   },
   {
     name: PLAN_PRO,
     price: "$199",
-    rewrites: "Unlimited rewrites",
-    rewriterFeatures: ["Everything in Standard (Rewriter)", "Unlimited bulk multi-market"],
-    marketingFeatures: ["Everything in Standard (Marketing)"],
-    otherFeatures: ["Priority AI (GPT‑5)"],
+    tagline: "",
+    productLimit: "Unlimited products",
+    sections: [
+      {
+        title: "Rewriter",
+        features: [
+          { label: "Everything in Standard", included: true },
+          { label: "Priority AI model", included: true },
+        ],
+      },
+      {
+        title: "SEO",
+        features: [{ label: "Full SEO optimization", included: true }],
+      },
+      {
+        title: "Marketing",
+        features: [
+          { label: "Everything in Standard", included: true },
+          { label: "Visual Ad generation", included: true },
+          { label: "Social Post preview", included: true },
+        ],
+      },
+      {
+        title: "Price Scout",
+        features: [
+          { label: "Pricing analysis", included: true },
+          { label: "Auto-apply price to Shopify", included: true },
+        ],
+      },
+      {
+        title: "Missions & Autonomous",
+        features: [
+          { label: "Full pipeline with image agents", included: true },
+          { label: "Agentic workflows", included: true },
+          { label: "Publish to Shopify", included: true },
+          { label: "Apply recommended price", included: true },
+          { label: "Meta (Facebook/Instagram) integration", included: true },
+        ],
+      },
+      {
+        title: "Images",
+        features: [
+          { label: "Image refinement across all features", included: true },
+        ],
+      },
+    ],
   },
 ];
-

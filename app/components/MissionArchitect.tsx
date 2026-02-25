@@ -21,7 +21,21 @@ import {
   PlayIcon,
   ArrowLeftIcon,
 } from "@shopify/polaris-icons";
+import { PlanGateBadge } from "./PlanGateBadge";
 import "../styles/optimize-button.css";
+
+type PlanTier = "Free" | "Basic" | "Standard" | "Pro";
+
+const TIER_RANK: Record<PlanTier, number> = {
+  Free: 0,
+  Basic: 1,
+  Standard: 2,
+  Pro: 3,
+};
+
+function tierMeetsMin(current: PlanTier, required: PlanTier): boolean {
+  return TIER_RANK[current] >= TIER_RANK[required];
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +91,10 @@ interface MissionArchitectProps {
   isRunning?: boolean;
   /** User's plan tier */
   planTier?: string;
+  /** Plan entitlements from backend */
+  entitlements?: Record<string, unknown>;
+  /** Per-feature usage from backend */
+  feature_usage?: Record<string, { used: number; limit: number }>;
 }
 
 // ─── Agent Library ──────────────────────────────────────────────────────────
@@ -242,11 +260,135 @@ interface Preset {
   description: string;
   steps: WorkflowStep[];
   contextType: ContextType;
-  /** When true, only Pro-tier users can select this preset */
-  proOnly?: boolean;
+  minTier: PlanTier;
 }
 
 const PRESETS: Record<string, Preset> = {
+  // ── Basic: Rewriter + Marketing captions ───────────────────────────
+  social_hype_man: {
+    label: "Social Hype-Man",
+    icon: "📱",
+    description:
+      "Use Brand Soul-adapted description to feed a perfectly synced FB/IG ad",
+    steps: [
+      { agent_name: "RewriterAgent", has_gate: true },
+      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/ad-facebook" },
+    ],
+    contextType: "product",
+    minTier: "Basic",
+  },
+  new_arrival_blast: {
+    label: "New Arrival Blast",
+    icon: "🎯",
+    description:
+      "Rewrite for Brand Soul alignment, then instantly generate launch email",
+    steps: [
+      { agent_name: "RewriterAgent", has_gate: true },
+      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-launch" },
+    ],
+    contextType: "product",
+    minTier: "Basic",
+  },
+  welcome_journey: {
+    label: "Welcome Journey",
+    icon: "👋",
+    description:
+      "Use Brand Soul to ensure welcome email sounds like your store's personality",
+    steps: [
+      { agent_name: "RewriterAgent", has_gate: true },
+      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-welcome" },
+    ],
+    contextType: "product",
+    minTier: "Basic",
+  },
+  artisan_storyteller: {
+    label: "Artisan Storyteller",
+    icon: "🏆",
+    description:
+      'Turn raw Japanese specs into a "Hero" section for US/Global audience',
+    steps: [
+      { agent_name: "RewriterAgent", has_gate: true },
+      { agent_name: "RewriterAgent", has_gate: true, template_id: "product/landing-hero" },
+    ],
+    contextType: "product_hero",
+    minTier: "Basic",
+  },
+
+  // ── Standard: +SEO and Pricing missions ────────────────────────────
+  competitor_rebuttal: {
+    label: "Competitor Rebuttal",
+    icon: "⚔️",
+    description:
+      'When a competitor is cheaper, use FAQ to explain the "Value Difference"',
+    steps: [
+      { agent_name: "PriceScoutAgent", has_gate: true },
+      { agent_name: "RewriterAgent", has_gate: true, template_id: "product/faq" },
+    ],
+    contextType: "product",
+    minTier: "Standard",
+  },
+  abandoned_cart_fix: {
+    label: "Abandoned Cart Fix",
+    icon: "🛒",
+    description:
+      'Use competitor price data to craft a "Quality vs. Discount" recovery email',
+    steps: [
+      { agent_name: "PriceScoutAgent", has_gate: true },
+      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-abandoned" },
+    ],
+    contextType: "product",
+    minTier: "Standard",
+  },
+  seo_content_factory: {
+    label: "SEO Content Factory",
+    icon: "📝",
+    description:
+      "Use SEO analysis to write a blog post that ranks for important keywords",
+    steps: [
+      { agent_name: "SEOAgent", has_gate: true },
+      { agent_name: "RewriterAgent", has_gate: true, template_id: "product/blog-post" },
+    ],
+    contextType: "product_blog",
+    minTier: "Standard",
+  },
+  collection_refresher: {
+    label: "Collection Refresher",
+    icon: "📦",
+    description:
+      "Select products, name your collection, and generate optimized SEO + description",
+    steps: [
+      { agent_name: "SEOAgent", has_gate: true },
+      { agent_name: "RewriterAgent", has_gate: true, template_id: "product/collection" },
+    ],
+    contextType: "collection",
+    minTier: "Standard",
+  },
+  google_ads_shield: {
+    label: "Google Ads Shield",
+    icon: "🔎",
+    description:
+      "Use SEO keyword research to feed Google Ads for high-intent traffic",
+    steps: [
+      { agent_name: "SEOAgent", has_gate: true },
+      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/ad-google" },
+    ],
+    contextType: "product",
+    minTier: "Standard",
+  },
+  market_awareness_audit: {
+    label: "Market Awareness Audit",
+    icon: "📊",
+    description:
+      'Analyze if you\'re "Outpriced" or "Outranked" vs competitors',
+    steps: [
+      { agent_name: "PriceScoutAgent", has_gate: true },
+      { agent_name: "SEOAgent", has_gate: true },
+    ],
+    contextType: "product",
+    minTier: "Standard",
+  },
+
+  // ── Pro: All missions including visual ─────────────────────────────
   full_launch: {
     label: "Full Launch",
     icon: "🚀",
@@ -260,7 +402,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "VisualMarketingAgent", has_gate: true },
     ],
     contextType: "product",
-    proOnly: true,
+    minTier: "Pro",
   },
   visual_ad_blitz: {
     label: "Visual Ad Blitz",
@@ -272,117 +414,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "VisualMarketingAgent", has_gate: true },
     ],
     contextType: "product",
-    proOnly: true,
-  },
-  competitor_rebuttal: {
-    label: "Competitor Rebuttal",
-    icon: "⚔️",
-    description:
-      'When a competitor is cheaper, use FAQ to explain the "Value Difference"',
-    steps: [
-      { agent_name: "PriceScoutAgent", has_gate: true },
-      { agent_name: "RewriterAgent", has_gate: true, template_id: "product/faq" },
-    ],
-    contextType: "product",
-  },
-  social_hype_man: {
-    label: "Social Hype-Man",
-    icon: "📱",
-    description:
-      "Use Brand Soul-adapted description to feed a perfectly synced FB/IG ad",
-    steps: [
-      { agent_name: "RewriterAgent", has_gate: true },
-      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/ad-facebook" },
-    ],
-    contextType: "product",
-  },
-  abandoned_cart_fix: {
-    label: "Abandoned Cart Fix",
-    icon: "🛒",
-    description:
-      'Use competitor price data to craft a "Quality vs. Discount" recovery email',
-    steps: [
-      { agent_name: "PriceScoutAgent", has_gate: true },
-      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-abandoned" },
-    ],
-    contextType: "product",
-  },
-  seo_content_factory: {
-    label: "SEO Content Factory",
-    icon: "📝",
-    description:
-      "Use SEO analysis to write a blog post that ranks for important keywords",
-    steps: [
-      { agent_name: "SEOAgent", has_gate: true },
-      { agent_name: "RewriterAgent", has_gate: true, template_id: "product/blog-post" },
-    ],
-    contextType: "product_blog",
-  },
-  artisan_storyteller: {
-    label: "Artisan Storyteller",
-    icon: "🏆",
-    description:
-      'Turn raw Japanese specs into a "Hero" section for US/Global audience',
-    steps: [
-      { agent_name: "RewriterAgent", has_gate: true },
-      { agent_name: "RewriterAgent", has_gate: true, template_id: "product/landing-hero" },
-    ],
-    contextType: "product_hero",
-  },
-  new_arrival_blast: {
-    label: "New Arrival Blast",
-    icon: "🎯",
-    description:
-      "Rewrite for Brand Soul alignment, then instantly generate launch email",
-    steps: [
-      { agent_name: "RewriterAgent", has_gate: true },
-      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-launch" },
-    ],
-    contextType: "product",
-  },
-  collection_refresher: {
-    label: "Collection Refresher",
-    icon: "📦",
-    description:
-      "Select products, name your collection, and generate optimized SEO + description",
-    steps: [
-      { agent_name: "SEOAgent", has_gate: true },
-      { agent_name: "RewriterAgent", has_gate: true, template_id: "product/collection" },
-    ],
-    contextType: "collection",
-  },
-  google_ads_shield: {
-    label: "Google Ads Shield",
-    icon: "🔎",
-    description:
-      "Use SEO keyword research to feed Google Ads for high-intent traffic",
-    steps: [
-      { agent_name: "SEOAgent", has_gate: true },
-      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/ad-google" },
-    ],
-    contextType: "product",
-  },
-  welcome_journey: {
-    label: "Welcome Journey",
-    icon: "👋",
-    description:
-      "Use Brand Soul to ensure welcome email sounds like your store's personality",
-    steps: [
-      { agent_name: "RewriterAgent", has_gate: true },
-      { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-welcome" },
-    ],
-    contextType: "product",
-  },
-  market_awareness_audit: {
-    label: "Market Awareness Audit",
-    icon: "📊",
-    description:
-      'Analyze if you\'re "Outpriced" or "Outranked" vs competitors',
-    steps: [
-      { agent_name: "PriceScoutAgent", has_gate: true },
-      { agent_name: "SEOAgent", has_gate: true },
-    ],
-    contextType: "product",
+    minTier: "Pro",
   },
 };
 
@@ -392,22 +424,20 @@ function MissionCard({
   icon,
   label,
   description,
-  stepCount,
   onClick,
   isCustom,
-  proOnly,
-  isProUser,
+  minTier,
+  currentTier,
 }: {
   icon: string;
   label: string;
   description: string;
-  stepCount?: number;
   onClick: () => void;
   isCustom?: boolean;
-  proOnly?: boolean;
-  isProUser?: boolean;
+  minTier?: PlanTier;
+  currentTier: PlanTier;
 }) {
-  const isLocked = proOnly && !isProUser;
+  const isLocked = !!minTier && !tierMeetsMin(currentTier, minTier);
 
   return (
     <div
@@ -421,7 +451,7 @@ function MissionCard({
         border: `2px solid ${
           isCustom
             ? "var(--p-color-border-emphasis)"
-            : proOnly
+            : isLocked
               ? "var(--p-color-border-caution)"
               : "var(--p-color-border)"
         }`,
@@ -444,7 +474,7 @@ function MissionCard({
         if (isLocked) return;
         e.currentTarget.style.borderColor = isCustom
           ? "var(--p-color-border-emphasis)"
-          : proOnly
+          : isLocked
             ? "var(--p-color-border-caution)"
             : "var(--p-color-border)";
         e.currentTarget.style.transform = "translateY(0)";
@@ -459,14 +489,12 @@ function MissionCard({
           <Text as="h3" variant="headingSm" fontWeight="bold">
             {label}
           </Text>
-          {proOnly && (
-            <Badge tone="warning" size="small">
-              Pro
-            </Badge>
-          )}
+          {isLocked && minTier && <PlanGateBadge tierName={minTier} />}
         </InlineStack>
         <Text as="p" variant="bodySm" tone="subdued">
-          {isLocked ? "Upgrade to Pro to unlock AI visual generation" : description}
+          {isLocked
+            ? `Upgrade to ${minTier} to unlock this mission`
+            : description}
         </Text>
       </BlockStack>
     </div>
@@ -482,8 +510,9 @@ export function MissionArchitect({
   onStartMission,
   isRunning = false,
   planTier = "Basic",
+  entitlements,
 }: MissionArchitectProps) {
-  const isPro = String(planTier || "").trim().toLowerCase() === "pro";
+  const currentTier = (["Free", "Basic", "Standard", "Pro"].includes(planTier) ? planTier : "Free") as PlanTier;
 
   // ── Wizard state ────────────────────────────────────────────────────────
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
@@ -658,8 +687,8 @@ export function MissionArchitect({
                   label={p.label}
                   description={p.description}
                   onClick={() => handleMissionSelect(key)}
-                  proOnly={p.proOnly}
-                  isProUser={isPro}
+                  minTier={p.minTier}
+                  currentTier={currentTier}
                 />
               ))}
 
@@ -670,6 +699,7 @@ export function MissionArchitect({
                 description="Build your own pipeline with any agent combination"
                 onClick={() => handleMissionSelect("custom")}
                 isCustom
+                currentTier={currentTier}
               />
             </div>
           </BlockStack>
@@ -850,7 +880,13 @@ export function MissionArchitect({
                 </Text>
                 <InlineStack gap="300" wrap>
                   {AVAILABLE_AGENTS
-                    .filter((agent) => !["ImageRefinementAgent", "VisualMarketingAgent"].includes(agent.name) || isPro)
+                    .filter((agent) => {
+                      if (["ImageRefinementAgent", "VisualMarketingAgent"].includes(agent.name))
+                        return tierMeetsMin(currentTier, "Pro");
+                      if (["SEOAgent", "PriceScoutAgent"].includes(agent.name))
+                        return tierMeetsMin(currentTier, "Standard");
+                      return tierMeetsMin(currentTier, "Basic");
+                    })
                     .map((agent) => (
                     <div key={agent.name} style={{ minWidth: "160px" }}>
                       <Button

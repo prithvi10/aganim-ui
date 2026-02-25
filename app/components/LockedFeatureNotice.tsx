@@ -1,17 +1,13 @@
 import type { ReactNode } from "react";
-import { Banner, BlockStack, Button, Icon, InlineStack, Text } from "@shopify/polaris";
+import { useNavigate } from "react-router";
+import { BlockStack, Button, Card, Box, Icon, InlineStack, Text } from "@shopify/polaris";
 import { LockIcon } from "@shopify/polaris-icons";
 
 type Props = {
-  /** e.g. "Standard Plan Feature" / "Pro Plan Feature" */
   title: string;
-  /** Main description shown under the title */
   description: ReactNode;
-  /** Optional CTA */
   ctaLabel?: string;
   ctaUrl?: string;
-  /** Banner tone */
-  tone?: "info" | "warning" | "critical" | "success";
 };
 
 export function LockedFeatureNotice({
@@ -19,26 +15,26 @@ export function LockedFeatureNotice({
   description,
   ctaLabel,
   ctaUrl,
-  tone = "info",
 }: Props) {
+  const navigate = useNavigate();
+
   return (
-    <Banner tone={tone}>
-      <BlockStack gap="200">
-        <InlineStack gap="200" blockAlign="center">
-          <Icon source={LockIcon} tone="magic" />
-          <Text as="p" variant="bodyMd">
-            <strong>{title}:</strong> {description}
+    <Card>
+      <Box padding="500">
+        <BlockStack gap="400">
+          <Text as="h2" variant="headingMd">{title}</Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            {description}
           </Text>
-        </InlineStack>
-        {ctaLabel && ctaUrl ? (
-          <div>
-            <Button url={ctaUrl} variant="primary">
-              {ctaLabel}
-            </Button>
-          </div>
-        ) : null}
-      </BlockStack>
-    </Banner>
+          {ctaLabel && ctaUrl ? (
+            <div>
+              <Button onClick={() => navigate(ctaUrl)} variant="primary" icon={LockIcon}>
+                {ctaLabel}
+              </Button>
+            </div>
+          ) : null}
+        </BlockStack>
+      </Box>
+    </Card>
   );
 }
-

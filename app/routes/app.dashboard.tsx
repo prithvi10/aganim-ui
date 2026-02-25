@@ -28,7 +28,9 @@ import {
   FormLayout,
 } from "@shopify/polaris";
 import { PlanCard } from "../components/PlanCard";
+import { PlanGateBadge } from "../components/PlanGateBadge";
 import { DowngradeScheduledBanner } from "../components/DowngradeScheduledBanner";
+import { canAccess, formatUsage, getRequiredTier, type Entitlements, type FeatureUsageMap } from "../utils/entitlements";
 import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
 import { XSmallIcon } from "@shopify/polaris-icons";
 import db from "../db.server";
@@ -44,7 +46,6 @@ const TRANSLATIONS = {
     manageSubscription: "Manage Subscription",
     usage: "Usage",
     rewritesUsed: "rewrites used this month",
-    priorityAccess: "Priority GPT-5 Access Active",
     health: "All Systems Operational",
     supportTitle: "Certified Support",
     supportText: "Our team is based in JST and typically responds within 2 hours.",
@@ -63,7 +64,6 @@ const TRANSLATIONS = {
     manageSubscription: "サブスクリプション管理",
     usage: "利用状況",
     rewritesUsed: "件 / 今月の書き換え数",
-    priorityAccess: "GPT-5 優先アクセス有効",
     health: "全システム稼働中",
     supportTitle: "認定サポート",
     supportText: "日本時間で対応中。通常2時間以内に返信いたします。",
@@ -142,6 +142,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let planName = "Free";
   let trialDays = 0;
   let metaCredentials = { access_token_present: false, page_id_present: false, page_id: null as string | null };
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     // 3. FETCH DATA using the Master Key (No 302s)
     
@@ -228,9 +230,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       
       if (resp.status === 401) {
         // Backend rejected the token
-        backendError401 = true; 
+        backendError401 = true;
       } else if (resp.ok) {
         const data = await resp.json();
+        entitlements = (data.entitlements || {}) as Entitlements;
+        feature_usage = (data.feature_usage || {}) as FeatureUsageMap;
         const billingCycleType =
           String(data.billing_cycle_type || "")
             .trim()
@@ -292,6 +296,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       isSyncing: false,
       backendApiUrl,
       metaCredentials,
+      entitlements,
+      feature_usage,
     };
 
   } catch (e) {
@@ -314,6 +320,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       isSyncing: false,
       backendApiUrl: process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com",
       metaCredentials: { access_token_present: false, page_id_present: false, page_id: null },
+      entitlements: {},
+      feature_usage: {},
     };
   }
 };
@@ -334,6 +342,8 @@ export default function Dashboard() {
     isSyncing,
     backendApiUrl,
     metaCredentials: initialMetaCredentials,
+    entitlements,
+    feature_usage,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -364,8 +374,8 @@ export default function Dashboard() {
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   // NOTE: App Bridge instance is not needed on this page right now.
 
-  // Meta credentials state (Pro tier only)
-  const isPro = String(planName || "").trim() === "Pro";
+  // Meta credentials state (gated by meta_integration entitlement)
+  const canUseMetaIntegration = canAccess(entitlements, "meta_integration");
   const [metaAccessToken, setMetaAccessToken] = useState("");
   const [metaPageId, setMetaPageId] = useState(initialMetaCredentials?.page_id ?? "");
   const [metaConnected, setMetaConnected] = useState(
@@ -380,61 +390,23 @@ export default function Dashboard() {
   }, [planName]);
 
 
-  const lockedFeatureSections = useMemo(() => {
-    const order: PlanName[] = [PLAN_FREE, PLAN_BASIC, PLAN_STANDARD, PLAN_PRO];
-    const current = (String(planName || PLAN_FREE) as PlanName) ?? PLAN_FREE;
-    if (current === PLAN_PRO) return [];
-    const currentIdx = order.indexOf(current);
-    if (currentIdx < 0 || currentIdx === order.length - 1) return [];
+  const KEY_FEATURES: Array<{ key: string; label: string }> = [
+    { key: "seo", label: "SEO optimization" },
+    { key: "price_scout", label: "Price Scout" },
+    { key: "image_refinement_adhoc", label: "Image refinement" },
+    { key: "ad_image_generation", label: "Ad image generation" },
+    { key: "social_post_preview", label: "Social post preview" },
+    { key: "autonomous", label: "Autonomous publishing" },
+    { key: "publish", label: "Publish to Meta" },
+    { key: "apply_price", label: "Apply price changes" },
+    { key: "meta_integration", label: "Meta integration" },
+  ];
 
-    const isFiller = (s: string) => /^everything in\s+/i.test(String(s || "").trim());
-    const normalize = (s: string) => String(s || "").trim();
-
-    const currentCard = PLAN_CATALOG.find((p) => p.name === current);
-    const currentSet = new Set<string>(
-      [
-        ...(currentCard?.rewriterFeatures ?? []),
-        ...(currentCard?.marketingFeatures ?? []),
-        ...(currentCard?.otherFeatures ?? []),
-      ]
-        .map(normalize)
-        .filter((x) => x && !isFiller(x)),
-    );
-
-    const sections: Array<{ title: string; plan: PlanName; rewrites: string; features: string[] }> = [];
-    const seen = new Set<string>(currentSet);
-
-    for (let i = currentIdx + 1; i < order.length; i++) {
-      const tier = order[i];
-      const card = PLAN_CATALOG.find((p) => p.name === tier);
-      if (!card) continue;
-      const all = [
-        ...(card.rewriterFeatures ?? []),
-        ...(card.marketingFeatures ?? []),
-        ...(card.otherFeatures ?? []),
-      ]
-        .map(normalize)
-        .filter((x) => x && !isFiller(x));
-
-      const additions = all.filter((x) => !seen.has(x));
-      additions.forEach((x) => seen.add(x));
-      if (additions.length) {
-        sections.push({
-          title:
-            tier === PLAN_PRO
-              ? "Unlock with Pro"
-              : tier === PLAN_STANDARD
-                ? "Unlock with Standard"
-                : "Unlock with Basic",
-          plan: tier,
-          rewrites: String(card.rewrites || "").trim(),
-          features: additions,
-        });
-      }
-    }
-
-    return sections;
-  }, [planName]);
+  const lockedFeaturesWithTiers = useMemo(() => {
+    return KEY_FEATURES
+      .filter((f) => !canAccess(entitlements, f.key))
+      .map((f) => ({ ...f, tier: getRequiredTier(f.key) ?? "Pro" }));
+  }, [entitlements]);
 
   useEffect(() => {
     // Artificial delay to prevent skeleton flash on fast loads
@@ -660,6 +632,28 @@ export default function Dashboard() {
                 </Card>
                </div>
                
+               {/* Usage Summary: products, missions, images ───────────────── */}
+               <div style={{ flex: 1 }}>
+                <Card>
+                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
+                    <BlockStack gap="200">
+                      <Text as="h2" variant="headingSm" tone="subdued">Usage Summary</Text>
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodyMd">
+                          Products: {usedCount} / {quotaCount > 0 ? quotaCount : "—"} rewrites
+                        </Text>
+                        <Text as="p" variant="bodyMd">
+                          Missions: {formatUsage(feature_usage.missions, false) || "—"}
+                        </Text>
+                        <Text as="p" variant="bodyMd">
+                          Images: {formatUsage(feature_usage.image_generation, false) || "—"}
+                        </Text>
+                      </BlockStack>
+                    </BlockStack>
+                  </div>
+                </Card>
+               </div>
+
                {/* Monthly Product Rewrite Usage */}
                <div style={{ flex: 1 }}>
                 <Card>
@@ -683,7 +677,7 @@ export default function Dashboard() {
                             tone={lifetimeRemaining <= 2 ? "critical" : "highlight"}
                           />
                           <div style={{marginTop: "6px"}}>
-                            <Button url={plansUrl} variant="primary">
+                            <Button onClick={() => navigate(plansUrl)} variant="primary">
                               Get 50 rewrites/month
                             </Button>
                           </div>
@@ -692,7 +686,7 @@ export default function Dashboard() {
                         <BlockStack gap="100">
                           <InlineStack align="space-between" blockAlign="center">
                             <Text as="p" variant="headingMd">Unlimited</Text>
-                            <Badge tone="success">Priority GPT-5 Access Active</Badge>
+                            <Badge tone="success">Unlimited</Badge>
                           </InlineStack>
                           {resetDateLabel ? (
                             <Text as="p" variant="bodySm" tone="subdued">{`Resets on ${resetDateLabel}`}</Text>
@@ -745,14 +739,14 @@ export default function Dashboard() {
                     isCurrent
                     graceActive={Boolean((usage as any)?.graceActive)}
                     cta={
-                      <Button fullWidth variant="primary" url={plansUrl}>
+                      <Button fullWidth variant="primary" onClick={() => navigate(plansUrl)}>
                         {t.manageSubscription}
                       </Button>
                     }
                   />
                 </div>
 
-                {planName !== PLAN_PRO && lockedFeatureSections.length ? (
+                {lockedFeaturesWithTiers.length > 0 ? (
                   <div style={{ flex: "1 1 420px", minWidth: 360 }}>
                     <Card>
                       <div style={{ height: 480, padding: "var(--p-space-400)" }}>
@@ -767,46 +761,25 @@ export default function Dashboard() {
                           </BlockStack>
 
                           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 2, marginTop: 12 }}>
-                            <BlockStack gap="300">
-                              {lockedFeatureSections.map((sec) => (
-                                <Box
-                                  key={sec.title}
-                                  padding="300"
-                                  background="bg-surface-secondary"
-                                  borderRadius="200"
-                                >
-                                  <BlockStack gap="150">
-                                    <InlineStack align="space-between" blockAlign="center">
-                                      <Text as="h3" variant="headingSm">
-                                        {sec.title}
-                                      </Text>
-                                      {sec.plan === PLAN_STANDARD && sec.rewrites ? (
-                                        <Text as="span" variant="bodySm" tone="subdued">
-                                          {sec.rewrites}
-                                        </Text>
-                                      ) : null}
-                                    </InlineStack>
-                                    <BlockStack gap="100">
-                                      {sec.features.map((f) => (
-                                        <ExceptionList
-                                          key={`${sec.title}-${f}`}
-                                          items={[
-                                            {
-                                              icon: XSmallIcon,
-                                              description: f,
-                                            },
-                                          ]}
-                                        />
-                                      ))}
-                                    </BlockStack>
-                                  </BlockStack>
-                                </Box>
+                            <BlockStack gap="200">
+                              {lockedFeaturesWithTiers.map((f) => (
+                                <InlineStack key={f.key} gap="200" blockAlign="center" wrap>
+                                  <ExceptionList
+                                    items={[
+                                      {
+                                        icon: XSmallIcon,
+                                        description: f.label,
+                                      },
+                                    ]}
+                                  />
+                                  <PlanGateBadge tierName={f.tier} />
+                                </InlineStack>
                               ))}
                             </BlockStack>
                           </div>
 
                           <div style={{ paddingTop: 16, marginTop: "auto" }}>
-                            <Button fullWidth variant="primary" url={plansUrl}>
+                            <Button fullWidth variant="primary" onClick={() => navigate(plansUrl)}>
                               {t.manageSubscription}
                             </Button>
                           </div>
@@ -820,8 +793,8 @@ export default function Dashboard() {
             </BlockStack>
           </Layout.Section>
 
-          {/* META API CREDENTIALS – Pro Only */}
-          {isPro && (
+          {/* META API CREDENTIALS – gated by meta_integration entitlement */}
+          {canUseMetaIntegration && (
             <Layout.Section>
               <Card>
                 <Box padding="400">

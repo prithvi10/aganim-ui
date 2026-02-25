@@ -72,9 +72,12 @@ export default function CampaignsPage() {
   const app = useAppBridge();
 
   const nav = (path: string) => {
-    const params = new URLSearchParams(searchParams);
+    const [basePath, existingQs] = path.split('?');
+    const params = new URLSearchParams(existingQs || '');
+    const sp = new URLSearchParams(searchParams);
+    sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
     if (shop) params.set('shop', shop);
-    return params.toString() ? `${path}?${params.toString()}` : path;
+    return params.toString() ? `${basePath}?${params.toString()}` : basePath;
   };
 
   const [toastContent, setToastContent] = useState<string | null>(null);

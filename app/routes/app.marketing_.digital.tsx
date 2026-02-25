@@ -25,6 +25,9 @@ import { DowngradeScheduledBanner } from '../components/DowngradeScheduledBanner
 import { MissionTimeline } from '../components/MissionTimeline';
 import { ProductImageUploader } from '../components/ProductImageUploader';
 import { InstaPreview } from '../components/InstaPreview';
+import { LockedFeatureNotice } from '../components/LockedFeatureNotice';
+import { PlanGateBadge } from '../components/PlanGateBadge';
+import { canAccess, type Entitlements, type FeatureUsageMap } from '../utils/entitlements';
 import '../styles/optimize-button.css';
 
 // ---------------------------------------------------------------------------
@@ -71,6 +74,8 @@ type LoaderData = {
   selectedProduct: SelectedProduct | null;
   contentHash: string | null;
   didResetMetaCache: boolean;
+  entitlements: Entitlements;
+  feature_usage: FeatureUsageMap;
 };
 
 // ---------------------------------------------------------------------------
@@ -177,6 +182,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let lastPlanChangeType: string | null = null;
   let lastPlanChangeAt: string | null = null;
 
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -189,6 +196,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       pendingPlanEffectiveAt = String(data?.pending_plan_effective_at || '').trim() || null;
       lastPlanChangeType = String(data?.last_plan_change_type || '').trim() || null;
       lastPlanChangeAt = String(data?.last_plan_change_at || '').trim() || null;
+      entitlements = data.entitlements || {};
+      feature_usage = data.feature_usage || {};
     }
   } catch {
     // best-effort
@@ -348,6 +357,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     selectedProduct,
     contentHash: selectedProduct?._contentHash ?? null,
     didResetMetaCache,
+    entitlements,
+    feature_usage,
   } satisfies LoaderData;
 };
 
@@ -452,15 +463,20 @@ export default function DigitalMarketing() {
     backendApiUrl,
     contentHash,
     didResetMetaCache,
+    entitlements,
+    feature_usage,
   } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge();
   const navigate = useNavigate();
 
   const nav = (path: string) => {
-    const params = new URLSearchParams(searchParams);
+    const [basePath, existingQs] = path.split('?');
+    const params = new URLSearchParams(existingQs || '');
+    const sp = new URLSearchParams(searchParams);
+    sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
     if (shop) params.set('shop', shop);
-    return params.toString() ? `${path}?${params.toString()}` : path;
+    return params.toString() ? `${basePath}?${params.toString()}` : basePath;
   };
 
   const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
@@ -863,14 +879,17 @@ export default function DigitalMarketing() {
                         fontSize: 14, fontWeight: 700,
                       }}>2</div>
                       <Text as="h2" variant="headingLg">Visual Ad Creation</Text>
+                      {!canAccess(entitlements, 'ad_image_generation') && <PlanGateBadge tierName="Pro" />}
                     </InlineStack>
-                    {planName !== 'Pro' && <Badge tone="info">Pro</Badge>}
                   </InlineStack>
 
-                  {planName !== 'Pro' ? (
-                    <Banner tone="warning">
-                      Visual ad generation requires the Pro plan. Captions are available on all plans.
-                    </Banner>
+                  {!canAccess(entitlements, 'ad_image_generation') ? (
+                    <LockedFeatureNotice
+                      title="Pro Plan Feature"
+                      description="Visual ad generation requires the Pro plan. Captions are available on all plans."
+                      ctaLabel="Upgrade to Pro"
+                      ctaUrl={nav('/app/plans?from=dashboard')}
+                    />
                   ) : (
                     <BlockStack gap="400">
                       <ProductImageUploader
@@ -936,7 +955,18 @@ export default function DigitalMarketing() {
                       fontSize: 14, fontWeight: 700,
                     }}>3</div>
                     <Text as="h2" variant="headingLg">Preview & Share</Text>
+                    {!canAccess(entitlements, 'social_post_preview') && <PlanGateBadge tierName="Pro" />}
                   </InlineStack>
+
+                  {!canAccess(entitlements, 'social_post_preview') ? (
+                    <LockedFeatureNotice
+                      title="Pro Plan Feature"
+                      description="Social media preview, sharing, and publishing require the Pro plan."
+                      ctaLabel="Upgrade to Pro"
+                      ctaUrl={nav('/app/plans?from=dashboard')}
+                    />
+                  ) : (
+                  <>
 
                   {generatedAdUrl ? (
                     <InstaPreview
@@ -991,6 +1021,8 @@ export default function DigitalMarketing() {
                       </a>
                     </InlineStack>
                   </BlockStack>
+                  </>
+                  )}
                 </BlockStack>
               </Box>
             </Card>
