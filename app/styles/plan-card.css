@@ -1,0 +1,88 @@
+.plan-card-stretch {
+  height: 100%;
+}
+
+/* Force Polaris Card internal wrapper to fill height */
+.plan-card-stretch > div {
+  height: 100%;
+}
+
+.plan-card-stretch > div > div {
+  height: 100%;
+}
+
+/* Gradient top accent bar on card */
+.plan-card-accent {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--p-border-radius-300);
+}
+
+.plan-card-accent::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  z-index: 2;
+}
+
+.plan-card-accent--basic::before {
+  background: linear-gradient(90deg, #16a34a, #4ade80, #22c55e);
+}
+
+.plan-card-accent--standard::before {
+  background: linear-gradient(90deg, #2563eb, #60a5fa, #3b82f6);
+}
+
+.plan-card-accent--pro::before {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa, #8b5cf6);
+}
+
+/* Gradient upgrade button wrapper */
+.plan-upgrade-btn {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.plan-upgrade-btn button[class*="Polaris-Button"] {
+  min-height: 48px;
+  min-width: 200px;
+  font-size: 18px;
+  font-weight: 700;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-radius: 12px !important;
+  color: #fff !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.plan-upgrade-btn button[class*="Polaris-Button"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.plan-upgrade-btn button[class*="Polaris-Button"]:active {
+  transform: translateY(0);
+}
+
+.plan-upgrade-btn button[class*="Polaris-Button"] span {
+  color: #fff !important;
+}
+
+/* Green gradient for Basic */
+.plan-upgrade-btn--basic button[class*="Polaris-Button"] {
+  background: linear-gradient(135deg, #16a34a, #4ade80) !important;
+}
+
+/* Blue gradient for Standard */
+.plan-upgrade-btn--standard button[class*="Polaris-Button"] {
+  background: linear-gradient(135deg, #2563eb, #60a5fa) !important;
+}
+
+/* Purple gradient for Pro */
+.plan-upgrade-btn--pro button[class*="Polaris-Button"] {
+  background: linear-gradient(135deg, #7c3aed, #a78bfa) !important;
+}

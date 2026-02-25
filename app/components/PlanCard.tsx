@@ -1,8 +1,55 @@
-import { Card, Box, Text, BlockStack, InlineStack, Badge, ExceptionList } from "@shopify/polaris";
+import { Card, Box, Text, BlockStack, InlineStack, Badge, Collapsible, ExceptionList } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
-import type { ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 
-import type { PlanCardModel } from "../utils/planCatalog";
+import type { PlanCardModel, PlanFeature, PlanSection } from "../utils/planCatalog";
+import "../styles/plan-card.css";
+
+function FeatureRow({ feature }: { feature: PlanFeature }) {
+  return (
+    <ExceptionList
+      items={[
+        {
+          icon: CheckIcon,
+          description: feature.label as unknown as string,
+        },
+      ]}
+    />
+  );
+}
+
+function ExpandableSection({ section, planName }: { section: PlanSection; planName: string }) {
+  const [open, setOpen] = useState(false);
+  const toggle = useCallback(() => setOpen((v) => !v), []);
+
+  return (
+    <Box padding="400" background="bg-surface-secondary" borderRadius="300">
+      <div
+        onClick={toggle}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggle(); }}
+        style={{ cursor: "pointer", userSelect: "none" }}
+      >
+        <Text as="h3" variant="headingMd">
+          {section.title}
+        </Text>
+      </div>
+      <Collapsible open={open} id={`${planName}-${section.title}`}>
+        <div style={{ paddingTop: 10 }}>
+          <BlockStack gap="200">
+            {section.features.map((feature) => (
+              <FeatureRow
+                key={`${planName}-${section.title}-${feature.label}`}
+                feature={feature}
+              />
+            ))}
+          </BlockStack>
+        </div>
+      </Collapsible>
+    </Box>
+  );
+}
 
 export function PlanCard({
   plan,
@@ -10,27 +57,25 @@ export function PlanCard({
   graceActive,
   extraBadges,
   priceNode,
-  rewritesNode,
   cta,
-  height = 480,
+  accentClass,
 }: {
   plan: PlanCardModel;
   isCurrent: boolean;
   graceActive: boolean;
   extraBadges?: ReactNode;
   priceNode?: ReactNode;
-  rewritesNode?: ReactNode;
   cta: ReactNode;
-  height?: number;
+  accentClass?: string;
 }) {
   return (
-    <Card>
-      <div style={{ height, padding: "var(--p-space-400)" }}>
-        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-          {/* Header (fixed) */}
+    <div className={`plan-card-stretch ${accentClass ? "plan-card-accent " + accentClass : ""}`}>
+      <Card>
+        <div style={{ padding: "var(--p-space-500)", display: "flex", flexDirection: "column", height: "100%", boxSizing: "border-box" }}>
+          {/* Header */}
           <div>
-            <BlockStack gap="200">
-              <Text as="h2" variant="headingLg">
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingXl">
                 <InlineStack gap="200" align="space-between">
                   <span>{plan.name}</span>
                   {isCurrent || extraBadges ? (
@@ -45,94 +90,43 @@ export function PlanCard({
               {priceNode ? (
                 priceNode
               ) : (
-                <Text as="p" variant="heading2xl" fontWeight="bold">
+                <Text as="p" variant="heading3xl" fontWeight="bold">
                   {plan.price}
-                  <Text as="span" variant="bodyMd" fontWeight="regular">
-                    /month
-                  </Text>
+                  {plan.price !== "$0" ? (
+                    <Text as="span" variant="bodyLg" fontWeight="regular">
+                      /month
+                    </Text>
+                  ) : null}
                 </Text>
               )}
-              {rewritesNode ? (
-                rewritesNode
-              ) : (
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {plan.rewrites}
+              {plan.tagline ? (
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  {plan.tagline}
                 </Text>
-              )}
-            </BlockStack>
-          </div>
-
-          {/* Features (scrollable) */}
-          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 2 }}>
-            <BlockStack gap="200">
-              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingSm">
-                    Rewriter
-                  </Text>
-                  <BlockStack gap="100">
-                    {plan.rewriterFeatures.map((feature) => (
-                      <ExceptionList
-                        key={`rewriter-${plan.name}-${feature}`}
-                        items={[
-                          {
-                            icon: CheckIcon,
-                            description: feature,
-                          },
-                        ]}
-                      />
-                    ))}
-                  </BlockStack>
-                </BlockStack>
-              </Box>
-
-              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingSm">
-                    Marketing
-                  </Text>
-                  <BlockStack gap="100">
-                    {plan.marketingFeatures.map((feature) => (
-                      <ExceptionList
-                        key={`marketing-${plan.name}-${feature}`}
-                        items={[
-                          {
-                            icon: CheckIcon,
-                            description: feature,
-                          },
-                        ]}
-                      />
-                    ))}
-                  </BlockStack>
-                </BlockStack>
-              </Box>
-
-              {plan.otherFeatures.length ? (
-                <BlockStack gap="100">
-                  <Text as="h3" variant="headingSm">
-                    Other
-                  </Text>
-                  {plan.otherFeatures.map((feature) => (
-                    <ExceptionList
-                      key={`other-${plan.name}-${feature}`}
-                      items={[
-                        {
-                          icon: CheckIcon,
-                          description: feature,
-                        },
-                      ]}
-                    />
-                  ))}
-                </BlockStack>
               ) : null}
+              <Text as="p" variant="bodyMd" fontWeight="semibold">
+                {plan.productLimit}
+              </Text>
             </BlockStack>
           </div>
 
-          {/* CTA (fixed to bottom) */}
-          <div style={{ paddingTop: 16, marginTop: "auto" }}>{cta}</div>
+          {/* Sections */}
+          <div style={{ flex: 1, marginTop: 16 }}>
+            <BlockStack gap="300">
+              {plan.sections.map((section) => (
+                <ExpandableSection
+                  key={`${plan.name}-${section.title}`}
+                  section={section}
+                  planName={plan.name}
+                />
+              ))}
+            </BlockStack>
+          </div>
+
+          {/* CTA */}
+          <div style={{ paddingTop: 20, marginTop: "auto" }}>{cta}</div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
-

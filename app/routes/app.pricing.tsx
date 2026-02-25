@@ -20,6 +20,9 @@ import { useState, useCallback, useEffect } from "react";
 
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { CompetitorMap, type Competitor } from "../components/CompetitorMap";
+import { PlanGateBadge } from "../components/PlanGateBadge";
+import { LockedFeatureNotice } from "../components/LockedFeatureNotice";
+import { canAccess, type Entitlements, type FeatureUsageMap } from "../utils/entitlements";
 import "../styles/optimize-button.css";
 
 type ProductListItem = { id: string; title: string };
@@ -37,6 +40,8 @@ type LoaderData = {
   backendApiUrl: string;
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
+  entitlements: Entitlements;
+  feature_usage: FeatureUsageMap;
 };
 
 function productIdFromGid(gid: string | null | undefined) {
@@ -108,28 +113,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let planName: LoaderData["planName"] = "Free";
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
 
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`);
     if (usageResp.ok) {
       const data = await usageResp.json();
       const eff = String(data.effective_plan_name || data.plan_name || "").trim();
       if (eff === "Basic" || eff === "Standard" || eff === "Pro") planName = eff as LoaderData["planName"];
+      entitlements = data.entitlements || {};
+      feature_usage = data.feature_usage || {};
     }
   } catch { /* ignore */ }
 
-  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct };
+  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage };
 };
 
 export default function PricingPage() {
-  const { planName, shop, backendApiUrl, products, selectedProduct } = useLoaderData<typeof loader>();
+  const { shop, backendApiUrl, products, selectedProduct, entitlements } = useLoaderData<typeof loader>();
+  const priceScoutLocked = !canAccess(entitlements, "price_scout");
+  const applyPriceLocked = !canAccess(entitlements, "apply_price");
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
   const navigate = useNavigate();
   
   const nav = (path: string) => {
-    const params = new URLSearchParams(searchParams);
+    const [basePath, existingQs] = path.split('?');
+    const params = new URLSearchParams(existingQs || '');
+    const sp = new URLSearchParams(searchParams);
+    sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
     if (shop) params.set("shop", shop);
-    return params.toString() ? `${path}?${params.toString()}` : path;
+    return params.toString() ? `${basePath}?${params.toString()}` : basePath;
   };
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -245,8 +259,8 @@ export default function PricingPage() {
   const [applyToast, setApplyToast] = useState<string | null>(null);
 
   const handleApplyPrice = useCallback(async (price: number) => {
-    if (planName !== 'Pro') {
-      alert(`Upgrade to Pro to automatically update prices. Recommended price: $${price.toFixed(2)}`);
+    if (applyPriceLocked) {
+      alert("Upgrade to Pro for autonomous price application.");
       return;
     }
     if (!selectedProduct?.id) return;
@@ -283,7 +297,7 @@ export default function PricingPage() {
     } finally {
       setIsApplying(false);
     }
-  }, [planName, selectedProduct, shop, backendApiUrl]);
+  }, [applyPriceLocked, selectedProduct, shop, backendApiUrl]);
 
   const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
 
@@ -291,6 +305,7 @@ export default function PricingPage() {
     <Page 
       title="Pricing Intelligence" 
       subtitle="Analyze competitor prices and get AI-powered pricing recommendations"
+      titleMetadata={priceScoutLocked ? <PlanGateBadge tierName="Standard" /> : undefined}
       backAction={{
         content: "Home",
         onAction: () => navigate(nav("/app")),
@@ -299,6 +314,15 @@ export default function PricingPage() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
+            {priceScoutLocked && (
+              <LockedFeatureNotice
+                title="Standard Plan Feature"
+                description="Price Scout requires the Standard plan"
+                ctaLabel="Upgrade"
+                ctaUrl={nav("/app/plans?from=dashboard")}
+              />
+            )}
+            {!priceScoutLocked && (<>
             <Card>
               <BlockStack gap="300">
                 <Text variant="headingMd" as="h2">Select Product</Text>
@@ -337,6 +361,7 @@ export default function PricingPage() {
                 confidence={analysisResult.confidence}
                 onApplyPrice={handleApplyPrice}
                 isApplying={isApplying}
+                applyPriceBadge={applyPriceLocked ? <PlanGateBadge tierName="Pro" /> : undefined}
               />
             )}
 
@@ -354,6 +379,7 @@ export default function PricingPage() {
                 </Box>
               </Card>
             )}
+            </>)}
           </BlockStack>
         </Layout.Section>
       </Layout>

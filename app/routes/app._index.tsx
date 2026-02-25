@@ -16,6 +16,7 @@ import {
   List,
 } from "@shopify/polaris";
 import "../styles/optimize-button.css";
+import type { Entitlements, FeatureUsageMap } from "../utils/entitlements";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -50,12 +51,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let brandUpdatedAt: string | null = null;
   let brandLastError: string | null = null;
 
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shopParam)}`);
     if (u.ok) {
       const data: any = await u.json().catch(() => ({}));
       const eff = String(data?.effective_plan_name || data?.plan_name || "").trim();
       if (eff) planName = eff;
+      entitlements = data.entitlements || {};
+      feature_usage = data.feature_usage || {};
     }
   } catch {
     // best-effort
@@ -135,6 +140,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     host,
     backendApiUrl,
     planName,
+    entitlements,
+    feature_usage,
     brandStatus,
     brandSummary,
     brandKeyFacts,

@@ -42,6 +42,8 @@ interface CompetitorMapProps {
   onApplyPrice?: (price: number) => void;
   /** Whether apply action is loading */
   isApplying?: boolean;
+  /** Optional badge to show next to Apply button (e.g. PlanGateBadge when locked) */
+  applyPriceBadge?: ReactNode;
 }
 
 /**
@@ -187,6 +189,7 @@ export function CompetitorMap({
   currency = "$",
   onApplyPrice,
   isApplying = false,
+  applyPriceBadge,
 }: CompetitorMapProps) {
   const maxPrice = getMaxPrice(yourPrice, competitors, recommendedPrice);
   const pricePosition = getPricePosition(yourPrice, competitors);
@@ -325,14 +328,17 @@ export function CompetitorMap({
                 )}
                 
                 {onApplyPrice && (
-                  <Button
-                    variant="primary"
-                    onClick={() => onApplyPrice(recommendedPrice)}
-                    loading={isApplying}
-                    icon={CheckIcon}
-                  >
-                    Apply Recommended Price
-                  </Button>
+                  <InlineStack gap="200" blockAlign="center">
+                    <Button
+                      variant="primary"
+                      onClick={() => onApplyPrice(recommendedPrice)}
+                      loading={isApplying}
+                      icon={CheckIcon}
+                    >
+                      Apply Recommended Price
+                    </Button>
+                    {applyPriceBadge}
+                  </InlineStack>
                 )}
               </BlockStack>
             </Box>

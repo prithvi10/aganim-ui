@@ -1,4 +1,4 @@
-import { Layout, Page, Text, BlockStack, Button, InlineStack, Banner, Badge, Select } from "@shopify/polaris";
+import { Layout, Page, Text, BlockStack, Button, InlineStack, Banner, Badge, Modal, RadioButton, Divider, Box } from "@shopify/polaris";
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
 import { Form, useLoaderData, useLocation, useNavigation, redirect } from "react-router";
 import {
@@ -6,6 +6,7 @@ import {
   MONTHLY_PLAN_BASIC,
   MONTHLY_PLAN_STANDARD,
   MONTHLY_PLAN_PRO,
+  ANNUAL_PLAN_PRO,
   PROMO_PLAN_BASIC_MONTHLY,
   PROMO_PLAN_BASIC_ANNUAL,
   PROMO_PLAN_STANDARD_MONTHLY,
@@ -14,7 +15,7 @@ import {
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { PlanCard } from "../components/PlanCard";
 import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 type ActiveSub = { name?: string; status?: string; test?: boolean };
 
@@ -178,7 +179,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   let planKey: string;
   const isPromo = cycleRaw === "promo-monthly" || cycleRaw === "promo-annual";
   if (requestedTier === PLAN_PRO) {
-    planKey = MONTHLY_PLAN_PRO;  // always "Pro"
+    planKey = cycleRaw === "pro-annual" ? ANNUAL_PLAN_PRO : MONTHLY_PLAN_PRO;
   } else if (requestedTier === PLAN_STANDARD) {
     if (cycleRaw === "promo-annual") planKey = PROMO_PLAN_STANDARD_ANNUAL;
     else if (cycleRaw === "promo-monthly") planKey = PROMO_PLAN_STANDARD_MONTHLY;
@@ -305,27 +306,47 @@ export default function PlansPage() {
   const location = useLocation();
 
   const isUpgrading = navigation.state === "submitting";
-  const visiblePlans = returningPaid ? PLAN_CATALOG.filter((p) => p.name !== PLAN_FREE) : PLAN_CATALOG;
+  const visiblePlans = PLAN_CATALOG.filter((p) => p.name !== PLAN_FREE);
 
-  // IMPORTANT: Shopify billing "exit iframe" redirect requires embedded=1 on the request URL.
-  // Some internal links preserve only host/shop; force embedded=1 for POSTs to /app/plans.
   const postAction = useMemo(() => {
     const sp = new URLSearchParams(location.search);
     if (!sp.get("embedded")) sp.set("embedded", "1");
     return `${location.pathname}?${sp.toString()}`;
   }, [location.pathname, location.search]);
 
-  const [billingCycle, setBillingCycle] = useState<Record<string, "monthly" | "annual">>({
-    [PLAN_BASIC]: "monthly",
-    [PLAN_STANDARD]: "monthly",
-  });
+  const billingOptions = useMemo(() => ({
+    [PLAN_BASIC]: { monthly: { price: "$29", key: "Basic Promo Monthly" }, annual: { price: "$290", key: "Basic Promo Annual", perMonth: "$24.17" }, original: "$39", savings: "~26%" },
+    [PLAN_STANDARD]: { monthly: { price: "$79", key: "Standard Promo Monthly" }, annual: { price: "$790", key: "Standard Promo Annual", perMonth: "$65.83" }, original: "$89", savings: "~11%" },
+    [PLAN_PRO]: { monthly: { price: "$199", key: "Pro" }, annual: { price: "$1,990", key: "Pro Annual", perMonth: "$165.83" }, original: null, savings: "~17%" },
+  } as const), []);
 
-  const promo = useMemo(() => {
-    return {
-      [PLAN_BASIC]: { monthly: { price: "$29", key: "Basic Promo Monthly" }, annual: { price: "$290", key: "Basic Promo Annual" }, original: "$49" },
-      [PLAN_STANDARD]: { monthly: { price: "$79", key: "Standard Promo Monthly" }, annual: { price: "$790", key: "Standard Promo Annual" }, original: "$99" },
-    } as const;
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalPlan, setModalPlan] = useState<PlanName | null>(null);
+  const [modalCycle, setModalCycle] = useState<"monthly" | "annual">("monthly");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const openBillingModal = useCallback((planName: PlanName) => {
+    setModalPlan(planName);
+    setModalCycle("monthly");
+    setModalOpen(true);
   }, []);
+
+  const closeBillingModal = useCallback(() => {
+    setModalOpen(false);
+    setModalPlan(null);
+  }, []);
+
+  const confirmBilling = useCallback(() => {
+    formRef.current?.requestSubmit();
+  }, []);
+
+  const modalBillingInfo: any = modalPlan ? (billingOptions as any)[modalPlan] : null;
+  const modalPlanKey = modalBillingInfo
+    ? (modalCycle === "annual" ? modalBillingInfo.annual.key : modalBillingInfo.monthly.key)
+    : modalPlan || "";
+  const modalCycleValue = modalCycle === "annual"
+    ? (modalPlan === PLAN_PRO ? "pro-annual" : "promo-annual")
+    : (modalPlan === PLAN_PRO ? "" : "promo-monthly");
 
   return (
     <Page title="Select a Plan" fullWidth>
@@ -347,12 +368,16 @@ export default function PlansPage() {
             </div>
           ) : null}
           {promoEnabled ? (
-            <div style={{ marginBottom: 16 }}>
-              <Banner tone="success" title="Limited time launch offer">
-                <Text as="p" variant="bodyMd">
-                  Early adopter pricing is available for a limited time. Choose monthly or annual billing on Basic/Standard.
-                </Text>
-              </Banner>
+            <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 12, border: "1px solid var(--p-color-border-subdued)" }}>
+              <InlineStack gap="300" blockAlign="start" wrap={false}>
+                <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>&#9432;</span>
+                <BlockStack gap="100">
+                  <Text as="p" variant="headingSm">Limited time launch offer</Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    Early adopter pricing is available for a limited time. Choose monthly or annual billing on any plan.
+                  </Text>
+                </BlockStack>
+              </InlineStack>
             </div>
           ) : null}
           <div style={{overflowX: "auto"}}>
@@ -371,86 +396,77 @@ export default function PlansPage() {
               const isCurrent = plan.name === activePlan;
               const isPromoEligible =
                 promoEnabled && (plan.name === PLAN_BASIC || plan.name === PLAN_STANDARD);
-              const cycle = billingCycle[plan.name] || "monthly";
-              const promoInfo: any = (promo as any)[plan.name];
-              const planKey =
-                isPromoEligible && promoInfo
-                  ? (cycle === "annual" ? promoInfo.annual.key : promoInfo.monthly.key)
-                  : plan.name;
-              const displayedPrice =
-                isPromoEligible && promoInfo
-                  ? (cycle === "annual" ? promoInfo.annual.price : promoInfo.monthly.price)
-                  : plan.price;
-              const displayedSuffix = isPromoEligible && cycle === "annual" ? "/year" : "/month";
+              const hasBillingOptions =
+                plan.name === PLAN_PRO || isPromoEligible;
+              const info: any = (billingOptions as any)[plan.name];
+              const accentMap: Record<string, string> = {
+                [PLAN_BASIC]: "plan-card-accent--basic",
+                [PLAN_STANDARD]: "plan-card-accent--standard",
+                [PLAN_PRO]: "plan-card-accent--pro",
+              };
+              const btnGradientMap: Record<string, string> = {
+                [PLAN_BASIC]: "plan-upgrade-btn plan-upgrade-btn--basic",
+                [PLAN_STANDARD]: "plan-upgrade-btn plan-upgrade-btn--standard",
+                [PLAN_PRO]: "plan-upgrade-btn plan-upgrade-btn--pro",
+              };
               return (
                 <div
                   key={plan.name}
                   style={{
                     minWidth: 320,
                     flex: "1 1 0px",
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
                   <PlanCard
                     plan={plan}
                     isCurrent={isCurrent}
                     graceActive={Boolean(isCurrent && graceActive)}
-                    extraBadges={
-                      isPromoEligible && !isCurrent ? <Badge tone="success">Limited time</Badge> : null
-                    }
+                    extraBadges={null}
+                    accentClass={accentMap[plan.name]}
                     priceNode={
-                      isPromoEligible && promoInfo ? (
+                      info ? (
                         <BlockStack gap="100">
                           <InlineStack gap="200" blockAlign="baseline">
                             <Text as="span" variant="heading2xl" fontWeight="bold">
-                              {displayedPrice}
+                              {info.monthly.price}
                             </Text>
                             <Text as="span" variant="bodyMd" tone="subdued">
-                              {displayedSuffix}
+                              /month
                             </Text>
                           </InlineStack>
-                          <InlineStack gap="200" blockAlign="center">
-                            <Text as="span" variant="bodySm" tone="subdued">
-                              <span style={{ textDecoration: "line-through" }}>
-                                {promoInfo.original}/month
-                              </span>
-                            </Text>
-                            <Text as="span" variant="bodySm" tone="subdued">
-                              {plan.name === PLAN_BASIC ? "Monthly $29 or Annual $290" : "Monthly $79 or Annual $790"}
-                            </Text>
-                          </InlineStack>
+                          <Text as="span" variant="bodySm" tone="subdued">
+                            {info.original ? (
+                              <>
+                                <span style={{ textDecoration: "line-through" }}>
+                                  {info.original}/month
+                                </span>
+                                {" "}—{" "}
+                              </>
+                            ) : null}
+                            or {info.annual.price}/year
+                          </Text>
                         </BlockStack>
                       ) : undefined
                     }
                     cta={
-                      <BlockStack gap="200">
-                        {isPromoEligible && !isCurrent ? (
-                          <Select
-                            label="Billing"
-                            value={cycle}
-                            options={[
-                              { label: plan.name === PLAN_BASIC ? "Monthly — $29" : "Monthly — $79", value: "monthly" },
-                              { label: plan.name === PLAN_BASIC ? "Annual — $290" : "Annual — $790", value: "annual" },
-                            ]}
-                            onChange={(v) =>
-                              setBillingCycle((prev) => ({ ...prev, [plan.name]: v as any }))
-                            }
-                          />
-                        ) : null}
+                      hasBillingOptions && !isCurrent ? (
+                        <div className={btnGradientMap[plan.name] || "plan-upgrade-btn"}>
+                          <Button
+                            variant="primary"
+                            loading={isUpgrading && modalPlan === plan.name}
+                            disabled={isCurrent}
+                            onClick={() => openBillingModal(plan.name as PlanName)}
+                          >
+                            Upgrade
+                          </Button>
+                        </div>
+                      ) : (
                         <Form method="post" action={postAction}>
-                          {/* tier = canonical plan name; cycle = billing variant for server-side key computation */}
                           <input type="hidden" name="tier" value={plan.name} />
-                          <input type="hidden" name="plan" value={planKey} />
-                          <input
-                            type="hidden"
-                            name="cycle"
-                            value={
-                              isPromoEligible
-                                ? cycle === "annual"
-                                  ? "promo-annual"
-                                  : "promo-monthly"
-                                : ""
-                            }
-                          />
+                          <input type="hidden" name="plan" value={plan.name} />
+                          <input type="hidden" name="cycle" value="" />
                           <Button
                             variant={isCurrent ? "secondary" : "primary"}
                             fullWidth
@@ -461,7 +477,7 @@ export default function PlansPage() {
                             {isCurrent ? "Current Plan" : plan.name === PLAN_FREE ? "Included" : "Upgrade"}
                           </Button>
                         </Form>
-                      </BlockStack>
+                      )
                     }
                   />
                 </div>
@@ -471,6 +487,128 @@ export default function PlansPage() {
           </div>
         </Layout.Section>
       </Layout>
+
+      {/* Billing cycle popup for promo-eligible plans */}
+      <Modal
+        open={modalOpen}
+        onClose={closeBillingModal}
+        title={`Choose billing for ${modalPlan || ""}`}
+        primaryAction={{
+          content: "Continue to billing",
+          onAction: confirmBilling,
+          loading: isUpgrading,
+        }}
+        secondaryActions={[{ content: "Cancel", onAction: closeBillingModal }]}
+      >
+        <Modal.Section>
+          {modalBillingInfo ? (
+            <BlockStack gap="400">
+              <div
+                onClick={() => setModalCycle("monthly")}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setModalCycle("monthly"); }}
+                style={{
+                  padding: 16,
+                  borderRadius: 12,
+                  border: modalCycle === "monthly"
+                    ? "2px solid var(--p-color-border-interactive)"
+                    : "2px solid var(--p-color-border-subdued)",
+                  background: modalCycle === "monthly"
+                    ? "var(--p-color-bg-surface-selected)"
+                    : "var(--p-color-bg-surface)",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr auto",
+                  gap: 12,
+                  alignItems: "center",
+                }}
+              >
+                <RadioButton
+                  label=""
+                  checked={modalCycle === "monthly"}
+                  onChange={() => setModalCycle("monthly")}
+                />
+                <BlockStack gap="050">
+                  <Text as="span" variant="headingSm">Monthly</Text>
+                  <Text as="span" variant="bodySm" tone="subdued">Billed monthly</Text>
+                </BlockStack>
+                <Text as="span" variant="headingMd" fontWeight="bold">
+                  {modalBillingInfo.monthly.price}
+                  <Text as="span" variant="bodySm" fontWeight="regular">/mo</Text>
+                </Text>
+              </div>
+
+              <div
+                onClick={() => setModalCycle("annual")}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setModalCycle("annual"); }}
+                style={{
+                  padding: 16,
+                  borderRadius: 12,
+                  border: modalCycle === "annual"
+                    ? "2px solid var(--p-color-border-interactive)"
+                    : "2px solid var(--p-color-border-subdued)",
+                  background: modalCycle === "annual"
+                    ? "var(--p-color-bg-surface-selected)"
+                    : "var(--p-color-bg-surface)",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr auto",
+                  gap: 12,
+                  alignItems: "center",
+                }}
+              >
+                <RadioButton
+                  label=""
+                  checked={modalCycle === "annual"}
+                  onChange={() => setModalCycle("annual")}
+                />
+                <BlockStack gap="050">
+                  <InlineStack gap="200" blockAlign="center">
+                    <Text as="span" variant="headingSm">Annual</Text>
+                    <Badge tone="success">Save {modalBillingInfo.savings}</Badge>
+                  </InlineStack>
+                  <Text as="span" variant="bodySm" tone="subdued">Billed yearly</Text>
+                </BlockStack>
+                <BlockStack gap="050">
+                  <Text as="span" variant="headingMd" fontWeight="bold">
+                    {modalBillingInfo.annual.price}
+                    <Text as="span" variant="bodySm" fontWeight="regular">/yr</Text>
+                  </Text>
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    {modalBillingInfo.annual.perMonth}/mo
+                  </Text>
+                </BlockStack>
+              </div>
+
+              {modalBillingInfo.original ? (
+                <>
+                  <Divider />
+                  <InlineStack align="space-between">
+                    <Text as="span" variant="bodySm" tone="subdued">Regular price</Text>
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      <span style={{ textDecoration: "line-through" }}>{modalBillingInfo.original}/mo</span>
+                    </Text>
+                  </InlineStack>
+                </>
+              ) : null}
+            </BlockStack>
+          ) : null}
+        </Modal.Section>
+      </Modal>
+
+      {/* Hidden form for modal submission */}
+      {modalPlan ? (
+        <Form method="post" action={postAction} ref={formRef} style={{ display: "none" }}>
+          <input type="hidden" name="tier" value={modalPlan} />
+          <input type="hidden" name="plan" value={modalPlanKey} />
+          <input type="hidden" name="cycle" value={modalCycleValue} />
+        </Form>
+      ) : null}
     </Page>
   );
 }

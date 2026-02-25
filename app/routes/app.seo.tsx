@@ -24,6 +24,9 @@ import { useState, useCallback, useEffect } from "react";
 import { CheckIcon } from "@shopify/polaris-icons";
 
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
+import { PlanGateBadge } from "../components/PlanGateBadge";
+import { LockedFeatureNotice } from "../components/LockedFeatureNotice";
+import { canAccess, formatUsage, type Entitlements, type FeatureUsageMap } from "../utils/entitlements";
 import "../styles/optimize-button.css";
 
 type ProductListItem = { id: string; title: string };
@@ -42,6 +45,8 @@ type LoaderData = {
   backendApiUrl: string;
   products: ProductListItem[];
   selectedProduct: SelectedProduct | null;
+  entitlements: Entitlements;
+  feature_usage: FeatureUsageMap;
 };
 
 type SEOResult = {
@@ -140,16 +145,28 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let planName: LoaderData["planName"] = "Free";
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
 
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`);
     if (usageResp.ok) {
       const data = await usageResp.json();
       const eff = String(data.effective_plan_name || data.plan_name || "").trim();
       if (eff === "Basic" || eff === "Standard" || eff === "Pro") planName = eff as LoaderData["planName"];
+      entitlements = data.entitlements || {};
+      feature_usage = data.feature_usage || {};
     }
   } catch { /* ignore */ }
 
-  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct };
+  return {
+    planName,
+    shop: session.shop,
+    backendApiUrl,
+    products,
+    selectedProduct,
+    entitlements,
+    feature_usage,
+  };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -313,16 +330,20 @@ function CTRScoreDisplay({ ctrCheck }: { ctrCheck: SEOResult["ctr_check"] }) {
 }
 
 export default function SEOPage() {
-  const { shop, backendApiUrl, products, selectedProduct } = useLoaderData<typeof loader>();
+  const { shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage } = useLoaderData<typeof loader>();
+  const seoLocked = !canAccess(entitlements, "seo");
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
   const navigate = useNavigate();
   const saveFetcher = useFetcher<typeof action>();
   
   const nav = (path: string) => {
-    const params = new URLSearchParams(searchParams);
+    const [basePath, existingQs] = path.split('?');
+    const params = new URLSearchParams(existingQs || '');
+    const sp = new URLSearchParams(searchParams);
+    sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
     if (shop) params.set("shop", shop);
-    return params.toString() ? `${path}?${params.toString()}` : path;
+    return params.toString() ? `${basePath}?${params.toString()}` : basePath;
   };
 
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -482,6 +503,7 @@ export default function SEOPage() {
     <Page 
       title="SEO Optimization" 
       subtitle="Generate SEO metadata and analyze competitors"
+      titleMetadata={seoLocked ? <PlanGateBadge tierName="Standard" /> : undefined}
       backAction={{
         content: "Home",
         onAction: () => navigate(nav("/app")),
@@ -490,6 +512,22 @@ export default function SEOPage() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
+            {seoLocked ? (
+              <LockedFeatureNotice
+                title="Standard Plan Feature"
+                description="SEO optimization requires the Standard plan"
+                ctaLabel="Upgrade"
+                ctaUrl={nav("/app/plans?from=dashboard")}
+              />
+            ) : (
+              <>
+            {formatUsage(feature_usage.seo) && (
+              <InlineStack gap="200" blockAlign="center">
+                <Text as="span" variant="bodySm" tone="subdued">
+                  SEO usage: {formatUsage(feature_usage.seo)}
+                </Text>
+              </InlineStack>
+            )}
             <Card>
               <BlockStack gap="300">
                 <Text variant="headingMd" as="h2">Select Product</Text>
@@ -693,6 +731,8 @@ export default function SEOPage() {
                   </saveFetcher.Form>
                 </Box>
               </Card>
+            )}
+              </>
             )}
           </BlockStack>
         </Layout.Section>

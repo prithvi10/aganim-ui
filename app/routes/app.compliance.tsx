@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import {
   Page,
   Layout,
@@ -23,6 +23,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function CompliancePage() {
   const { shop } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
 
   return (
     <Page title="Compliance Check" subtitle="Regulatory compliance verification">
@@ -54,7 +55,7 @@ export default function CompliancePage() {
                     <Text as="p" variant="bodyMd" alignment="center">• Regional regulatory standards</Text>
                   </BlockStack>
                   <Box paddingBlockStart="400">
-                    <Button url={`/app?shop=${encodeURIComponent(shop)}`}>
+                    <Button onClick={() => navigate(`/app?shop=${encodeURIComponent(shop)}`)}>
                       Return to Home
                     </Button>
                   </Box>

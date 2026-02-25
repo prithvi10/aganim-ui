@@ -32,6 +32,7 @@ export const PROMO_PLAN_BASIC_MONTHLY = "Basic Promo Monthly";
 export const PROMO_PLAN_BASIC_ANNUAL = "Basic Promo Annual";
 export const PROMO_PLAN_STANDARD_MONTHLY = "Standard Promo Monthly";
 export const PROMO_PLAN_STANDARD_ANNUAL = "Standard Promo Annual";
+export const ANNUAL_PLAN_PRO = "Pro Annual";
 
 // ... (Your Env validation code remains the same) ...
 function requireEnv(name: string): string {
@@ -95,10 +96,10 @@ const shopify = shopifyApp({
       lineItems: [{ amount: 0.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_BASIC]: {
-      lineItems: [{ amount: 49.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
+      lineItems: [{ amount: 39.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_STANDARD]: {
-      lineItems: [{ amount: 99.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
+      lineItems: [{ amount: 89.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_PRO]: {
       lineItems: [{ amount: 199.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
@@ -115,6 +116,9 @@ const shopify = shopifyApp({
     },
     [PROMO_PLAN_STANDARD_ANNUAL]: {
       lineItems: [{ amount: 790.0, currencyCode: "USD", interval: BillingInterval.Annual }],
+    },
+    [ANNUAL_PLAN_PRO]: {
+      lineItems: [{ amount: 1990.0, currencyCode: "USD", interval: BillingInterval.Annual }],
     },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN

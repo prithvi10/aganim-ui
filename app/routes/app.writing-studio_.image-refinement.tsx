@@ -20,6 +20,9 @@ import { getSessionToken } from '@shopify/app-bridge/utilities';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
 import { MissionTimeline } from '../components/MissionTimeline';
 import { LockedFeatureNotice } from '../components/LockedFeatureNotice';
+import { PlanGateBadge } from '../components/PlanGateBadge';
+
+import { canAccess, formatUsage, type Entitlements, type FeatureUsageMap } from '../utils/entitlements';
 import '../styles/optimize-button.css';
 
 type ProductItem = {
@@ -35,6 +38,8 @@ type LoaderData = {
   backendApiUrl: string;
   planName: 'Free' | 'Basic' | 'Standard' | 'Pro';
   products: ProductItem[];
+  entitlements: Entitlements;
+  feature_usage: FeatureUsageMap;
 };
 
 function productIdFromGid(gid: string) {
@@ -138,6 +143,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }));
 
   let planName: LoaderData['planName'] = 'Free';
+  let entitlements: Entitlements = {};
+  let feature_usage: FeatureUsageMap = {};
   try {
     const u = await fetch(
       `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`,
@@ -148,12 +155,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (eff === 'Free' || eff === 'Basic' || eff === 'Standard' || eff === 'Pro') {
         planName = eff as LoaderData['planName'];
       }
+      entitlements = (data.entitlements || {}) as Entitlements;
+      feature_usage = (data.feature_usage || {}) as FeatureUsageMap;
     }
   } catch {
     // best-effort
   }
 
-  return { shop: sessionShop, backendApiUrl, planName, products };
+  return { shop: sessionShop, backendApiUrl, planName, products, entitlements, feature_usage };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -218,12 +227,12 @@ const LOADING_MESSAGES = [
 ];
 
 export default function ImageRefinement() {
-  const { shop, backendApiUrl, planName, products } = useLoaderData<typeof loader>();
+  const { shop, backendApiUrl, planName, products, entitlements, feature_usage } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const app = useAppBridge() as unknown as ClientApplication<any>;
 
-  const isPro = planName === 'Pro';
+  const canUseImages = canAccess(entitlements, 'image_refinement_adhoc');
 
   const [selectedProductId, setSelectedProductId] = useState<string>(
     products[0]?.id ?? '',
@@ -353,6 +362,7 @@ export default function ImageRefinement() {
   return (
     <Page
       title="Product Image Refinement"
+      titleMetadata={!canUseImages ? <PlanGateBadge tierName="Pro" /> : undefined}
       backAction={{
         content: 'Writing Studio',
         onAction: () => navigate(nav('/app/writing-studio')),
@@ -361,15 +371,10 @@ export default function ImageRefinement() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
-            {!isPro ? (
+            {!canUseImages ? (
               <LockedFeatureNotice
                 title="Pro Plan Feature"
-                description={
-                  <>
-                    AI image refinement generates polished product photos, marketing ads,
-                    and hero banners — automatically styled to match your brand.
-                  </>
-                }
+                description="AI image refinement generates polished product photos, marketing ads, and hero banners — automatically styled to match your brand."
                 ctaLabel="Upgrade to Pro"
                 ctaUrl={plansUrl}
               />
@@ -464,11 +469,20 @@ export default function ImageRefinement() {
                 <Card>
                   <Box padding="500">
                     <BlockStack gap="400">
-                      <InlineStack gap="200" blockAlign="center">
+                      <InlineStack gap="200" blockAlign="center" wrap>
                         <span style={{ fontSize: '20px' }}>🎨</span>
                         <Text as="h2" variant="headingMd">
                           Visual Enhancement
                         </Text>
+                        {(() => {
+                          const imgUsage = feature_usage.image_generation;
+                          const usageStr = formatUsage(imgUsage, false);
+                          return usageStr ? (
+                            <Text as="span" variant="bodySm" tone="subdued">
+                              Credits: {usageStr}
+                            </Text>
+                          ) : null;
+                        })()}
                       </InlineStack>
                       <Text as="p" variant="bodySm" tone="subdued">
                         Remove text, clean up the background, and refine the product image
