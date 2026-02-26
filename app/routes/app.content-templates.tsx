@@ -692,6 +692,7 @@ const IMAGE_STYLE_OPTIONS = [
   { label: 'Seasonal \u2013 Current season atmosphere', value: 'seasonal' },
   { label: 'Minimalist \u2013 Clean isolated product', value: 'minimalist' },
   { label: 'Informative \u2013 Product name & logo', value: 'informative' },
+  { label: 'Monochrome \u2013 Black & white editorial', value: 'monochrome' },
 ];
 
 async function uploadCustomImage(file: File, backendApiUrl: string, shop: string): Promise<string> {
@@ -822,7 +823,7 @@ function CollectionCard({
           <BlockStack gap="200">
             <Text as="h2" variant="headingLg">Collection Description</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Generate collection page copy with a hero banner. Select the products in this collection below.
+              Generate collection page copy with a hero banner. Upload a product image to blend it into the scene, or leave it empty for a theme-based image. Select the products in this collection below.
             </Text>
           </BlockStack>
           <Divider />
@@ -842,15 +843,18 @@ function CollectionCard({
           </BlockStack>
 
           <Divider />
-          <Text as="h3" variant="headingSm">Hero Image Options</Text>
-          <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
-          <ProductImageUploader productTitle={collectionName || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
-
-          <InlineStack align="end">
-            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
-              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
-            </Button>
-          </InlineStack>
+          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
+            <ProductImageUploader productTitle={collectionName || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            <BlockStack gap="300">
+              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <div style={{ flex: 1 }} />
+              <InlineStack align="end">
+                <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
+                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </div>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
             <ResultBlock templateId={template.id} templateName="Collection" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
@@ -966,21 +970,24 @@ function HeroSectionCard({
           <BlockStack gap="200">
             <Text as="h2" variant="headingLg">Hero Section</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Generate a landing page hero section with a cinematic banner image. Enter a theme or subject to inspire the visual.
+              Generate a landing page hero section with a cinematic banner image. Enter a theme or subject to inspire the visual, or upload a product image to blend it into the scene.
             </Text>
           </BlockStack>
           <Divider />
-          <TextField label="Subject / Theme" value={heroSubject} onChange={setHeroSubject} placeholder="e.g. Spring Flowers, Winter Snowboards, Summer Beach Vibes, Luxury Skincare" autoComplete="off" requiredIndicator />
-          <TextField label="Overlay Text (optional)" value={overlayText} onChange={setOverlayText} placeholder="e.g. Discover our new collection" autoComplete="off" />
-          <Divider />
-          <Text as="h3" variant="headingSm">Hero Image Options</Text>
-          <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
-          <ProductImageUploader productTitle={heroSubject || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
-          <InlineStack align="end">
-            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
-              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
-            </Button>
-          </InlineStack>
+          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
+            <ProductImageUploader productTitle={heroSubject || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            <BlockStack gap="300">
+              <TextField label="Subject / Theme" value={heroSubject} onChange={setHeroSubject} placeholder="e.g. Spring Flowers, Winter Snowboards, Summer Beach Vibes, Luxury Skincare" autoComplete="off" requiredIndicator />
+              <TextField label="Overlay Text (optional)" value={overlayText} onChange={setOverlayText} placeholder="e.g. Discover our new collection" autoComplete="off" />
+              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <div style={{ flex: 1 }} />
+              <InlineStack align="end">
+                <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
+                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </div>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
             <ResultBlock templateId={template.id} templateName="Hero Section" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
@@ -1097,22 +1104,25 @@ function BlogPostCard({
           <BlockStack gap="200">
             <Text as="h2" variant="headingLg">Brand Blog Post</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Write long-form blog posts about your craft, manufacturing process, artisan techniques, and more. A hero banner image will be generated automatically.
+              Write long-form blog posts about your craft, manufacturing process, artisan techniques, and more. Upload a product image to blend it into the hero banner, or leave it empty for a theme-based image.
             </Text>
           </BlockStack>
           <Divider />
-          <TextField label="Subject / Topic" value={blogTopic} onChange={setBlogTopic} placeholder="e.g. 'Our wood-kiln firing process', 'How we source Shigaraki clay'" autoComplete="off" requiredIndicator />
-          <TextField label="Category" value={blogCategory} onChange={setBlogCategory} placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability" autoComplete="off" requiredIndicator />
-          <TextField label="Additional Context" value={blogContext} onChange={setBlogContext} multiline={3} placeholder="Any extra details, product mentions, or angles to include" autoComplete="off" />
-          <Divider />
-          <Text as="h3" variant="headingSm">Hero Image Options</Text>
-          <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
-          <ProductImageUploader productTitle={blogTopic || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
-          <InlineStack align="end">
-            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
-              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
-            </Button>
-          </InlineStack>
+          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
+            <ProductImageUploader productTitle={blogTopic || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            <BlockStack gap="300">
+              <TextField label="Subject / Topic" value={blogTopic} onChange={setBlogTopic} placeholder="e.g. 'Our wood-kiln firing process', 'How we source Shigaraki clay'" autoComplete="off" requiredIndicator />
+              <TextField label="Category" value={blogCategory} onChange={setBlogCategory} placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability" autoComplete="off" requiredIndicator />
+              <TextField label="Additional Context" value={blogContext} onChange={setBlogContext} multiline={3} placeholder="Any extra details, product mentions, or angles to include" autoComplete="off" />
+              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <div style={{ flex: 1 }} />
+              <InlineStack align="end">
+                <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
+                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </div>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
             <ResultBlock templateId={template.id} templateName="Blog Post" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
