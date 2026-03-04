@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useSearchParams, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import {
   Page,
   Layout,
@@ -190,6 +191,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function OptimizePage() {
+  const { t } = useTranslation();
   const { planName, shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -278,12 +280,12 @@ export default function OptimizePage() {
     setFinalState(state);
     if (state.status === "COMPLETED") {
       setToastSuccess(true);
-      setToastContent("Mission complete! Your product has been updated in Shopify.");
+      setToastContent(t("optimize.missionComplete"));
     } else if (state.status === "ERROR") {
       setToastSuccess(false);
-      setToastContent("Mission failed. Please try again.");
+      setToastContent(t("optimize.missionFailed"));
     }
-  }, []);
+  }, [t]);
 
   const handlePublish = useCallback(async (state: MissionState) => {
     console.log("Publishing state:", state);
@@ -349,7 +351,7 @@ export default function OptimizePage() {
         <Frame>
           <Page
             backAction={{
-              content: "Back",
+              content: t("optimize.back"),
               onAction: () => setViewingSavedMission(false),
             }}
           >
@@ -359,7 +361,7 @@ export default function OptimizePage() {
                   state={savedState}
                   onPublish={() => {
                     setToastSuccess(true);
-                    setToastContent("This data is already saved in Shopify.");
+                    setToastContent(t("optimize.dataAlreadySaved"));
                     setViewingSavedMission(false);
                   }}
                   onDiscard={() => setViewingSavedMission(false)}
@@ -395,8 +397,8 @@ export default function OptimizePage() {
   return (
     <Frame>
       <Page
-        title="AI-Powered Product Optimization"
-        backAction={{ content: "Home", onAction: () => navigate("/app") }}
+        title={t("optimize.aiPoweredOptimization")}
+        backAction={{ content: t("optimize.home"), onAction: () => navigate("/app") }}
       >
         <Layout>
           <Layout.Section>
@@ -407,7 +409,7 @@ export default function OptimizePage() {
                 return missionsStr ? (
                   <InlineStack gap="200" blockAlign="center">
                     <Text as="span" variant="bodySm" tone="subdued">
-                      Missions used: {missionsStr}
+                      {t("optimize.missionsUsed")} {missionsStr}
                     </Text>
                   </InlineStack>
                 ) : null;
@@ -431,7 +433,7 @@ export default function OptimizePage() {
               {error && (
                 <Banner
                   tone="critical"
-                  title="Optimization Error"
+                  title={t("optimize.optimizationError")}
                   onDismiss={() => setError(null)}
                 >
                   <p>{error}</p>

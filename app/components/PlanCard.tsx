@@ -1,11 +1,38 @@
 import { Card, Box, Text, BlockStack, InlineStack, Badge, Collapsible, ExceptionList } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import { useState, useCallback, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { PlanCardModel, PlanFeature, PlanSection } from "../utils/planCatalog";
 import "../styles/plan-card.css";
 
 function FeatureRow({ feature }: { feature: PlanFeature }) {
+  if (feature.highlight) {
+    return (
+      <div
+        style={{
+          background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(167,139,250,0.12))",
+          borderRadius: 8,
+          padding: "6px 8px",
+          border: "1px solid rgba(124,58,237,0.18)",
+        }}
+      >
+        <ExceptionList
+          items={[
+            {
+              icon: CheckIcon,
+              description: (
+                <InlineStack gap="200" blockAlign="center" wrap={false}>
+                  <span style={{ fontWeight: 600 }}>{feature.label}</span>
+                  <Badge tone="info">Pro</Badge>
+                </InlineStack>
+              ) as unknown as string,
+            },
+          ]}
+        />
+      </div>
+    );
+  }
   return (
     <ExceptionList
       items={[
@@ -68,6 +95,7 @@ export function PlanCard({
   cta: ReactNode;
   accentClass?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={`plan-card-stretch ${accentClass ? "plan-card-accent " + accentClass : ""}`}>
       <Card>
@@ -80,8 +108,8 @@ export function PlanCard({
                   <span>{plan.name}</span>
                   {isCurrent || extraBadges ? (
                     <InlineStack gap="200" blockAlign="center">
-                      {isCurrent ? <Badge tone="success">Active</Badge> : null}
-                      {isCurrent && graceActive ? <Badge tone="info">Grace</Badge> : null}
+                      {isCurrent ? <Badge tone="success">{t("components.active")}</Badge> : null}
+                      {isCurrent && graceActive ? <Badge tone="info">{t("components.grace")}</Badge> : null}
                       {extraBadges}
                     </InlineStack>
                   ) : null}
@@ -94,7 +122,7 @@ export function PlanCard({
                   {plan.price}
                   {plan.price !== "$0" ? (
                     <Text as="span" variant="bodyLg" fontWeight="regular">
-                      /month
+                      {t("components.perMonth")}
                     </Text>
                   ) : null}
                 </Text>

@@ -14,6 +14,7 @@ import {
 } from '@shopify/polaris';
 import { EditIcon, NoteIcon, ImageIcon } from '@shopify/polaris-icons';
 import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
 import '../styles/optimize-button.css';
 
@@ -41,6 +42,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function WritingStudio() {
+  const { t } = useTranslation();
   const { shop } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -61,9 +63,9 @@ export default function WritingStudio() {
 
   return (
     <Page
-      title="Writing Studio"
+      title={t("writingStudio.writingStudio")}
       backAction={{
-        content: 'Home',
+        content: t("writingStudio.home"),
         onAction: () => navigate(nav('/app')),
       }}
     >
@@ -81,11 +83,11 @@ export default function WritingStudio() {
                         <Icon source={EditIcon} tone="base" />
                       </div>
                       <Text as="h2" variant="headingLg">
-                        Product Rewriter
+                        {t("writingStudio.productRewriter")}
                       </Text>
                     </InlineStack>
                     <Text as="p" tone="subdued" variant="bodyMd">
-                      Select a Shopify product, generate optimized descriptions, titles, and SEO copy. Results save directly to your store.
+                      {t("writingStudio.productRewriterDesc")}
                     </Text>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div className="feature-btn-glow-2">
@@ -93,7 +95,7 @@ export default function WritingStudio() {
                           variant="primary"
                           onClick={() => navigate(nav('/app/rewriter'))}
                         >
-                          Open
+                          {t("writingStudio.open")}
                         </Button>
                       </div>
                     </div>
@@ -110,11 +112,11 @@ export default function WritingStudio() {
                         <Icon source={ImageIcon} tone="base" />
                       </div>
                       <Text as="h2" variant="headingLg">
-                        Image Refinement
+                        {t("writingStudio.imageRefinement")}
                       </Text>
                     </InlineStack>
                     <Text as="p" tone="subdued" variant="bodyMd">
-                      AI-powered product photo refinement. Clean backgrounds, generate marketing ads, and hero banners from any product image.
+                      {t("writingStudio.imageRefinementDesc")}
                     </Text>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div className="feature-btn-glow-1">
@@ -122,7 +124,7 @@ export default function WritingStudio() {
                           variant="primary"
                           onClick={() => navigate(nav('/app/writing-studio/image-refinement'))}
                         >
-                          Open
+                          {t("writingStudio.open")}
                         </Button>
                       </div>
                     </div>
@@ -139,11 +141,11 @@ export default function WritingStudio() {
                         <Icon source={NoteIcon} tone="base" />
                       </div>
                       <Text as="h2" variant="headingLg">
-                        Content Templates
+                        {t("writingStudio.contentTemplates")}
                       </Text>
                     </InlineStack>
                     <Text as="p" tone="subdued" variant="bodyMd">
-                      Generate product titles, FAQs, collection copy, and landing page content using AI-powered templates with brand voice.
+                      {t("writingStudio.contentTemplatesDesc")}
                     </Text>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div className="feature-btn-glow-1">
@@ -151,7 +153,7 @@ export default function WritingStudio() {
                           variant="primary"
                           onClick={() => navigate(nav('/app/content-templates'))}
                         >
-                          Open
+                          {t("writingStudio.open")}
                         </Button>
                       </div>
                     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Card,
   Box,
@@ -38,43 +39,6 @@ interface MissionHistoryProps {
   limit?: number;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return <Badge tone="success">Completed</Badge>;
-    case "ERROR":
-      return <Badge tone="critical">Error</Badge>;
-    case "IN_PROGRESS":
-      return <Badge tone="info" progress="partiallyComplete">In Progress</Badge>;
-    case "AWAITING_APPROVAL":
-      return <Badge tone="warning">Awaiting Approval</Badge>;
-    case "PENDING":
-      return <Badge tone="attention">Pending</Badge>;
-    default:
-      return <Badge>{status}</Badge>;
-  }
-}
-
-function relativeTime(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSecs < 60) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
-
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function MissionHistory({
@@ -84,12 +48,48 @@ export function MissionHistory({
   onViewMission,
   limit = 5,
 }: MissionHistoryProps) {
+  const { t } = useTranslation("missions");
   const [missions, setMissions] = useState<MissionListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [missionDetails, setMissionDetails] = useState<Record<string, Record<string, unknown>>>({});
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
+
+  function getStatusBadge(status: string) {
+    switch (status) {
+      case "COMPLETED":
+        return <Badge tone="success">{t("completed")}</Badge>;
+      case "ERROR":
+        return <Badge tone="critical">{t("errorStatus")}</Badge>;
+      case "IN_PROGRESS":
+        return <Badge tone="info" progress="partiallyComplete">{t("inProgress")}</Badge>;
+      case "AWAITING_APPROVAL":
+        return <Badge tone="warning">{t("awaitingApproval")}</Badge>;
+      case "PENDING":
+        return <Badge tone="attention">{t("pending")}</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  }
+
+  function relativeTime(dateStr: string | null): string {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSecs < 60) return t("justNow");
+    if (diffMins < 60) return t("minsAgo", { count: diffMins });
+    if (diffHours < 24) return t("hoursAgo", { count: diffHours });
+    if (diffDays === 1) return t("yesterday");
+    if (diffDays < 7) return t("daysAgo", { count: diffDays });
+    return date.toLocaleDateString();
+  }
 
   // ── Fetch mission list ────────────────────────────────────────────────
 
@@ -99,18 +99,18 @@ export function MissionHistory({
         setLoading(true);
         const url = `${apiBaseUrl}/api/missions?shop=${encodeURIComponent(shop)}&limit=${limit}`;
         const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch missions");
+        if (!response.ok) throw new Error(t("failedToFetchMissions"));
         const data = await response.json();
         setMissions(data.missions || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load mission history");
+        setError(err instanceof Error ? err.message : t("failedToLoadHistory"));
       } finally {
         setLoading(false);
       }
     };
 
     fetchMissions();
-  }, [apiBaseUrl, shop, limit]);
+  }, [apiBaseUrl, shop, limit, t]);
 
   // ── Fetch full mission details on expand ──────────────────────────────
 
@@ -129,7 +129,7 @@ export function MissionHistory({
     try {
       const url = `${apiBaseUrl}/api/missions/${missionId}?shop=${encodeURIComponent(shop)}`;
       const response = await fetch(url);
-      if (!response.ok) throw new Error("Failed to fetch details");
+      if (!response.ok) throw new Error(t("failedToFetchDetails"));
       const data = await response.json();
       setMissionDetails((prev) => ({
         ...prev,
@@ -140,7 +140,7 @@ export function MissionHistory({
     } finally {
       setLoadingDetails(null);
     }
-  }, [expandedId, apiBaseUrl, shop, missionDetails]);
+  }, [expandedId, apiBaseUrl, shop, missionDetails, t]);
 
   // ── Render ────────────────────────────────────────────────────────────
 
@@ -150,7 +150,7 @@ export function MissionHistory({
         <Box padding="400">
           <InlineStack align="center" gap="200">
             <Spinner size="small" />
-            <Text as="span" variant="bodySm" tone="subdued">Loading mission history...</Text>
+            <Text as="span" variant="bodySm" tone="subdued">{t("loadingHistory")}</Text>
           </InlineStack>
         </Box>
       </Card>
@@ -173,7 +173,7 @@ export function MissionHistory({
         <Box padding="400">
           <BlockStack gap="200" inlineAlign="center">
             <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-              No missions yet. Start your first mission above!
+              {t("noMissionsYet")}
             </Text>
           </BlockStack>
         </Box>
@@ -186,7 +186,7 @@ export function MissionHistory({
       <Box padding="400">
         <BlockStack gap="400">
           <Text as="h3" variant="headingMd">
-            Recent Missions
+            {t("recentMissions")}
           </Text>
 
           <BlockStack gap="200">
@@ -213,7 +213,7 @@ export function MissionHistory({
                           <BlockStack gap="050">
                             <Text as="span" variant="bodyMd" fontWeight="semibold">
                               {isExpanded ? "▼" : "▶"}{" "}
-                              {mission.mission_title || mission.product_name || `Product ${mission.product_id}`}
+                              {mission.mission_title || mission.product_name || t("productFallback", { id: mission.product_id })}
                             </Text>
                             {mission.mission_title && mission.product_name && (
                               <Text as="span" variant="bodySm" tone="subdued">
@@ -235,7 +235,7 @@ export function MissionHistory({
                             variant="primary"
                             onClick={() => onResumeMission(mission.id)}
                           >
-                            Resume
+                            {t("resume")}
                           </Button>
                         )}
                       </InlineStack>
@@ -253,14 +253,14 @@ export function MissionHistory({
                           {isLoadingThis ? (
                             <InlineStack align="center" gap="200">
                               <Spinner size="small" />
-                              <Text as="span" variant="bodySm" tone="subdued">Loading details...</Text>
+                              <Text as="span" variant="bodySm" tone="subdued">{t("loadingDetails")}</Text>
                             </InlineStack>
                           ) : details ? (
                             <BlockStack gap="200">
                               {/* Workflow agents */}
                               {details.workflow_agents && Array.isArray(details.workflow_agents) && (
                                 <InlineStack gap="100" wrap>
-                                  <Text as="span" variant="bodySm" tone="subdued">Agents:</Text>
+                                  <Text as="span" variant="bodySm" tone="subdued">{t("agents")}</Text>
                                   {(details.workflow_agents as string[]).map((agent: string) => (
                                     <Badge key={agent} tone="info">{agent}</Badge>
                                   ))}
@@ -270,30 +270,30 @@ export function MissionHistory({
                               {/* Key outputs */}
                               {details.draft_title && (
                                 <Text as="p" variant="bodySm">
-                                  <strong>Title:</strong> {String(details.draft_title)}
+                                  <strong>{t("titleLabel")}</strong> {String(details.draft_title)}
                                 </Text>
                               )}
 
                               {details.pricing_analysis && typeof details.pricing_analysis === "object" && (
                                 <Text as="p" variant="bodySm">
-                                  <strong>Price:</strong>{" "}
+                                  <strong>{t("priceLabel")}</strong>{" "}
                                   {(details.pricing_analysis as Record<string, unknown>).recommended_price
                                     ? `$${(details.pricing_analysis as Record<string, unknown>).recommended_price}`
-                                    : "N/A"}{" "}
+                                    : t("na")}{" "}
                                   ({String((details.pricing_analysis as Record<string, unknown>).price_position || "")})
                                 </Text>
                               )}
 
                               {details.seo_title && (
                                 <Text as="p" variant="bodySm">
-                                  <strong>SEO Title:</strong> {String(details.seo_title)}
+                                  <strong>{t("seoTitleLabel")}</strong> {String(details.seo_title)}
                                 </Text>
                               )}
 
                               {/* Error message */}
                               {mission.error_message && (
                                 <Text as="p" variant="bodySm" tone="critical">
-                                  Error: {mission.error_message}
+                                  {t("errorPrefix")} {mission.error_message}
                                 </Text>
                               )}
 
@@ -305,14 +305,14 @@ export function MissionHistory({
                                     variant="plain"
                                     onClick={() => onViewMission(mission.id, details as unknown as MissionState)}
                                   >
-                                    View Full Details
+                                    {t("viewFullDetails")}
                                   </Button>
                                 </Box>
                               )}
                             </BlockStack>
                           ) : (
                             <Text as="p" variant="bodySm" tone="subdued">
-                              No details available.
+                              {t("noDetailsAvailable")}
                             </Text>
                           )}
                         </Box>

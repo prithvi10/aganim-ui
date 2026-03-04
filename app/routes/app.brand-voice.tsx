@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Page,
   Layout,
@@ -75,6 +76,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 function LogoUploadCard({ shop, backendApiUrl }: { shop: string; backendApiUrl: string }) {
+  const { t } = useTranslation();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoInput, setLogoInput] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -116,7 +118,7 @@ function LogoUploadCard({ shop, backendApiUrl }: { shop: string; backendApiUrl: 
       if (resp.ok && data.logo_url) {
         setLogoUrl(data.logo_url);
         setLogoInput('');
-        setToast('Logo uploaded successfully!');
+        setToast(t('brandVoice.logoUploadedSuccess'));
       } else {
         setError(data.detail || 'Upload failed');
       }
@@ -154,7 +156,7 @@ function LogoUploadCard({ shop, backendApiUrl }: { shop: string; backendApiUrl: 
       const data = await resp.json();
       if (resp.ok && data.logo_url) {
         setLogoUrl(data.logo_url);
-        setToast('Logo uploaded successfully!');
+        setToast(t('brandVoice.logoUploadedSuccess'));
       } else {
         setError(data.detail || 'Upload failed');
       }
@@ -171,9 +173,9 @@ function LogoUploadCard({ shop, backendApiUrl }: { shop: string; backendApiUrl: 
         <Box padding="400">
           <BlockStack gap="400">
             <BlockStack gap="200">
-              <Text as="h2" variant="headingLg">Brand Logo</Text>
+              <Text as="h2" variant="headingLg">{t('brandVoice.brandLogo')}</Text>
               <Text as="p" variant="bodyMd" tone="subdued">
-                Upload your shop logo. It will be used in the "Informative" image style for hero banners.
+                {t('brandVoice.brandLogoDesc')}
               </Text>
             </BlockStack>
             <Divider />
@@ -187,14 +189,14 @@ function LogoUploadCard({ shop, backendApiUrl }: { shop: string; backendApiUrl: 
             )}
 
             <TextField
-              label="Logo URL"
+              label={t('brandVoice.logoUrl')}
               value={logoInput}
               onChange={setLogoInput}
               placeholder="https://example.com/logo.png"
               autoComplete="off"
               connectedRight={
                 <Button onClick={handleUploadFromUrl} loading={uploading} disabled={!logoInput.trim() || uploading}>
-                  Upload
+                  {t('brandVoice.upload')}
                 </Button>
               }
             />
@@ -202,8 +204,8 @@ function LogoUploadCard({ shop, backendApiUrl }: { shop: string; backendApiUrl: 
             <DropZone accept="image/*" type="image" onDrop={handleFileDrop} disabled={uploading} allowMultiple={false} variableHeight>
               <div style={{ padding: '12px', textAlign: 'center' }}>
                 <BlockStack gap="100" inlineAlign="center">
-                  <Text as="p" variant="bodySm">Or drop / click to upload a logo file</Text>
-                  <Text as="p" variant="bodySm" tone="subdued">PNG, JPG, or WebP</Text>
+                  <Text as="p" variant="bodySm">{t('brandVoice.orDropToUpload')}</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">{t('brandVoice.pngJpgWebp')}</Text>
                 </BlockStack>
               </div>
             </DropZone>
@@ -218,6 +220,7 @@ function LogoUploadCard({ shop, backendApiUrl }: { shop: string; backendApiUrl: 
 }
 
 export default function BrandVoice() {
+  const { t } = useTranslation();
   const { shop, backendApiUrl, intelligence, intelligenceUpdatedAt } =
     useLoaderData<typeof loader>();
   const navigate = useNavigate();
@@ -268,9 +271,9 @@ export default function BrandVoice() {
 
   return (
     <Page
-      title="Brand Voice & Intelligence"
+      title={t('brandVoice.brandVoiceIntelligence')}
       backAction={{
-        content: 'Writing Studio',
+        content: t('brandVoice.writingStudio'),
         onAction: () => navigate(nav('/app/writing-studio')),
       }}
     >

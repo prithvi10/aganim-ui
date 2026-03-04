@@ -118,21 +118,6 @@ export function OnboardingSheet({
     }
   }, [app, navigate, nav, qs]);
 
-  const openThemeEditor = useCallback(async () => {
-    setBusy(true);
-    try {
-      await postOnboardingStep(backendApiUrl, shop, 2);
-      setStep((s) => Math.max(s, 2));
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(false);
-    }
-
-    const url = `https://${shop}/admin/themes/current/editor?context=apps`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, [backendApiUrl, shop]);
-
   const tryMarketing = useCallback(async () => {
     setBusy(true);
     try {
@@ -280,34 +265,7 @@ export function OnboardingSheet({
             </Box>
 
             <MediaCard
-              title="Step 2: Enable the Storefront View"
-              description="Turn on the App Embed inside your Theme Editor so shoppers can see localized content on the storefront."
-              primaryAction={{
-                content: "Open Theme Editor",
-                onAction: openThemeEditor,
-                loading: busy,
-              }}
-            >
-              <Box padding="200">
-                <img
-                  src="/onboarding-theme-embed.gif"
-                  alt="Theme editor app embed toggle demo"
-                  style={{
-                    width: "100%",
-                    maxHeight: 220,
-                    objectFit: "cover",
-                    borderRadius: 12,
-                  }}
-                />
-                <Text as="p" variant="bodySm" tone="subdued">
-                  (Add a looping GIF at{" "}
-                  <code>/public/onboarding-theme-embed.gif</code>)
-                </Text>
-              </Box>
-            </MediaCard>
-
-            <MediaCard
-              title="Step 3: Create your first Social Hook"
+              title="Step 2: Create your first Social Hook"
               description="Generate Instagram-ready hooks from a product and save them to metafields."
               primaryAction={{
                 content: "Open Caption Generator",

@@ -25,13 +25,13 @@ import { BrandSoulWizard } from "../components/BrandSoulWizard";
 import {
   StarIcon,
   EditIcon,
-  CodeIcon,
   SearchIcon,
   SocialAdIcon,
   ChartVerticalIcon,
   CheckCircleIcon,
   XCircleIcon,
 } from "@shopify/polaris-icons";
+import { useTranslation } from "react-i18next";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
@@ -157,6 +157,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function LandingPage() {
+  const { t } = useTranslation();
   const {
     shop,
     host,
@@ -190,9 +191,6 @@ export default function LandingPage() {
   const [brandErrorState, setBrandErrorState] = useState<string | null>(brandLastError);
 
   const shopSlug = shop.replace(".myshopify.com", "");
-  const themeEditorUrl = shopSlug
-    ? `https://admin.shopify.com/store/${shopSlug}/themes/current/editor?context=apps`
-    : "https://admin.shopify.com/";
 
   const optimizeUrl = shopSlug
     ? `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/optimize`
@@ -350,10 +348,10 @@ export default function LandingPage() {
 
   // Getting started checklist items
   const onboardingSteps = [
-    { id: "soul", label: "Define Soul", completed: isBrandSoulActive },
-    { id: "optimize", label: "Optimize First Product", completed: false },
-    { id: "theme", label: "Configure Theme", completed: false },
-    { id: "review", label: "Review Results", completed: false },
+    { id: "soul", label: t("home.defineSoul"), completed: isBrandSoulActive },
+    { id: "optimize", label: t("home.optimizeFirstProduct"), completed: false },
+    { id: "theme", label: t("home.configureTheme"), completed: false },
+    { id: "review", label: t("home.reviewResults"), completed: false },
   ];
 
 
@@ -366,15 +364,15 @@ export default function LandingPage() {
                   <InlineStack align="start" blockAlign="center" gap="400">
                     <img
                       src="/Icon-final.png"
-                alt="Cross-Border AI"
+                alt={t("home.crossBorderAi")}
                       style={{ width: 56, height: 56 }}
                     />
                     <BlockStack gap="100">
                       <Text as="h1" variant="headingXl">
-                  Cross-Border AI
+                  {t("home.crossBorderAi")}
                       </Text>
                       <Text as="p" variant="bodyMd" tone="subdued">
-                  Transform product info into a world-class marketing copy.
+                  {t("home.tagline")}
                       </Text>
                     </BlockStack>
                   </InlineStack>
@@ -386,10 +384,10 @@ export default function LandingPage() {
             <BlockStack gap="400">
               <BlockStack gap="200">
                 <Text as="h2" variant="headingLg">
-                  Getting Started
+                  {t("home.gettingStarted")}
                 </Text>
                 <Text as="p" variant="bodyMd" tone="subdued">
-                  Complete these steps to unlock the full power of Cross-Border AI.
+                  {t("home.gettingStartedDesc")}
                   </Text>
               </BlockStack>
 
@@ -412,7 +410,7 @@ export default function LandingPage() {
                 variant="secondary"
                 onClick={() => setOnboardingModalOpen(true)}
               >
-                View Full Guide
+                {t("home.viewFullGuide")}
                     </Button>
                   </BlockStack>
           </Box>
@@ -425,23 +423,23 @@ export default function LandingPage() {
                   <InlineStack align="space-between" blockAlign="center">
                 <InlineStack align="start" gap="200" blockAlign="center">
                   <Text as="h2" variant="headingLg">
-                        Brand Soul
+                        {t("home.brandSoul")}
                       </Text>
                   {brandStatusIcon}
                 </InlineStack>
                     <Button variant="primary" onClick={() => setBrandWizardOpen(true)}>
-                  Edit Identity
+                  {t("home.editIdentity")}
                     </Button>
                   </InlineStack>
 
               {brandStatusState === "running" || brandStatusState === "accepted" ? (
                     <Banner tone="info">
-                      Generating brand intelligence… please check after a while.
+                      {t("home.generatingBrandIntelligence")}
                     </Banner>
                   ) : null}
               {brandStatusState === "failed" && (
                     <Banner tone="critical">
-                      Brand intelligence failed. Please retry in the wizard.
+                      {t("home.brandIntelligenceFailed")}
                     </Banner>
               )}
               {brandErrorState && (
@@ -460,7 +458,7 @@ export default function LandingPage() {
                     <Box padding="300" background="bg-surface" borderRadius="200">
                       <BlockStack gap="200">
                         <Text as="p" variant="bodySm" tone="subdued">
-                          Latest summary
+                          {t("home.latestSummary")}
                         </Text>
                         {displayBrandSummary.includes("\n") ? (
                           <List type="bullet">
@@ -480,7 +478,7 @@ export default function LandingPage() {
                         {displayKeyFacts.length > 0 && (
                           <BlockStack gap="100">
                             <Text as="p" variant="bodySm" tone="subdued">
-                              Key facts
+                              {t("home.keyFacts")}
                             </Text>
                             <List type="bullet">
                               {displayKeyFacts.map((fact: string, idx: number) => (
@@ -491,7 +489,7 @@ export default function LandingPage() {
                         )}
                         {brandUpdatedState && (
                           <Text as="span" variant="bodySm" tone="subdued">
-                            Updated: {new Date(brandUpdatedState).toLocaleDateString()}
+                            {t("home.updated")} {new Date(brandUpdatedState).toLocaleDateString()}
                           </Text>
                         )}
 
@@ -532,7 +530,7 @@ export default function LandingPage() {
                                     </InlineStack>
                                     {brandIntelligence.secondary_archetype && (
                                       <Text as="p" variant="bodySm" tone="subdued">
-                                        Secondary: {String(brandIntelligence.secondary_archetype)
+                                        {t("home.secondary")} {String(brandIntelligence.secondary_archetype)
                                           .split("_")
                                           .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
                                           .join(" ")}
@@ -544,7 +542,7 @@ export default function LandingPage() {
                                   {brandIntelligence.tonal_guardrails && (
                                     <BlockStack gap="100">
                                       <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        Tonal Guardrails
+                                        {t("home.tonalGuardrails")}
                                       </Text>
                                       <List type="bullet">
                                         <List.Item>Formality: {brandIntelligence.tonal_guardrails.formality_level}</List.Item>
@@ -559,7 +557,7 @@ export default function LandingPage() {
                                   {Array.isArray(brandIntelligence.power_words) && brandIntelligence.power_words.length > 0 && (
                                     <BlockStack gap="100">
                                       <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        Power Words
+                                        {t("home.powerWords")}
                                       </Text>
                                       <Text as="p" variant="bodySm">
                                         {brandIntelligence.power_words.slice(0, 10).join(", ")}
@@ -571,7 +569,7 @@ export default function LandingPage() {
                                   {Array.isArray(brandIntelligence.banned_phrases) && brandIntelligence.banned_phrases.length > 0 && (
                                     <BlockStack gap="100">
                                       <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        Banned Phrases
+                                        {t("home.bannedPhrases")}
                                       </Text>
                                       <Text as="p" variant="bodySm" tone="critical">
                                         {brandIntelligence.banned_phrases.slice(0, 10).join(", ")}
@@ -583,7 +581,7 @@ export default function LandingPage() {
                                   {Array.isArray(brandIntelligence.core_value_props) && brandIntelligence.core_value_props.length > 0 && (
                                     <BlockStack gap="100">
                                       <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        Core Value Propositions
+                                        {t("home.coreValuePropositions")}
                                       </Text>
                                       <List type="bullet">
                                         {brandIntelligence.core_value_props.map((v: string, i: number) => (
@@ -597,7 +595,7 @@ export default function LandingPage() {
                                   {Array.isArray(brandIntelligence.cultural_touchpoints) && brandIntelligence.cultural_touchpoints.length > 0 && (
                                     <BlockStack gap="100">
                                       <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        Cultural Touchpoints
+                                        {t("home.culturalTouchpoints")}
                                       </Text>
                                       <List type="bullet">
                                         {brandIntelligence.cultural_touchpoints.map((t: string, i: number) => (
@@ -609,7 +607,7 @@ export default function LandingPage() {
 
                                   {brandIntelligenceUpdatedAt && (
                                     <Text as="span" variant="bodySm" tone="subdued">
-                                      Intelligence updated: {new Date(brandIntelligenceUpdatedAt).toLocaleDateString()}
+                                      {t("home.intelligenceUpdated")} {new Date(brandIntelligenceUpdatedAt).toLocaleDateString()}
                                     </Text>
                                   )}
                                 </BlockStack>
@@ -624,7 +622,7 @@ export default function LandingPage() {
                     variant="plain"
                     onClick={() => setBrandSoulCollapsed(!brandSoulCollapsed)}
                   >
-                    {brandSoulCollapsed ? "Show" : "Hide"}
+                    {brandSoulCollapsed ? t("home.show") : t("home.hide")}
                   </Button>
                 </>
               )}
@@ -635,7 +633,7 @@ export default function LandingPage() {
         {/* Features Grid */}
         <BlockStack gap="400">
           <Text as="h2" variant="headingLg">
-            Features
+            {t("home.features")}
           </Text>
           <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
             {/* Card 1: Complete Optimization */}
@@ -644,7 +642,7 @@ export default function LandingPage() {
                 <BlockStack gap="400">
                   <InlineStack align="space-between" blockAlign="start">
                     <Text as="h3" variant="headingLg">
-                      Complete Optimization
+                      {t("home.completeOptimization")}
                     </Text>
                     <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <div style={{ transform: "scale(1.5)" }}>
@@ -654,7 +652,7 @@ export default function LandingPage() {
                   </InlineStack>
                   <div style={{ marginTop: "-12px" }}>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Run all (Rewriter → SEO → Marketing → Pricing)
+                      {t("home.completeOptimizationDesc")}
                     </Text>
                   </div>
                   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -665,7 +663,7 @@ export default function LandingPage() {
                               window.open(optimizeUrl, "_top");
                             }}
                           >
-                        Open
+                        {t("home.open")}
                           </Button>
                         </div>
                       </div>
@@ -689,7 +687,7 @@ export default function LandingPage() {
                   </InlineStack>
                   <div style={{ marginTop: "-12px" }}>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Product rewriter, content templates, and AI writing tools.
+                      {t("home.writingStudioDesc")}
                     </Text>
                   </div>
                   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -698,7 +696,7 @@ export default function LandingPage() {
                         variant="primary"
                         onClick={() => navigate(nav("/app/writing-studio"))}
                     >
-                        Open
+                        {t("home.open")}
                     </Button>
                     </div>
                   </div>
@@ -706,46 +704,13 @@ export default function LandingPage() {
               </Box>
             </Card>
 
-            {/* Card 3: Theme Editor */}
+            {/* Card 3: Price Scout */}
             <Card>
               <Box padding="500" background="bg-surface-secondary">
                 <BlockStack gap="400">
                   <InlineStack align="space-between" blockAlign="start">
                     <Text as="h3" variant="headingLg">
-                      Theme Editor
-                    </Text>
-                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ transform: "scale(1.5)" }}>
-                        <Icon source={CodeIcon} tone="base" />
-                      </div>
-                    </div>
-                  </InlineStack>
-                  <div style={{ marginTop: "-12px" }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Configure theme settings and widget placement.
-                    </Text>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <div className="feature-btn-glow-3">
-                      <Button
-                        variant="primary"
-                        onClick={() => window.open(themeEditorUrl, "_top")}
-                      >
-                        Open
-                      </Button>
-                    </div>
-                  </div>
-                </BlockStack>
-              </Box>
-            </Card>
-
-            {/* Card 4: Price Scout */}
-            <Card>
-              <Box padding="500" background="bg-surface-secondary">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="start">
-                    <Text as="h3" variant="headingLg">
-                      Price Scout
+                      {t("home.priceScout")}
                     </Text>
                     <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <div style={{ transform: "scale(1.5)" }}>
@@ -755,7 +720,7 @@ export default function LandingPage() {
                   </InlineStack>
                   <div style={{ marginTop: "-12px" }}>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Analyze competitor pricing and optimize your product prices.
+                      {t("home.priceScoutDesc")}
                     </Text>
                   </div>
                   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -764,7 +729,7 @@ export default function LandingPage() {
                         variant="primary"
                         onClick={() => navigate(nav("/app/pricing"))}
                       >
-                        Open
+                        {t("home.open")}
                       </Button>
                     </div>
                   </div>
@@ -778,7 +743,7 @@ export default function LandingPage() {
                 <BlockStack gap="400">
                   <InlineStack align="space-between" blockAlign="start">
                     <Text as="h3" variant="headingLg">
-                      Marketing Agent
+                      {t("home.marketingAgent")}
                     </Text>
                     <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <div style={{ transform: "scale(1.5)" }}>
@@ -788,7 +753,7 @@ export default function LandingPage() {
                   </InlineStack>
                   <div style={{ marginTop: "-12px" }}>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Generate social hooks and marketing copy for your products.
+                      {t("home.marketingAgentDesc")}
                     </Text>
                   </div>
                   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -797,7 +762,7 @@ export default function LandingPage() {
                         variant="primary"
                         onClick={() => navigate(nav("/app/marketing"))}
                       >
-                        Open
+                        {t("home.open")}
                       </Button>
                     </div>
                   </div>
@@ -811,7 +776,7 @@ export default function LandingPage() {
                 <BlockStack gap="400">
                   <InlineStack align="space-between" blockAlign="start">
                     <Text as="h3" variant="headingLg">
-                      SEO Manager
+                      {t("home.seoManager")}
                       </Text>
                     <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <div style={{ transform: "scale(1.5)" }}>
@@ -821,7 +786,7 @@ export default function LandingPage() {
                   </InlineStack>
                   <div style={{ marginTop: "-12px" }}>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Optimize SEO titles, descriptions, and alt text.
+                      {t("home.seoManagerDesc")}
                     </Text>
                   </div>
                   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -830,7 +795,7 @@ export default function LandingPage() {
                         variant="primary"
                         onClick={() => navigate(nav("/app/seo"))}
                       >
-                        Open
+                        {t("home.open")}
                       </Button>
                     </div>
                   </div>
@@ -843,11 +808,11 @@ export default function LandingPage() {
         {/* Footer */}
         <FooterHelp>
           <a href="https://support.example.com" target="_blank" rel="noopener noreferrer">
-            Contact Support
+            {t("home.contactSupport")}
           </a>{" "}
           or{" "}
           <a href="https://guide.example.com" target="_blank" rel="noopener noreferrer">
-            Read the Guide
+            {t("home.readTheGuide")}
           </a>
         </FooterHelp>
           </BlockStack>

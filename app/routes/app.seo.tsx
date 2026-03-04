@@ -21,6 +21,7 @@ import {
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
 import { useState, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckIcon } from "@shopify/polaris-icons";
 
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
@@ -260,6 +261,7 @@ function SearchEnginePreview({
   rank?: number;
   isYours?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Box
       padding="300"
@@ -273,11 +275,11 @@ function SearchEnginePreview({
           <Text as="span" variant="bodySm" tone="subdued">#{rank}</Text>
         )}
         <div style={{ color: "#1a0dab", fontSize: 18, fontWeight: 400, lineHeight: "1.3" }}>
-          {title || "SEO title preview…"}
+          {title || t("seo.seoTitlePreview")}
         </div>
         <div style={{ color: "#006621", fontSize: 13 }}>{url}</div>
         <div style={{ color: "#545454", fontSize: 14, lineHeight: "1.5" }}>
-          {snippet || "Meta description preview…"}
+          {snippet || t("seo.metaDescriptionPreview")}
         </div>
       </BlockStack>
     </Box>
@@ -288,6 +290,7 @@ function SearchEnginePreview({
  * CTR Score Display with traffic light indicators
  */
 function CTRScoreDisplay({ ctrCheck }: { ctrCheck: SEOResult["ctr_check"] }) {
+  const { t } = useTranslation();
   if (!ctrCheck) return null;
 
   const Light = ({ active, color }: { active: boolean; color: string }) => (
@@ -315,12 +318,12 @@ function CTRScoreDisplay({ ctrCheck }: { ctrCheck: SEOResult["ctr_check"] }) {
 
   return (
     <BlockStack gap="200">
-      <Row label="PST Check" active={ctrCheck.pain_present || false} hint={ctrCheck.pain_present ? "OK" : "Add problem/question"} />
-      <Row label="Solution" active={ctrCheck.solution_present || false} hint={ctrCheck.solution_present ? "OK" : "Add benefit + spec"} />
-      <Row label="Trust" active={ctrCheck.trust_present || false} hint={ctrCheck.trust_present ? "OK" : "Add trust cue"} />
+      <Row label={t("seo.pstCheck")} active={ctrCheck.pain_present || false} hint={ctrCheck.pain_present ? t("seo.ok") : t("seo.addProblemQuestion")} />
+      <Row label={t("seo.solution")} active={ctrCheck.solution_present || false} hint={ctrCheck.solution_present ? t("seo.ok") : t("seo.addBenefitSpec")} />
+      <Row label={t("seo.trust")} active={ctrCheck.trust_present || false} hint={ctrCheck.trust_present ? t("seo.ok") : t("seo.addTrustCue")} />
       <Divider />
       <InlineStack align="space-between" blockAlign="center">
-        <Text as="span" variant="bodySm" fontWeight="semibold">CTR Score</Text>
+        <Text as="span" variant="bodySm" fontWeight="semibold">{t("seo.ctrScore")}</Text>
         <Badge tone={ctrCheck.score && ctrCheck.score >= 0.7 ? "success" : ctrCheck.score && ctrCheck.score >= 0.4 ? "warning" : "critical"}>
           {Math.round((ctrCheck.score || 0) * 100)}%
         </Badge>
@@ -330,6 +333,7 @@ function CTRScoreDisplay({ ctrCheck }: { ctrCheck: SEOResult["ctr_check"] }) {
 }
 
 export default function SEOPage() {
+  const { t } = useTranslation();
   const { shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage } = useLoaderData<typeof loader>();
   const seoLocked = !canAccess(entitlements, "seo");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -482,7 +486,7 @@ export default function SEOPage() {
   useEffect(() => {
     if (saveFetcher.data) {
       if (saveFetcher.data.ok) {
-        setToastContent("SEO metadata saved successfully!");
+        setToastContent(t("seo.seoMetadataSaved"));
         setIsSaved(true);
       } else {
         setError(saveFetcher.data.error || "Failed to save SEO metadata");
@@ -501,11 +505,11 @@ export default function SEOPage() {
 
   return (
     <Page 
-      title="SEO Optimization" 
-      subtitle="Generate SEO metadata and analyze competitors"
+      title={t("seo.seoOptimization")}
+      subtitle={t("seo.seoSubtitle")}
       titleMetadata={seoLocked ? <PlanGateBadge tierName="Standard" /> : undefined}
       backAction={{
-        content: "Home",
+        content: t("seo.home"),
         onAction: () => navigate(nav("/app")),
       }}
     >
@@ -514,9 +518,9 @@ export default function SEOPage() {
           <BlockStack gap="400">
             {seoLocked ? (
               <LockedFeatureNotice
-                title="Standard Plan Feature"
-                description="SEO optimization requires the Standard plan"
-                ctaLabel="Upgrade"
+                title={t("seo.standardPlanFeature")}
+                description={t("seo.seoRequiresStandard")}
+                ctaLabel={t("seo.upgrade")}
                 ctaUrl={nav("/app/plans?from=dashboard")}
               />
             ) : (
@@ -524,19 +528,19 @@ export default function SEOPage() {
             {formatUsage(feature_usage.seo) && (
               <InlineStack gap="200" blockAlign="center">
                 <Text as="span" variant="bodySm" tone="subdued">
-                  SEO usage: {formatUsage(feature_usage.seo)}
+                  {t("seo.seoUsage")} {formatUsage(feature_usage.seo)}
                 </Text>
               </InlineStack>
             )}
             <Card>
               <BlockStack gap="300">
-                <Text variant="headingMd" as="h2">Select Product</Text>
-                <Select label="Product" labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
+                <Text variant="headingMd" as="h2">{t("seo.selectProduct")}</Text>
+                <Select label={t("seo.product")} labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
                 {selectedProduct && (
                   <div style={{ display: "flex", justifyContent: "center" }}>
                     <div className="agent-btn-border-6">
                       <Button variant="primary" size="large" onClick={handleOptimize} loading={isOptimizing} disabled={!selectedProduct || isOptimizing}>
-                        Optimize SEO
+                        {t("seo.optimizeSeo")}
                       </Button>
                     </div>
                   </div>
@@ -544,16 +548,16 @@ export default function SEOPage() {
               </BlockStack>
             </Card>
 
-            {error && <Banner tone="critical" title="Error" onDismiss={() => setError(null)}><p>{error}</p></Banner>}
+            {error && <Banner tone="critical" title={t("seo.error")} onDismiss={() => setError(null)}><p>{error}</p></Banner>}
 
             {isOptimizing && (
               <Card>
                 <Box padding="600">
                   <BlockStack gap="400" align="center">
                     <Spinner size="large" />
-                    <Text variant="headingSm" as="h3" alignment="center">Optimizing SEO...</Text>
+                    <Text variant="headingSm" as="h3" alignment="center">{t("seo.optimizingSeo")}</Text>
                     <Text variant="bodySm" tone="subdued" alignment="center">
-                      Analyzing competitors and generating SEO metadata
+                      {t("seo.analyzingCompetitors")}
                     </Text>
                   </BlockStack>
                 </Box>
@@ -566,7 +570,7 @@ export default function SEOPage() {
                 {seoResult.serp_insights && seoResult.serp_insights.length > 0 && (
                   <Card>
                     <BlockStack gap="300">
-                      <Text variant="headingMd" as="h2">Top 3 Ranks on Google Search</Text>
+                      <Text variant="headingMd" as="h2">{t("seo.top3Ranks")}</Text>
                       <BlockStack gap="200">
                         {seoResult.serp_insights.slice(0, 3).map((r, i) => (
                           <SearchEnginePreview
@@ -586,14 +590,14 @@ export default function SEOPage() {
                 <Card>
                   <BlockStack gap="300">
                     <InlineStack align="space-between" blockAlign="center">
-                      <Text variant="headingMd" as="h2">Your Product (SEO Preview)</Text>
+                      <Text variant="headingMd" as="h2">{t("seo.yourProductSeoPreview")}</Text>
                       <InlineStack gap="200">
-                        <Badge tone="success">Optimized</Badge>
+                        <Badge tone="success">{t("seo.optimized")}</Badge>
                         <Button
                           variant="secondary"
                           onClick={() => setIsEditingSeo(!isEditingSeo)}
                         >
-                          {isEditingSeo ? "Done Editing" : "Edit SEO"}
+                          {isEditingSeo ? t("seo.doneEditing") : t("seo.editSeo")}
                         </Button>
                       </InlineStack>
                     </InlineStack>
@@ -603,20 +607,20 @@ export default function SEOPage() {
                       <Box padding="400" background="bg-surface-secondary" borderRadius="200">
                         <BlockStack gap="400">
                           <TextField
-                            label="SEO Title"
+                            label={t("seo.seoTitle")}
                             value={editedSeoTitle}
                             onChange={setEditedSeoTitle}
                             autoComplete="off"
-                            helpText={`${editedSeoTitle.length}/60 characters recommended`}
+                            helpText={`${editedSeoTitle.length}/60 ${t("seo.charactersRecommended")}`}
                             maxLength={70}
                           />
                           <TextField
-                            label="SEO Description"
+                            label={t("seo.seoDescription")}
                             value={editedSeoDescription}
                             onChange={setEditedSeoDescription}
                             autoComplete="off"
                             multiline={3}
-                            helpText={`${editedSeoDescription.length}/160 characters recommended`}
+                            helpText={`${editedSeoDescription.length}/160 ${t("seo.charactersRecommended")}`}
                             maxLength={200}
                           />
                         </BlockStack>
@@ -624,15 +628,15 @@ export default function SEOPage() {
                     )}
 
                     <SearchEnginePreview
-                      title={isEditingSeo ? editedSeoTitle : (seoResult.seo_title || "Your SEO Title")}
+                      title={isEditingSeo ? editedSeoTitle : (seoResult.seo_title || t("seo.yourSeoTitle"))}
                       url={`https://${shop}/products/${productIdFromGid(selectedProduct?.id)}`}
-                      snippet={isEditingSeo ? editedSeoDescription : (seoResult.seo_description || "Your SEO description will appear here...")}
+                      snippet={isEditingSeo ? editedSeoDescription : (seoResult.seo_description || t("seo.yourSeoDescription"))}
                       isYours
                     />
                     {seoResult.seo_alt_text && (
                       <Box paddingBlockStart="100">
                         <Text as="p" variant="bodySm" tone="subdued">
-                          <strong>Alt Text:</strong> {seoResult.seo_alt_text}
+                          <strong>{t("seo.altText")}</strong> {seoResult.seo_alt_text}
                         </Text>
                       </Box>
                     )}
@@ -642,12 +646,12 @@ export default function SEOPage() {
                 {/* CTR Optimization Score */}
                 <Card>
                   <BlockStack gap="300">
-                    <Text variant="headingMd" as="h2">CTR Optimization Score</Text>
+                    <Text variant="headingMd" as="h2">{t("seo.ctrOptimizationScore")}</Text>
                     <CTRScoreDisplay ctrCheck={seoResult.ctr_check} />
                     {seoResult.ctr_check?.suggestions && seoResult.ctr_check.suggestions.length > 0 && (
                       <Box paddingBlockStart="200">
                         <BlockStack gap="100">
-                          <Text as="p" variant="bodySm" fontWeight="semibold">Suggestions:</Text>
+                          <Text as="p" variant="bodySm" fontWeight="semibold">{t("seo.suggestions")}</Text>
                           {seoResult.ctr_check.suggestions.map((s, i) => (
                             <Text key={i} as="p" variant="bodySm" tone="subdued">• {s}</Text>
                           ))}
@@ -661,10 +665,10 @@ export default function SEOPage() {
                 {seoResult.seo_insights && (
                   <Card>
                     <BlockStack gap="300">
-                      <Text variant="headingMd" as="h2">SEO Insights</Text>
+                      <Text variant="headingMd" as="h2">{t("seo.seoInsights")}</Text>
                       {seoResult.seo_insights.lsi_keywords_used && seoResult.seo_insights.lsi_keywords_used.length > 0 && (
                         <BlockStack gap="100">
-                          <Text as="p" variant="bodySm" fontWeight="semibold">LSI Keywords Used:</Text>
+                          <Text as="p" variant="bodySm" fontWeight="semibold">{t("seo.lsiKeywordsUsed")}</Text>
                           <InlineStack gap="100" wrap>
                             {seoResult.seo_insights.lsi_keywords_used.map((kw, i) => (
                               <Badge key={i} tone="info">{kw}</Badge>
@@ -674,13 +678,13 @@ export default function SEOPage() {
                       )}
                       {seoResult.seo_insights.search_intent && (
                         <InlineStack gap="200">
-                          <Text as="p" variant="bodySm" fontWeight="semibold">Search Intent:</Text>
+                          <Text as="p" variant="bodySm" fontWeight="semibold">{t("seo.searchIntent")}</Text>
                           <Badge>{seoResult.seo_insights.search_intent}</Badge>
                         </InlineStack>
                       )}
                       {seoResult.seo_insights.competitive_edge && (
                         <BlockStack gap="100">
-                          <Text as="p" variant="bodySm" fontWeight="semibold">Competitive Edge:</Text>
+                          <Text as="p" variant="bodySm" fontWeight="semibold">{t("seo.competitiveEdge")}</Text>
                           <Text as="p" variant="bodySm" tone="subdued">{seoResult.seo_insights.competitive_edge}</Text>
                         </BlockStack>
                       )}
@@ -694,9 +698,9 @@ export default function SEOPage() {
               <Card>
                 <Box padding="600">
                   <BlockStack gap="300" align="center">
-                    <Text variant="headingMd" as="h3" alignment="center">Ready to Optimize</Text>
+                    <Text variant="headingMd" as="h3" alignment="center">{t("seo.readyToOptimize")}</Text>
                     <Text variant="bodyMd" tone="subdued" alignment="center">
-                      Select a product and click "Optimize SEO" to generate SEO metadata, analyze competitors, and check your CTR score.
+                      {t("seo.readyToOptimizeDesc")}
                     </Text>
                   </BlockStack>
                 </Box>
@@ -726,7 +730,7 @@ export default function SEOPage() {
                       icon={isSaved ? CheckIcon : undefined}
                       tone={isSaved ? "success" : undefined}
                     >
-                      {isSaved ? "Saved" : "Save"}
+                      {isSaved ? t("seo.saved") : t("seo.save")}
                     </Button>
                   </saveFetcher.Form>
                 </Box>
