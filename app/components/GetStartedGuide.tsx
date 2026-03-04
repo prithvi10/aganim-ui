@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import {
   BlockStack,
   Box,
@@ -22,6 +23,7 @@ function shopSlugFromDomain(shop: string) {
 }
 
 export function GetStartedGuide({ shop, host, open: controlledOpen, onClose: controlledOnClose }: Props) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [internalOpen, setInternalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -49,65 +51,50 @@ export function GetStartedGuide({ shop, host, open: controlledOpen, onClose: con
   );
 
   const shopSlug = shopSlugFromDomain(shop);
-  const themeEditorUrl = shopSlug
-    ? `https://admin.shopify.com/store/${shopSlug}/themes/current/editor?context=apps`
-    : "https://admin.shopify.com/";
 
   const steps = useMemo(
     () => [
       {
-        title: "Step 1: Product actions",
-        subtitle: "Start with Rewriter, Marketing, or run all agents",
+        title: t("components.step1ProductActions"),
+        subtitle: t("components.step1Subtitle"),
         imageSrc: "/guide-step-1.png",
-        body: "Pick what you want to do first. Use 'Optimize All' to run the full AI pipeline (Rewriter → SEO → Marketing → Pricing) on a product.",
+        body: t("components.step1Body"),
         actions: [
-          { label: "🚀 Optimize All", onClick: () => navigate(nav("/app/optimize")), primary: true },
-          { label: "Open Rewriter", onClick: () => navigate(nav("/app/rewriter")) },
-          { label: "Open Marketing", onClick: () => navigate(nav("/app/marketing")) },
+          { label: `🚀 ${t("components.optimizeAll")}`, onClick: () => navigate(nav("/app/optimize")), primary: true },
+          { label: t("components.openRewriter"), onClick: () => navigate(nav("/app/rewriter")) },
+          { label: t("components.openMarketing"), onClick: () => navigate(nav("/app/marketing")) },
         ],
       },
       {
-        title: "Step 2: Rewriter workspace",
-        subtitle: "Choose a product and market",
+        title: t("components.step2RewriterWorkspace"),
+        subtitle: t("components.step2Subtitle"),
         imageSrc: "/guide-step-2.png",
-        body: "Open Rewriter, pick a product, and select your target market(s).",
-        actions: [{ label: "Open Rewriter", onClick: () => navigate(nav("/app/rewriter")) }],
+        body: t("components.step2Body"),
+        actions: [{ label: t("components.openRewriter"), onClick: () => navigate(nav("/app/rewriter")) }],
       },
       {
-        title: "Step 3: Optimize with Rewriter",
-        subtitle: "Generate localized copy + SEO",
+        title: t("components.step3OptimizeWithRewriter"),
+        subtitle: t("components.step3Subtitle"),
         imageSrc: "/guide-step-3.png",
-        body: "Click “Optimize for Global” to generate drafts and SEO details, then save to Shopify.",
-        actions: [{ label: "Go to Rewriter", onClick: () => navigate(nav("/app/rewriter")) }],
+        body: t("components.step3Body"),
+        actions: [{ label: t("components.goToRewriter"), onClick: () => navigate(nav("/app/rewriter")) }],
       },
       {
-        title: "Step 4: Product Marketing workspace",
-        subtitle: "Create social hooks / captions",
+        title: t("components.step4ProductMarketing"),
+        subtitle: t("components.step4Subtitle"),
         imageSrc: "/guide-step-4.png",
-        body: "Use Marketing to generate Instagram-ready hooks and save them to metafields.",
-        actions: [{ label: "Open Marketing", onClick: () => navigate(nav("/app/marketing")) }],
+        body: t("components.step4Body"),
+        actions: [{ label: t("components.openMarketing"), onClick: () => navigate(nav("/app/marketing")) }],
       },
       {
-        title: "Step 5: Theme Editor (Live view)",
-        subtitle: "Enable app embed and preview storefront",
-        imageSrc: "/guide-step-5.png",
-        body: "Open the Theme Editor, enable the app embed, and preview storefront localization live.",
-        actions: [
-          {
-            label: "Open Theme Editor",
-            onClick: () => window.open(themeEditorUrl, "_top"),
-          },
-        ],
-      },
-      {
-        title: "Step 6: Dashboard",
-        subtitle: "Monitor usage + plan features",
+        title: t("components.step5Dashboard"),
+        subtitle: t("components.step5Subtitle"),
         imageSrc: "/guide-step-6.png",
-        body: "Use Dashboard to see your plan, usage, and what’s unlocked.",
-        actions: [{ label: "Open Dashboard", onClick: () => navigate(nav("/app/dashboard")) }],
+        body: t("components.step6Body"),
+        actions: [{ label: t("components.openDashboard"), onClick: () => navigate(nav("/app/dashboard")) }],
       },
     ],
-    [navigate, nav, themeEditorUrl],
+    [navigate, nav, t],
   );
 
   const current = steps[activeIndex];
@@ -125,14 +112,14 @@ export function GetStartedGuide({ shop, host, open: controlledOpen, onClose: con
           <Box padding="400">
             <BlockStack gap="200">
               <Text as="h2" variant="headingMd">
-                Get started guide
+                {t("components.getStartedGuide")}
               </Text>
               <Text as="p" variant="bodyMd" tone="subdued">
-                Learn how to use Cross-Border AI with a quick step-by-step guide.
+                {t("components.learnHowToUse")}
               </Text>
               <div>
                 <Button variant="primary" onClick={() => setInternalOpen(true)}>
-                  Open guide
+                  {t("components.openGuide")}
                 </Button>
               </div>
             </BlockStack>
@@ -143,7 +130,7 @@ export function GetStartedGuide({ shop, host, open: controlledOpen, onClose: con
       <Modal
         open={open}
         onClose={handleClose}
-        title="Get started with Cross-Border AI"
+        title={t("components.getStartedWithCbai")}
         size="large"
       >
         <Modal.Section>
@@ -197,17 +184,17 @@ export function GetStartedGuide({ shop, host, open: controlledOpen, onClose: con
             <div style={{ paddingTop: 8 }}>
               <InlineStack align="space-between" blockAlign="center">
                 <Button variant="tertiary" disabled={activeIndex === 0} onClick={goBack}>
-                  Back
+                  {t("components.back")}
                 </Button>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  {`${activeIndex + 1} of ${steps.length}`}
+                  {`${activeIndex + 1} ${t("components.of")} ${steps.length}`}
                 </Text>
                 <Button
                   variant="primary"
                   disabled={activeIndex >= steps.length - 1}
                   onClick={goNext}
                 >
-                  Next
+                  {t("components.next")}
                 </Button>
               </InlineStack>
             </div>

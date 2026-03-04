@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Layout, Page, Text, BlockStack, Button, InlineStack, Banner, Badge, Modal, RadioButton, Divider, Box } from "@shopify/polaris";
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
 import { Form, useLoaderData, useLocation, useNavigation, redirect } from "react-router";
@@ -349,19 +350,19 @@ export default function PlansPage() {
     : (modalPlan === PLAN_PRO ? "" : "promo-monthly");
 
   return (
-    <Page title="Select a Plan" fullWidth>
+    <Page title={t("plans.selectPlan")} fullWidth>
       <Layout>
         <Layout.Section>
           {returningPaid ? (
             <div style={{ marginBottom: 16 }}>
-              <Banner tone="warning" title="Welcome back! Please select a plan to reactivate your account." />
+              <Banner tone="warning" title={t("plans.welcomeBackSelectPlan")} />
             </div>
           ) : null}
           {graceActive && accessExpiresAt ? (
             <div style={{ marginBottom: 16 }}>
-              <Banner tone="info" title="Grace Period Active">
+              <Banner tone="info" title={t("plans.gracePeriodActive")}>
                 <Text as="p" variant="bodyMd">
-                  Your previous plan stays active until{" "}
+                  {t("plans.gracePeriodMessage")}{" "}
                   {new Date(accessExpiresAt).toLocaleDateString()}.
                 </Text>
               </Banner>
@@ -372,9 +373,9 @@ export default function PlansPage() {
               <InlineStack gap="300" blockAlign="start" wrap={false}>
                 <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>&#9432;</span>
                 <BlockStack gap="100">
-                  <Text as="p" variant="headingSm">Limited time launch offer</Text>
+                  <Text as="p" variant="headingSm">{t("plans.limitedTimeOffer")}</Text>
                   <Text as="p" variant="bodyMd" tone="subdued">
-                    Early adopter pricing is available for a limited time. Choose monthly or annual billing on any plan.
+                    {t("plans.earlyAdopterPricing")}
                   </Text>
                 </BlockStack>
               </InlineStack>
@@ -433,19 +434,19 @@ export default function PlansPage() {
                               {info.monthly.price}
                             </Text>
                             <Text as="span" variant="bodyMd" tone="subdued">
-                              /month
+                              {t("plans.perMonth")}
                             </Text>
                           </InlineStack>
                           <Text as="span" variant="bodySm" tone="subdued">
                             {info.original ? (
                               <>
                                 <span style={{ textDecoration: "line-through" }}>
-                                  {info.original}/month
+                                  {info.original}{t("plans.perMonth")}
                                 </span>
                                 {" "}—{" "}
                               </>
                             ) : null}
-                            or {info.annual.price}/year
+                            {t("plans.orYear", { price: info.annual.price })}
                           </Text>
                         </BlockStack>
                       ) : undefined
@@ -459,7 +460,7 @@ export default function PlansPage() {
                             disabled={isCurrent}
                             onClick={() => openBillingModal(plan.name as PlanName)}
                           >
-                            Upgrade
+                            {t("plans.upgrade")}
                           </Button>
                         </div>
                       ) : (
@@ -474,7 +475,7 @@ export default function PlansPage() {
                             loading={isUpgrading}
                             disabled={isCurrent || plan.name === PLAN_FREE}
                           >
-                            {isCurrent ? "Current Plan" : plan.name === PLAN_FREE ? "Included" : "Upgrade"}
+                            {isCurrent ? t("plans.currentPlan") : plan.name === PLAN_FREE ? t("plans.included") : t("plans.upgrade")}
                           </Button>
                         </Form>
                       )
@@ -492,13 +493,13 @@ export default function PlansPage() {
       <Modal
         open={modalOpen}
         onClose={closeBillingModal}
-        title={`Choose billing for ${modalPlan || ""}`}
+        title={`${t("plans.chooseBillingFor")} ${modalPlan || ""}`}
         primaryAction={{
-          content: "Continue to billing",
+          content: t("plans.continueToBilling"),
           onAction: confirmBilling,
           loading: isUpgrading,
         }}
-        secondaryActions={[{ content: "Cancel", onAction: closeBillingModal }]}
+        secondaryActions={[{ content: t("plans.cancel"), onAction: closeBillingModal }]}
       >
         <Modal.Section>
           {modalBillingInfo ? (
@@ -531,12 +532,12 @@ export default function PlansPage() {
                   onChange={() => setModalCycle("monthly")}
                 />
                 <BlockStack gap="050">
-                  <Text as="span" variant="headingSm">Monthly</Text>
-                  <Text as="span" variant="bodySm" tone="subdued">Billed monthly</Text>
+                  <Text as="span" variant="headingSm">{t("plans.monthly")}</Text>
+                  <Text as="span" variant="bodySm" tone="subdued">{t("plans.billedMonthly")}</Text>
                 </BlockStack>
                 <Text as="span" variant="headingMd" fontWeight="bold">
                   {modalBillingInfo.monthly.price}
-                  <Text as="span" variant="bodySm" fontWeight="regular">/mo</Text>
+                  <Text as="span" variant="bodySm" fontWeight="regular">{t("plans.perMo")}</Text>
                 </Text>
               </div>
 
@@ -569,18 +570,18 @@ export default function PlansPage() {
                 />
                 <BlockStack gap="050">
                   <InlineStack gap="200" blockAlign="center">
-                    <Text as="span" variant="headingSm">Annual</Text>
-                    <Badge tone="success">Save {modalBillingInfo.savings}</Badge>
+                    <Text as="span" variant="headingSm">{t("plans.annual")}</Text>
+                    <Badge tone="success">{t("plans.save")} {modalBillingInfo.savings}</Badge>
                   </InlineStack>
-                  <Text as="span" variant="bodySm" tone="subdued">Billed yearly</Text>
+                  <Text as="span" variant="bodySm" tone="subdued">{t("plans.billedYearly")}</Text>
                 </BlockStack>
                 <BlockStack gap="050">
                   <Text as="span" variant="headingMd" fontWeight="bold">
                     {modalBillingInfo.annual.price}
-                    <Text as="span" variant="bodySm" fontWeight="regular">/yr</Text>
+                    <Text as="span" variant="bodySm" fontWeight="regular">{t("plans.perYr")}</Text>
                   </Text>
                   <Text as="span" variant="bodySm" tone="subdued">
-                    {modalBillingInfo.annual.perMonth}/mo
+                    {modalBillingInfo.annual.perMonth}{t("plans.perMo")}
                   </Text>
                 </BlockStack>
               </div>
@@ -589,9 +590,9 @@ export default function PlansPage() {
                 <>
                   <Divider />
                   <InlineStack align="space-between">
-                    <Text as="span" variant="bodySm" tone="subdued">Regular price</Text>
+                    <Text as="span" variant="bodySm" tone="subdued">{t("plans.regularPrice")}</Text>
                     <Text as="span" variant="bodySm" tone="subdued">
-                      <span style={{ textDecoration: "line-through" }}>{modalBillingInfo.original}/mo</span>
+                      <span style={{ textDecoration: "line-through" }}>{modalBillingInfo.original}{t("plans.perMo")}</span>
                     </Text>
                   </InlineStack>
                 </>

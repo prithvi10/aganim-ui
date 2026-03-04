@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useSearchParams, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import {
   Page,
   Layout,
@@ -67,6 +68,7 @@ type LoaderData = {
   selectedProduct: SelectedProduct | null;
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 function productIdFromGid(gid: string | null | undefined) {
@@ -171,6 +173,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = { shop: sessionShop };
 
   let planName: LoaderData["planName"] = "Free";
+  let defaultTargetLocale: string | undefined = undefined;
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
 
   let entitlements: Entitlements = {};
@@ -183,14 +186,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (eff === "Basic" || eff === "Standard" || eff === "Pro") planName = eff as LoaderData["planName"];
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      defaultTargetLocale = data.default_target_locale ?? undefined;
     }
   } catch { /* ignore */ }
 
-  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage };
+  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage, defaultTargetLocale };
 };
 
 export default function OptimizePage() {
-  const { planName, shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage } =
+  const { t } = useTranslation();
+  const { planName, shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage, defaultTargetLocale } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -251,7 +256,7 @@ export default function OptimizePage() {
             japanese_description: selectedProduct.descriptionHtml,
             category: selectedProduct.productType || "General",
             image_url: selectedProduct.featuredImageUrl || "",
-            target_locale: "en",
+            target_locale: defaultTargetLocale || "en",
             workflow_config: pipeline,
             // Extra wizard context (blog topic, collection info, etc.)
             ...(extraContext ? { extra_context: extraContext } : {}),
@@ -268,7 +273,7 @@ export default function OptimizePage() {
         setIsOptimizing(false);
       }
     },
-    [selectedProduct, backendApiUrl, app, shop],
+    [selectedProduct, backendApiUrl, app, shop, defaultTargetLocale],
   );
 
   // ── Mission callbacks ──────────────────────────────────────────────────
@@ -278,12 +283,12 @@ export default function OptimizePage() {
     setFinalState(state);
     if (state.status === "COMPLETED") {
       setToastSuccess(true);
-      setToastContent("Mission complete! Your product has been updated in Shopify.");
+      setToastContent(t("optimize.missionComplete"));
     } else if (state.status === "ERROR") {
       setToastSuccess(false);
-      setToastContent("Mission failed. Please try again.");
+      setToastContent(t("optimize.missionFailed"));
     }
-  }, []);
+  }, [t]);
 
   const handlePublish = useCallback(async (state: MissionState) => {
     console.log("Publishing state:", state);
@@ -349,7 +354,7 @@ export default function OptimizePage() {
         <Frame>
           <Page
             backAction={{
-              content: "Back",
+              content: t("optimize.back"),
               onAction: () => setViewingSavedMission(false),
             }}
           >
@@ -359,7 +364,7 @@ export default function OptimizePage() {
                   state={savedState}
                   onPublish={() => {
                     setToastSuccess(true);
-                    setToastContent("This data is already saved in Shopify.");
+                    setToastContent(t("optimize.dataAlreadySaved"));
                     setViewingSavedMission(false);
                   }}
                   onDiscard={() => setViewingSavedMission(false)}
@@ -395,8 +400,8 @@ export default function OptimizePage() {
   return (
     <Frame>
       <Page
-        title="AI-Powered Product Optimization"
-        backAction={{ content: "Home", onAction: () => navigate("/app") }}
+        title={t("optimize.aiPoweredOptimization")}
+        backAction={{ content: t("optimize.home"), onAction: () => navigate("/app") }}
       >
         <Layout>
           <Layout.Section>
@@ -407,7 +412,7 @@ export default function OptimizePage() {
                 return missionsStr ? (
                   <InlineStack gap="200" blockAlign="center">
                     <Text as="span" variant="bodySm" tone="subdued">
-                      Missions used: {missionsStr}
+                      {t("optimize.missionsUsed")} {missionsStr}
                     </Text>
                   </InlineStack>
                 ) : null;
@@ -431,7 +436,7 @@ export default function OptimizePage() {
               {error && (
                 <Banner
                   tone="critical"
-                  title="Optimization Error"
+                  title={t("optimize.optimizationError")}
                   onDismiss={() => setError(null)}
                 >
                   <p>{error}</p>

@@ -1,4 +1,5 @@
 import type {ActionFunctionArgs, LoaderFunctionArgs} from 'react-router';
+import { useTranslation } from "react-i18next";
 import {
   useFetcher,
   useLoaderData,
@@ -79,6 +80,7 @@ type LoaderData = {
   pendingPlanName?: string | null;
   pendingPlanEffectiveAt?: string | null;
   primaryLocale: string;
+  defaultTargetLocale?: string;
   locales: ShopLocale[];
   products: ProductListItem[];
   selectedProduct: {
@@ -238,6 +240,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let brandContextSummary = '';
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let defaultTargetLocale: string | undefined = undefined;
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -275,6 +278,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       }
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      defaultTargetLocale = data?.default_target_locale ?? undefined;
     }
   } catch {
     // Best-effort: keep fallback gating.
@@ -486,6 +490,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     pendingPlanName,
     pendingPlanEffectiveAt,
     primaryLocale,
+    defaultTargetLocale,
     locales,
     products,
     selectedProduct,
@@ -777,6 +782,7 @@ function RichTextEditor({
   onChange: (next: string) => void;
   height?: number;
 }) {
+  const { t } = useTranslation("rewriter");
   const ref = useRef<HTMLDivElement | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [blockType, setBlockType] = useState<'p' | 'h2' | 'h3'>('p');
@@ -859,9 +865,9 @@ function RichTextEditor({
                 label=""
                 labelHidden
                 options={[
-                  {label: 'Paragraph', value: 'p'},
-                  {label: 'Heading', value: 'h2'},
-                  {label: 'Subheading', value: 'h3'},
+                  {label: t("paragraph"), value: 'p'},
+                  {label: t("heading"), value: 'h2'},
+                  {label: t("subheading"), value: 'h3'},
                 ]}
                 value={blockType}
                 onChange={(v) => applyBlockType(v as 'p' | 'h2' | 'h3')}
@@ -943,6 +949,7 @@ function RewriterWorkspaceInner({
   pendingPlanName,
   pendingPlanEffectiveAt,
   primaryLocale,
+  defaultTargetLocale,
   locales,
   products,
   selectedProduct,
@@ -957,6 +964,7 @@ function RewriterWorkspaceInner({
   brandContextLastError,
   brandContextSummary,
 }: LoaderData) {
+  const { t } = useTranslation("rewriter");
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const app = useAppBridge() as unknown as ClientApplication<any>;
@@ -992,7 +1000,7 @@ function RewriterWorkspaceInner({
   >([]);
   const [addedValueKeys, setAddedValueKeys] = useState<Record<string, boolean>>({});
   const [culturalContextSaved, setCulturalContextSaved] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('⏳ Analyzing materials and craftsmanship...');
+  const [loadingMessage, setLoadingMessage] = useState(() => t("analyzingMaterials"));
   const loadingTimerRef = useRef<number | null>(null);
 
   const saveFetcher = useFetcher<typeof action>();
@@ -1037,8 +1045,7 @@ function RewriterWorkspaceInner({
   const isOutOfFreeCredits =
     billingCycleType === 'lifetime' && Number(lifetimeRewritesRemaining ?? 0) <= 0;
 
-  const localeLimitMsg =
-    'Upgrade to Standard to select multiple markets.';
+  const localeLimitMsg = t("upgradeToProMultiLocale");
 
   const isExpiredPaid = useMemo(() => {
     // If last plan is paid and access_expires_at has passed, the merchant must upgrade.
@@ -1089,12 +1096,16 @@ function RewriterWorkspaceInner({
     [locales],
   );
 
-  // Default selected locale: primary
+  // Default selected locale: prefer merchant's saved default_target_locale if in published locales, else primary
   useEffect(() => {
     if (selectedLocales.length > 0) return;
     const primary = publishedLocales.find((l) => l.primary)?.locale || primaryLocale;
-    if (primary) setSelectedLocales([primary]);
-  }, [publishedLocales, selectedLocales.length]);
+    const defaultFromBackend = defaultTargetLocale && publishedLocales.some((l) => l.locale === defaultTargetLocale)
+      ? defaultTargetLocale
+      : null;
+    const defaultLocale = defaultFromBackend || primary;
+    if (defaultLocale) setSelectedLocales([defaultLocale]);
+  }, [publishedLocales, selectedLocales.length, defaultTargetLocale, primaryLocale]);
 
   // Keep active locale in sync (tabs control the visible draft)
   useEffect(() => {
@@ -1150,9 +1161,9 @@ function RewriterWorkspaceInner({
       '';
     if (initLocale) setActiveLocale(initLocale);
     if (didResetMetaCache) {
-      setToastContent('Product description changed in Shopify. Context & drafts were reset.');
+      setToastContent(t("productDescriptionChanged"));
     }
-  }, [selectedProduct?.id, contentHash]);
+  }, [selectedProduct?.id, contentHash, t]);
 
   // Reflect metafield save immediately in UI.
   useEffect(() => {
@@ -1167,9 +1178,9 @@ function RewriterWorkspaceInner({
   // Success toast after Save
   useEffect(() => {
     if ((saveFetcher.data as any)?.ok) {
-      setToastContent('Product saved, please refresh to check!');
+      setToastContent(t("productSaved"));
     }
-  }, [saveFetcher.data]);
+  }, [saveFetcher.data, t]);
 
   // Show a small spinner while switching locales (prevents perceived flicker)
   useEffect(() => {
@@ -1234,7 +1245,7 @@ function RewriterWorkspaceInner({
             }}
             title={title}
           >
-            {title || 'SEO title preview…'}
+            {title || t("seoTitlePreview")}
           </div>
           <div
             style={{
@@ -1251,7 +1262,7 @@ function RewriterWorkspaceInner({
             {url}
           </div>
           <div style={{color: '#4b5563', fontSize: 14, lineHeight: '18px'}}>
-            {snippet || 'Meta description preview…'}
+            {snippet || t("metaDescriptionPreview")}
           </div>
         </div>
       </div>
@@ -1276,52 +1287,6 @@ function RewriterWorkspaceInner({
     return out;
   }, [discoveredValues, valueKey]);
 
-  const handleAdd = useCallback(
-    (v: {category: string; evidence: string; suggested_footer: string}) => {
-      const key = valueKey(v);
-      if (addedValueKeys[key] || culturalContextSaved) return;
-
-      const footerText = String(v.suggested_footer || '').trim();
-      if (!footerText) return;
-      const base = String(currentDraft.description || '');
-      const nextDesc = upsertKeyDetailsNuance(base, [footerText]);
-
-      setDraftByLocale((prev) => ({
-        ...prev,
-        [activeLocale]: {
-          title: currentDraft.title,
-          description: nextDesc,
-          seoTitle: currentDraft.seoTitle,
-          seoDescription: currentDraft.seoDescription,
-          seoAltText: currentDraft.seoAltText,
-        },
-      }));
-
-      setAddedValueKeys((prev) => ({...prev, [key]: true}));
-
-      // Persist to Shopify as a product metafield (theme/SEO usage).
-      if (selectedProduct?.id) {
-        const metaValue = `Key Details (Nuance)\n\n${footerText}`;
-        const fd = new FormData();
-        fd.set('intent', 'set_cultural_context');
-        fd.set('productId', selectedProduct.id);
-        fd.set('value', metaValue);
-        culturalFetcher.submit(fd, {method: 'post'});
-      }
-    },
-    [
-      activeLocale,
-      addedValueKeys,
-      culturalContextSaved,
-      culturalFetcher,
-      currentDraft.description,
-      currentDraft.title,
-      selectedProduct?.id,
-      setDraftByLocale,
-      valueKey,
-    ],
-  );
-
   const escapeHtml = useCallback((s: string) => {
     return String(s || '')
       .replaceAll('&', '&amp;')
@@ -1333,7 +1298,7 @@ function RewriterWorkspaceInner({
 
   const upsertKeyDetailsNuance = useCallback(
     (descHtml: string, bullets: string[]) => {
-      const heading = 'Key Details (Nuance)';
+      const heading = t("keyDetailsNuance");
       const h = `<h3>${heading}</h3>`;
 
       const clean = Array.from(
@@ -1385,14 +1350,62 @@ function RewriterWorkspaceInner({
         `</div>\n`;
       return base ? `${base}${snippet}` : snippet.trim();
     },
-    [escapeHtml],
+    [escapeHtml, t],
+  );
+
+  const handleAdd = useCallback(
+    (v: {category: string; evidence: string; suggested_footer: string}) => {
+      const key = valueKey(v);
+      if (addedValueKeys[key] || culturalContextSaved) return;
+
+      const footerText = String(v.suggested_footer || '').trim();
+      if (!footerText) return;
+      const base = String(currentDraft.description || '');
+      const nextDesc = upsertKeyDetailsNuance(base, [footerText]);
+
+      setDraftByLocale((prev) => ({
+        ...prev,
+        [activeLocale]: {
+          title: currentDraft.title,
+          description: nextDesc,
+          seoTitle: currentDraft.seoTitle,
+          seoDescription: currentDraft.seoDescription,
+          seoAltText: currentDraft.seoAltText,
+        },
+      }));
+
+      setAddedValueKeys((prev) => ({...prev, [key]: true}));
+
+      // Persist to Shopify as a product metafield (theme/SEO usage).
+      if (selectedProduct?.id) {
+        const metaValue = `${t("keyDetailsNuance")}\n\n${footerText}`;
+        const fd = new FormData();
+        fd.set('intent', 'set_cultural_context');
+        fd.set('productId', selectedProduct.id);
+        fd.set('value', metaValue);
+        culturalFetcher.submit(fd, {method: 'post'});
+      }
+    },
+    [
+      activeLocale,
+      addedValueKeys,
+      culturalContextSaved,
+      culturalFetcher,
+      currentDraft.description,
+      currentDraft.title,
+      selectedProduct?.id,
+      setDraftByLocale,
+      upsertKeyDetailsNuance,
+      valueKey,
+      t,
+    ],
   );
 
   const startLoading = useCallback(() => {
     const msgs = [
-      '⏳ Analyzing materials and craftsmanship...',
-      '⏳ Applying global marketing psychology...',
-      '⏳ Building your brand story...',
+      t("analyzingMaterials"),
+      t("applyingPsychology"),
+      t("buildingBrandStory"),
     ];
     let i = 0;
     setLoadingMessage(msgs[0]);
@@ -1401,7 +1414,7 @@ function RewriterWorkspaceInner({
       i = (i + 1) % msgs.length;
       setLoadingMessage(msgs[i]);
     }, 2000);
-  }, []);
+  }, [t]);
 
   const stopLoading = useCallback(() => {
     if (loadingTimerRef.current) window.clearInterval(loadingTimerRef.current);
@@ -1442,7 +1455,7 @@ function RewriterWorkspaceInner({
 
   const handleOptimize = useCallback(async () => {
     if (isOutOfFreeCredits) {
-      setToastContent("You've used your 10 free lifetime credits. Upgrade to Basic for 50 rewrites every month!");
+      setToastContent(t("outOfFreeCredits"));
       return;
     }
     setOptimizeError(null);
@@ -1451,11 +1464,11 @@ function RewriterWorkspaceInner({
     setAddedValueKeys({});
 
     if (!selectedProduct?.id) {
-      setOptimizeError('No product selected.');
+      setOptimizeError(t("noProductSelected"));
       return;
     }
     if (!activeLocale) {
-      setOptimizeError('Please select a market.');
+      setOptimizeError(t("pleaseSelectMarket"));
       return;
     }
 
@@ -1496,7 +1509,7 @@ function RewriterWorkspaceInner({
 
       const result = await resp.json().catch(() => ({}));
       if (!resp.ok || result?.status !== 'success') {
-        const msg = result?.detail || 'Generation failed';
+        const msg = result?.detail || t("generationFailedFallback");
         setOptimizeError(String(msg));
         return;
       }
@@ -1530,7 +1543,7 @@ function RewriterWorkspaceInner({
 
       const data = extractGenerated(result, activeLocale);
       if (!data) {
-        setOptimizeError('Generation succeeded but no content was returned.');
+        setOptimizeError(t("generationFailed"));
         return;
       }
       if (data?.seo_insights || data?.competitor_titles || data?.competitor_results) {
@@ -1659,11 +1672,11 @@ function RewriterWorkspaceInner({
       const processed = Array.isArray(result?.processed) ? result.processed : [];
       setToastContent(
         processed.length > 1
-          ? `Product Description updated! (${processed.join(', ')})`
-          : 'Product Description updated!',
+          ? t("productDescriptionUpdatedMulti", { locales: processed.join(', ') })
+          : t("productDescriptionUpdated"),
       );
     } catch (e: any) {
-      setOptimizeError(e?.message ? `Network Error: ${e.message}` : 'Network Error');
+      setOptimizeError(e?.message ? `${t("networkError")}: ${e.message}` : t("networkError"));
     } finally {
       stopLoading();
       setIsOptimizing(false);
@@ -1683,6 +1696,7 @@ function RewriterWorkspaceInner({
     startLoading,
     stopLoading,
     isOutOfFreeCredits,
+    t,
   ]);
 
   const filteredProducts = useMemo(() => {
@@ -1704,10 +1718,10 @@ function RewriterWorkspaceInner({
   const jvStatus = useMemo(() => {
     const hasValues = uniqueValues.length > 0;
     return {
-      label: hasValues ? 'Optimized' : 'Needs work',
+      label: hasValues ? t("optimized") : t("needsWork"),
       tone: hasValues ? 'success' : 'warning' as 'success' | 'warning',
     };
-  }, [uniqueValues.length]);
+  }, [uniqueValues.length, t]);
 
   const selectedProductId = searchParams.get('productId') || (products[0]?.id ?? '');
 
@@ -1741,8 +1755,8 @@ function RewriterWorkspaceInner({
     return idx >= 0 ? idx : 0;
   }, [activeLocale, draftTabs]);
 
-  return (
-    <Page title="Rewriter" titleHidden fullWidth>
+    return (
+    <Page title={t("rewriter")} titleHidden fullWidth>
       <Box padding="400">
         <BlockStack gap="200">
           <InlineStack gap="300" blockAlign="center">
@@ -1752,14 +1766,14 @@ function RewriterWorkspaceInner({
               style={{width: 24, height: 24}}
             />
             <Text as="h1" variant="headingLg">
-              Rewriter
+              {t("rewriter")}
             </Text>
           </InlineStack>
           {feature_usage?.rewriter ? (
             <Text as="p" variant="bodySm" tone="subdued">
               {feature_usage.rewriter.limit === -1
-                ? `${feature_usage.rewriter.used} products used`
-                : `${feature_usage.rewriter.used} / ${feature_usage.rewriter.limit} products used`}
+                ? `${feature_usage.rewriter.used} ${t("productsUsed")}`
+                : `${feature_usage.rewriter.used} / ${feature_usage.rewriter.limit} ${t("productsUsed")}`}
             </Text>
           ) : null}
         </BlockStack>
@@ -1883,12 +1897,9 @@ function RewriterWorkspaceInner({
           <Banner
             tone="info"
             onDismiss={() => setShowSelfHealBanner(false)}
-            title="Reconnected to Shopify—retrying…"
+            title={t("reconnectedToShopify")}
           >
-            <p>
-              We refreshed your Shopify session because the previous one was expired. If
-              something looks missing, wait a second and refresh this page.
-            </p>
+            <p>{t("reconnectedDesc")}</p>
           </Banner>
         </Box>
       ) : null}
@@ -1898,7 +1909,7 @@ function RewriterWorkspaceInner({
             <Box padding="400">
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
-                  Products
+                  {t("products")}
                 </Text>
 
                 {showDowngradeBanner && String(pendingPlanName || '').trim() && String(pendingPlanEffectiveAt || '').trim() ? (
@@ -1916,7 +1927,7 @@ function RewriterWorkspaceInner({
                   labelHidden
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search products…"
+                  placeholder={t("searchProducts")}
                   autoComplete="off"
                 />
 
@@ -1967,27 +1978,27 @@ function RewriterWorkspaceInner({
                 <InlineStack align="space-between" blockAlign="center">
                   <BlockStack gap="100">
                     <Text as="h2" variant="headingLg">
-                      Workspace
+                      {t("workspace")}
                     </Text>
                     <Text as="p" variant="headingMd" tone="subdued">
-                      Generate draft product description, SEO details, refine it, then save to Shopify.
+                      {t("workspaceDesc")}
                     </Text>
                   </BlockStack>
                 </InlineStack>
 
                 {!selectedProduct ? (
-                  <Banner tone="warning">No product selected.</Banner>
+                  <Banner tone="warning">{t("noProductSelected")}</Banner>
                 ) : null}
 
                 {optimizeError ? <Banner tone="critical">{optimizeError}</Banner> : null}
                 {brandStatus === 'running' ? (
                   <Banner tone="info">
-                    Generating brand intelligence… please check after a while.
+                    {t("generatingBrandIntelligence")}
                   </Banner>
                 ) : null}
                 {brandStatus === 'failed' ? (
                   <Banner tone="critical">
-                    Brand intelligence failed. Please retry in the Brand Soul wizard.
+                    {t("brandIntelligenceFailed")}
                   </Banner>
                 ) : null}
 
@@ -1999,13 +2010,13 @@ function RewriterWorkspaceInner({
                       <Box padding="400">
                         <BlockStack gap="300">
                           <Text as="h3" variant="headingMd">
-                            Reference
+                            {t("reference")}
                           </Text>
                           {/* Spacer to align with the Draft locale tabs row */}
                           <div style={{height: 44}} aria-hidden="true" />
-                          <TextField label="Title" value={referenceTitle} onChange={setReferenceTitle} autoComplete="off" />
+                          <TextField label={t("title")} value={referenceTitle} onChange={setReferenceTitle} autoComplete="off" />
                           <RichTextEditor
-                            label="Description"
+                            label={t("description")}
                             value={referenceDescription}
                             onChange={setReferenceDescription}
                             height={420}
@@ -2020,7 +2031,7 @@ function RewriterWorkspaceInner({
                       <Box padding="400">
                         <BlockStack gap="300">
                           <Text as="h3" variant="headingMd">
-                            Draft
+                            {t("draft")}
                           </Text>
                           <Tabs
                             tabs={draftTabs}
@@ -2035,14 +2046,14 @@ function RewriterWorkspaceInner({
                           />
                           {isSwitchingLocale ? (
                             <InlineStack gap="200" blockAlign="center">
-                              <Spinner accessibilityLabel="Loading locale" size="small" />
+                              <Spinner accessibilityLabel={t("loadingLocale")} size="small" />
                               <Text as="span" variant="bodySm" tone="subdued">
-                                Loading…
+                                {t("loading")}
                               </Text>
                             </InlineStack>
                           ) : null}
                           <TextField
-                            label="Title"
+                            label={t("title")}
                             value={currentDraft.title}
                             onChange={(v) =>
                               setDraftByLocale((prev) => ({
@@ -2059,7 +2070,7 @@ function RewriterWorkspaceInner({
                             autoComplete="off"
                           />
                           <RichTextEditor
-                            label="Description"
+                            label={t("description")}
                             value={currentDraft.description}
                             onChange={(v) =>
                               setDraftByLocale((prev) => ({
@@ -2083,7 +2094,7 @@ function RewriterWorkspaceInner({
 
                 <BlockStack gap="200">
                   <Text as="h3" variant="headingMd">
-                    Optimization preferences
+                    {t("optimizationPreferences")}
                   </Text>
 
                   <InlineStack align="space-between" blockAlign="start" wrap={false} gap="300">
@@ -2091,17 +2102,17 @@ function RewriterWorkspaceInner({
                       <BlockStack gap="200">
                       <Box>
                         <Text as="p" variant="bodyMd" tone="subdued">
-                          Market Persona / Brand Tone
+                          {t("marketPersonaBrandTone")}
                         </Text>
                         <div style={{maxWidth: 420}}>
                           <Select
                             label=""
                             labelHidden
                             options={[
-                              {label: 'Professional (Standard English)', value: 'professional'},
-                              {label: 'Luxury (Sophisticated & Heritage)', value: 'luxury'},
-                              {label: 'Minimalist (Clean & Direct)', value: 'minimalist'},
-                              {label: 'Playful (Friendly & Social)', value: 'playful'},
+                              {label: t("professional"), value: 'professional'},
+                              {label: t("luxury"), value: 'luxury'},
+                              {label: t("minimalist"), value: 'minimalist'},
+                              {label: t("playful"), value: 'playful'},
                             ]}
                             value={effectiveTone}
                             onChange={(v) => setToneProfile(v as any)}
@@ -2112,15 +2123,15 @@ function RewriterWorkspaceInner({
                       <Box paddingBlockStart="200">
                         <InlineStack align="space-between" blockAlign="center">
                           <Text as="p" variant="bodyMd" tone="subdued">
-                            Rewrite markets
+                            {t("rewriteMarkets")}
                           </Text>
                         </InlineStack>
                         {overLimit ? (
                           <Box paddingBlockStart="200">
                             <LockedFeatureNotice
-                              title="Standard plan required"
+                              title={t("proPlanRequired")}
                               description={<>{localeLimitMsg}</>}
-                              ctaLabel="Upgrade to Standard"
+                              ctaLabel={t("upgradeToPro")}
                               ctaUrl={plansUrl}
                               tone="warning"
                             />
@@ -2147,35 +2158,34 @@ function RewriterWorkspaceInner({
 
                       <Box paddingBlockStart="200">
                         <Checkbox
-                          label="✨ Auto-convert units to US Standard"
+                          label={`✨ ${t("autoConvertUnits")}`}
                           checked={autoConvertUnits}
                           onChange={setAutoConvertUnits}
                         />
                         <Text as="p" variant="bodySm" tone="subdued">
-                          Keeps metric specs (cm, g, kg, ml, L) and appends US equivalents in parentheses for English
-                          output.
+                          {t("autoConvertUnitsHelp")}
                         </Text>
                       </Box>
 
                       <Box paddingBlockStart="200">
                         <InlineStack align="space-between" blockAlign="center">
                           <Checkbox
-                            label="Enhance description using your brand’s soul"
+                            label={t("enhanceWithBrandSoul")}
                             checked={brandSoulEnabled}
                             onChange={setBrandSoulEnabled}
                           />
                         </InlineStack>
                         <Text as="p" variant="bodySm" tone="subdued">
-                          Pulls your brand story and pillars into the rewrite for richer storytelling.
+                          {t("brandSoulHelp")}
                         </Text>
                       </Box>
 
                       <Box paddingBlockStart="200">
                         <Checkbox
-                          label="Remove irrelvant content"
+                          label={t("removeIrrelevantContent")}
                           checked={removeIrrelevantContent}
                           onChange={setRemoveIrrelevantContent}
-                          helpText="Remove any not product related information from the product description."
+                          helpText={t("removeIrrelevantHelp")}
                         />
                       </Box>
                       </BlockStack>
@@ -2185,11 +2195,11 @@ function RewriterWorkspaceInner({
                       <InlineStack align="end" gap="300" blockAlign="center">
                         {isExpiredPaid ? (
                           <Button size="large" variant="primary" onClick={() => navigate(dashboardUrl)}>
-                            Go to Dashboard
+                            {t("goToDashboard")}
                           </Button>
                         ) : isOutOfFreeCredits ? (
                           <Button size="large" variant="primary" onClick={() => navigate(dashboardUrl)}>
-                            Go to Dashboard
+                            {t("goToDashboard")}
                           </Button>
                         ) : (
                           <div
@@ -2213,7 +2223,7 @@ function RewriterWorkspaceInner({
                                   saveFetcher.state !== 'idle'
                                 }
                               >
-                                Optimize for Global
+                                {t("optimizeForGlobal")}
                               </Button>
                             </div>
                           </div>
@@ -2233,7 +2243,7 @@ function RewriterWorkspaceInner({
 
               {miscInfoByLocale[activeLocale]?.trim() ? (
                 <Box paddingBlockStart="200">
-                  <Banner tone="warning" title="Miscellaneous information (Recommended to be removed)">
+                  <Banner tone="warning" title={t("miscInfoRecommended")}>
                     <Text as="p">{miscInfoByLocale[activeLocale]}</Text>
                   </Banner>
                 </Box>
@@ -2248,10 +2258,10 @@ function RewriterWorkspaceInner({
                     <InlineStack align="space-between" blockAlign="center">
                       <BlockStack gap="100">
                         <Text as="h3" variant="headingMd">
-                          Japanese Value Proposition
+                          {t("japaneseValueProposition")}
                         </Text>
                         <Text as="p" variant="bodySm" tone="subdued">
-                          Highlight cultural nuance and proof, then add to your description.
+                          {t("jvDesc")}
                         </Text>
                       </BlockStack>
                       <InlineStack gap="200" blockAlign="center">
@@ -2259,7 +2269,7 @@ function RewriterWorkspaceInner({
                           {jvStatus.label}
                         </Badge>
                         <Button onClick={() => setJvOpen(true)} variant="primary">
-                          View Details
+                          {t("viewDetails")}
                         </Button>
                       </InlineStack>
                     </InlineStack>
@@ -2269,20 +2279,20 @@ function RewriterWorkspaceInner({
                 <Modal
                   open={jvOpen}
                   onClose={() => setJvOpen(false)}
-                  title="Japanese Value Proposition"
+                  title={t("japaneseValueProposition")}
                   size="large"
                 >
                   <Modal.Section>
                     {uniqueValues.length === 0 ? (
                       <BlockStack gap="300">
                         <Text as="p" variant="bodyMd" tone="subdued">
-                          No Japanese value insights detected yet. Run Optimize to surface cultural nuances, then add them to your copy.
+                          {t("noJvInsights")}
                         </Text>
                       </BlockStack>
                     ) : (
                       <BlockStack gap="300">
                         <Text as="h3" variant="headingMd">
-                          ✨ Verified Japanese Value Detected
+                          ✨ {t("verifiedJvDetected")}
                         </Text>
 
                         <BlockStack gap="200">
@@ -2321,7 +2331,7 @@ function RewriterWorkspaceInner({
                                         borderRadius="200"
                                       >
                                         <Text as="p">
-                                          🔍 Found in your notes: “{evidenceShort}”
+                                          {t("foundInNotes", { evidence: evidenceShort })}
                                         </Text>
                                       </Box>
 
@@ -2345,10 +2355,10 @@ function RewriterWorkspaceInner({
                                     <BlockStack gap="200">
                                       <Text as="p" tone="subdued">
                                         {culturalContextSaved ? (
-                                          <strong>Key details (nuance) are already saved in product metafields.</strong>
+                                          <strong>{t("keyDetailsSaved")}</strong>
                                         ) : (
                                           <strong>
-                                            AI suggestion: Add following "footer" in your product description to increase value
+                                            {t("aiSuggestionAddFooter")}
                                           </strong>
                                         )}
                                       </Text>
@@ -2367,7 +2377,7 @@ function RewriterWorkspaceInner({
                                       </Box>
 
                                       <InlineStack align="end">
-                                        <Tooltip content="This adds key details & nuance based on your product details.">
+                                        <Tooltip content={t("keyDetailsNuanceTooltip")}>
                                           <Button
                                             variant="primary"
                                             icon={isDisabled ? CheckIcon : undefined}
@@ -2375,10 +2385,10 @@ function RewriterWorkspaceInner({
                                             onClick={() => handleAdd(v)}
                                           >
                                             {alreadySaved
-                                              ? 'Already added'
+                                              ? t("alreadyAdded")
                                               : addedThisSession
-                                                ? 'Added'
-                                                : 'Add to Description'}
+                                                ? t("added")
+                                                : t("addToDescription")}
                                           </Button>
                                         </Tooltip>
                                       </InlineStack>
@@ -2414,7 +2424,7 @@ function RewriterWorkspaceInner({
                         isOptimizing
                       }
                     >
-                      Save
+                      {t("save")}
                     </Button>
                   </saveFetcher.Form>
                 </Box>
@@ -2429,6 +2439,7 @@ function RewriterWorkspaceInner({
 }
 
 export default function RewriterWorkspace() {
+  const { t } = useTranslation("rewriter");
   const data = useLoaderData<typeof loader>() as LoaderData;
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -2461,7 +2472,7 @@ export default function RewriterWorkspace() {
             }}
           />
           <span style={{color: 'var(--p-color-text-subdued)', fontSize: 14}}>
-            Loading Rewriter…
+            {t("loadingRewriter")}
           </span>
         </div>
       </div>

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import type { ClientApplication } from '@shopify/app-bridge/client';
 import { getSessionToken } from '@shopify/app-bridge/utilities';
+import { useTranslation } from 'react-i18next';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
 import { MissionTimeline } from '../components/MissionTimeline';
 import { LockedFeatureNotice } from '../components/LockedFeatureNotice';
@@ -40,6 +41,7 @@ type LoaderData = {
   products: ProductItem[];
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 function productIdFromGid(gid: string) {
@@ -143,6 +145,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }));
 
   let planName: LoaderData['planName'] = 'Free';
+  let defaultTargetLocale: string | undefined = undefined;
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
   try {
@@ -157,12 +160,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
       entitlements = (data.entitlements || {}) as Entitlements;
       feature_usage = (data.feature_usage || {}) as FeatureUsageMap;
+      defaultTargetLocale = data?.default_target_locale ?? undefined;
     }
   } catch {
     // best-effort
   }
 
-  return { shop: sessionShop, backendApiUrl, planName, products, entitlements, feature_usage };
+  return { shop: sessionShop, backendApiUrl, planName, products, entitlements, feature_usage, defaultTargetLocale };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -219,18 +223,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return { ok: true };
 };
 
-const LOADING_MESSAGES = [
-  '🔍 Analyzing product image...',
-  '✂️ Isolating product from background...',
-  '🎨 Regenerating brand-aligned background...',
-  '✨ Polishing final details...',
-];
+const LOADING_MSG_KEYS = ['analyzing', 'isolating', 'regenerating', 'polishing'] as const;
 
 export default function ImageRefinement() {
-  const { shop, backendApiUrl, planName, products, entitlements, feature_usage } = useLoaderData<typeof loader>();
+  const { shop, backendApiUrl, planName, products, entitlements, feature_usage, defaultTargetLocale } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const app = useAppBridge() as unknown as ClientApplication<any>;
+  const { t } = useTranslation();
 
   const canUseImages = canAccess(entitlements, 'image_refinement_adhoc');
 
@@ -249,7 +249,7 @@ export default function ImageRefinement() {
   const saveError =
     saveFetcher.data && !saveFetcher.data.ok ? saveFetcher.data.error : null;
 
-  const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]);
+  const [loadingIdx, setLoadingIdx] = useState(0);
   const loadingTimerRef = useRef<number | null>(null);
   const isRunning = Boolean(missionId) && !isComplete && !error;
 
@@ -258,11 +258,9 @@ export default function ImageRefinement() {
       if (loadingTimerRef.current) window.clearInterval(loadingTimerRef.current);
       return;
     }
-    let i = 0;
-    setLoadingMsg(LOADING_MESSAGES[0]);
+    setLoadingIdx(0);
     loadingTimerRef.current = window.setInterval(() => {
-      i = (i + 1) % LOADING_MESSAGES.length;
-      setLoadingMsg(LOADING_MESSAGES[i]);
+      setLoadingIdx((prev) => (prev + 1) % LOADING_MSG_KEYS.length);
     }, 4000);
     return () => {
       if (loadingTimerRef.current) window.clearInterval(loadingTimerRef.current);
@@ -344,7 +342,7 @@ export default function ImageRefinement() {
           japanese_description: selectedProduct.descriptionHtml,
           category: selectedProduct.productType || 'General',
           image_url: selectedProduct.featuredImageUrl || '',
-          target_locale: 'en',
+          target_locale: defaultTargetLocale || 'en',
           workflow_config: [{ agent_name: 'ImageRefinementAgent', has_gate: false }],
         }),
       });
@@ -357,14 +355,14 @@ export default function ImageRefinement() {
     } finally {
       setIsStarting(false);
     }
-  }, [selectedProduct, backendApiUrl, app, shop]);
+  }, [selectedProduct, backendApiUrl, app, shop, defaultTargetLocale]);
 
   return (
     <Page
-      title="Product Image Refinement"
+      title={t('imageRefinement.title')}
       titleMetadata={!canUseImages ? <PlanGateBadge tierName="Pro" /> : undefined}
       backAction={{
-        content: 'Writing Studio',
+        content: t('imageRefinement.backToWritingStudio'),
         onAction: () => navigate(nav('/app/writing-studio')),
       }}
     >
@@ -373,9 +371,9 @@ export default function ImageRefinement() {
           <BlockStack gap="500">
             {!canUseImages ? (
               <LockedFeatureNotice
-                title="Pro Plan Feature"
-                description="AI image refinement generates polished product photos, marketing ads, and hero banners — automatically styled to match your brand."
-                ctaLabel="Upgrade to Pro"
+                title={t('imageRefinement.proFeature')}
+                description={t('imageRefinement.proFeatureDesc')}
+                ctaLabel={t('imageRefinement.upgradeToPro')}
                 ctaUrl={plansUrl}
               />
             ) : (
@@ -385,17 +383,17 @@ export default function ImageRefinement() {
                   <Box padding="500">
                     <BlockStack gap="400">
                       <Text as="h2" variant="headingMd">
-                        Select a Product
+                        {t('imageRefinement.selectProduct')}
                       </Text>
                       {products.length === 0 ? (
                         <Banner tone="warning">
                           <Text as="p">
-                            No products found. Add products to your Shopify store first.
+                            {t('imageRefinement.noProducts')}
                           </Text>
                         </Banner>
                       ) : (
                         <Select
-                          label="Product"
+                          label={t('imageRefinement.product')}
                           options={productOptions}
                           value={selectedProductId}
                           onChange={(val) => setSelectedProductId(val)}
@@ -441,7 +439,7 @@ export default function ImageRefinement() {
                               }}
                             >
                               <Text as="p" tone="subdued" variant="bodySm">
-                                No image
+                                {t('imageRefinement.noImage')}
                               </Text>
                             </div>
                           )}
@@ -451,11 +449,11 @@ export default function ImageRefinement() {
                             </Text>
                             {selectedProduct.featuredImageUrl ? (
                               <Text as="p" variant="bodySm" tone="subdued">
-                                This image will be cleaned up with AI — text removed, background refined to match your brand.
+                                {t('imageRefinement.imageCleanupDesc')}
                               </Text>
                             ) : (
                               <Text as="p" variant="bodySm" tone="caution">
-                                No featured image found. Add a product image in Shopify to enable refinement.
+                                {t('imageRefinement.noFeaturedImage')}
                               </Text>
                             )}
                           </BlockStack>
@@ -472,24 +470,24 @@ export default function ImageRefinement() {
                       <InlineStack gap="200" blockAlign="center" wrap>
                         <span style={{ fontSize: '20px' }}>🎨</span>
                         <Text as="h2" variant="headingMd">
-                          Visual Enhancement
+                          {t('imageRefinement.visualEnhancement')}
                         </Text>
                         {(() => {
                           const imgUsage = feature_usage.image_generation;
                           const usageStr = formatUsage(imgUsage, false);
                           return usageStr ? (
                             <Text as="span" variant="bodySm" tone="subdued">
-                              Credits: {usageStr}
+                              {t('imageRefinement.credits')} {usageStr}
                             </Text>
                           ) : null;
                         })()}
                       </InlineStack>
                       <Text as="p" variant="bodySm" tone="subdued">
-                        Remove text, clean up the background, and refine the product image
+                        {t('imageRefinement.enhancementDesc')}
                       </Text>
 
                       {error && (
-                        <Banner tone="critical" title="Image Refinement Error">
+                        <Banner tone="critical" title={t('imageRefinement.refinementError')}>
                           <Text as="p">{error}</Text>
                         </Banner>
                       )}
@@ -497,8 +495,7 @@ export default function ImageRefinement() {
                       {!selectedProduct?.featuredImageUrl && selectedProduct && (
                         <Banner tone="warning">
                           <Text as="p" variant="bodySm">
-                            No product image found. Add a featured image to your product
-                            in Shopify to enable visual enhancement.
+                            {t('imageRefinement.noProductImage')}
                           </Text>
                         </Banner>
                       )}
@@ -518,7 +515,7 @@ export default function ImageRefinement() {
                               }
                               loading={isStarting}
                             >
-                              Optimize
+                              {t('imageRefinement.optimize')}
                             </Button>
                           </div>
                         </div>
@@ -531,7 +528,7 @@ export default function ImageRefinement() {
                             <InlineStack gap="200" blockAlign="center">
                               <Spinner size="small" />
                               <Text as="p" tone="subdued">
-                                <span className="aiLoaderText">{loadingMsg}</span>
+                                <span className="aiLoaderText">{t(`imageRefinement.${LOADING_MSG_KEYS[loadingIdx]}`)}</span>
                               </Text>
                             </InlineStack>
                           </div>
@@ -563,7 +560,7 @@ export default function ImageRefinement() {
                       {isComplete && refinedImageUrl && !savedSuccess && (
                         <BlockStack gap="300">
                           {saveError && (
-                            <Banner tone="critical" title="Save Failed">
+                            <Banner tone="critical" title={t('imageRefinement.saveFailed')}>
                               <Text as="p">{saveError}</Text>
                             </Banner>
                           )}
@@ -585,7 +582,7 @@ export default function ImageRefinement() {
                                 loading={isSaving}
                                 disabled={isSaving}
                               >
-                                Save to Shopify
+                                {t('imageRefinement.saveToShopify')}
                               </Button>
                             </div>
                           </div>
@@ -593,9 +590,9 @@ export default function ImageRefinement() {
                       )}
 
                       {savedSuccess && (
-                        <Banner tone="success" title="Image Saved">
+                        <Banner tone="success" title={t('imageRefinement.imageSaved')}>
                           <Text as="p">
-                            The refined image has been added to your product in Shopify.
+                            {t('imageRefinement.imageSavedDesc')}
                           </Text>
                         </Banner>
                       )}

@@ -19,9 +19,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
-import { PlanGateBadge } from '../components/PlanGateBadge';
 import { RichTextEditor } from '../components/RichTextEditor';
-import { canAccess, formatUsage, type Entitlements, type FeatureUsageMap } from '../utils/entitlements';
+import { type Entitlements, type FeatureUsageMap } from '../utils/entitlements';
 import '../styles/optimize-button.css';
 
 // ---------------------------------------------------------------------------
@@ -64,6 +63,7 @@ type LoaderData = {
   marketingTemplates: MarketingTemplate[];
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -212,14 +212,23 @@ function marketingJsonToHtml(raw: string): string {
     );
   }
   if (parsed.body) {
+    const bodyStr = String(parsed.body);
+    const bodyHasButton = /<(a|button)\b/i.test(bodyStr) ||
+      /background[^;]*#[0-9a-fA-F]/i.test(bodyStr) && /padding/i.test(bodyStr) && /border-radius/i.test(bodyStr);
     parts.push(
       `<div style="border:1px solid #e1e3e5;border-radius:8px;padding:20px;margin-bottom:14px">` +
         `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Email Body</p>` +
-        `<div>${parsed.body}</div>` +
+        `<div>${bodyStr}</div>` +
       `</div>`,
     );
-  }
-  if (parsed.cta_text) {
+    if (parsed.cta_text && !bodyHasButton) {
+      parts.push(
+        `<div style="text-align:center;margin:20px 0">` +
+          `<span style="display:inline-block;background:#000;color:#fff;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;letter-spacing:0.3px">${parsed.cta_text}</span>` +
+        `</div>`,
+      );
+    }
+  } else if (parsed.cta_text) {
     parts.push(
       `<div style="text-align:center;margin:20px 0">` +
         `<span style="display:inline-block;background:#000;color:#fff;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;letter-spacing:0.3px">${parsed.cta_text}</span>` +
@@ -381,6 +390,7 @@ function MarketingTemplateCard({
   onToast,
   planName,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: MarketingTemplate;
   selectedProduct: SelectedProduct | null;
@@ -389,13 +399,12 @@ function MarketingTemplateCard({
   onToast: (msg: string) => void;
   planName?: string;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [published, setPublished] = useState(false);
   const editableHtmlRef = useRef<string>('');
 
   const plainDesc = useMemo(() => {
@@ -414,7 +423,7 @@ function MarketingTemplateCard({
         title: selectedProduct.title,
         category: selectedProduct.productType || 'General',
         description: plainDesc,
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         product_id: selectedProduct.id,
       };
 
@@ -458,49 +467,29 @@ function MarketingTemplateCard({
     }
   }, [selectedProduct, template, shop, backendApiUrl, plainDesc, onToast]);
 
-  const handleCopy = useCallback(async () => {
-    const toCopy = editableHtmlRef.current || result || '';
-    if (!toCopy) return;
+  const handleCopyText = useCallback(async () => {
+    const html = editableHtmlRef.current || result || '';
+    if (!html) return;
+    const plain = html.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim();
     try {
-      await navigator.clipboard.writeText(toCopy);
-      onToast('Content copied to clipboard!');
+      await navigator.clipboard.writeText(plain);
+      onToast('Text copied to clipboard!');
     } catch {
       onToast('Copy failed (clipboard not available).');
     }
   }, [result, onToast]);
 
-  const handlePublish = useCallback(async () => {
-    if (!result || !selectedProduct?.id) return;
-    setPublishing(true);
+  const handleCopyHtml = useCallback(async () => {
+    const html = editableHtmlRef.current || result || '';
+    if (!html) return;
     try {
-      const content = editableHtmlRef.current || result;
-      const resp = await fetch(
-        `${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
-          body: JSON.stringify({
-            template_id: template.id,
-            product_id: selectedProduct.id,
-            content,
-            context: { product_title: selectedProduct.title },
-          }),
-        },
-      );
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.detail || `Publish failed: ${resp.status}`);
-      }
-      setPublished(true);
-      onToast(`Published ${template.name} successfully!`);
-    } catch (e: any) {
-      onToast(`Publish failed: ${e?.message || e}`);
-    } finally {
-      setPublishing(false);
+      await navigator.clipboard.writeText(html);
+      onToast('HTML copied to clipboard!');
+    } catch {
+      onToast('Copy failed (clipboard not available).');
     }
-  }, [result, selectedProduct, template, shop, backendApiUrl, onToast]);
+  }, [result, onToast]);
 
-  const canPublish = canAccess(entitlements, 'publish');
 
   return (
     <Card>
@@ -534,25 +523,11 @@ function MarketingTemplateCard({
                   {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
                 </Button>
                 <InlineStack gap="200">
-                  {canPublish && !published && (
-                    <Button
-                      onClick={handlePublish}
-                      variant="primary"
-                      size="slim"
-                      loading={publishing}
-                      disabled={publishing}
-                    >
-                      Publish
-                    </Button>
-                  )}
-                  {canPublish && published && (
-                    <Button variant="plain" size="slim" disabled tone="success">
-                      ✓ Published
-                    </Button>
-                  )}
-                  {!canPublish && <PlanGateBadge tierName="Pro" />}
-                  <Button onClick={handleCopy} variant="secondary" size="slim">
-                    Copy
+                  <Button onClick={handleCopyText} variant="secondary" size="slim">
+                    Copy Text
+                  </Button>
+                  <Button onClick={handleCopyHtml} variant="secondary" size="slim">
+                    Copy HTML
                   </Button>
                 </InlineStack>
               </InlineStack>
@@ -643,6 +618,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let defaultTargetLocale: string | undefined = undefined;
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -653,6 +629,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      defaultTargetLocale = data.default_target_locale ?? undefined;
     }
   } catch {
     // best-effort
@@ -720,6 +697,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     products,
     selectedProduct,
     marketingTemplates,
+    entitlements,
+    feature_usage,
+    defaultTargetLocale,
   } satisfies LoaderData;
 };
 
@@ -728,7 +708,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // ---------------------------------------------------------------------------
 
 export default function MarketingTemplates() {
-  const { planName, shop, backendApiUrl, products, selectedProduct, marketingTemplates, entitlements, feature_usage } =
+  const { planName, shop, backendApiUrl, products, selectedProduct, marketingTemplates, entitlements, feature_usage, defaultTargetLocale } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -810,6 +790,7 @@ export default function MarketingTemplates() {
                           backendApiUrl={backendApiUrl}
                           onToast={setToastContent}
                           entitlements={entitlements}
+                          defaultTargetLocale={defaultTargetLocale}
                         />
                       ))}
                     </BlockStack>

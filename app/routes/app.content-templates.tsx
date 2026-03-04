@@ -1,5 +1,6 @@
 import type {LoaderFunctionArgs} from 'react-router';
 import {useLoaderData, useNavigate, useSearchParams} from 'react-router';
+import {useTranslation} from 'react-i18next';
 import {
   Badge,
   Banner,
@@ -64,6 +65,7 @@ type LoaderData = {
   planName: string;
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 // ─── Display name overrides ───────────────────────────────────────────────────
@@ -177,6 +179,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let planName = 'Free';
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let defaultTargetLocale: string | undefined = undefined;
   try {
     const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`);
     if (usageResp.ok) {
@@ -184,12 +187,13 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       planName = String(usageData.effective_plan_name || usageData.plan_name || 'Free').trim() || 'Free';
       entitlements = usageData.entitlements || {};
       feature_usage = usageData.feature_usage || {};
+      defaultTargetLocale = usageData.default_target_locale ?? undefined;
     }
   } catch {
     // best-effort
   }
 
-  return {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage} satisfies LoaderData;
+  return {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage, defaultTargetLocale} satisfies LoaderData;
 };
 
 // ─── Python dict parser (handles mixed single/double quotes) ──────────────────
@@ -482,6 +486,7 @@ function ContentResultDisplay({
   heroUrl?: string | null;
   onContentChange?: (html: string) => void;
 }) {
+  const { t } = useTranslation();
   const html = useMemo(() => contentJsonToHtml(content, heroUrl), [content, heroUrl]);
   const [editableHtml, setEditableHtml] = useState(html);
 
@@ -500,11 +505,11 @@ function ContentResultDisplay({
 
   return (
     <RichTextEditor
-      label="Generated Content"
+      label={t('contentTemplates.generatedContent')}
       value={editableHtml}
       onChange={handleChange}
       height={320}
-      helpText="Edit the generated content above, then copy to use in your store."
+      helpText={t('contentTemplates.editGeneratedContent')}
     />
   );
 }
@@ -538,26 +543,27 @@ function ResultBlock({
   handleCopy: () => void;
   editableHtmlRef: React.MutableRefObject<string>;
 }) {
+  const { t } = useTranslation();
   return (
     <BlockStack gap="200">
       <InlineStack align="space-between" blockAlign="center">
         <Button variant="plain" onClick={() => setResultOpen(!resultOpen)} textAlign="start">
-          {resultOpen ? '▾ Hide Result' : '▸ Show Result'}
+          {resultOpen ? t('contentTemplates.hideResult') : t('contentTemplates.showResult')}
         </Button>
         <InlineStack gap="200">
           {canPublish && !published && (
             <Button onClick={handlePublish} variant="primary" size="slim" loading={publishing} disabled={publishing}>
-              Publish to Shopify
+              {t('contentTemplates.publishToShopify')}
             </Button>
           )}
           {canPublish && published && (
             <Button variant="plain" size="slim" disabled tone="success">
-              ✓ Published
+              ✓ {t('contentTemplates.published')}
             </Button>
           )}
           {!canPublish && <PlanGateBadge tierName="Pro" />}
           <Button onClick={handleCopy} variant="secondary" size="slim">
-            Copy
+            {t('contentTemplates.copy')}
           </Button>
         </InlineStack>
       </InlineStack>
@@ -582,6 +588,7 @@ function FaqCard({
   backendApiUrl,
   onToast,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: ContentTemplate;
   products: ProductListItem[];
@@ -590,7 +597,9 @@ function FaqCard({
   backendApiUrl: string;
   onToast: (msg: string) => void;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -612,7 +621,7 @@ function FaqCard({
 
     try {
       const body: Record<string, string> = {
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         title: selectedTitle,
         product_id: selectedProductId,
       };
@@ -626,7 +635,7 @@ function FaqCard({
         const raw = typeof data.content === 'object' ? JSON.stringify(data.content) : data.content || '';
         setResult(raw);
         setResultOpen(true);
-        onToast('Product FAQ generated successfully!');
+        onToast(t('contentTemplates.productFaqGenerated'));
       } else {
         setError(data.detail || data.error || 'Generation failed');
       }
@@ -635,13 +644,13 @@ function FaqCard({
     } finally {
       setLoading(false);
     }
-  }, [selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast]);
+  }, [selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast, t]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
     if (!toCopy) return;
-    try { await navigator.clipboard.writeText(toCopy); onToast('Copied!'); } catch { onToast('Copy failed.'); }
-  }, [result, onToast]);
+    try { await navigator.clipboard.writeText(toCopy); onToast(t('contentTemplates.copied')); } catch { onToast(t('contentTemplates.copyFailed')); }
+  }, [result, onToast, t]);
 
   const handlePublish = useCallback(async () => {
     if (!result) return;
@@ -654,9 +663,9 @@ function FaqCard({
       });
       if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
       setPublished(true);
-      onToast('Published FAQ to Shopify!');
+      onToast(t('contentTemplates.publishedFaqToShopify'));
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
-  }, [result, selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast]);
+  }, [result, selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast, t]);
 
   const canPublish = canAccess(entitlements, 'publish');
 
@@ -665,14 +674,14 @@ function FaqCard({
       <Box padding="400">
         <BlockStack gap="400">
           <BlockStack gap="200">
-            <Text as="h2" variant="headingLg">Product FAQ</Text>
-            <Text as="p" variant="bodyMd" tone="subdued">Generate frequently asked questions from a product's details.</Text>
+            <Text as="h2" variant="headingLg">{t('contentTemplates.productFaq')}</Text>
+            <Text as="p" variant="bodyMd" tone="subdued">{t('contentTemplates.productFaqDesc')}</Text>
           </BlockStack>
           <Divider />
-          <Select label="Select Product" options={productOptions} value={selectedProductId} onChange={setSelectedProductId} />
+          <Select label={t('contentTemplates.selectProduct')} options={productOptions} value={selectedProductId} onChange={setSelectedProductId} />
           <InlineStack align="end">
             <Button onClick={handleGenerate} disabled={!selectedProductId || loading} loading={loading}>
-              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+              {loading ? t('contentTemplates.generating') : result ? t('contentTemplates.regenerate') : t('contentTemplates.generate')}
             </Button>
           </InlineStack>
           {error && <Banner tone="critical">{error}</Banner>}
@@ -687,13 +696,15 @@ function FaqCard({
 
 // ─── Collection Card (multi-product + name + description) ─────────────────────
 
-const IMAGE_STYLE_OPTIONS = [
-  { label: 'Attractive \u2013 Props & themed background', value: 'attractive' },
-  { label: 'Seasonal \u2013 Current season atmosphere', value: 'seasonal' },
-  { label: 'Minimalist \u2013 Clean isolated product', value: 'minimalist' },
-  { label: 'Informative \u2013 Product name & logo', value: 'informative' },
-  { label: 'Monochrome \u2013 Black & white editorial', value: 'monochrome' },
-];
+function getImageStyleOptions(t: (key: string) => string) {
+  return [
+    { label: t('contentTemplates.attractive'), value: 'attractive' },
+    { label: t('contentTemplates.seasonal'), value: 'seasonal' },
+    { label: t('contentTemplates.minimalist'), value: 'minimalist' },
+    { label: t('contentTemplates.informative'), value: 'informative' },
+    { label: t('contentTemplates.monochrome'), value: 'monochrome' },
+  ];
+}
 
 async function uploadCustomImage(file: File, backendApiUrl: string, shop: string): Promise<string> {
   const formData = new FormData();
@@ -714,6 +725,7 @@ function CollectionCard({
   backendApiUrl,
   onToast,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: ContentTemplate;
   products: ProductListItem[];
@@ -721,7 +733,9 @@ function CollectionCard({
   backendApiUrl: string;
   onToast: (msg: string) => void;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -763,7 +777,7 @@ function CollectionCard({
       }
 
       const body: Record<string, any> = {
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         collection_name: collectionName,
         description: collectionDescription,
         products: selectedProductNames.join(', '),
@@ -782,7 +796,7 @@ function CollectionCard({
         setResult(raw);
         setResultOpen(true);
         setHeroUrl(data.hero_url || null);
-        onToast('Collection content generated!');
+        onToast(t('contentTemplates.collectionContentGenerated'));
       } else {
         setError(data.detail || data.error || 'Generation failed');
       }
@@ -791,13 +805,13 @@ function CollectionCard({
     } finally {
       setLoading(false);
     }
-  }, [canGenerate, collectionName, collectionDescription, selectedProductNames, imageStyle, customImageFile, template, shop, backendApiUrl, onToast]);
+  }, [canGenerate, collectionName, collectionDescription, selectedProductNames, imageStyle, customImageFile, template, shop, backendApiUrl, onToast, t]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
     if (!toCopy) return;
-    try { await navigator.clipboard.writeText(toCopy); onToast('Copied!'); } catch { onToast('Copy failed.'); }
-  }, [result, onToast]);
+    try { await navigator.clipboard.writeText(toCopy); onToast(t('contentTemplates.copied')); } catch { onToast(t('contentTemplates.copyFailed')); }
+  }, [result, onToast, t]);
 
   const handlePublish = useCallback(async () => {
     if (!result) return;
@@ -810,9 +824,9 @@ function CollectionCard({
       });
       if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
       setPublished(true);
-      onToast('Published collection to Shopify!');
+      onToast(t('contentTemplates.publishedCollectionToShopify'));
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
-  }, [result, collectionName, heroUrl, selectedProductIds, template, shop, backendApiUrl, onToast]);
+  }, [result, collectionName, heroUrl, selectedProductIds, template, shop, backendApiUrl, onToast, t]);
 
   const canPublish = canAccess(entitlements, 'publish');
 
@@ -821,19 +835,19 @@ function CollectionCard({
       <Box padding="400">
         <BlockStack gap="400">
           <BlockStack gap="200">
-            <Text as="h2" variant="headingLg">Collection Description</Text>
+            <Text as="h2" variant="headingLg">{t('contentTemplates.collectionDescription')}</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Generate collection page copy with a hero banner. Upload a product image to blend it into the scene, or leave it empty for a theme-based image. Select the products in this collection below.
+              {t('contentTemplates.collectionDesc')}
             </Text>
           </BlockStack>
           <Divider />
-          <TextField label="Collection Name" value={collectionName} onChange={setCollectionName} placeholder="e.g. Premium Sake Collection" autoComplete="off" requiredIndicator />
-          <TextField label="Short Description" value={collectionDescription} onChange={setCollectionDescription} placeholder="A curated selection of our finest artisan sake" multiline={2} autoComplete="off" requiredIndicator />
+          <TextField label={t('contentTemplates.collectionName')} value={collectionName} onChange={setCollectionName} placeholder={t('contentTemplates.collectionNamePlaceholder')} autoComplete="off" requiredIndicator />
+          <TextField label={t('contentTemplates.shortDescription')} value={collectionDescription} onChange={setCollectionDescription} placeholder={t('contentTemplates.shortDescPlaceholder')} multiline={2} autoComplete="off" requiredIndicator />
 
           <BlockStack gap="200">
             <InlineStack align="space-between" blockAlign="center">
-              <Text as="span" variant="bodyMd" fontWeight="semibold">Select Products</Text>
-              <Badge>{`${selectedProductIds.length} selected`}</Badge>
+              <Text as="span" variant="bodyMd" fontWeight="semibold">{t('contentTemplates.selectProducts')}</Text>
+              <Badge>{`${selectedProductIds.length} ${t('contentTemplates.selected')}`}</Badge>
             </InlineStack>
             <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #e1e3e5', borderRadius: 8, padding: 8 }}>
               {products.map((p) => (
@@ -846,11 +860,11 @@ function CollectionCard({
           <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
             <ProductImageUploader productTitle={collectionName || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
             <BlockStack gap="300">
-              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <Select label={t('contentTemplates.imageStyle')} options={getImageStyleOptions(t)} value={imageStyle} onChange={setImageStyle} />
               <div style={{ flex: 1 }} />
               <InlineStack align="end">
                 <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
-                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                  {loading ? t('contentTemplates.generating') : result ? t('contentTemplates.regenerate') : t('contentTemplates.generate')}
                 </Button>
               </InlineStack>
             </BlockStack>
@@ -873,13 +887,16 @@ function HeroSectionCard({
   backendApiUrl,
   onToast,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: ContentTemplate;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -911,7 +928,7 @@ function HeroSectionCard({
       }
 
       const body: Record<string, any> = {
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         title: heroSubject,
         subject_text: heroSubject,
         overlay_text: overlayText,
@@ -929,7 +946,7 @@ function HeroSectionCard({
         setResult(raw);
         setResultOpen(true);
         setHeroUrl(data.hero_url || null);
-        onToast('Hero section generated!');
+        onToast(t('contentTemplates.heroSectionGenerated'));
       } else {
         setError(data.detail || data.error || 'Generation failed');
       }
@@ -938,13 +955,13 @@ function HeroSectionCard({
     } finally {
       setLoading(false);
     }
-  }, [canGenerate, heroSubject, overlayText, imageStyle, customImageFile, template, shop, backendApiUrl, onToast]);
+  }, [canGenerate, heroSubject, overlayText, imageStyle, customImageFile, template, shop, backendApiUrl, onToast, t]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
     if (!toCopy) return;
-    try { await navigator.clipboard.writeText(toCopy); onToast('Copied!'); } catch { onToast('Copy failed.'); }
-  }, [result, onToast]);
+    try { await navigator.clipboard.writeText(toCopy); onToast(t('contentTemplates.copied')); } catch { onToast(t('contentTemplates.copyFailed')); }
+  }, [result, onToast, t]);
 
   const handlePublish = useCallback(async () => {
     if (!result) return;
@@ -957,9 +974,9 @@ function HeroSectionCard({
       });
       if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
       setPublished(true);
-      onToast('Published hero section to Shopify!');
+      onToast(t('contentTemplates.publishedHeroToShopify'));
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
-  }, [result, template, shop, backendApiUrl, onToast]);
+  }, [result, template, shop, backendApiUrl, onToast, t]);
 
   const canPublish = canAccess(entitlements, 'publish');
 
@@ -968,22 +985,22 @@ function HeroSectionCard({
       <Box padding="400">
         <BlockStack gap="400">
           <BlockStack gap="200">
-            <Text as="h2" variant="headingLg">Hero Section</Text>
+            <Text as="h2" variant="headingLg">{t('contentTemplates.heroSection')}</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Generate a landing page hero section with a cinematic banner image. Enter a theme or subject to inspire the visual, or upload a product image to blend it into the scene.
+              {t('contentTemplates.heroSectionDesc')}
             </Text>
           </BlockStack>
           <Divider />
           <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
             <ProductImageUploader productTitle={heroSubject || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
             <BlockStack gap="300">
-              <TextField label="Subject / Theme" value={heroSubject} onChange={setHeroSubject} placeholder="e.g. Spring Flowers, Winter Snowboards, Summer Beach Vibes, Luxury Skincare" autoComplete="off" requiredIndicator />
-              <TextField label="Overlay Text (optional)" value={overlayText} onChange={setOverlayText} placeholder="e.g. Discover our new collection" autoComplete="off" />
-              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <TextField label={t('contentTemplates.subjectTheme')} value={heroSubject} onChange={setHeroSubject} placeholder={t('contentTemplates.subjectPlaceholder')} autoComplete="off" requiredIndicator />
+              <TextField label={t('contentTemplates.overlayTextOptional')} value={overlayText} onChange={setOverlayText} placeholder={t('contentTemplates.overlayPlaceholder')} autoComplete="off" />
+              <Select label={t('contentTemplates.imageStyle')} options={getImageStyleOptions(t)} value={imageStyle} onChange={setImageStyle} />
               <div style={{ flex: 1 }} />
               <InlineStack align="end">
                 <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
-                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                  {loading ? t('contentTemplates.generating') : result ? t('contentTemplates.regenerate') : t('contentTemplates.generate')}
                 </Button>
               </InlineStack>
             </BlockStack>
@@ -1006,13 +1023,16 @@ function BlogPostCard({
   backendApiUrl,
   onToast,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: ContentTemplate;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -1045,7 +1065,7 @@ function BlogPostCard({
       }
 
       const body: Record<string, any> = {
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         topic: blogTopic,
         category: blogCategory,
         context: blogContext,
@@ -1063,7 +1083,7 @@ function BlogPostCard({
         setResult(raw);
         setResultOpen(true);
         setHeroUrl(data.hero_url || null);
-        onToast('Blog post generated!');
+        onToast(t('contentTemplates.blogPostGenerated'));
       } else {
         setError(data.detail || data.error || 'Generation failed');
       }
@@ -1072,13 +1092,13 @@ function BlogPostCard({
     } finally {
       setLoading(false);
     }
-  }, [canGenerate, blogTopic, blogCategory, blogContext, imageStyle, customImageFile, template, shop, backendApiUrl, onToast]);
+  }, [canGenerate, blogTopic, blogCategory, blogContext, imageStyle, customImageFile, template, shop, backendApiUrl, onToast, t]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
     if (!toCopy) return;
-    try { await navigator.clipboard.writeText(toCopy); onToast('Copied!'); } catch { onToast('Copy failed.'); }
-  }, [result, onToast]);
+    try { await navigator.clipboard.writeText(toCopy); onToast(t('contentTemplates.copied')); } catch { onToast(t('contentTemplates.copyFailed')); }
+  }, [result, onToast, t]);
 
   const handlePublish = useCallback(async () => {
     if (!result) return;
@@ -1091,7 +1111,7 @@ function BlogPostCard({
       });
       if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
       setPublished(true);
-      onToast('Published blog post to Shopify!');
+      onToast(t('contentTemplates.publishedBlogToShopify'));
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
   }, [result, heroUrl, blogTopic, template, shop, backendApiUrl, onToast]);
 
@@ -1102,30 +1122,30 @@ function BlogPostCard({
       <Box padding="400">
         <BlockStack gap="400">
           <BlockStack gap="200">
-            <Text as="h2" variant="headingLg">Brand Blog Post</Text>
+            <Text as="h2" variant="headingLg">{t('contentTemplates.brandBlogPost')}</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Write long-form blog posts about your craft, manufacturing process, artisan techniques, and more. Upload a product image to blend it into the hero banner, or leave it empty for a theme-based image.
+              {t('contentTemplates.brandBlogPostDesc')}
             </Text>
           </BlockStack>
           <Divider />
           <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
             <ProductImageUploader productTitle={blogTopic || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
             <BlockStack gap="300">
-              <TextField label="Subject / Topic" value={blogTopic} onChange={setBlogTopic} placeholder="e.g. 'Our wood-kiln firing process', 'How we source Shigaraki clay'" autoComplete="off" requiredIndicator />
-              <TextField label="Category" value={blogCategory} onChange={setBlogCategory} placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability" autoComplete="off" requiredIndicator />
-              <TextField label="Additional Context" value={blogContext} onChange={setBlogContext} multiline={3} placeholder="Any extra details, product mentions, or angles to include" autoComplete="off" />
-              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <TextField label={t('contentTemplates.subjectTopic')} value={blogTopic} onChange={setBlogTopic} placeholder={t('contentTemplates.topicPlaceholder')} autoComplete="off" requiredIndicator />
+              <TextField label={t('contentTemplates.category')} value={blogCategory} onChange={setBlogCategory} placeholder={t('contentTemplates.categoryPlaceholder')} autoComplete="off" requiredIndicator />
+              <TextField label={t('contentTemplates.additionalContext')} value={blogContext} onChange={setBlogContext} multiline={3} placeholder={t('contentTemplates.contextPlaceholder')} autoComplete="off" />
+              <Select label={t('contentTemplates.imageStyle')} options={getImageStyleOptions(t)} value={imageStyle} onChange={setImageStyle} />
               <div style={{ flex: 1 }} />
               <InlineStack align="end">
                 <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
-                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                  {loading ? t('contentTemplates.generating') : result ? t('contentTemplates.regenerate') : t('contentTemplates.generate')}
                 </Button>
               </InlineStack>
             </BlockStack>
           </div>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
-            <ResultBlock templateId={template.id} templateName="Blog Post" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+            <ResultBlock templateId={template.id} templateName={t('contentTemplates.brandBlogPost')} result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
           )}
         </BlockStack>
       </Box>
@@ -1136,7 +1156,8 @@ function BlogPostCard({
 // ─── Page Component ───────────────────────────────────────────────────────────
 
 export default function ContentTemplatesPage() {
-  const {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage} =
+  const { t } = useTranslation();
+  const {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage, defaultTargetLocale} =
     useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -1159,10 +1180,10 @@ export default function ContentTemplatesPage() {
 
   return (
     <Page
-      title="Content Templates"
-      subtitle="Generate FAQs, collection copy, hero sections, and blog posts using AI-powered templates with brand voice."
+      title={t('contentTemplates.contentTemplates')}
+      subtitle={t('contentTemplates.contentTemplatesSubtitle')}
       backAction={{
-        content: 'Writing Studio',
+        content: t('contentTemplates.writingStudio'),
         onAction: () => navigate(nav('/app/writing-studio')),
       }}
     >
@@ -1170,28 +1191,28 @@ export default function ContentTemplatesPage() {
         {/* Product FAQ */}
         {faqTemplate && (
           <Layout.Section>
-            <FaqCard template={faqTemplate} products={products} initialProduct={selectedProduct} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
+            <FaqCard template={faqTemplate} products={products} initialProduct={selectedProduct} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
           </Layout.Section>
         )}
 
         {/* Collection Description */}
         {collectionTemplate && (
           <Layout.Section>
-            <CollectionCard template={collectionTemplate} products={products} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
+            <CollectionCard template={collectionTemplate} products={products} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
           </Layout.Section>
         )}
 
         {/* Hero Section */}
         {heroTemplate && (
           <Layout.Section>
-            <HeroSectionCard template={heroTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
+            <HeroSectionCard template={heroTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
           </Layout.Section>
         )}
 
         {/* Brand Blog Post */}
         {blogTemplate && (
           <Layout.Section>
-            <BlogPostCard template={blogTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
+            <BlogPostCard template={blogTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
           </Layout.Section>
         )}
       </Layout>

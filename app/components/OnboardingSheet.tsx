@@ -9,9 +9,11 @@ import {
   MediaCard,
   Modal,
   ProgressBar,
+  Select,
   Text,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   shop: string;
@@ -19,7 +21,10 @@ type Props = {
   backendApiUrl: string;
   initialStep: number;
   initialFinished: boolean;
+  defaultTargetLocale?: string;
 };
+
+const LOCALE_OPTIONS = ["en", "zh-TW", "ko", "de", "fr", "es", "it", "pt", "th", "vi", "zh-CN"] as const;
 
 async function postOnboardingStep(
   backendApiUrl: string,
@@ -40,7 +45,7 @@ async function postOnboardingStep(
 function clampStep(n: number) {
   if (!Number.isFinite(n)) return 0;
   if (n < 0) return 0;
-  if (n > 4) return 4;
+  if (n > 5) return 5;
   return Math.floor(n);
 }
 
@@ -50,7 +55,9 @@ export function OnboardingSheet({
   backendApiUrl,
   initialStep,
   initialFinished,
+  defaultTargetLocale = "en",
 }: Props) {
+  const { t } = useTranslation();
   const app = useAppBridge();
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,19 +66,21 @@ export function OnboardingSheet({
   const [step, setStep] = useState<number>(clampStep(initialStep));
   const [finished, setFinished] = useState<boolean>(Boolean(initialFinished));
   const [busy, setBusy] = useState(false);
+  const [selectedLocale, setSelectedLocale] = useState<string>(defaultTargetLocale);
 
   const done = useMemo(() => {
     const s = clampStep(step);
     return {
-      s1: s >= 1,
-      s2: s >= 2,
-      s3: s >= 3,
+      s0: s >= 1,
+      s1: s >= 2,
+      s2: s >= 3,
+      s3: s >= 4,
       s4: s >= 4 || finished,
-      completedCount: [s >= 1, s >= 2, s >= 3, s >= 4 || finished].filter(Boolean).length,
+      completedCount: [s >= 1, s >= 2, s >= 3, s >= 4, finished].filter(Boolean).length,
     };
   }, [step, finished]);
 
-  const progress = Math.round((done.completedCount / 4) * 100);
+  const progress = Math.round((done.completedCount / 5) * 100);
   const qs = useMemo(() => {
     const p = new URLSearchParams();
     if (host) p.set("host", host);
@@ -118,20 +127,24 @@ export function OnboardingSheet({
     }
   }, [app, navigate, nav, qs]);
 
-  const openThemeEditor = useCallback(async () => {
+  const saveTargetLocale = useCallback(async () => {
     setBusy(true);
     try {
-      await postOnboardingStep(backendApiUrl, shop, 2);
-      setStep((s) => Math.max(s, 2));
+      const resp = await fetch(`${backendApiUrl}/api/admin/default-target-locale`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shop, locale: selectedLocale }),
+      });
+      if (resp.ok) {
+        await postOnboardingStep(backendApiUrl, shop, 1);
+        setStep((s) => Math.max(s, 1));
+      }
     } catch {
       // best-effort
     } finally {
       setBusy(false);
     }
-
-    const url = `https://${shop}/admin/themes/current/editor?context=apps`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, [backendApiUrl, shop]);
+  }, [backendApiUrl, shop, selectedLocale]);
 
   const tryMarketing = useCallback(async () => {
     setBusy(true);
@@ -191,17 +204,17 @@ export function OnboardingSheet({
             <BlockStack gap="200">
               <InlineStack align="space-between" blockAlign="center">
                 <Text as="p" variant="headingSm">
-                  Setup
+                  {t("onboarding.setup")}
                 </Text>
                 <Badge tone="info">{`${progress}%`}</Badge>
               </InlineStack>
               <ProgressBar progress={progress} size="small" />
               <InlineStack align="space-between" blockAlign="center">
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Finish onboarding to unlock storefront + marketing.
+                  {t("onboarding.finishOnboarding")}
                 </Text>
                 <Button variant="primary" size="slim" onClick={() => setOpen(true)}>
-                  Continue
+                  {t("onboarding.continue")}
                 </Button>
               </InlineStack>
             </BlockStack>
@@ -212,7 +225,7 @@ export function OnboardingSheet({
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Getting started"
+        title={t("onboarding.gettingStarted")}
         size="large"
       >
         <Modal.Section>
@@ -220,23 +233,61 @@ export function OnboardingSheet({
             <BlockStack gap="200">
               <InlineStack align="space-between" blockAlign="center">
                 <Text as="h2" variant="headingMd">
-                  Onboarding
+                  {t("onboarding.onboarding")}
                 </Text>
                 <Badge tone="info">{`${progress}%`}</Badge>
               </InlineStack>
               <ProgressBar progress={progress} size="small" />
             </BlockStack>
 
+            {/* Step 0: Select target market */}
+            {step < 1 && (
+              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                <BlockStack gap="200">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h3" variant="headingSm">
+                      {t("onboarding.selectTargetMarket")}
+                    </Text>
+                    {done.s0 ? (
+                      <Badge tone="success">{t("onboarding.done")}</Badge>
+                    ) : (
+                      <Badge tone="attention">{t("onboarding.next")}</Badge>
+                    )}
+                  </InlineStack>
+                  <Text as="p" variant="bodyMd">
+                    {t("onboarding.selectTargetMarketDesc")}
+                  </Text>
+                  <Select
+                    label={t("onboarding.targetMarket")}
+                    options={LOCALE_OPTIONS.map((loc) => ({
+                      label: t(`localeLabels.${loc}`),
+                      value: loc,
+                    }))}
+                    value={selectedLocale}
+                    onChange={setSelectedLocale}
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={saveTargetLocale}
+                    loading={busy}
+                    disabled={busy}
+                  >
+                    {t("onboarding.confirm")}
+                  </Button>
+                </BlockStack>
+              </Box>
+            )}
+
             <Box padding="300" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="200">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="h3" variant="headingSm">
-                    Step 1: Localize your first product
+                    Step 1: {t("onboarding.step1Localize")}
                   </Text>
                   {done.s1 ? (
-                    <Badge tone="success">Done</Badge>
+                    <Badge tone="success">{t("onboarding.done")}</Badge>
                   ) : (
-                    <Badge tone="attention">Next</Badge>
+                    <Badge tone="attention">{t("onboarding.next")}</Badge>
                   )}
                 </InlineStack>
                 <Box>
@@ -256,9 +307,7 @@ export function OnboardingSheet({
                   </Text>
                 </Box>
                 <Text as="p" variant="bodyMd">
-                  Choose a product, then click “Optimize for Global” in the
-                  Rewriter. This step completes automatically after your first
-                  successful rewrite.
+                  {t("onboarding.step1Desc")}
                 </Text>
                 <InlineStack gap="200">
                   <Button
@@ -267,50 +316,23 @@ export function OnboardingSheet({
                     loading={busy}
                     disabled={busy}
                   >
-                    Choose Product
+                    {t("onboarding.chooseProduct")}
                   </Button>
                   <Button
                     onClick={() => navigate(nav("/app/rewriter"))}
                     disabled={busy}
                   >
-                    Open Rewriter
+                    {t("onboarding.openRewriter")}
                   </Button>
                 </InlineStack>
               </BlockStack>
             </Box>
 
             <MediaCard
-              title="Step 2: Enable the Storefront View"
-              description="Turn on the App Embed inside your Theme Editor so shoppers can see localized content on the storefront."
+              title={`Step 2: ${t("onboarding.step2SocialHook")}`}
+              description={t("onboarding.step2Desc")}
               primaryAction={{
-                content: "Open Theme Editor",
-                onAction: openThemeEditor,
-                loading: busy,
-              }}
-            >
-              <Box padding="200">
-                <img
-                  src="/onboarding-theme-embed.gif"
-                  alt="Theme editor app embed toggle demo"
-                  style={{
-                    width: "100%",
-                    maxHeight: 220,
-                    objectFit: "cover",
-                    borderRadius: 12,
-                  }}
-                />
-                <Text as="p" variant="bodySm" tone="subdued">
-                  (Add a looping GIF at{" "}
-                  <code>/public/onboarding-theme-embed.gif</code>)
-                </Text>
-              </Box>
-            </MediaCard>
-
-            <MediaCard
-              title="Step 3: Create your first Social Hook"
-              description="Generate Instagram-ready hooks from a product and save them to metafields."
-              primaryAction={{
-                content: "Open Caption Generator",
+                content: t("onboarding.openCaptionGen"),
                 onAction: tryMarketing,
                 loading: busy,
               }}
@@ -336,12 +358,12 @@ export function OnboardingSheet({
             <Box padding="300" borderRadius="200" background="bg-surface-secondary">
               <InlineStack align="space-between" blockAlign="center">
                 <Text as="h3" variant="headingSm">
-                  Step 4: Dashboard
+                  Step 4: {t("onboarding.step4Dashboard")}
                 </Text>
                 {done.s4 ? (
-                  <Badge tone="success">Done</Badge>
+                  <Badge tone="success">{t("onboarding.done")}</Badge>
                 ) : (
-                  <Badge tone="info">Finish</Badge>
+                  <Badge tone="info">{t("onboarding.finish")}</Badge>
                 )}
               </InlineStack>
               <Box paddingBlockStart="200">
@@ -351,7 +373,7 @@ export function OnboardingSheet({
                   loading={busy}
                   disabled={busy}
                 >
-                  Go to Dashboard
+                  {t("onboarding.goToDashboard")}
                 </Button>
               </Box>
             </Box>
