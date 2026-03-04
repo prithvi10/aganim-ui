@@ -68,6 +68,7 @@ type LoaderData = {
   selectedProduct: SelectedProduct | null;
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 function productIdFromGid(gid: string | null | undefined) {
@@ -172,6 +173,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = { shop: sessionShop };
 
   let planName: LoaderData["planName"] = "Free";
+  let defaultTargetLocale: string | undefined = undefined;
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
 
   let entitlements: Entitlements = {};
@@ -184,15 +186,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (eff === "Basic" || eff === "Standard" || eff === "Pro") planName = eff as LoaderData["planName"];
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      defaultTargetLocale = data.default_target_locale ?? undefined;
     }
   } catch { /* ignore */ }
 
-  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage };
+  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage, defaultTargetLocale };
 };
 
 export default function OptimizePage() {
   const { t } = useTranslation();
-  const { planName, shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage } =
+  const { planName, shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage, defaultTargetLocale } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -253,7 +256,7 @@ export default function OptimizePage() {
             japanese_description: selectedProduct.descriptionHtml,
             category: selectedProduct.productType || "General",
             image_url: selectedProduct.featuredImageUrl || "",
-            target_locale: "en",
+            target_locale: defaultTargetLocale || "en",
             workflow_config: pipeline,
             // Extra wizard context (blog topic, collection info, etc.)
             ...(extraContext ? { extra_context: extraContext } : {}),
@@ -270,7 +273,7 @@ export default function OptimizePage() {
         setIsOptimizing(false);
       }
     },
-    [selectedProduct, backendApiUrl, app, shop],
+    [selectedProduct, backendApiUrl, app, shop, defaultTargetLocale],
   );
 
   // ── Mission callbacks ──────────────────────────────────────────────────

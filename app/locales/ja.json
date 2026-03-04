@@ -52,6 +52,42 @@
     "contactSupport": "サポートに連絡",
     "readTheGuide": "ガイドを読む"
   },
+  "onboarding": {
+    "setup": "セットアップ",
+    "finishOnboarding": "オンボーディングを完了して、ストアフロント＋マーケティングを解放しましょう。",
+    "continue": "続ける",
+    "gettingStarted": "はじめに",
+    "onboarding": "オンボーディング",
+    "selectTargetMarket": "ターゲット市場を選択",
+    "selectTargetMarketDesc": "販売先の市場を選択してください。AI生成コンテンツのデフォルト言語と文化的トーンが設定されます。",
+    "targetMarket": "ターゲット市場",
+    "step1Localize": "最初の商品をローカライズ",
+    "step1Desc": "商品を選び、リライターで「グローバル最適化」をクリックしてください。最初のリライト成功時に自動で完了します。",
+    "chooseProduct": "商品を選択",
+    "openRewriter": "リライターを開く",
+    "step2SocialHook": "最初のソーシャルフックを作成",
+    "step2Desc": "商品からInstagram用のフックを生成し、メタフィールドに保存します。",
+    "openCaptionGen": "キャプションジェネレーターを開く",
+    "step4Dashboard": "ダッシュボード",
+    "goToDashboard": "ダッシュボードへ",
+    "done": "完了",
+    "next": "次へ",
+    "finish": "完了",
+    "confirm": "確認"
+  },
+  "localeLabels": {
+    "en": "英語（アメリカ）",
+    "zh-TW": "繁體中文（台湾）",
+    "ko": "한국어（韓国）",
+    "de": "ドイツ語（ドイツ）",
+    "fr": "フランス語（フランス）",
+    "es": "スペイン語（スペイン）",
+    "it": "イタリア語（イタリア）",
+    "pt": "ポルトガル語（ブラジル）",
+    "th": "タイ語（タイ）",
+    "vi": "ベトナム語（ベトナム）",
+    "zh-CN": "簡体中文（中国）"
+  },
   "dashboard": {
     "title": "越境 AI",
     "totalOptimized": "最適化済み商品数",
@@ -129,7 +165,11 @@
     "featureApplyPriceChanges": "価格変更を適用",
     "featureMetaIntegration": "Meta連携",
     "pageId": "ページID:",
-    "autonomousPublishingEnabled": "広告テンプレートの自動配信が有効です。"
+    "autonomousPublishingEnabled": "広告テンプレートの自動配信が有効です。",
+    "contentLocaleTitle": "コンテンツターゲット市場",
+    "contentLocaleDesc": "AI生成コンテンツのターゲット市場を選択します。言語、文化的トーン、競合分析に影響します。",
+    "currentMarket": "現在の市場：",
+    "changeMarket": "変更"
   },
   "rewriter": {
     "rewriter": "リライター",

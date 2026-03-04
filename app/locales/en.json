@@ -52,6 +52,42 @@
     "contactSupport": "Contact Support",
     "readTheGuide": "Read the Guide"
   },
+  "onboarding": {
+    "setup": "Setup",
+    "finishOnboarding": "Finish onboarding to unlock storefront + marketing.",
+    "continue": "Continue",
+    "gettingStarted": "Getting started",
+    "onboarding": "Onboarding",
+    "selectTargetMarket": "Select your target market",
+    "selectTargetMarketDesc": "Choose the market where you want to sell. This sets the default language and cultural tone for AI-generated content.",
+    "targetMarket": "Target Market",
+    "step1Localize": "Localize your first product",
+    "step1Desc": "Choose a product, then click \"Optimize for Global\" in the Rewriter. This step completes automatically after your first successful rewrite.",
+    "chooseProduct": "Choose Product",
+    "openRewriter": "Open Rewriter",
+    "step2SocialHook": "Create your first Social Hook",
+    "step2Desc": "Generate Instagram-ready hooks from a product and save them to metafields.",
+    "openCaptionGen": "Open Caption Generator",
+    "step4Dashboard": "Dashboard",
+    "goToDashboard": "Go to Dashboard",
+    "done": "Done",
+    "next": "Next",
+    "finish": "Finish",
+    "confirm": "Confirm"
+  },
+  "localeLabels": {
+    "en": "English (US)",
+    "zh-TW": "繁體中文 (Taiwan)",
+    "ko": "한국어 (Korea)",
+    "de": "Deutsch (Germany)",
+    "fr": "Français (France)",
+    "es": "Español (Spain)",
+    "it": "Italiano (Italy)",
+    "pt": "Português (Brazil)",
+    "th": "ไทย (Thailand)",
+    "vi": "Tiếng Việt (Vietnam)",
+    "zh-CN": "简体中文 (China)"
+  },
   "dashboard": {
     "title": "Cross-Border AI",
     "totalOptimized": "Total Products Optimized",
@@ -129,7 +165,11 @@
     "featureApplyPriceChanges": "Apply price changes",
     "featureMetaIntegration": "Meta integration",
     "pageId": "Page ID:",
-    "autonomousPublishingEnabled": "Autonomous publishing for ad templates is enabled."
+    "autonomousPublishingEnabled": "Autonomous publishing for ad templates is enabled.",
+    "contentLocaleTitle": "Content Target Market",
+    "contentLocaleDesc": "Choose which market your AI-generated content targets. This affects language, cultural tone, and competitor analysis.",
+    "currentMarket": "Current market:",
+    "changeMarket": "Change"
   },
   "rewriter": {
     "rewriter": "Rewriter",
