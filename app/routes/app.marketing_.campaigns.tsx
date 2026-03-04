@@ -20,6 +20,7 @@ type LoaderData = {
   shopSlug: string;
   backendApiUrl: string;
   retailCalendar: RetailCalendarEntry[];
+  defaultTargetLocale?: string;
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -55,7 +56,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // best-effort
   }
 
-  return { shop, shopSlug, backendApiUrl, retailCalendar } satisfies LoaderData;
+  let defaultTargetLocale: string | undefined = undefined;
+  try {
+    const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
+    if (usageResp.ok) {
+      const usageData = await usageResp.json();
+      defaultTargetLocale = usageData.default_target_locale ?? undefined;
+    }
+  } catch {
+    // best-effort
+  }
+
+  return { shop, shopSlug, backendApiUrl, retailCalendar, defaultTargetLocale } satisfies LoaderData;
 };
 
 function discountCodeName(holidayName: string, category: string, year: number) {
@@ -66,7 +78,7 @@ function discountCodeName(holidayName: string, category: string, year: number) {
 }
 
 export default function CampaignsPage() {
-  const { shop, shopSlug, backendApiUrl, retailCalendar } = useLoaderData<typeof loader>();
+  const { shop, shopSlug, backendApiUrl, retailCalendar, defaultTargetLocale } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const app = useAppBridge();
@@ -125,9 +137,10 @@ export default function CampaignsPage() {
   const generateSeasonalCaption = useCallback(async () => {
     setSeasonalCaptionLoading(true);
     try {
+      const localeCtx = { current_date: new Date().toISOString(), target_locale: defaultTargetLocale || 'en' };
       const [campaignSettled, captionSettled] = await Promise.allSettled([
-        callAgent('seasonal_campaign_agent', { category: 'General', productType: 'General' }, { current_date: new Date().toISOString() }),
-        callAgent('seasonal_campaign_caption', { category: 'General', productType: 'General' }, { current_date: new Date().toISOString() }),
+        callAgent('seasonal_campaign_agent', { category: 'General', productType: 'General' }, localeCtx),
+        callAgent('seasonal_campaign_caption', { category: 'General', productType: 'General' }, localeCtx),
       ]);
 
       if (captionSettled.status === 'fulfilled') {
@@ -146,7 +159,7 @@ export default function CampaignsPage() {
     } finally {
       setSeasonalCaptionLoading(false);
     }
-  }, [callAgent]);
+  }, [callAgent, defaultTargetLocale]);
 
   useEffect(() => {
     generateSeasonalCaption();

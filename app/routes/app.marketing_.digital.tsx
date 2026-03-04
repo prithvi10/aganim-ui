@@ -76,6 +76,7 @@ type LoaderData = {
   didResetMetaCache: boolean;
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -184,6 +185,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let defaultTargetLocale: string | undefined = undefined;
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -198,6 +200,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       lastPlanChangeAt = String(data?.last_plan_change_at || '').trim() || null;
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      defaultTargetLocale = data.default_target_locale ?? undefined;
     }
   } catch {
     // best-effort
@@ -359,6 +362,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     didResetMetaCache,
     entitlements,
     feature_usage,
+    defaultTargetLocale,
   } satisfies LoaderData;
 };
 
@@ -465,6 +469,7 @@ export default function DigitalMarketing() {
     didResetMetaCache,
     entitlements,
     feature_usage,
+    defaultTargetLocale,
   } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge();
@@ -587,7 +592,7 @@ export default function DigitalMarketing() {
     };
 
     try {
-      const socialResult = await callAgent('social_hook_architect', productData, { focus: 'Instagram Reels' });
+      const socialResult = await callAgent('social_hook_architect', productData, { focus: 'Instagram Reels', target_locale: defaultTargetLocale || 'en' });
       const nextHooks = (socialResult?.data?.metadata?.hooks ?? []) as any[];
       const overlays = (socialResult?.data?.metadata?.overlay_suggestions ?? []) as any[];
       const safeHooks = Array.isArray(nextHooks) ? nextHooks : [];
@@ -625,6 +630,7 @@ export default function DigitalMarketing() {
     selectedProduct?.productType,
     selectedProduct?.tags,
     selectedProduct?.title,
+    defaultTargetLocale,
   ]);
 
   // Step 2: Generate visual ad (separate from captions)

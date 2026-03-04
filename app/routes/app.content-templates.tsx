@@ -65,6 +65,7 @@ type LoaderData = {
   planName: string;
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 // ─── Display name overrides ───────────────────────────────────────────────────
@@ -178,6 +179,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let planName = 'Free';
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let defaultTargetLocale: string | undefined = undefined;
   try {
     const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`);
     if (usageResp.ok) {
@@ -185,12 +187,13 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       planName = String(usageData.effective_plan_name || usageData.plan_name || 'Free').trim() || 'Free';
       entitlements = usageData.entitlements || {};
       feature_usage = usageData.feature_usage || {};
+      defaultTargetLocale = usageData.default_target_locale ?? undefined;
     }
   } catch {
     // best-effort
   }
 
-  return {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage} satisfies LoaderData;
+  return {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage, defaultTargetLocale} satisfies LoaderData;
 };
 
 // ─── Python dict parser (handles mixed single/double quotes) ──────────────────
@@ -585,6 +588,7 @@ function FaqCard({
   backendApiUrl,
   onToast,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: ContentTemplate;
   products: ProductListItem[];
@@ -593,6 +597,7 @@ function FaqCard({
   backendApiUrl: string;
   onToast: (msg: string) => void;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -616,7 +621,7 @@ function FaqCard({
 
     try {
       const body: Record<string, string> = {
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         title: selectedTitle,
         product_id: selectedProductId,
       };
@@ -720,6 +725,7 @@ function CollectionCard({
   backendApiUrl,
   onToast,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: ContentTemplate;
   products: ProductListItem[];
@@ -727,6 +733,7 @@ function CollectionCard({
   backendApiUrl: string;
   onToast: (msg: string) => void;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -770,7 +777,7 @@ function CollectionCard({
       }
 
       const body: Record<string, any> = {
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         collection_name: collectionName,
         description: collectionDescription,
         products: selectedProductNames.join(', '),
@@ -880,12 +887,14 @@ function HeroSectionCard({
   backendApiUrl,
   onToast,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: ContentTemplate;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -919,7 +928,7 @@ function HeroSectionCard({
       }
 
       const body: Record<string, any> = {
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         title: heroSubject,
         subject_text: heroSubject,
         overlay_text: overlayText,
@@ -1014,12 +1023,14 @@ function BlogPostCard({
   backendApiUrl,
   onToast,
   entitlements,
+  defaultTargetLocale,
 }: {
   template: ContentTemplate;
   shop: string;
   backendApiUrl: string;
   onToast: (msg: string) => void;
   entitlements: Entitlements;
+  defaultTargetLocale?: string;
 }) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -1054,7 +1065,7 @@ function BlogPostCard({
       }
 
       const body: Record<string, any> = {
-        target_locale: 'en',
+        target_locale: defaultTargetLocale || 'en',
         topic: blogTopic,
         category: blogCategory,
         context: blogContext,
@@ -1146,7 +1157,7 @@ function BlogPostCard({
 
 export default function ContentTemplatesPage() {
   const { t } = useTranslation();
-  const {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage} =
+  const {shop, backendApiUrl, products, selectedProduct, templates, planName, entitlements, feature_usage, defaultTargetLocale} =
     useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -1180,28 +1191,28 @@ export default function ContentTemplatesPage() {
         {/* Product FAQ */}
         {faqTemplate && (
           <Layout.Section>
-            <FaqCard template={faqTemplate} products={products} initialProduct={selectedProduct} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
+            <FaqCard template={faqTemplate} products={products} initialProduct={selectedProduct} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
           </Layout.Section>
         )}
 
         {/* Collection Description */}
         {collectionTemplate && (
           <Layout.Section>
-            <CollectionCard template={collectionTemplate} products={products} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
+            <CollectionCard template={collectionTemplate} products={products} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
           </Layout.Section>
         )}
 
         {/* Hero Section */}
         {heroTemplate && (
           <Layout.Section>
-            <HeroSectionCard template={heroTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
+            <HeroSectionCard template={heroTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
           </Layout.Section>
         )}
 
         {/* Brand Blog Post */}
         {blogTemplate && (
           <Layout.Section>
-            <BlogPostCard template={blogTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} />
+            <BlogPostCard template={blogTemplate} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
           </Layout.Section>
         )}
       </Layout>
