@@ -5,12 +5,18 @@ import {
   Layout,
   Card,
   BlockStack,
+  Box,
+  Divider,
+  DropZone,
+  InlineStack,
   Text,
+  TextField,
   Button,
   Banner,
   Spinner,
+  Toast,
 } from '@shopify/polaris';
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
 import { IntelligenceDashboard, type StrategicIntelligence } from '../components/IntelligenceDashboard';
 
@@ -67,6 +73,149 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     intelligenceUpdatedAt,
   };
 };
+
+function LogoUploadCard({ shop, backendApiUrl }: { shop: string; backendApiUrl: string }) {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoInput, setLogoInput] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await fetch(
+          `${backendApiUrl}/api/shop/logo?shop=${encodeURIComponent(shop)}`,
+          { headers: { 'X-Shopify-Shop-Domain': shop } },
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.logo_url) setLogoUrl(data.logo_url);
+        }
+      } catch {
+        // ignore fetch errors on load
+      }
+    })();
+  }, [shop, backendApiUrl]);
+
+  const handleUploadFromUrl = useCallback(async () => {
+    const url = logoInput.trim();
+    if (!url) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const resp = await fetch(
+        `${backendApiUrl}/api/shop/logo?shop=${encodeURIComponent(shop)}`,
+        {
+          method: 'POST',
+          headers: { 'X-Shopify-Shop-Domain': shop, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logo_url: url }),
+        },
+      );
+      const data = await resp.json();
+      if (resp.ok && data.logo_url) {
+        setLogoUrl(data.logo_url);
+        setLogoInput('');
+        setToast('Logo uploaded successfully!');
+      } else {
+        setError(data.detail || 'Upload failed');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error');
+    } finally {
+      setUploading(false);
+    }
+  }, [logoInput, shop, backendApiUrl]);
+
+  const handleFileDrop = useCallback(async (_: File[], acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadResp = await fetch(
+        `${backendApiUrl}/api/upload-product-image?shop=${encodeURIComponent(shop)}`,
+        { method: 'POST', headers: { 'X-Shopify-Shop-Domain': shop }, body: formData },
+      );
+      if (!uploadResp.ok) throw new Error('File upload failed');
+      const uploadData = await uploadResp.json();
+      const tempUrl = uploadData.url;
+
+      const resp = await fetch(
+        `${backendApiUrl}/api/shop/logo?shop=${encodeURIComponent(shop)}`,
+        {
+          method: 'POST',
+          headers: { 'X-Shopify-Shop-Domain': shop, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logo_url: tempUrl }),
+        },
+      );
+      const data = await resp.json();
+      if (resp.ok && data.logo_url) {
+        setLogoUrl(data.logo_url);
+        setToast('Logo uploaded successfully!');
+      } else {
+        setError(data.detail || 'Upload failed');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error');
+    } finally {
+      setUploading(false);
+    }
+  }, [shop, backendApiUrl]);
+
+  return (
+    <>
+      <Card>
+        <Box padding="400">
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="h2" variant="headingLg">Brand Logo</Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Upload your shop logo. It will be used in the "Informative" image style for hero banners.
+              </Text>
+            </BlockStack>
+            <Divider />
+
+            {logoUrl && (
+              <InlineStack align="center">
+                <div style={{ width: 120, height: 120, borderRadius: 10, overflow: 'hidden', border: '1px solid #e1e3e5', background: '#fafafa' }}>
+                  <img src={logoUrl} alt="Shop logo" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                </div>
+              </InlineStack>
+            )}
+
+            <TextField
+              label="Logo URL"
+              value={logoInput}
+              onChange={setLogoInput}
+              placeholder="https://example.com/logo.png"
+              autoComplete="off"
+              connectedRight={
+                <Button onClick={handleUploadFromUrl} loading={uploading} disabled={!logoInput.trim() || uploading}>
+                  Upload
+                </Button>
+              }
+            />
+
+            <DropZone accept="image/*" type="image" onDrop={handleFileDrop} disabled={uploading} allowMultiple={false} variableHeight>
+              <div style={{ padding: '12px', textAlign: 'center' }}>
+                <BlockStack gap="100" inlineAlign="center">
+                  <Text as="p" variant="bodySm">Or drop / click to upload a logo file</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">PNG, JPG, or WebP</Text>
+                </BlockStack>
+              </div>
+            </DropZone>
+
+            {error && <Banner tone="critical">{error}</Banner>}
+          </BlockStack>
+        </Box>
+      </Card>
+      {toast && <Toast content={toast} onDismiss={() => setToast(null)} />}
+    </>
+  );
+}
 
 export default function BrandVoice() {
   const { shop, backendApiUrl, intelligence, intelligenceUpdatedAt } =
@@ -133,6 +282,9 @@ export default function BrandVoice() {
             onExtract={handleExtractIntelligence}
             isLoading={isExtracting}
           />
+        </Layout.Section>
+        <Layout.Section>
+          <LogoUploadCard shop={shop} backendApiUrl={backendApiUrl} />
         </Layout.Section>
       </Layout>
     </Page>
