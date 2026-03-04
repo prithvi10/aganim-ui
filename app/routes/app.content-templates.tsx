@@ -23,6 +23,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {PlanGateBadge} from '../components/PlanGateBadge';
+import {ProductImageUploader} from '../components/ProductImageUploader';
 import {RichTextEditor} from '../components/RichTextEditor';
 import {canAccess, formatUsage, type Entitlements, type FeatureUsageMap} from '../utils/entitlements';
 
@@ -686,6 +687,26 @@ function FaqCard({
 
 // ─── Collection Card (multi-product + name + description) ─────────────────────
 
+const IMAGE_STYLE_OPTIONS = [
+  { label: 'Attractive \u2013 Props & themed background', value: 'attractive' },
+  { label: 'Seasonal \u2013 Current season atmosphere', value: 'seasonal' },
+  { label: 'Minimalist \u2013 Clean isolated product', value: 'minimalist' },
+  { label: 'Informative \u2013 Product name & logo', value: 'informative' },
+  { label: 'Monochrome \u2013 Black & white editorial', value: 'monochrome' },
+];
+
+async function uploadCustomImage(file: File, backendApiUrl: string, shop: string): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const uploadResp = await fetch(
+    `${backendApiUrl}/api/upload-product-image?shop=${encodeURIComponent(shop)}`,
+    { method: 'POST', headers: { 'X-Shopify-Shop-Domain': shop }, body: formData },
+  );
+  if (!uploadResp.ok) throw new Error('Failed to upload custom image');
+  const uploadData = await uploadResp.json();
+  return uploadData.url;
+}
+
 function CollectionCard({
   template,
   products,
@@ -713,6 +734,8 @@ function CollectionCard({
   const [collectionName, setCollectionName] = useState('');
   const [collectionDescription, setCollectionDescription] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [imageStyle, setImageStyle] = useState('attractive');
+  const [customImageFile, setCustomImageFile] = useState<File | null>(null);
 
   const toggleProduct = useCallback((id: string) => {
     setSelectedProductIds((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
@@ -734,12 +757,19 @@ function CollectionCard({
     editableHtmlRef.current = '';
 
     try {
+      let imageUrl = '';
+      if (customImageFile) {
+        imageUrl = await uploadCustomImage(customImageFile, backendApiUrl, shop);
+      }
+
       const body: Record<string, any> = {
         target_locale: 'en',
         collection_name: collectionName,
         description: collectionDescription,
         products: selectedProductNames.join(', '),
         product_names: selectedProductNames,
+        image_style: imageStyle,
+        ...(imageUrl && { image_url: imageUrl }),
       };
 
       const resp = await fetch(
@@ -761,7 +791,7 @@ function CollectionCard({
     } finally {
       setLoading(false);
     }
-  }, [canGenerate, collectionName, collectionDescription, selectedProductNames, template, shop, backendApiUrl, onToast]);
+  }, [canGenerate, collectionName, collectionDescription, selectedProductNames, imageStyle, customImageFile, template, shop, backendApiUrl, onToast]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
@@ -793,7 +823,7 @@ function CollectionCard({
           <BlockStack gap="200">
             <Text as="h2" variant="headingLg">Collection Description</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Generate collection page copy with a hero banner. Select the products in this collection below.
+              Generate collection page copy with a hero banner. Upload a product image to blend it into the scene, or leave it empty for a theme-based image. Select the products in this collection below.
             </Text>
           </BlockStack>
           <Divider />
@@ -812,11 +842,19 @@ function CollectionCard({
             </div>
           </BlockStack>
 
-          <InlineStack align="end">
-            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
-              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
-            </Button>
-          </InlineStack>
+          <Divider />
+          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
+            <ProductImageUploader productTitle={collectionName || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            <BlockStack gap="300">
+              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <div style={{ flex: 1 }} />
+              <InlineStack align="end">
+                <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
+                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </div>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
             <ResultBlock templateId={template.id} templateName="Collection" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
@@ -853,6 +891,8 @@ function HeroSectionCard({
 
   const [heroSubject, setHeroSubject] = useState('');
   const [overlayText, setOverlayText] = useState('');
+  const [imageStyle, setImageStyle] = useState('attractive');
+  const [customImageFile, setCustomImageFile] = useState<File | null>(null);
 
   const canGenerate = Boolean(heroSubject.trim());
 
@@ -865,11 +905,18 @@ function HeroSectionCard({
     editableHtmlRef.current = '';
 
     try {
-      const body: Record<string, string> = {
+      let imageUrl = '';
+      if (customImageFile) {
+        imageUrl = await uploadCustomImage(customImageFile, backendApiUrl, shop);
+      }
+
+      const body: Record<string, any> = {
         target_locale: 'en',
         title: heroSubject,
         subject_text: heroSubject,
         overlay_text: overlayText,
+        image_style: imageStyle,
+        ...(imageUrl && { image_url: imageUrl }),
       };
 
       const resp = await fetch(
@@ -891,7 +938,7 @@ function HeroSectionCard({
     } finally {
       setLoading(false);
     }
-  }, [canGenerate, heroSubject, overlayText, template, shop, backendApiUrl, onToast]);
+  }, [canGenerate, heroSubject, overlayText, imageStyle, customImageFile, template, shop, backendApiUrl, onToast]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
@@ -923,17 +970,24 @@ function HeroSectionCard({
           <BlockStack gap="200">
             <Text as="h2" variant="headingLg">Hero Section</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Generate a landing page hero section with a cinematic banner image. Enter a theme or subject to inspire the visual.
+              Generate a landing page hero section with a cinematic banner image. Enter a theme or subject to inspire the visual, or upload a product image to blend it into the scene.
             </Text>
           </BlockStack>
           <Divider />
-          <TextField label="Subject / Theme" value={heroSubject} onChange={setHeroSubject} placeholder="e.g. Spring Flowers, Winter Snowboards, Summer Beach Vibes, Luxury Skincare" autoComplete="off" requiredIndicator />
-          <TextField label="Overlay Text (optional)" value={overlayText} onChange={setOverlayText} placeholder="e.g. Discover our new collection" autoComplete="off" />
-          <InlineStack align="end">
-            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
-              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
-            </Button>
-          </InlineStack>
+          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
+            <ProductImageUploader productTitle={heroSubject || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            <BlockStack gap="300">
+              <TextField label="Subject / Theme" value={heroSubject} onChange={setHeroSubject} placeholder="e.g. Spring Flowers, Winter Snowboards, Summer Beach Vibes, Luxury Skincare" autoComplete="off" requiredIndicator />
+              <TextField label="Overlay Text (optional)" value={overlayText} onChange={setOverlayText} placeholder="e.g. Discover our new collection" autoComplete="off" />
+              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <div style={{ flex: 1 }} />
+              <InlineStack align="end">
+                <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
+                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </div>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
             <ResultBlock templateId={template.id} templateName="Hero Section" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
@@ -971,6 +1025,8 @@ function BlogPostCard({
   const [blogTopic, setBlogTopic] = useState('');
   const [blogCategory, setBlogCategory] = useState('');
   const [blogContext, setBlogContext] = useState('');
+  const [imageStyle, setImageStyle] = useState('attractive');
+  const [customImageFile, setCustomImageFile] = useState<File | null>(null);
 
   const canGenerate = Boolean(blogTopic.trim() && blogCategory.trim());
 
@@ -983,11 +1039,18 @@ function BlogPostCard({
     editableHtmlRef.current = '';
 
     try {
-      const body: Record<string, string> = {
+      let imageUrl = '';
+      if (customImageFile) {
+        imageUrl = await uploadCustomImage(customImageFile, backendApiUrl, shop);
+      }
+
+      const body: Record<string, any> = {
         target_locale: 'en',
         topic: blogTopic,
         category: blogCategory,
         context: blogContext,
+        image_style: imageStyle,
+        ...(imageUrl && { image_url: imageUrl }),
       };
 
       const resp = await fetch(
@@ -1009,7 +1072,7 @@ function BlogPostCard({
     } finally {
       setLoading(false);
     }
-  }, [canGenerate, blogTopic, blogCategory, blogContext, template, shop, backendApiUrl, onToast]);
+  }, [canGenerate, blogTopic, blogCategory, blogContext, imageStyle, customImageFile, template, shop, backendApiUrl, onToast]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
@@ -1041,18 +1104,25 @@ function BlogPostCard({
           <BlockStack gap="200">
             <Text as="h2" variant="headingLg">Brand Blog Post</Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Write long-form blog posts about your craft, manufacturing process, artisan techniques, and more. A hero banner image will be generated automatically.
+              Write long-form blog posts about your craft, manufacturing process, artisan techniques, and more. Upload a product image to blend it into the hero banner, or leave it empty for a theme-based image.
             </Text>
           </BlockStack>
           <Divider />
-          <TextField label="Subject / Topic" value={blogTopic} onChange={setBlogTopic} placeholder="e.g. 'Our wood-kiln firing process', 'How we source Shigaraki clay'" autoComplete="off" requiredIndicator />
-          <TextField label="Category" value={blogCategory} onChange={setBlogCategory} placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability" autoComplete="off" requiredIndicator />
-          <TextField label="Additional Context" value={blogContext} onChange={setBlogContext} multiline={3} placeholder="Any extra details, product mentions, or angles to include" autoComplete="off" />
-          <InlineStack align="end">
-            <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading}>
-              {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
-            </Button>
-          </InlineStack>
+          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
+            <ProductImageUploader productTitle={blogTopic || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            <BlockStack gap="300">
+              <TextField label="Subject / Topic" value={blogTopic} onChange={setBlogTopic} placeholder="e.g. 'Our wood-kiln firing process', 'How we source Shigaraki clay'" autoComplete="off" requiredIndicator />
+              <TextField label="Category" value={blogCategory} onChange={setBlogCategory} placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability" autoComplete="off" requiredIndicator />
+              <TextField label="Additional Context" value={blogContext} onChange={setBlogContext} multiline={3} placeholder="Any extra details, product mentions, or angles to include" autoComplete="off" />
+              <Select label="Image Style" options={IMAGE_STYLE_OPTIONS} value={imageStyle} onChange={setImageStyle} />
+              <div style={{ flex: 1 }} />
+              <InlineStack align="end">
+                <Button onClick={handleGenerate} disabled={!canGenerate || loading} loading={loading} size="large">
+                  {loading ? 'Generating...' : result ? 'Regenerate' : 'Generate'}
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </div>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
             <ResultBlock templateId={template.id} templateName="Blog Post" result={result} heroUrl={heroUrl} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
