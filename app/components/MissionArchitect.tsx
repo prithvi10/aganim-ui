@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Card,
   Box,
@@ -437,6 +438,7 @@ function MissionCard({
   minTier?: PlanTier;
   currentTier: PlanTier;
 }) {
+  const { t } = useTranslation("missions");
   const isLocked = !!minTier && !tierMeetsMin(currentTier, minTier);
 
   return (
@@ -493,7 +495,7 @@ function MissionCard({
         </InlineStack>
         <Text as="p" variant="bodySm" tone="subdued">
           {isLocked
-            ? `Upgrade to ${minTier} to unlock this mission`
+            ? t("upgradeToUnlock", { tier: minTier })
             : description}
         </Text>
       </BlockStack>
@@ -512,7 +514,100 @@ export function MissionArchitect({
   planTier = "Basic",
   entitlements,
 }: MissionArchitectProps) {
+  const { t } = useTranslation("missions");
   const currentTier = (["Free", "Basic", "Standard", "Pro"].includes(planTier) ? planTier : "Free") as PlanTier;
+
+  const agentLabel = (name: string) => {
+    const map: Record<string, string> = {
+      RewriterAgent: t("agentRewriter"),
+      SEOAgent: t("agentSeo"),
+      MarketingAgent: t("agentMarketing"),
+      PriceScoutAgent: t("agentPriceScout"),
+      ImageRefinementAgent: t("agentImageRefinement"),
+      VisualMarketingAgent: t("agentVisualMarketing"),
+    };
+    return map[name] || name;
+  };
+
+  const agentDesc = (name: string) => {
+    const map: Record<string, string> = {
+      RewriterAgent: t("agentRewriterDesc"),
+      SEOAgent: t("agentSeoDesc"),
+      MarketingAgent: t("agentMarketingDesc"),
+      PriceScoutAgent: t("agentPriceScoutDesc"),
+      ImageRefinementAgent: t("agentImageRefinementDesc"),
+      VisualMarketingAgent: t("agentVisualMarketingDesc"),
+    };
+    return map[name] || "";
+  };
+
+  const presetLabel = (key: string) => {
+    const map: Record<string, string> = {
+      social_hype_man: t("socialHypeMan"),
+      new_arrival_blast: t("newArrivalBlast"),
+      welcome_journey: t("welcomeJourney"),
+      artisan_storyteller: t("artisanStoryteller"),
+      competitor_rebuttal: t("competitorRebuttal"),
+      abandoned_cart_fix: t("abandonedCartFix"),
+      seo_content_factory: t("seoContentFactory"),
+      collection_refresher: t("collectionRefresher"),
+      google_ads_shield: t("googleAdsShield"),
+      market_awareness_audit: t("marketAwarenessAudit"),
+      full_launch: t("fullLaunch"),
+      visual_ad_blitz: t("visualAdBlitz"),
+    };
+    return map[key] || key;
+  };
+
+  const presetDesc = (key: string) => {
+    const map: Record<string, string> = {
+      social_hype_man: t("socialHypeManDesc"),
+      new_arrival_blast: t("newArrivalBlastDesc"),
+      welcome_journey: t("welcomeJourneyDesc"),
+      artisan_storyteller: t("artisanStorytellerDesc"),
+      competitor_rebuttal: t("competitorRebuttalDesc"),
+      abandoned_cart_fix: t("abandonedCartFixDesc"),
+      seo_content_factory: t("seoContentFactoryDesc"),
+      collection_refresher: t("collectionRefresherDesc"),
+      google_ads_shield: t("googleAdsShieldDesc"),
+      market_awareness_audit: t("marketAwarenessAuditDesc"),
+      full_launch: t("fullLaunchDesc"),
+      visual_ad_blitz: t("visualAdBlitzDesc"),
+    };
+    return map[key] || "";
+  };
+
+  const templateLabel = (templateId: string) => {
+    const map: Record<string, string> = {
+      "product/faq": t("tplProductFaq"),
+      "product/landing-hero": t("tplHeroSection"),
+      "product/blog-post": t("tplBlogPost"),
+      "product/collection": t("tplCollection"),
+      "marketing/email-launch": t("tplLaunchEmail"),
+      "marketing/email-abandoned": t("tplAbandonedCart"),
+      "marketing/email-welcome": t("tplWelcomeEmail"),
+      "marketing/ad-facebook": t("tplFacebookAd"),
+      "marketing/ad-google": t("tplGoogleAds"),
+      "visual/content-hero": t("tplContentHero"),
+    };
+    return map[templateId] || templateId;
+  };
+
+  const templateDesc = (templateId: string) => {
+    const map: Record<string, string> = {
+      "product/faq": t("tplProductFaqDesc"),
+      "product/landing-hero": t("tplHeroSectionDesc"),
+      "product/blog-post": t("tplBlogPostDesc"),
+      "product/collection": t("tplCollectionDesc"),
+      "marketing/email-launch": t("tplLaunchEmailDesc"),
+      "marketing/email-abandoned": t("tplAbandonedCartDesc"),
+      "marketing/email-welcome": t("tplWelcomeEmailDesc"),
+      "marketing/ad-facebook": t("tplFacebookAdDesc"),
+      "marketing/ad-google": t("tplGoogleAdsDesc"),
+      "visual/content-hero": t("tplContentHeroDesc"),
+    };
+    return map[templateId] || "";
+  };
 
   // ── Wizard state ────────────────────────────────────────────────────────
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
@@ -643,7 +738,7 @@ export function MissionArchitect({
   // ── Product dropdown options ────────────────────────────────────────────
 
   const productOptions = [
-    { label: "Choose a product…", value: "" },
+    { label: t("chooseProduct"), value: "" },
     ...products.map((p) => ({ label: p.title, value: p.id })),
   ];
 
@@ -662,11 +757,11 @@ export function MissionArchitect({
                   🎯
                 </Text>
                 <Text as="h2" variant="headingLg">
-                  Choose Your Mission
+                  {t("chooseYourMission")}
                 </Text>
               </InlineStack>
               <Text as="p" variant="bodySm" tone="subdued">
-                Pick a ready-made mission or build your own custom pipeline.
+                {t("pickReadyMade")}
               </Text>
             </BlockStack>
 
@@ -684,8 +779,8 @@ export function MissionArchitect({
                 <MissionCard
                   key={key}
                   icon={p.icon}
-                  label={p.label}
-                  description={p.description}
+                  label={presetLabel(key)}
+                  description={presetDesc(key)}
                   onClick={() => handleMissionSelect(key)}
                   minTier={p.minTier}
                   currentTier={currentTier}
@@ -695,8 +790,8 @@ export function MissionArchitect({
               {/* Custom Mission card */}
               <MissionCard
                 icon="🛠️"
-                label="Custom Mission"
-                description="Build your own pipeline with any agent combination"
+                label={t("customMission")}
+                description={t("customMissionDesc")}
                 onClick={() => handleMissionSelect("custom")}
                 isCustom
                 currentTier={currentTier}
@@ -723,14 +818,14 @@ export function MissionArchitect({
               variant="plain"
               onClick={handleBack}
               disabled={isRunning}
-              accessibilityLabel="Back to mission selection"
+              accessibilityLabel={t("backToMissions")}
             />
             <InlineStack gap="200" blockAlign="center">
               <Text as="span" variant="headingXl">
                 {isCustom ? "🛠️" : preset?.icon}
               </Text>
             <Text as="h2" variant="headingLg">
-                {isCustom ? "Custom Mission" : preset?.label}
+                {isCustom ? t("customMission") : preset ? presetLabel(selectedMissionKey) : ""}
             </Text>
             </InlineStack>
           </InlineStack>
@@ -738,7 +833,7 @@ export function MissionArchitect({
           {!isCustom && preset && (
             <Banner tone="info">
               <Text as="p" variant="bodySm">
-                {preset.description}
+                {presetDesc(selectedMissionKey)}
             </Text>
             </Banner>
           )}
@@ -749,10 +844,10 @@ export function MissionArchitect({
           {contextType !== "collection" && (
             <BlockStack gap="300">
               <Text as="h3" variant="headingMd">
-                Select Product
+                {t("selectProduct")}
                 </Text>
               <Select
-                label="Product"
+                label={t("product")}
                 labelHidden
                 options={productOptions}
                 value={selectedProductId}
@@ -762,7 +857,7 @@ export function MissionArchitect({
               {!selectedProductId && (
                 <Banner tone="warning">
                   <Text as="p" variant="bodySm">
-                    Please select a product to continue.
+                    {t("pleaseSelectProduct")}
                   </Text>
                 </Banner>
               )}
@@ -773,23 +868,23 @@ export function MissionArchitect({
           {contextType === "product_blog" && (
             <BlockStack gap="300">
               <Text as="h3" variant="headingMd">
-                Blog Details
+                {t("blogDetails")}
               </Text>
               <TextField
-                label="Blog Topic"
-                placeholder="e.g. 'Our wood-kiln firing process', 'The art of Bizen pottery'"
+                label={t("blogTopic")}
+                placeholder={t("blogTopicPlaceholder")}
                 value={blogTopic}
                 onChange={setBlogTopic}
                 autoComplete="off"
-                helpText="What should the blog post be about?"
+                helpText={t("blogTopicHelp")}
               />
               <TextField
-                label="Category"
-                placeholder="e.g. Manufacturing, Artisan Techniques, Sustainability"
+                label={t("category")}
+                placeholder={t("categoryPlaceholder")}
                 value={blogCategory}
                 onChange={setBlogCategory}
                 autoComplete="off"
-                helpText="Optional — helps the AI choose the right angle."
+                helpText={t("categoryHelp")}
               />
             </BlockStack>
           )}
@@ -799,8 +894,7 @@ export function MissionArchitect({
             <BlockStack gap="200">
               <Banner tone="info">
                 <Text as="p" variant="bodySm">
-                  The hero section will be generated from the selected product
-                  and prepended to the product description.
+                  {t("heroContextInfo")}
             </Text>
               </Banner>
             </BlockStack>
@@ -811,11 +905,11 @@ export function MissionArchitect({
             <BlockStack gap="400">
               <BlockStack gap="300">
                 <Text as="h3" variant="headingMd">
-                  Collection Details
+                  {t("collectionDetails")}
                 </Text>
                 <TextField
-                  label="Collection Name"
-                  placeholder="e.g. Spring 2026 Collection, Artisan Ceramics"
+                  label={t("collectionName")}
+                  placeholder={t("collectionNamePlaceholder")}
                   value={collectionName}
                   onChange={setCollectionName}
                   autoComplete="off"
@@ -825,12 +919,12 @@ export function MissionArchitect({
               <BlockStack gap="300">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="h3" variant="headingMd">
-                    Select Products
+                    {t("selectProducts")}
                   </Text>
                   <Badge
                     tone={selectedProductIds.length > 0 ? "success" : "attention"}
                   >
-                    {`${selectedProductIds.length} selected`}
+                    {t("nSelected", { count: selectedProductIds.length })}
                   </Badge>
                 </InlineStack>
 
@@ -855,7 +949,7 @@ export function MissionArchitect({
                     ))}
                     {products.length === 0 && (
                       <Text as="p" variant="bodySm" tone="subdued">
-                        No products available.
+                        {t("noProductsAvailable")}
                       </Text>
                     )}
                   </BlockStack>
@@ -864,7 +958,7 @@ export function MissionArchitect({
                 {selectedProductIds.length === 0 && (
                   <Banner tone="warning">
                     <Text as="p" variant="bodySm">
-                      Select at least one product for this collection.
+                      {t("selectAtLeastOne")}
                     </Text>
                   </Banner>
                 )}
@@ -876,7 +970,7 @@ export function MissionArchitect({
           {isCustom && (
             <BlockStack gap="400">
               <Text as="h3" variant="headingMd">
-                Add Agents
+                {t("addAgents")}
                 </Text>
                 <InlineStack gap="300" wrap>
                   {AVAILABLE_AGENTS
@@ -896,7 +990,7 @@ export function MissionArchitect({
                         icon={PlusIcon}
                         fullWidth
                       >
-                        {agent.icon} {agent.displayName}
+                        {agent.icon} {agentLabel(agent.name)}
                       </Button>
                     </div>
                   ))}
@@ -910,11 +1004,11 @@ export function MissionArchitect({
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center">
               <Text as="h3" variant="headingMd" fontWeight="bold">
-                Pipeline
+                {t("pipeline")}
               </Text>
               {pipeline.length > 0 && (
                 <Badge tone="success">
-                  {`${pipeline.length} step${pipeline.length !== 1 ? "s" : ""}`}
+                  {t("nSteps", { count: pipeline.length })}
                 </Badge>
               )}
             </InlineStack>
@@ -932,8 +1026,8 @@ export function MissionArchitect({
                   alignment="center"
                 >
                   {isCustom
-                    ? "Add agents above to build your pipeline."
-                    : "No steps configured."}
+                    ? t("addAgentsToBuild")
+                    : t("noStepsConfigured")}
                   </Text>
               </Box>
             ) : (
@@ -961,16 +1055,21 @@ export function MissionArchitect({
                                 variant="bodyMd"
                                 fontWeight="semibold"
                               >
-                                {info.icon} {info.displayName}
+                                {info.icon}{" "}
+                                {info.isTemplate && step.template_id
+                                  ? templateLabel(step.template_id)
+                                  : agentLabel(step.agent_name)}
                               </Text>
                               {info.isTemplate && (
                                 <Badge tone="info" size="small">
-                                  Template
+                                  {t("template")}
                                 </Badge>
                               )}
                             </InlineStack>
                             <Text as="span" variant="bodySm" tone="subdued">
-                              {info.description}
+                              {info.isTemplate && step.template_id
+                                ? templateDesc(step.template_id)
+                                : agentDesc(step.agent_name)}
                             </Text>
                           </BlockStack>
                         </InlineStack>
@@ -985,7 +1084,7 @@ export function MissionArchitect({
                               variant="plain"
                               onClick={() => moveStep(index, "up")}
                               disabled={index === 0 || isRunning}
-                              accessibilityLabel="Move up"
+                              accessibilityLabel={t("moveUp")}
                             />
                             <Button
                               icon={ArrowDownIcon}
@@ -995,7 +1094,7 @@ export function MissionArchitect({
                                 disabled={
                                   index === pipeline.length - 1 || isRunning
                                 }
-                              accessibilityLabel="Move down"
+                              accessibilityLabel={t("moveDown")}
                             />
                           </InlineStack>
                           <Button
@@ -1005,7 +1104,7 @@ export function MissionArchitect({
                             tone="critical"
                             onClick={() => removeStep(index)}
                             disabled={isRunning}
-                            accessibilityLabel="Remove step"
+                            accessibilityLabel={t("removeStep")}
                           />
                         </InlineStack>
                         )}
@@ -1031,7 +1130,7 @@ export function MissionArchitect({
                       fullWidth
                       icon={PlayIcon}
                     >
-                    {`🚀 Launch Mission (${pipeline.length} step${pipeline.length !== 1 ? "s" : ""})`}
+                    {t("launchMission", { count: pipeline.length })}
                     </Button>
                   </div>
                 </div>

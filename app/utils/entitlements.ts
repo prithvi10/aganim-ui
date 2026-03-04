@@ -15,6 +15,7 @@ const FEATURE_MIN_TIER: Record<string, PlanName> = {
   publish: PLAN_PRO,
   apply_price: PLAN_PRO,
   meta_integration: PLAN_PRO,
+  multi_locale_bulk: PLAN_PRO,
 };
 
 export function canAccess(ent: Entitlements | undefined, feature: string): boolean {

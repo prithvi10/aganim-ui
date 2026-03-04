@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 import { useLoaderData, useSearchParams, useNavigate, redirect, type LoaderFunctionArgs, type HeadersFunction } from "react-router";
 import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 import { trail, trailWarn } from "../utils/trail";
@@ -26,6 +28,7 @@ import {
   Modal,
   TextField,
   FormLayout,
+  Select,
 } from "@shopify/polaris";
 import { PlanCard } from "../components/PlanCard";
 import { PlanGateBadge } from "../components/PlanGateBadge";
@@ -34,47 +37,6 @@ import { canAccess, formatUsage, getRequiredTier, type Entitlements, type Featur
 import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
 import { XSmallIcon } from "@shopify/polaris-icons";
 import db from "../db.server";
-
-type Lang = "en" | "jp";
-
-const TRANSLATIONS = {
-  en: {
-    title: "Cross-Border AI",
-    totalOptimized: "Total Products Optimized",
-    activeMarkets: "Active Markets",
-    currentPlan: "Current Plan",
-    manageSubscription: "Manage Subscription",
-    usage: "Usage",
-    rewritesUsed: "rewrites used this month",
-    health: "All Systems Operational",
-    supportTitle: "Certified Support",
-    supportText: "Our team is based in JST and typically responds within 2 hours.",
-    quickStart: "Quick-Start Guide",
-    docs: "Documentation",
-    video: "Video Tutorial",
-    trial: "Free Trial",
-    daysRemaining: "days remaining",
-    toggleLabel: "日本語"
-  },
-  jp: {
-    title: "越境 AI",
-    totalOptimized: "最適化済み商品数",
-    activeMarkets: "有効な市場",
-    currentPlan: "現在のプラン",
-    manageSubscription: "サブスクリプション管理",
-    usage: "利用状況",
-    rewritesUsed: "件 / 今月の書き換え数",
-    health: "全システム稼働中",
-    supportTitle: "認定サポート",
-    supportText: "日本時間で対応中。通常2時間以内に返信いたします。",
-    quickStart: "クイックスタートガイド",
-    docs: "ドキュメント",
-    video: "ビデオチュートリアル",
-    trial: "無料トライアル",
-    daysRemaining: "日残り",
-    toggleLabel: "English"
-  }
-};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   trail(`[🔍 Trail] --------------------------------------------------`);
@@ -122,6 +84,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
 
   // Defaults
+  let uiLanguage = "en";
+  let defaultTargetLocale = "en";
   let activeMarketsCount = 0;
   let usage = {
     used: 0,
@@ -235,6 +199,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const data = await resp.json();
         entitlements = (data.entitlements || {}) as Entitlements;
         feature_usage = (data.feature_usage || {}) as FeatureUsageMap;
+        if (data?.ui_language === "ja") uiLanguage = "ja";
+        if (data?.default_target_locale) defaultTargetLocale = String(data.default_target_locale).trim() || "en";
         const billingCycleType =
           String(data.billing_cycle_type || "")
             .trim()
@@ -298,6 +264,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       metaCredentials,
       entitlements,
       feature_usage,
+      shop,
+      uiLanguage,
+      defaultTargetLocale,
     };
 
   } catch (e) {
@@ -322,6 +291,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       metaCredentials: { access_token_present: false, page_id_present: false, page_id: null },
       entitlements: {},
       feature_usage: {},
+      shop: "",
+      uiLanguage: "en",
+      defaultTargetLocale: "en",
     };
   }
 };
@@ -344,8 +316,47 @@ export default function Dashboard() {
     metaCredentials: initialMetaCredentials,
     entitlements,
     feature_usage,
+    shop,
+    uiLanguage,
+    defaultTargetLocale,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const [currentLang, setCurrentLang] = useState(uiLanguage);
+  const [currentLocale, setCurrentLocale] = useState(defaultTargetLocale || "en");
+
+  const LOCALE_OPTIONS = ["en", "zh-TW", "ko", "de", "fr", "es", "it", "pt", "th", "vi", "zh-CN"] as const;
+
+  const handleLocaleChange = useCallback(
+    async (newValue: string) => {
+      setCurrentLocale(newValue);
+      try {
+        await fetch(`${backendApiUrl}/api/admin/default-target-locale`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shop, locale: newValue }),
+        });
+      } catch {
+        // persist failed, revert
+        setCurrentLocale(currentLocale);
+      }
+    },
+    [shop, backendApiUrl, currentLocale],
+  );
+
+  const toggleLanguage = useCallback(async () => {
+    const next = currentLang === "en" ? "ja" : "en";
+    setCurrentLang(next);
+    i18n.changeLanguage(next);
+    try {
+      await fetch(`${backendApiUrl}/api/admin/ui-language`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shop, ui_language: next }),
+      });
+    } catch {
+      // persist failed, UI still updated locally
+    }
+  }, [currentLang, shop, backendApiUrl]);
   const [searchParams] = useSearchParams();
   const rewriterUrl = useMemo(() => {
     const qs =
@@ -368,7 +379,7 @@ export default function Dashboard() {
     return prefix.includes("?") ? `${prefix}&from=dashboard` : `${prefix}?from=dashboard`;
   }, [searchParams]);
   
-  const [lang, setLang] = useState<Lang>("en");
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [toastContent, setToastContent] = useState<string | null>(null);
   const [showExpiredModal, setShowExpiredModal] = useState(false);
@@ -383,7 +394,6 @@ export default function Dashboard() {
   );
   const [metaSaving, setMetaSaving] = useState(false);
   
-  const t = useMemo(() => TRANSLATIONS[lang], [lang]);
   const activePlanCard = useMemo(() => {
     const name = String(planName || "Free") as PlanName;
     return PLAN_CATALOG.find((p) => p.name === name) ?? PLAN_CATALOG[0];
@@ -406,7 +416,7 @@ export default function Dashboard() {
     return KEY_FEATURES
       .filter((f) => !canAccess(entitlements, f.key))
       .map((f) => ({ ...f, tier: getRequiredTier(f.key) ?? "Pro" }));
-  }, [entitlements]);
+  }, [entitlements, currentLang]);
 
   useEffect(() => {
     // Artificial delay to prevent skeleton flash on fast loads
@@ -435,8 +445,8 @@ export default function Dashboard() {
   const welcomeBack = Boolean((usage as any)?.welcomeBack);
   useEffect(() => {
     if (!welcomeBack) return;
-    setToastContent("Welcome back!");
-  }, [welcomeBack]);
+    setToastContent(t("dashboard.welcomeBack"));
+  }, [welcomeBack, t]);
 
   // Plan-expired interceptor: if the grace window ends while the merchant is active,
   // prompt and route them to pricing for reactivation.
@@ -451,7 +461,7 @@ export default function Dashboard() {
   }, [(usage as any)?.accessExpiresAt]);
   const handleMetaSave = async () => {
     if (!metaAccessToken.trim() || !metaPageId.trim()) {
-      setToastContent("Please enter both Access Token and Page ID.");
+      setToastContent(t("dashboard.pleaseEnterBoth"));
       return;
     }
     setMetaSaving(true);
@@ -471,9 +481,9 @@ export default function Dashboard() {
       }
       setMetaConnected(true);
       setMetaAccessToken(""); // clear the token from memory
-      setToastContent("Meta credentials saved successfully.");
+      setToastContent(t("dashboard.metaCredentialsSaved"));
     } catch (e: any) {
-      setToastContent(`Failed to save Meta credentials: ${e.message || e}`);
+      setToastContent(`${t("dashboard.failedToSaveMeta")} ${e.message || e}`);
     } finally {
       setMetaSaving(false);
     }
@@ -492,9 +502,9 @@ export default function Dashboard() {
       <Page>
         <Layout>
           <Layout.Section>
-            <Banner tone="warning" title="Connection Lost">
-              <p>We need to reconnect to your store. Please refresh the page.</p>
-              <Button onClick={() => window.location.reload()}>Refresh Session</Button>
+            <Banner tone="warning" title={t("dashboard.connectionLost")}>
+              <p>{t("dashboard.reconnectMessage")}</p>
+              <Button onClick={() => window.location.reload()}>{t("dashboard.refreshSession")}</Button>
             </Banner>
           </Layout.Section>
         </Layout>
@@ -507,20 +517,20 @@ export default function Dashboard() {
       typeof window !== "undefined" ? (window.location.search || "") : "";
     const target = `/app/pricing?returning_paid=1${qs ? `&${qs.replace(/^\?/, "")}` : ""}`;
     return (
-      <Page title={t.title} fullWidth>
-        <TitleBar title={t.title} />
+      <Page title={t("dashboard.title")} fullWidth>
+        <TitleBar title={t("dashboard.title")} />
         <Modal
           open
-          title="Your pre-paid period has ended"
+          title={t("dashboard.prePaidEnded")}
           onClose={() => window.open(target, "_top")}
           primaryAction={{
-            content: "Select a plan",
+            content: t("dashboard.selectPlan"),
             onAction: () => window.open(target, "_top"),
           }}
         >
           <Modal.Section>
             <Text as="p" variant="bodyMd">
-              Please select a plan to continue using the app.
+              {t("dashboard.selectPlanToContinue")}
             </Text>
           </Modal.Section>
         </Modal>
@@ -546,7 +556,7 @@ export default function Dashboard() {
           </Layout.Section>
         </Layout>
         <div style={{ padding: "var(--p-space-400)", display: "flex", justifyContent: "center" }}>
-          <Spinner accessibilityLabel="Loading dashboard" size="large" />
+          <Spinner accessibilityLabel={t("dashboard.loadingDashboard")} size="large" />
         </div>
       </SkeletonPage>
     );
@@ -554,11 +564,7 @@ export default function Dashboard() {
 
   return (
     <Page fullWidth>
-      <TitleBar title={t.title}>
-        <button onClick={() => setLang(prev => prev === "en" ? "jp" : "en")}>
-          {t.toggleLabel}
-        </button>
-      </TitleBar>
+      <TitleBar title={t("dashboard.title")} />
       {toastContent ? (
         <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
       ) : null}
@@ -567,10 +573,10 @@ export default function Dashboard() {
         {backendError401 && (
           <Banner
             tone="critical"
-            title="Authentication Error"
-            action={{content: 'Reconnect', url: '/auth/login'}}
+            title={t("dashboard.authenticationError")}
+            action={{content: t("dashboard.reconnect"), url: '/auth/login'}}
           >
-            <p>We encountered an issue syncing your usage data. Please reconnect.</p>
+            <p>{t("dashboard.authErrorDesc")}</p>
           </Banner>
         )}
 
@@ -581,13 +587,13 @@ export default function Dashboard() {
               <Box padding="500" background="bg-surface-secondary">
                 <InlineStack align="space-between" blockAlign="center">
                   <BlockStack gap="200">
-                    <Text as="h2" variant="headingLg">Optimize using AI</Text>
+                    <Text as="h2" variant="headingLg">{t("dashboard.optimizeUsingAi")}</Text>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Run all AI agents to rewrite, optimize SEO, analyze pricing, and check compliance in one go.
+                      {t("dashboard.optimizeUsingAiDesc")}
                     </Text>
                   </BlockStack>
                   <Button variant="primary" size="large" onClick={() => navigate(optimizeUrl)}>
-                    Start AI Optimization
+                    {t("dashboard.startAiOptimization")}
                   </Button>
                 </InlineStack>
               </Box>
@@ -602,14 +608,14 @@ export default function Dashboard() {
                 <Card>
                   <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">{t.totalOptimized}</Text>
+                      <Text as="h2" variant="headingSm" tone="subdued">{t("dashboard.totalOptimized")}</Text>
                       <Text as="p" variant="heading2xl">{usedCount.toLocaleString()}</Text>
                     </BlockStack>
 
                     <div style={{ marginTop: "auto" }}>
                       {usedCount === 0 && !welcomeBack ? (
                         <Button size="micro" onClick={() => navigate(rewriterUrl)}>
-                          Optimize your first product
+                          {t("dashboard.optimizeFirstProduct")}
                         </Button>
                       ) : (
                         <div style={{ height: 28 }} />
@@ -624,7 +630,7 @@ export default function Dashboard() {
                 <Card>
                   <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">{t.activeMarkets}</Text>
+                      <Text as="h2" variant="headingSm" tone="subdued">{t("dashboard.activeMarkets")}</Text>
                       <Text as="p" variant="heading2xl">{activeMarketsCount}</Text>
                     </BlockStack>
                     <div style={{ marginTop: "auto", height: 28 }} />
@@ -643,10 +649,10 @@ export default function Dashboard() {
                           Products: {usedCount} / {quotaCount > 0 ? quotaCount : "—"} rewrites
                         </Text>
                         <Text as="p" variant="bodyMd">
-                          Missions: {formatUsage(feature_usage.missions, false) || "—"}
+                          {t("dashboard.missions")} {formatUsage(feature_usage.missions, false) || "—"}
                         </Text>
                         <Text as="p" variant="bodyMd">
-                          Images: {formatUsage(feature_usage.image_generation, false) || "—"}
+                          {t("dashboard.images")} {formatUsage(feature_usage.image_generation, false) || "—"}
                         </Text>
                       </BlockStack>
                     </BlockStack>
@@ -660,13 +666,13 @@ export default function Dashboard() {
                   <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
                     <BlockStack gap="200">
                       <Text as="h2" variant="headingSm" tone="subdued">
-                        {isLifetime ? "Lifetime Credits" : "Monthly Product Rewrites"}
+                        {isLifetime ? t("dashboard.lifetimeCredits") : t("dashboard.monthlyProductRewrites")}
                       </Text>
                       {isLifetime ? (
                         <BlockStack gap="100">
                           <InlineStack align="space-between">
                             <Text as="p" variant="headingMd">
-                              {lifetimeRemaining} / {lifetimeTotal} left
+                              {lifetimeRemaining} / {lifetimeTotal} {t("dashboard.left")}
                             </Text>
                             <Badge tone={lifetimeRemaining <= 2 ? "critical" : "success"}>
                               {`${lifetimeRemainingPct}%`}
@@ -678,18 +684,18 @@ export default function Dashboard() {
                           />
                           <div style={{marginTop: "6px"}}>
                             <Button onClick={() => navigate(plansUrl)} variant="primary">
-                              Get 50 rewrites/month
+                              {t("dashboard.get50Rewrites")}
                             </Button>
                           </div>
                         </BlockStack>
                       ) : isUnlimited ? (
                         <BlockStack gap="100">
                           <InlineStack align="space-between" blockAlign="center">
-                            <Text as="p" variant="headingMd">Unlimited</Text>
-                            <Badge tone="success">Unlimited</Badge>
+                            <Text as="p" variant="headingMd">{t("dashboard.unlimited")}</Text>
+                            <Badge tone="success">{t("dashboard.unlimited")}</Badge>
                           </InlineStack>
                           {resetDateLabel ? (
-                            <Text as="p" variant="bodySm" tone="subdued">{`Resets on ${resetDateLabel}`}</Text>
+                            <Text as="p" variant="bodySm" tone="subdued">{`${t("dashboard.resetsOn")} ${resetDateLabel}`}</Text>
                           ) : null}
                         </BlockStack>
                       ) : (
@@ -700,7 +706,7 @@ export default function Dashboard() {
                       </InlineStack>
                       <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} />
                           {resetDateLabel ? (
-                            <Text as="p" variant="bodySm" tone="subdued">{`Resets on ${resetDateLabel}`}</Text>
+                            <Text as="p" variant="bodySm" tone="subdued">{`${t("dashboard.resetsOn")} ${resetDateLabel}`}</Text>
                           ) : null}
                         </BlockStack>
                       )}
@@ -715,9 +721,9 @@ export default function Dashboard() {
           <Layout.Section>
             <BlockStack gap="300">
               {Boolean((usage as any)?.graceActive) && (usage as any)?.accessExpiresAt ? (
-                <Banner tone="info" title="Grace Period Active">
+                <Banner tone="info" title={t("dashboard.gracePeriodActive")}>
                   <Text as="p" variant="bodyMd">
-                    You can keep using your previous plan until{" "}
+                    {t("dashboard.gracePeriodMessage")}{" "}
                     {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString()}.
                   </Text>
                 </Banner>
@@ -740,7 +746,7 @@ export default function Dashboard() {
                     graceActive={Boolean((usage as any)?.graceActive)}
                     cta={
                       <Button fullWidth variant="primary" onClick={() => navigate(plansUrl)}>
-                        {t.manageSubscription}
+                        {t("dashboard.manageSubscription")}
                       </Button>
                     }
                   />
@@ -753,10 +759,10 @@ export default function Dashboard() {
                         <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                           <BlockStack gap="200">
                             <Text as="h2" variant="headingLg">
-                              Locked features (upgrade to unlock)
+                              {t("dashboard.lockedFeatures")}
                             </Text>
                             <Text as="p" variant="bodySm" tone="subdued">
-                              These features are not available on your current plan.
+                              {t("dashboard.lockedFeaturesDesc")}
                             </Text>
                           </BlockStack>
 
@@ -780,7 +786,7 @@ export default function Dashboard() {
 
                           <div style={{ paddingTop: 16, marginTop: "auto" }}>
                             <Button fullWidth variant="primary" onClick={() => navigate(plansUrl)}>
-                              {t.manageSubscription}
+                              {t("dashboard.manageSubscription")}
                             </Button>
                           </div>
                         </div>
@@ -793,6 +799,57 @@ export default function Dashboard() {
             </BlockStack>
           </Layout.Section>
 
+          {/* LANGUAGE SETTINGS */}
+          <Layout.Section>
+            <Card>
+              <Box padding="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">{t("dashboard.languageTitle")}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t("dashboard.languageDesc")}
+                    </Text>
+                  </BlockStack>
+                  <InlineStack gap="200" blockAlign="center">
+                    <Badge tone={currentLang === "en" ? "info" : undefined}>English</Badge>
+                    <Button onClick={toggleLanguage} variant="primary">
+                      {t("dashboard.switchTo")}
+                    </Button>
+                    <Badge tone={currentLang === "ja" ? "info" : undefined}>日本語</Badge>
+                  </InlineStack>
+                </InlineStack>
+              </Box>
+            </Card>
+          </Layout.Section>
+
+          {/* CONTENT TARGET MARKET */}
+          <Layout.Section>
+            <Card>
+              <Box padding="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">{t("dashboard.contentLocaleTitle")}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t("dashboard.contentLocaleDesc")}
+                    </Text>
+                  </BlockStack>
+                  <div style={{ minWidth: 220 }}>
+                    <Select
+                      label=""
+                      labelHidden
+                      options={LOCALE_OPTIONS.map((lc) => ({
+                        label: t(`localeLabels.${lc}`),
+                        value: lc,
+                      }))}
+                      value={currentLocale}
+                      onChange={handleLocaleChange}
+                    />
+                  </div>
+                </InlineStack>
+              </Box>
+            </Card>
+          </Layout.Section>
+
           {/* META API CREDENTIALS – gated by meta_integration entitlement */}
           {canUseMetaIntegration && (
             <Layout.Section>
@@ -801,23 +858,23 @@ export default function Dashboard() {
                   <BlockStack gap="400">
                     <InlineStack align="space-between" blockAlign="center">
                       <BlockStack gap="100">
-                        <Text as="h2" variant="headingMd">Meta (Facebook / Instagram) Integration</Text>
+                        <Text as="h2" variant="headingMd">{t("dashboard.metaIntegration")}</Text>
                         <Text as="p" variant="bodySm" tone="subdued">
-                          Connect your Meta account to enable autonomous ad publishing from the Marketing tab.
+                          {t("dashboard.metaIntegrationDesc")}
                         </Text>
                       </BlockStack>
                       {metaConnected ? (
-                        <Badge tone="success" progress="complete">Connected</Badge>
+                        <Badge tone="success" progress="complete">{t("dashboard.connected")}</Badge>
                       ) : (
-                        <Badge tone="attention">Not connected</Badge>
+                        <Badge tone="attention">{t("dashboard.notConnected")}</Badge>
                       )}
                     </InlineStack>
 
                     {metaConnected ? (
-                      <Banner tone="success" title="Meta account connected">
+                      <Banner tone="success" title={t("dashboard.metaAccountConnected")}>
                         <Text as="p" variant="bodyMd">
-                          Page ID: <strong>{metaPageId || initialMetaCredentials?.page_id || "—"}</strong>.
-                          Autonomous publishing for ad templates is enabled.
+                          {t("dashboard.pageId")} <strong>{metaPageId || initialMetaCredentials?.page_id || "—"}</strong>.{" "}
+                          {t("dashboard.autonomousPublishingEnabled")}
                         </Text>
                         <div style={{ marginTop: 8 }}>
                           <Button
@@ -827,27 +884,27 @@ export default function Dashboard() {
                               setMetaAccessToken("");
                             }}
                           >
-                            Update credentials
+                            {t("dashboard.updateCredentials")}
                           </Button>
                         </div>
                       </Banner>
                     ) : (
                       <FormLayout>
                         <TextField
-                          label="Meta Access Token"
+                          label={t("dashboard.metaAccessToken")}
                           type="password"
                           value={metaAccessToken}
                           onChange={setMetaAccessToken}
                           placeholder="EAAxxxxxxx…"
-                          helpText="Long-lived Page token with pages_manage_posts permission."
+                          helpText={t("dashboard.metaAccessTokenHelp")}
                           autoComplete="off"
                         />
                         <TextField
-                          label="Meta Page ID"
+                          label={t("dashboard.metaPageId")}
                           value={metaPageId}
                           onChange={setMetaPageId}
                           placeholder="123456789012345"
-                          helpText="The numeric ID of the Facebook / Instagram page."
+                          helpText={t("dashboard.metaPageIdHelp")}
                           autoComplete="off"
                         />
                         <Button
@@ -856,7 +913,7 @@ export default function Dashboard() {
                           loading={metaSaving}
                           disabled={!metaAccessToken.trim() || !metaPageId.trim()}
                         >
-                          Save Meta Credentials
+                          {t("dashboard.saveMetaCredentials")}
                         </Button>
                       </FormLayout>
                     )}
@@ -869,20 +926,20 @@ export default function Dashboard() {
           {/* FOOTER */}
           <Layout.Section>
              <BlockStack gap="400">
-                <Banner tone="info" title={t.supportTitle}>
-                  <p>{t.supportText}</p>
+                <Banner tone="info" title={t("dashboard.supportTitle")}>
+                  <p>{t("dashboard.supportText")}</p>
                 </Banner>
 
                 <InlineStack align="space-between" blockAlign="center">
                    <InlineStack gap="200">
-                      <Badge tone="success" progress="complete">All Systems Operational</Badge>
+                      <Badge tone="success" progress="complete">{t("dashboard.allSystemsOperational")}</Badge>
                    </InlineStack>
                   <InlineStack gap="400">
-                      <Text as="span" variant="bodySm" tone="subdued">{t.quickStart}:</Text>
-                      <Link url="/support" target="_blank">Quick help</Link>
-                      <Link url="https://docs.crossborder.ai" target="_blank">{t.docs}</Link>
-                      <Link url="#" target="_blank">{t.video}</Link>
-                      <Link url="/privacy-policy" target="_blank">Privacy Policy</Link>
+                      <Text as="span" variant="bodySm" tone="subdued">{t("dashboard.quickStart")}:</Text>
+                      <Link url="/support" target="_blank">{t("dashboard.quickHelp")}</Link>
+                      <Link url="https://docs.crossborder.ai" target="_blank">{t("dashboard.docs")}</Link>
+                      <Link url="#" target="_blank">{t("dashboard.video")}</Link>
+                      <Link url="/privacy-policy" target="_blank">{t("dashboard.privacyPolicy")}</Link>
                    </InlineStack>
                 </InlineStack>
              </BlockStack>

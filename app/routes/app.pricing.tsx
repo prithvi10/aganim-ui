@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useSearchParams, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import {
   Page,
   Layout,
@@ -130,6 +131,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function PricingPage() {
+  const { t } = useTranslation();
   const { shop, backendApiUrl, products, selectedProduct, entitlements } = useLoaderData<typeof loader>();
   const priceScoutLocked = !canAccess(entitlements, "price_scout");
   const applyPriceLocked = !canAccess(entitlements, "apply_price");
@@ -260,7 +262,7 @@ export default function PricingPage() {
 
   const handleApplyPrice = useCallback(async (price: number) => {
     if (applyPriceLocked) {
-      alert("Upgrade to Pro for autonomous price application.");
+      alert(t("pricing.upgradeToProForPrice"));
       return;
     }
     if (!selectedProduct?.id) return;
@@ -291,23 +293,23 @@ export default function PricingPage() {
         const err = await resp.json().catch(() => ({}));
         throw new Error(err.detail || `Update failed: ${resp.status}`);
       }
-      setApplyToast(`Price updated to $${price.toFixed(2)} successfully!`);
+      setApplyToast(t("pricing.priceUpdatedSuccess", { price: price.toFixed(2) }));
     } catch (e: any) {
       setApplyToast(`Failed to update price: ${e?.message || e}`);
     } finally {
       setIsApplying(false);
     }
-  }, [applyPriceLocked, selectedProduct, shop, backendApiUrl]);
+  }, [applyPriceLocked, selectedProduct, shop, backendApiUrl, t]);
 
   const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
 
   return (
     <Page 
-      title="Pricing Intelligence" 
-      subtitle="Analyze competitor prices and get AI-powered pricing recommendations"
+      title={t("pricing.pricingIntelligence")} 
+      subtitle={t("pricing.pricingSubtitle")}
       titleMetadata={priceScoutLocked ? <PlanGateBadge tierName="Standard" /> : undefined}
       backAction={{
-        content: "Home",
+        content: t("pricing.home"),
         onAction: () => navigate(nav("/app")),
       }}
     >
@@ -316,37 +318,37 @@ export default function PricingPage() {
           <BlockStack gap="400">
             {priceScoutLocked && (
               <LockedFeatureNotice
-                title="Standard Plan Feature"
-                description="Price Scout requires the Standard plan"
-                ctaLabel="Upgrade"
+                title={t("pricing.standardPlanFeature")}
+                description={t("pricing.priceScoutRequiresStandard")}
+                ctaLabel={t("pricing.upgrade")}
                 ctaUrl={nav("/app/plans?from=dashboard")}
               />
             )}
             {!priceScoutLocked && (<>
             <Card>
               <BlockStack gap="300">
-                <Text variant="headingMd" as="h2">Select Product</Text>
-                <Select label="Product" labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
+                <Text variant="headingMd" as="h2">{t("pricing.selectProduct")}</Text>
+                <Select label={t("pricing.product")} labelHidden options={productOptions} value={selectedProduct?.id || ""} onChange={handleProductChange} />
                 {selectedProduct && (
                   <div style={{ display: "flex", justifyContent: "center" }}>
                     <div className="agent-btn-border-4">
-                      <Button variant="primary" size="large" onClick={handleAnalyze} loading={isAnalyzing} disabled={!selectedProduct || isAnalyzing}>Scout Prices</Button>
+                      <Button variant="primary" size="large" onClick={handleAnalyze} loading={isAnalyzing} disabled={!selectedProduct || isAnalyzing}>{t("pricing.scoutPrices")}</Button>
                     </div>
                   </div>
                 )}
               </BlockStack>
             </Card>
 
-            {error && <Banner tone="critical" title="Analysis Error" onDismiss={() => setError(null)}><p>{error}</p></Banner>}
+            {error && <Banner tone="critical" title={t("pricing.analysisError")} onDismiss={() => setError(null)}><p>{error}</p></Banner>}
 
             {isAnalyzing && (
               <Card>
                 <Box padding="600">
                   <BlockStack gap="400" align="center">
                     <Spinner size="large" />
-                    <Text variant="headingSm" as="h3" alignment="center">Scouting Prices...</Text>
+                    <Text variant="headingSm" as="h3" alignment="center">{t("pricing.scoutingPrices")}</Text>
                     <Text variant="bodySm" tone="subdued" alignment="center">
-                      Analyzing competitor pricing data
+                      {t("pricing.analyzingCompetitorPricing")}
                     </Text>
                   </BlockStack>
                 </Box>
@@ -373,8 +375,8 @@ export default function PricingPage() {
               <Card>
                 <Box padding="600">
                   <BlockStack gap="300" align="center">
-                    <Text variant="headingMd" as="h3" alignment="center">Ready to Scout Prices</Text>
-                    <Text variant="bodyMd" tone="subdued" alignment="center">Select a product and click "Scout Prices" to analyze competitor pricing and get AI-powered recommendations.</Text>
+                    <Text variant="headingMd" as="h3" alignment="center">{t("pricing.readyToScoutPrices")}</Text>
+                    <Text variant="bodyMd" tone="subdued" alignment="center">{t("pricing.readyToScoutDesc")}</Text>
                   </BlockStack>
                 </Box>
               </Card>

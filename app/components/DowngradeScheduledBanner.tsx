@@ -1,5 +1,6 @@
 import { Icon, Text } from "@shopify/polaris";
 import { XSmallIcon } from "@shopify/polaris-icons";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   /** The plan the UI is currently showing as active (effective plan). */
@@ -25,6 +26,7 @@ export function DowngradeScheduledBanner({
   dismissible,
   onDismiss,
 }: Props) {
+  const { t } = useTranslation();
   const next = String(pendingPlanName || "").trim();
   const effAt = String(pendingPlanEffectiveAt || "").trim();
   const isDowngrade = !lastPlanChangeType || String(lastPlanChangeType).trim() === "downgrade";
@@ -45,7 +47,7 @@ export function DowngradeScheduledBanner({
         <button
           type="button"
           onClick={onDismiss}
-          aria-label="Dismiss downgrade notice"
+          aria-label={t("components.dismissDowngradeNotice")}
           style={{
             position: "absolute",
             top: 8,
@@ -65,12 +67,11 @@ export function DowngradeScheduledBanner({
         </button>
       ) : null}
       <Text as="h3" variant="headingSm">
-        Downgrade scheduled
+        {t("components.downgradeScheduled")}
       </Text>
       <div style={{ marginTop: 6 }}>
         <Text as="p" variant="bodyMd">
-          Your plan will switch to <strong>{next}</strong> on {safeDateLabel(effAt)}. Until then,
-          your current plan remains <strong>{String(currentPlanName)}</strong>.
+          {t("components.downgradeMessage", { next, date: safeDateLabel(effAt), current: String(currentPlanName) })}
         </Text>
       </div>
     </div>
