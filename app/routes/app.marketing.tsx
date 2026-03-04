@@ -14,6 +14,7 @@ import {
 } from '@shopify/polaris';
 import { CalendarTimeIcon, SocialAdIcon, ThemeTemplateIcon } from '@shopify/polaris-icons';
 import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authenticate, getOfflineGraphqlClient } from '../shopify.server';
 import '../styles/optimize-button.css';
 
@@ -41,6 +42,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function MarketingHub() {
+  const { t } = useTranslation();
   const { shop } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -61,9 +63,9 @@ export default function MarketingHub() {
 
   return (
     <Page
-      title="Marketing Consultant"
+      title={t("marketing.marketingConsultant")}
       backAction={{
-        content: 'Home',
+        content: t("marketing.home"),
         onAction: () => navigate(nav('/app')),
       }}
     >
@@ -80,11 +82,11 @@ export default function MarketingHub() {
                         <Icon source={SocialAdIcon} tone="base" />
                       </div>
                       <Text as="h2" variant="headingLg">
-                        Digital Marketing
+                        {t("marketing.digitalMarketing")}
                       </Text>
                     </InlineStack>
                     <Text as="p" tone="subdued" variant="bodyMd">
-                      Generate social media captions, ad banners, hero images, and seasonal campaigns. Preview content for Instagram, TikTok, and more.
+                      {t("marketing.digitalMarketingDesc")}
                     </Text>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div className="feature-btn-glow-2">
@@ -92,7 +94,7 @@ export default function MarketingHub() {
                           variant="primary"
                           onClick={() => navigate(nav('/app/marketing/digital'))}
                         >
-                          Open
+                          {t("marketing.open")}
                         </Button>
                       </div>
                     </div>
@@ -109,11 +111,11 @@ export default function MarketingHub() {
                         <Icon source={CalendarTimeIcon} tone="base" />
                       </div>
                       <Text as="h2" variant="headingLg">
-                        Retail Campaigns
+                        {t("marketing.retailCampaigns")}
                       </Text>
                     </InlineStack>
                     <Text as="p" tone="subdued" variant="bodyMd">
-                      Seasonal retail calendar, auto-generated campaign codes, and holiday-themed captions. Stay ahead of every retail moment.
+                      {t("marketing.retailCampaignsDesc")}
                     </Text>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div className="feature-btn-glow-2">
@@ -121,7 +123,7 @@ export default function MarketingHub() {
                           variant="primary"
                           onClick={() => navigate(nav('/app/marketing/campaigns'))}
                         >
-                          Open
+                          {t("marketing.open")}
                         </Button>
                       </div>
                     </div>
@@ -138,11 +140,11 @@ export default function MarketingHub() {
                         <Icon source={ThemeTemplateIcon} tone="base" />
                       </div>
                       <Text as="h2" variant="headingLg">
-                        Templates
+                        {t("marketing.templates")}
                       </Text>
                     </InlineStack>
                     <Text as="p" tone="subdued" variant="bodyMd">
-                      One-click marketing content: launch emails, abandoned cart emails, welcome emails, Facebook/Instagram ads, Google Ads, and blog posts.
+                      {t("marketing.templatesDesc")}
                     </Text>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div className="feature-btn-glow-1">
@@ -150,7 +152,7 @@ export default function MarketingHub() {
                           variant="primary"
                           onClick={() => navigate(nav('/app/marketing/templates'))}
                         >
-                          Open
+                          {t("marketing.open")}
                         </Button>
                       </div>
                     </div>

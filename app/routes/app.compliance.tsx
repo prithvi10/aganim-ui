@@ -10,6 +10,7 @@ import {
   Box,
   Button,
 } from "@shopify/polaris";
+import { useTranslation } from "react-i18next";
 import { authenticate } from "../shopify.server";
 
 type LoaderData = {
@@ -22,20 +23,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function CompliancePage() {
+  const { t } = useTranslation();
   const { shop } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   return (
-    <Page title="Compliance Check" subtitle="Regulatory compliance verification">
+    <Page title={t("compliance.complianceCheck")} subtitle={t("compliance.complianceSubtitle")}>
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
             <Banner
               tone="warning"
-              title="Feature Temporarily Disabled"
+              title={t("compliance.featureTemporarilyDisabled")}
             >
               <p>
-                The Compliance Check feature is currently being improved and will return soon with enhanced regulatory detection capabilities.
+                {t("compliance.complianceDisabledDesc")}
               </p>
             </Banner>
 
@@ -43,20 +45,20 @@ export default function CompliancePage() {
               <Box padding="600">
                 <BlockStack gap="400" align="center">
                   <Text variant="headingLg" as="h2" alignment="center">
-                    🛡️ Coming Soon
+                    🛡️ {t("compliance.comingSoon")}
                   </Text>
                   <Text variant="bodyMd" tone="subdued" alignment="center">
-                    Our AI-powered compliance checker will help you identify potential regulatory issues including:
+                    {t("compliance.complianceComingDesc")}
                   </Text>
                   <BlockStack gap="200">
-                    <Text as="p" variant="bodyMd" alignment="center">• FTC advertising guidelines</Text>
-                    <Text as="p" variant="bodyMd" alignment="center">• FDA health claims</Text>
-                    <Text as="p" variant="bodyMd" alignment="center">• GDPR and privacy requirements</Text>
-                    <Text as="p" variant="bodyMd" alignment="center">• Regional regulatory standards</Text>
+                    <Text as="p" variant="bodyMd" alignment="center">• {t("compliance.ftcGuidelines")}</Text>
+                    <Text as="p" variant="bodyMd" alignment="center">• {t("compliance.fdaClaims")}</Text>
+                    <Text as="p" variant="bodyMd" alignment="center">• {t("compliance.gdprPrivacy")}</Text>
+                    <Text as="p" variant="bodyMd" alignment="center">• {t("compliance.regionalStandards")}</Text>
                   </BlockStack>
                   <Box paddingBlockStart="400">
                     <Button onClick={() => navigate(`/app?shop=${encodeURIComponent(shop)}`)}>
-                      Return to Home
+                      {t("compliance.returnToHome")}
                     </Button>
                   </Box>
                 </BlockStack>

@@ -174,7 +174,7 @@ const SUPPORT_CARDS: SupportCard[] = [
           "Basic supports 1 locale per run, or additional markets aren’t published in Shopify.",
         fixes: [
           "Publish additional markets/locales in Shopify settings.",
-          "Upgrade to Standard/Pro for multi-locale and bulk runs.",
+          "Upgrade to Pro for multi-locale bulk runs.",
         ],
       },
       {
@@ -195,43 +195,6 @@ const SUPPORT_CARDS: SupportCard[] = [
       {
         q: "Can I edit output before saving?",
         a: "Yes—title, description HTML, and SEO fields are editable before saving.",
-      },
-    ],
-  },
-
-  {
-    id: "theme-editor",
-    title: "Theme Editor",
-    short:
-      "Enable the theme extension/app embed and preview storefront behavior in Shopify’s Theme Editor (Customize).",
-    gifHintPath: "/support-gifs/theme-editor-enable-embed.gif",
-    plans: { Free: true, Basic: true, Standard: true, Pro: true },
-    what: [
-      "A storefront setup step: enable the app’s theme extension (app embed/block) so you can preview behavior in a live theme context.",
-      "Useful for verifying that your markets/locales load correctly and the widget renders on product pages.",
-    ],
-    how: [
-      "In Shopify Admin: Online Store → Themes → Customize.",
-      "Open App embeds (or add the app block in your product template).",
-      "Enable the Cross-Border AI embed/block.",
-      "Save the theme and preview a product page.",
-    ],
-    troubleshooting: [
-      {
-        symptom: "The widget can’t load markets/locales.",
-        cause:
-          "Markets aren’t published, or the storefront/proxy setup can’t authenticate or reach the server.",
-        fixes: [
-          "Publish markets/locales in Shopify settings.",
-          "Open the admin app once to ensure the shop is fully authenticated/synced.",
-          "If you see signature errors, verify App Proxy configuration and secret.",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        q: "Is Theme Editor required to use Rewriter?",
-        a: "No—Rewriter works in the admin app. Theme Editor is for storefront preview and theme features.",
       },
     ],
   },

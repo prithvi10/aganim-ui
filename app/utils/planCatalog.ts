@@ -12,6 +12,7 @@ export type PlanName =
 export type PlanFeature = {
   label: string;
   included: boolean;
+  highlight?: boolean;
 };
 
 export type PlanSection = {
@@ -106,14 +107,14 @@ export const PLAN_CATALOG: PlanCardModel[] = [
   {
     name: PLAN_STANDARD,
     price: "$79",
-    tagline: "",
+    tagline: "Full toolkit, one market at a time",
     productLimit: "Unlimited products",
     sections: [
       {
         title: "Rewriter",
         features: [
           { label: "Everything in Basic", included: true },
-          { label: "Multi-market (multiple locales)", included: true },
+          { label: "12 target markets (single locale per rewrite)", included: true },
           { label: "Brand tones: Luxury / Minimalist / Playful", included: true },
         ],
       },
@@ -145,13 +146,14 @@ export const PLAN_CATALOG: PlanCardModel[] = [
   {
     name: PLAN_PRO,
     price: "$199",
-    tagline: "",
+    tagline: "Go global — bulk-generate for all 12 markets at once",
     productLimit: "Unlimited products",
     sections: [
       {
         title: "Rewriter",
         features: [
           { label: "Everything in Standard", included: true },
+          { label: "Multi-market bulk generation (all 12 locales at once)", included: true, highlight: true },
           { label: "Priority AI model", included: true },
         ],
       },
