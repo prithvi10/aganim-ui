@@ -80,6 +80,7 @@ type LoaderData = {
   pendingPlanName?: string | null;
   pendingPlanEffectiveAt?: string | null;
   primaryLocale: string;
+  defaultTargetLocale?: string;
   locales: ShopLocale[];
   products: ProductListItem[];
   selectedProduct: {
@@ -239,6 +240,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let brandContextSummary = '';
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let defaultTargetLocale: string | undefined = undefined;
   try {
     const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
     if (u.ok) {
@@ -276,6 +278,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
       }
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      defaultTargetLocale = data?.default_target_locale ?? undefined;
     }
   } catch {
     // Best-effort: keep fallback gating.
@@ -487,6 +490,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     pendingPlanName,
     pendingPlanEffectiveAt,
     primaryLocale,
+    defaultTargetLocale,
     locales,
     products,
     selectedProduct,
@@ -945,6 +949,7 @@ function RewriterWorkspaceInner({
   pendingPlanName,
   pendingPlanEffectiveAt,
   primaryLocale,
+  defaultTargetLocale,
   locales,
   products,
   selectedProduct,
@@ -1091,12 +1096,16 @@ function RewriterWorkspaceInner({
     [locales],
   );
 
-  // Default selected locale: primary
+  // Default selected locale: prefer merchant's saved default_target_locale if in published locales, else primary
   useEffect(() => {
     if (selectedLocales.length > 0) return;
     const primary = publishedLocales.find((l) => l.primary)?.locale || primaryLocale;
-    if (primary) setSelectedLocales([primary]);
-  }, [publishedLocales, selectedLocales.length]);
+    const defaultFromBackend = defaultTargetLocale && publishedLocales.some((l) => l.locale === defaultTargetLocale)
+      ? defaultTargetLocale
+      : null;
+    const defaultLocale = defaultFromBackend || primary;
+    if (defaultLocale) setSelectedLocales([defaultLocale]);
+  }, [publishedLocales, selectedLocales.length, defaultTargetLocale, primaryLocale]);
 
   // Keep active locale in sync (tabs control the visible draft)
   useEffect(() => {

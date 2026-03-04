@@ -41,6 +41,7 @@ type LoaderData = {
   products: ProductItem[];
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 function productIdFromGid(gid: string) {
@@ -144,6 +145,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }));
 
   let planName: LoaderData['planName'] = 'Free';
+  let defaultTargetLocale: string | undefined = undefined;
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
   try {
@@ -158,12 +160,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
       entitlements = (data.entitlements || {}) as Entitlements;
       feature_usage = (data.feature_usage || {}) as FeatureUsageMap;
+      defaultTargetLocale = data?.default_target_locale ?? undefined;
     }
   } catch {
     // best-effort
   }
 
-  return { shop: sessionShop, backendApiUrl, planName, products, entitlements, feature_usage };
+  return { shop: sessionShop, backendApiUrl, planName, products, entitlements, feature_usage, defaultTargetLocale };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -223,7 +226,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 const LOADING_MSG_KEYS = ['analyzing', 'isolating', 'regenerating', 'polishing'] as const;
 
 export default function ImageRefinement() {
-  const { shop, backendApiUrl, planName, products, entitlements, feature_usage } = useLoaderData<typeof loader>();
+  const { shop, backendApiUrl, planName, products, entitlements, feature_usage, defaultTargetLocale } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const app = useAppBridge() as unknown as ClientApplication<any>;
@@ -339,7 +342,7 @@ export default function ImageRefinement() {
           japanese_description: selectedProduct.descriptionHtml,
           category: selectedProduct.productType || 'General',
           image_url: selectedProduct.featuredImageUrl || '',
-          target_locale: 'en',
+          target_locale: defaultTargetLocale || 'en',
           workflow_config: [{ agent_name: 'ImageRefinementAgent', has_gate: false }],
         }),
       });
@@ -352,7 +355,7 @@ export default function ImageRefinement() {
     } finally {
       setIsStarting(false);
     }
-  }, [selectedProduct, backendApiUrl, app, shop]);
+  }, [selectedProduct, backendApiUrl, app, shop, defaultTargetLocale]);
 
   return (
     <Page

@@ -28,6 +28,7 @@ import {
   Modal,
   TextField,
   FormLayout,
+  Select,
 } from "@shopify/polaris";
 import { PlanCard } from "../components/PlanCard";
 import { PlanGateBadge } from "../components/PlanGateBadge";
@@ -84,6 +85,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Defaults
   let uiLanguage = "en";
+  let defaultTargetLocale = "en";
   let activeMarketsCount = 0;
   let usage = {
     used: 0,
@@ -198,6 +200,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         entitlements = (data.entitlements || {}) as Entitlements;
         feature_usage = (data.feature_usage || {}) as FeatureUsageMap;
         if (data?.ui_language === "ja") uiLanguage = "ja";
+        if (data?.default_target_locale) defaultTargetLocale = String(data.default_target_locale).trim() || "en";
         const billingCycleType =
           String(data.billing_cycle_type || "")
             .trim()
@@ -263,6 +266,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       feature_usage,
       shop,
       uiLanguage,
+      defaultTargetLocale,
     };
 
   } catch (e) {
@@ -289,6 +293,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       feature_usage: {},
       shop: "",
       uiLanguage: "en",
+      defaultTargetLocale: "en",
     };
   }
 };
@@ -313,9 +318,30 @@ export default function Dashboard() {
     feature_usage,
     shop,
     uiLanguage,
+    defaultTargetLocale,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [currentLang, setCurrentLang] = useState(uiLanguage);
+  const [currentLocale, setCurrentLocale] = useState(defaultTargetLocale || "en");
+
+  const LOCALE_OPTIONS = ["en", "zh-TW", "ko", "de", "fr", "es", "it", "pt", "th", "vi", "zh-CN"] as const;
+
+  const handleLocaleChange = useCallback(
+    async (newValue: string) => {
+      setCurrentLocale(newValue);
+      try {
+        await fetch(`${backendApiUrl}/api/admin/default-target-locale`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shop, locale: newValue }),
+        });
+      } catch {
+        // persist failed, revert
+        setCurrentLocale(currentLocale);
+      }
+    },
+    [shop, backendApiUrl, currentLocale],
+  );
 
   const toggleLanguage = useCallback(async () => {
     const next = currentLang === "en" ? "ja" : "en";
