@@ -822,6 +822,34 @@ export default function Dashboard() {
             </Card>
           </Layout.Section>
 
+          {/* CONTENT TARGET MARKET */}
+          <Layout.Section>
+            <Card>
+              <Box padding="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">{t("dashboard.contentLocaleTitle")}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t("dashboard.contentLocaleDesc")}
+                    </Text>
+                  </BlockStack>
+                  <div style={{ minWidth: 220 }}>
+                    <Select
+                      label=""
+                      labelHidden
+                      options={LOCALE_OPTIONS.map((lc) => ({
+                        label: t(`localeLabels.${lc}`),
+                        value: lc,
+                      }))}
+                      value={currentLocale}
+                      onChange={handleLocaleChange}
+                    />
+                  </div>
+                </InlineStack>
+              </Box>
+            </Card>
+          </Layout.Section>
+
           {/* META API CREDENTIALS – gated by meta_integration entitlement */}
           {canUseMetaIntegration && (
             <Layout.Section>
