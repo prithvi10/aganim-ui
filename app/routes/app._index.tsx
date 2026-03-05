@@ -343,16 +343,20 @@ export default function LandingPage() {
     };
   }, [brandStatusState, backendApiUrl, shop]);
 
-  // Calculate onboarding progress (example: 40%)
-  const onboardingProgress = 40;
-
-  // Getting started checklist items
   const onboardingSteps = [
-    { id: "soul", label: t("home.defineSoul"), completed: isBrandSoulActive },
-    { id: "optimize", label: t("home.optimizeFirstProduct"), completed: false },
-    { id: "theme", label: t("home.configureTheme"), completed: false },
-    { id: "review", label: t("home.reviewResults"), completed: false },
+    { id: "soul", label: t("home.stepBrandSoul"), completed: isBrandSoulActive },
+    { id: "writing", label: t("home.stepWritingStudio"), completed: false },
+    { id: "marketing", label: t("home.stepMarketing"), completed: false },
+    { id: "seo", label: t("home.stepSeo"), completed: false },
+    { id: "pricing", label: t("home.stepPriceScout"), completed: false },
+    { id: "pipelines", label: t("home.stepPipelines"), completed: false },
+    { id: "dashboard", label: t("home.stepDashboard"), completed: false },
   ];
+
+  const onboardingProgress = useMemo(() => {
+    const completed = onboardingSteps.filter((s) => s.completed).length;
+    return Math.round((completed / onboardingSteps.length) * 100);
+  }, [isBrandSoulActive]);
 
 
   return (
@@ -825,6 +829,10 @@ export default function LandingPage() {
         onClose={() => {
           setOnboardingModalOpen(false);
           localStorage.setItem("onboarding_seen", "true");
+        }}
+        onOpenBrandSoul={() => {
+          setOnboardingModalOpen(false);
+          setBrandWizardOpen(true);
         }}
       />
 
