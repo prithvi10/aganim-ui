@@ -19,7 +19,7 @@
     "stepMarketing": "Create marketing content",
     "stepSeo": "Optimize SEO",
     "stepPriceScout": "Scout competitor prices",
-    "stepPipelines": "Run an agentic pipeline",
+    "stepPipelines": "Run a mission",
     "stepDashboard": "Review your dashboard",
     "viewFullGuide": "View Full Guide",
     "brandSoul": "Brand Soul",
@@ -502,10 +502,10 @@
     "guidePriceScoutSubtitle": "Competitor pricing intelligence",
     "guidePriceScoutBody": "Analyze what competitors charge for similar products. Get AI-powered pricing recommendations and apply optimized prices to your store.",
     "openPriceScout": "Open Price Scout",
-    "guidePipelinesTitle": "Step 6: Agentic Pipelines",
-    "guidePipelinesSubtitle": "Chain agents into automated workflows",
-    "guidePipelinesBody": "Build multi-step AI missions that chain agents together — Rewriter → SEO → Marketing → Pricing — and run them in one click. Choose from ready-made templates or create custom pipelines.",
-    "openPipelines": "Open Pipelines",
+    "guidePipelinesTitle": "Step 6: Missions",
+    "guidePipelinesSubtitle": "Run multi-agent missions",
+    "guidePipelinesBody": "Build multi-step AI missions that chain agents together — Rewriter → SEO → Marketing → Pricing — and run them in one click. Choose from preset missions or build custom pipelines with step-by-step approval.",
+    "openPipelines": "Open Missions",
     "guideDashboardTitle": "Step 7: Dashboard",
     "guideDashboardSubtitle": "Usage, plan, and integrations",
     "guideDashboardBody": "Monitor your plan, track usage and credits, manage Meta integrations, and configure your content target market — all from a single view.",
@@ -685,5 +685,442 @@
     "imagesSection": "Images",
     "imageRefinement": "Image refinement",
     "imageRefinementAllFeatures": "Image refinement across all features"
+  },
+  "support": {
+    "helpCenter": "Help Center",
+    "pageTitle": "Support",
+    "subtitle": "Feature guides, plan availability, troubleshooting, and FAQs for Cross-Border AI.",
+    "featureDocs": "Feature docs",
+    "featureDocsDesc": "Each feature below includes plan availability, step-by-step usage, and common fixes.",
+    "planFilter": "Plan filter",
+    "planHint": "Tip: Keep \"All\" for public browsing, or filter to a plan to see what's included.",
+    "stillNeedHelp": "Still need help?",
+    "contactInfo": "If you contact us, include: shop domain, plan, feature, locale, screenshots, and steps to reproduce.",
+    "addFormTitle": "Add your Google Form",
+    "addFormText": "Set GOOGLE_FORM_EMBED_URL and GOOGLE_FORM_DIRECT_URL in this file.",
+    "addFormFields": "Suggested fields: shop domain, plan, feature, locale, expected result, actual result, screenshots, steps.",
+    "preferNewTab": "Prefer a new tab?",
+    "openTheForm": "Open the form",
+    "backToTop": "Back to top",
+    "index": "Index",
+    "gifDemo": "GIF demo",
+    "addGifLater": "Add a GIF later at",
+    "gifHint": "Keep it ~10–25s, cropped, and show the happy path.",
+    "whatLabel": "What",
+    "howLabel": "How",
+    "deepDive": "Deep dive",
+    "troubleshootingLabel": "Troubleshooting",
+    "faqsLabel": "FAQs",
+    "notesLabel": "Notes",
+    "likelyCause": "Likely cause",
+    "fix": "Fix",
+    "copyright": "Cross-Border AI. Support content is updated regularly.",
+    "tableFeature": "Feature",
+    "tableNotes": "Notes",
+    "planAll": "All",
+    "cards": {
+      "brand-soul": {
+        "title": "Brand Soul",
+        "short": "Define your brand identity — archetype, tone, power words, banned phrases, and cultural touchpoints — to power all AI-generated content.",
+        "what": [
+          "Analyzes your store and generates a brand profile: archetype, tone, power words, banned phrases, core value propositions, and cultural touchpoints.",
+          "Brand context automatically enriches all AI features — rewrites, missions, marketing copy, and content templates.",
+          "Upload your brand logo (PNG, JPG, or WebP) for use in Informative-style hero banners."
+        ],
+        "how": [
+          "Navigate to Brand Soul from the Home page.",
+          "Click \"Edit Identity\" to open the Brand Soul wizard.",
+          "Follow the wizard — the AI analyzes your store and generates brand intelligence.",
+          "Review the generated profile: archetype, tonal guardrails, power words, banned phrases, value propositions, and cultural touchpoints.",
+          "Upload your brand logo for hero banner generation.",
+          "Enable \"Enhance with Brand Soul\" in the Rewriter to apply brand context to product rewrites."
+        ],
+        "sections": [
+          {
+            "title": "How Brand Soul powers other features",
+            "body": [
+              "Rewriter: When \"Enhance with Brand Soul\" is enabled, your brand story and pillars enrich the rewrite for richer storytelling.",
+              "Missions: Brand context is automatically injected when the Rewriter agent runs in a mission pipeline.",
+              "Content Templates: Blog posts, hero sections, and collection descriptions draw on your brand voice.",
+              "Hero Banners: Your uploaded logo appears in the \"Informative\" image style for hero sections and collections."
+            ]
+          }
+        ],
+        "troubleshooting": [
+          { "symptom": "Brand intelligence is stuck on \"Generating...\"", "cause": "The AI analysis can take 30–60 seconds. If it takes longer, there may be a backend issue.", "fixes": ["Wait up to 2 minutes — the page polls for updates automatically.", "Refresh the page and check if the status updated.", "If still stuck, try running the wizard again."] },
+          { "symptom": "Logo upload failed.", "cause": "File format or size issue.", "fixes": ["Ensure the file is PNG, JPG, or WebP.", "Try a smaller file if the upload times out."] }
+        ],
+        "faqs": [
+          { "q": "Can I edit the generated brand profile?", "a": "The profile is auto-generated from your store content. To refresh it, re-run the Brand Soul wizard after updating your store." },
+          { "q": "How often should I re-run Brand Soul?", "a": "Re-run whenever you significantly change your brand messaging, add new product categories, or want to refresh the AI's understanding of your store." },
+          { "q": "Where is the logo used?", "a": "Your logo appears in the \"Informative\" image style when generating hero banners for collections, hero sections, and blog posts." }
+        ]
+      },
+      "rewriter-workspace": {
+        "title": "Rewriter Workspace",
+        "short": "Generate localized drafts (title + HTML description + SEO title/meta) per market and save translations back to Shopify.",
+        "what": [
+          "A workspace to optimize a product for global markets (per locale).",
+          "Generates: title, HTML description, SEO title, meta description, and optional SEO alt text.",
+          "Supports per-locale editing so you can tailor messaging and SEO to each market."
+        ],
+        "how": [
+          "Open Rewriter and select a product.",
+          "Select target market(s)/locale(s). (Basic: 1 locale. Standard/Pro: multi-locale.)",
+          "Set Optimization Preferences (tone, measurements, strip irrelevant content, Brand Soul).",
+          "Click \"Optimize for Global\" to generate drafts.",
+          "Review and edit drafts for the active locale (title, HTML, SEO fields).",
+          "Optionally add Japanese Value insights to strengthen proof and differentiation.",
+          "Click \"Save to Shopify\" to persist translations + SEO fields for that locale."
+        ],
+        "planMatrix": {
+          "title": "Plan features (Rewriter)",
+          "rows": [
+            { "feature": "AI \"Optimize for Global\" (draft title + HTML description + SEO title/desc)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Generates localized title, description, and SEO metadata." },
+            { "feature": "Rewrite markets selection (published locales)", "Basic": "✅ (1 locale)", "Standard": "✅ (multi)", "Pro": "✅ (multi)", "notes": "Basic is limited to 1 locale per run." },
+            { "feature": "Bulk multi-market generation in one click", "Basic": "❌", "Standard": "✅", "Pro": "✅", "notes": "Generate content for multiple locales simultaneously." },
+            { "feature": "Tone / Market Persona / Brand Tone selector", "Basic": "❌ (forced Professional)", "Standard": "✅", "Pro": "✅", "notes": "Basic forces Professional; Standard/Pro allow Professional/Luxury/Minimalist/Playful." },
+            { "feature": "Auto-convert units to US Standard (EN only)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Keeps metric values and appends US equivalents in parentheses." },
+            { "feature": "Enhance with Brand Soul", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Pulls your brand story and pillars into the rewrite." },
+            { "feature": "SEO Details editor (SEO title + meta description + SERP preview)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Editable per locale; saved back to Shopify." },
+            { "feature": "Save to Shopify (translations + SEO fields)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Uses digest-based translations for non-primary locales." },
+            { "feature": "Key Details (Nuance) / \"Verified Japanese Value\" panel", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Driven by backend discovered values; can append footer and persist as metafield." },
+            { "feature": "Auto-reset when product description changes", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Detects manual changes and resets stale context/drafts." }
+          ]
+        },
+        "troubleshooting": [
+          { "symptom": "I can't select multiple locales.", "cause": "Basic supports 1 locale per run, or additional markets aren't published in Shopify.", "fixes": ["Publish additional markets/locales in Shopify settings.", "Upgrade to Standard or Pro for multi-locale bulk runs."] },
+          { "symptom": "Save failed or content didn't show up in Shopify.", "cause": "Translation digests can become invalid if product content changes during save.", "fixes": ["Avoid editing the same product in Shopify while saving from the app.", "Re-run Optimize and try Save again."] }
+        ],
+        "faqs": [
+          { "q": "Does this overwrite my original product content?", "a": "It saves translations for selected locale(s) and related SEO fields. Your primary content remains the reference unless you intentionally update it." },
+          { "q": "Can I edit output before saving?", "a": "Yes — title, description HTML, and SEO fields are editable before saving." }
+        ]
+      },
+      "writing-studio": {
+        "title": "Writing Studio",
+        "short": "Hub for Product Rewriter, Content Templates, and Image Refinement — all your AI writing and visual tools in one place.",
+        "what": [
+          "A central hub connecting three sub-features: Product Rewriter, Content Templates, and Image Refinement.",
+          "Navigate to any writing or visual tool from a single page."
+        ],
+        "how": [
+          "Open Writing Studio from the navigation menu.",
+          "Choose a sub-feature: Product Rewriter, Content Templates, or Image Refinement.",
+          "Each sub-feature opens in its own workspace with full functionality."
+        ],
+        "troubleshooting": [
+          { "symptom": "A sub-feature card shows as locked.", "cause": "Some features require higher plan tiers (e.g. Image Refinement is Pro only).", "fixes": ["Check the plan badge on each card to see what's required.", "Upgrade your plan to unlock the feature."] }
+        ],
+        "faqs": [
+          { "q": "What's the difference between Product Rewriter and Content Templates?", "a": "Product Rewriter localizes your existing product title and description for global markets. Content Templates generate new content (FAQs, hero sections, blog posts, collection pages) from scratch." }
+        ]
+      },
+      "content-templates": {
+        "title": "Content Templates",
+        "short": "Generate Product FAQs, hero sections, brand blog posts, and collection descriptions with AI-powered templates and your brand voice.",
+        "what": [
+          "AI-powered templates that generate entirely new content for your products and store.",
+          "Four template types: Product FAQ, Hero Section, Brand Blog Post, and Collection Description.",
+          "Each template can be published directly to Shopify (product body, blog articles, or collections).",
+          "Optional product image upload to blend into generated hero banners."
+        ],
+        "how": [
+          "Open Writing Studio → Content Templates.",
+          "Choose a template type (FAQ, Hero Section, Blog Post, or Collection Description).",
+          "Select a product (or multiple products for Collections).",
+          "Configure options: image style, topic, category, overlay text, etc.",
+          "Click Generate — review and edit the output.",
+          "Click \"Publish to Shopify\" to save the content to your store."
+        ],
+        "sections": [
+          { "title": "Product FAQ", "body": ["Generates Q&A pairs from your product details — materials, care instructions, dimensions, etc.", "Published as HTML appended to the product body in Shopify.", "Select a product and click Generate. Edit the output, then Publish."] },
+          { "title": "Hero Section", "body": ["Generates a landing-page hero section with cinematic banner image.", "Five image styles: Attractive (props & themed), Seasonal (current season), Minimalist (clean isolated), Informative (product name & logo), Monochrome (B&W editorial).", "Upload a product image to blend it into the scene, or leave empty for a theme-based image.", "Add optional overlay text (e.g. \"Discover our new collection\")."] },
+          { "title": "Brand Blog Post", "body": ["Writes long-form blog posts about your craft, manufacturing process, artisan techniques, and more.", "Enter a topic (e.g. \"Our wood-kiln firing process\") and optional category.", "Published as a Shopify blog article with an AI-generated hero banner.", "Upload a product image to blend into the hero, or leave empty for a theme-based banner."] },
+          { "title": "Collection Description", "body": ["Generates collection page copy with a hero banner image.", "Select multiple products to include in the collection.", "Enter a collection name and short description.", "Creates a new Shopify collection with the generated description and banner."] }
+        ],
+        "troubleshooting": [
+          { "symptom": "Generated content is blank or too short.", "cause": "The source product may have very sparse description details.", "fixes": ["Add more detail to the product description (materials, dimensions, care, origin).", "Try clicking Regenerate for a fresh output."] },
+          { "symptom": "Hero image doesn't include my product.", "cause": "No product image was uploaded, so a theme-based image was generated instead.", "fixes": ["Upload a product image using the image uploader before generating.", "Use a clear product photo (PNG, JPG, or WebP, up to 10 MB)."] },
+          { "symptom": "Publish to Shopify failed.", "cause": "Session or permission issue with the Shopify API.", "fixes": ["Refresh the page and try publishing again.", "If the error persists, reconnect from the Dashboard."] }
+        ],
+        "faqs": [
+          { "q": "Where does the FAQ appear on my store?", "a": "The FAQ HTML is appended to the product body in Shopify. How it displays depends on your theme." },
+          { "q": "Can I upload my own image for hero banners?", "a": "Yes — use the image uploader (PNG, JPG, or WebP, up to 10 MB) to blend your product into the generated scene." },
+          { "q": "What image styles are available?", "a": "Five styles: Attractive (props & themed background), Seasonal (current season), Minimalist (clean isolated), Informative (product name & logo overlay), and Monochrome (B&W editorial)." }
+        ]
+      },
+      "image-refinement": {
+        "title": "Image Refinement",
+        "short": "AI-powered product photo cleanup — remove text, refine backgrounds, and save polished images back to Shopify.",
+        "what": [
+          "Cleans up product images with AI: removes overlay text, refines or replaces backgrounds to match your brand.",
+          "Uses product isolation (background removal) followed by AI background regeneration.",
+          "Refined images are saved as new media on the product in Shopify — your original image is never replaced."
+        ],
+        "how": [
+          "Open Writing Studio → Image Refinement.",
+          "Select a product with a featured image.",
+          "Click \"Optimize\" to start the AI refinement process.",
+          "Review the refined image (the process shows: analyzing → isolating → regenerating → polishing).",
+          "Click \"Save to Shopify\" to add the refined image as new product media."
+        ],
+        "sections": [
+          { "title": "How images are saved", "body": ["Refined images are added as new media to the product using Shopify's productCreateMedia API.", "Your original product image is never deleted or replaced.", "The refined image is temporarily stored on Cloudflare R2, then uploaded to Shopify's media library.", "You can find the new image in your product's media gallery in Shopify admin."] },
+          { "title": "Image credits", "body": ["Image Refinement is a Pro plan feature.", "Pro plan includes 150 image credits per month.", "Each refinement uses 1 credit.", "Credits reset monthly on your billing date."] }
+        ],
+        "troubleshooting": [
+          { "symptom": "\"No featured image found\" error.", "cause": "The selected product doesn't have a featured image in Shopify.", "fixes": ["Add a featured image to the product in Shopify admin.", "Select a different product that has an image."] },
+          { "symptom": "Refinement looks wrong or artifacts appear.", "cause": "Complex backgrounds or unusual product shapes can challenge the isolation algorithm.", "fixes": ["Try again — results can vary between runs.", "Use a product photo with a simpler background as the source."] },
+          { "symptom": "\"Save to Shopify\" failed.", "cause": "Session expired or Shopify media upload issue.", "fixes": ["Refresh the page and try saving again.", "Check your internet connection and retry."] }
+        ],
+        "faqs": [
+          { "q": "Does it replace my original product image?", "a": "No — the refined image is added as a new media file. Your original image stays untouched in Shopify." },
+          { "q": "Where is the refined image stored?", "a": "It's temporarily processed on Cloudflare R2, then permanently saved to your product's media library in Shopify." },
+          { "q": "How many credits do I get?", "a": "Pro plan includes 150 image credits per month. Each refinement uses 1 credit. Credits reset on your billing date." }
+        ]
+      },
+      "seo": {
+        "title": "SEO",
+        "short": "Edit SEO title/meta with SERP preview, apply CTR best practices, use competitor intel (Standard/Pro), and follow recommendations.",
+        "what": [
+          "SEO Details lets you edit SEO Title + Meta Description per locale and preview how it may appear in Google.",
+          "All plans can receive recommendations; Standard/Pro can also enrich generation with competitor SERP context (best-effort)."
+        ],
+        "how": [
+          "Open SEO from the navigation, or run Optimize in Rewriter.",
+          "Select a product and click \"Optimize SEO\".",
+          "Edit SEO title and meta description while watching preview and length guidance.",
+          "Review competitor rankings (Standard/Pro) and CTR score.",
+          "Save to Shopify to persist SEO fields for that locale."
+        ],
+        "sections": [
+          { "title": "Improve CTR (click-through rate)", "body": ["Lead with the primary keyword + clear product type.", "Add one strong differentiator (material, craft detail, outcome) without stuffing keywords.", "Keep it readable: titles ~70 chars, meta descriptions ~160 chars to avoid truncation."] },
+          { "title": "Competitor info (Standard/Pro)", "body": ["Standard/Pro can pull a small set of top Google results for a product keyword (product name + category).", "This is used as context to guide copy and highlight differentiators (without copying).", "If SERP integration is unavailable, competitor info may not appear (best-effort enrichment)."] },
+          { "title": "Recommendations (all plans)", "body": ["Recommendations are guidance only (no auto-overwrite).", "Includes competitive edge and buyer intent strategy suggestions based only on facts present in your description.", "If the system cannot be confident without inventing facts, it may return empty recommendations — add real specifics and re-run."] }
+        ],
+        "troubleshooting": [
+          { "symptom": "Competitor info doesn't show up.", "cause": "Competitor enrichment is Standard/Pro and depends on SERP integration availability.", "fixes": ["Confirm you're on Standard/Pro.", "Treat competitor info as best-effort; you can still use SEO editor + recommendations without it."] },
+          { "symptom": "Recommendations are blank or too generic.", "cause": "Sparse source descriptions produce weaker recommendations (the system avoids inventing facts).", "fixes": ["Add authentic details (materials, what's included, dimensions, care, origin/craft).", "Re-run Optimize and review recommendations again."] }
+        ],
+        "faqs": [
+          { "q": "Will SEO edits change my product title on the page?", "a": "No — SEO title/meta are separate fields used for search snippets and sharing previews (theme/search behavior may vary)." },
+          { "q": "Do I have to accept recommendations?", "a": "No — recommendations are optional guidance. You control what is saved." }
+        ]
+      },
+      "japanese-value": {
+        "title": "Japanese Value",
+        "short": "Surface verified Japanese nuance/craft details and add them into your description as proof and differentiation.",
+        "what": [
+          "Highlights craftsmanship/cultural nuance detected from the source text and explains why it matters to global buyers.",
+          "Designed to strengthen credibility without making up claims."
+        ],
+        "how": [
+          "Run Optimize in Rewriter.",
+          "Open Japanese Value / Key Details panel.",
+          "Review evidence + explanation + suggested footer lines.",
+          "Insert the insight into your description and Save to Shopify."
+        ],
+        "troubleshooting": [
+          { "symptom": "No insights detected.", "cause": "The source text doesn't include clear craft/provenance/unique detail signals.", "fixes": ["Add authentic details (materials, origin, method, care, what's included).", "Re-run Optimize to re-detect nuance."] }
+        ],
+        "faqs": [
+          { "q": "Will it invent cultural claims?", "a": "It is designed not to. If a detail isn't present, it shouldn't be introduced as fact." }
+        ]
+      },
+      "optimization-preferences": {
+        "title": "Optimization Preferences",
+        "short": "Control tone, measurements, Brand Soul integration, and content cleanup so output matches your brand and avoids common localization mistakes.",
+        "what": [
+          "Preferences that influence generation before you save to Shopify.",
+          "Includes: tone (Standard/Pro), EN measurement conversions, Brand Soul integration, and irrelevant content stripping."
+        ],
+        "how": [
+          "Choose tone before Optimize (Standard/Pro).",
+          "Enable auto-convert units for English locales if needed.",
+          "Enable \"Enhance with Brand Soul\" to inject your brand context into rewrites.",
+          "Keep irrelevant-content stripping on for most stores; disable only when you intentionally include policy blocks in product descriptions.",
+          "Optimize, review, and regenerate if needed."
+        ],
+        "sections": [
+          { "title": "Tones", "body": ["Basic: Professional tone only.", "Standard/Pro: Professional, Luxury, Minimalist, Playful.", "Use tone to match brand identity while keeping facts unchanged."] },
+          { "title": "Measurements (EN only)", "body": ["When enabled for English locales, the app keeps metric values and appends US equivalents (when available).", "If the source has no measurable units, there may be nothing to convert."] },
+          { "title": "Enhance with Brand Soul", "body": ["When enabled, your brand story, pillars, and voice are pulled into the rewrite for richer storytelling.", "Requires Brand Soul to be set up first (run the wizard from the Home page).", "Works across all plans. Disabled by default until Brand Soul intelligence is generated."] },
+          { "title": "Irrelevant content strip", "body": ["Removes non-product boilerplate so the model focuses on product facts and selling points.", "If you want policy content, prefer storing it in theme sections/pages rather than product descriptions."] }
+        ],
+        "troubleshooting": [
+          { "symptom": "Tone selector is disabled.", "cause": "Basic forces Professional tone.", "fixes": ["Upgrade to Standard/Pro to unlock additional tones."] },
+          { "symptom": "No conversions appear.", "cause": "Conversions apply to English locales and only if the source contains measurable units.", "fixes": ["Run for an en-* locale.", "Ensure the description includes dimensions/weight/volume units."] },
+          { "symptom": "It removed content I wanted to keep.", "cause": "Stripping may remove policy/boilerplate blocks.", "fixes": ["Disable stripping and re-run Optimize.", "Or move policy content outside product descriptions (theme sections/pages)."] },
+          { "symptom": "\"Enhance with Brand Soul\" is greyed out.", "cause": "Brand Soul has not been set up yet.", "fixes": ["Go to the Home page and run the Brand Soul wizard first.", "Wait for brand intelligence generation to complete, then return to Rewriter."] }
+        ],
+        "faqs": [
+          { "q": "Should I keep irrelevant content strip on?", "a": "Yes for most stores. Turn it off only if your product description intentionally includes required policy text that must remain." },
+          { "q": "What does \"Enhance with Brand Soul\" do?", "a": "It enriches the AI rewrite with your brand's story, tone guardrails, power words, and value propositions for more authentic, on-brand copy." }
+        ]
+      },
+      "multi-locale-editor": {
+        "title": "Multi Locale Editor",
+        "short": "Edit drafts per locale and save translations safely (Basic: 1 locale at a time; Standard/Pro: multi-locale + bulk).",
+        "what": [
+          "Per-locale editing and saving flow so each market gets tailored copy and SEO.",
+          "Standard/Pro can generate multiple locales in one run; Basic runs one locale at a time."
+        ],
+        "how": [
+          "Select a locale tab/market.",
+          "Edit title, description HTML, and SEO fields for that locale.",
+          "Save to Shopify for that locale.",
+          "Repeat for other locales (or bulk-generate on Standard/Pro)."
+        ],
+        "troubleshooting": [
+          { "symptom": "I saw a digest/hash error during save.", "cause": "Shopify translation registration can fail if primary content changes mid-save.", "fixes": ["Avoid editing primary content in Shopify while saving translations.", "Re-run Optimize and Save again."] },
+          { "symptom": "Drafts/context reset unexpectedly.", "cause": "The app detected manual content changes and reset cached drafts to avoid stale writes.", "fixes": ["Re-run Optimize using the updated Shopify description."] }
+        ],
+        "faqs": [
+          { "q": "Why is Basic limited to one locale per run?", "a": "Multi-locale and bulk workflows are Standard/Pro features to support higher volume optimization across markets." }
+        ]
+      },
+      "marketing": {
+        "title": "Marketing",
+        "short": "Generate social media captions, ad copy, seasonal campaigns, email templates, and hero images — with optional Meta autonomous publishing.",
+        "what": [
+          "A full marketing workspace with three tabs: Digital Marketing, Retail Campaigns, and Templates.",
+          "Generate Instagram hooks/captions + hashtags, ad banners, hero images, and seasonal campaigns.",
+          "Create email templates (launch, abandoned cart, welcome) and ad copy (Facebook/Instagram, Google Ads).",
+          "Outputs can be cached to Shopify metafields for reuse without regenerating.",
+          "Pro plan supports Meta (Facebook/Instagram) autonomous publishing."
+        ],
+        "how": [
+          "Open Marketing from the navigation menu.",
+          "Choose a tab: Digital Marketing, Retail Campaigns, or Templates.",
+          "Digital Marketing: Select a product, generate social captions, ad banners, and preview content for Instagram/TikTok.",
+          "Retail Campaigns: View the seasonal retail calendar, get auto-generated campaign codes, and holiday-themed captions.",
+          "Templates: Generate one-click marketing content — launch emails, abandoned cart emails, welcome emails, FB/IG ads, Google Ads.",
+          "Save outputs to Shopify metafields for caching/reuse.",
+          "Pro: Connect Meta credentials in Dashboard to enable autonomous ad publishing."
+        ],
+        "sections": [
+          { "title": "Digital Marketing", "body": ["Generate social media captions, hashtags, and overlay suggestions for Instagram/TikTok.", "Create ad banners and hero images with AI.", "Preview how content looks on social platforms before publishing.", "Save generated hooks and captions to Shopify metafields."] },
+          { "title": "Retail Campaigns", "body": ["View upcoming retail events and holidays on the seasonal calendar.", "Get auto-generated seasonal campaign ideas with discount code suggestions.", "Generate holiday-themed captions and campaign concepts.", "Use \"Re-check\" to refresh ideas when you need new angles."] },
+          { "title": "Marketing Templates", "body": ["Launch Email: Product launch announcement email.", "Abandoned Cart Email: Cart recovery email with quality-focused messaging.", "Welcome Email: New subscriber welcome email matching your store's personality.", "Facebook/Instagram Ad: Social media ad copy optimized for engagement.", "Google Ads: Search ad copy for Google with high-intent keywords."] },
+          { "title": "Meta Integration (Pro)", "body": ["Connect your Meta (Facebook/Instagram) account from the Dashboard.", "Requires a long-lived Page access token with pages_manage_posts permission.", "Once connected, ad templates can be published directly to your Meta page.", "Connection status is visible in the Dashboard."] }
+        ],
+        "troubleshooting": [
+          { "symptom": "Generate button is disabled / content looks cached.", "cause": "Fresh cached outputs exist in Shopify metafields.", "fixes": ["If available, use re-check/regenerate behavior.", "Update the product description to refresh context and generate again."] },
+          { "symptom": "Seasonal output looks generic.", "cause": "Not enough product differentiation in the source.", "fixes": ["Add specific differentiators (materials, use case, bundle contents).", "Re-check Seasonal Campaign."] },
+          { "symptom": "Meta publishing failed.", "cause": "Invalid or expired Meta access token, or incorrect Page ID.", "fixes": ["Go to Dashboard → Meta Integration and update your credentials.", "Ensure the token has pages_manage_posts permission.", "Verify the Page ID is correct (numeric ID from Facebook Page settings)."] }
+        ],
+        "faqs": [
+          { "q": "Where are marketing results stored?", "a": "They can be saved to Shopify product metafields so you can reuse them and avoid repeated generation." },
+          { "q": "How do I connect Meta for autonomous publishing?", "a": "Go to Dashboard → Meta Integration (Pro only). Enter your long-lived Page access token and Page ID, then save." },
+          { "q": "What email templates are available?", "a": "Three types: Launch Email (product announcement), Abandoned Cart Email (cart recovery), and Welcome Email (new subscriber)." }
+        ]
+      },
+      "price-scout": {
+        "title": "Price Scout",
+        "short": "Analyze competitor pricing from Google search results and get AI-powered pricing recommendations.",
+        "what": [
+          "Pulls competitor pricing data from Google search results (SERP) for your product category.",
+          "Provides AI-powered pricing recommendations based on competitor analysis.",
+          "Pro plan can auto-apply recommended prices directly to Shopify."
+        ],
+        "how": [
+          "Open Price Scout from the navigation menu.",
+          "Select a product.",
+          "Click \"Scout Prices\" to analyze competitor pricing.",
+          "Review competitor prices and the AI recommendation.",
+          "Optionally apply the recommended price to Shopify (Pro plan)."
+        ],
+        "troubleshooting": [
+          { "symptom": "No competitor prices found.", "cause": "SERP data may be limited for niche or very specific products.", "fixes": ["Ensure the product title and type are descriptive enough for search.", "Try adjusting the product type or category to broaden the search."] },
+          { "symptom": "Price recommendation seems too high or too low.", "cause": "The AI recommendation is based on available competitor data which may not cover your exact market segment.", "fixes": ["Use the recommendation as guidance alongside your own market knowledge.", "Adjust the price manually if the recommendation doesn't fit your strategy."] }
+        ],
+        "faqs": [
+          { "q": "Does it change my price automatically?", "a": "No — price analysis is informational. On Pro, you can optionally click to apply a recommended price, but it never changes automatically." },
+          { "q": "How often should I scout prices?", "a": "Scout when launching a new product, adjusting pricing strategy, or when you suspect competitor prices have changed significantly." }
+        ]
+      },
+      "missions": {
+        "title": "Missions",
+        "short": "Run multi-agent AI pipelines that chain Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows.",
+        "what": [
+          "Missions are multi-step AI pipelines that process a product end-to-end by chaining multiple agents together.",
+          "Choose from preset missions (ready-made combinations) or build custom pipelines with any agent combination.",
+          "Run in auto-flow (all agents run sequentially) or step-by-step mode (approve each agent's output before continuing).",
+          "Mission results are saved to Shopify: translations, SEO fields, metafields, blog articles, collections, and media."
+        ],
+        "how": [
+          "Open Optimize from the navigation menu.",
+          "Choose a preset mission or select \"Custom Mission\" to build your own pipeline.",
+          "Select a product for the mission.",
+          "For blog missions: enter a topic and optional category. For collection missions: name the collection and select products.",
+          "Click \"Launch Mission\" to start.",
+          "In auto-flow: watch progress as each agent runs. In step-by-step mode: review and approve/regenerate/skip each step.",
+          "When complete, results are automatically saved to Shopify."
+        ],
+        "sections": [
+          { "title": "Preset Missions", "body": ["Basic: Social Hype-Man (Rewriter → FB/IG Ad), New Arrival Blast (Rewriter → Launch Email), Welcome Journey (Rewriter → Welcome Email), Artisan Storyteller (Rewriter → Hero Section).", "Standard: Competitor Rebuttal (SEO → Product FAQ), Abandoned Cart Fix (PriceScout → Abandoned Cart Email), SEO Content Factory (SEO → Blog Post), Collection Refresher (SEO → Collection), Google Ads Shield (SEO → Google Ads), Market Awareness Audit (SEO → PriceScout).", "Pro: Full Launch (all 6 agents), Visual Ad Blitz (Marketing → Image Refinement → Visual Marketing)."] },
+          { "title": "Custom Missions", "body": ["Add any combination of agents: Rewriter, SEO, Marketing, PriceScout, Image Refinement, Visual Marketing.", "Reorder agents by dragging them up/down in the pipeline.", "Select optional templates for each step (e.g. Product FAQ, Blog Post, Launch Email).", "Some agents are plan-gated (Image Refinement and Visual Marketing require Pro)."] },
+          { "title": "Auto-flow vs Step-by-step", "body": ["Auto-flow: All agents run in sequence automatically. Results stream in real-time.", "Step-by-step: Each agent pauses after completing. Review the output, then Continue, Regenerate, or Skip.", "Step-by-step is recommended for your first few missions to understand how each agent contributes."] },
+          { "title": "Mission History", "body": ["Recent missions are shown below the mission builder.", "Each mission shows: status (Completed, In Progress, Error, Awaiting Approval), agents used, product, and time.", "Click \"Resume\" on an in-progress or awaiting-approval mission to continue where you left off.", "Click \"View Full Details\" to see the complete output of a completed mission."] }
+        ],
+        "planMatrix": {
+          "title": "Missions by Plan",
+          "rows": [
+            { "feature": "Missions per month", "Basic": "1/month", "Standard": "3/month", "Pro": "Unlimited", "notes": "Free plan: 3 lifetime credits." },
+            { "feature": "Text agents (Rewriter, SEO, Marketing, PriceScout)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Available across all paid plans." },
+            { "feature": "Image agents (Image Refinement, Visual Marketing)", "Basic": "❌", "Standard": "❌", "Pro": "✅", "notes": "Pro only. Uses image credits (150/month)." },
+            { "feature": "Custom pipeline builder", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Agent availability depends on plan." },
+            { "feature": "Step-by-step approval mode", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Optional — auto-flow is the default." }
+          ]
+        },
+        "troubleshooting": [
+          { "symptom": "Mission failed or got stuck.", "cause": "A backend agent encountered an error or timed out.", "fixes": ["Check the mission timeline for error details.", "Try launching a new mission with the same configuration.", "If it keeps failing, the product may have insufficient data — add more product details."] },
+          { "symptom": "An agent was skipped automatically.", "cause": "The agent may not be available on your plan, or a prerequisite agent's output was empty.", "fixes": ["Check plan availability for each agent.", "Ensure the product has enough content for all agents to work with."] },
+          { "symptom": "Mission counter shows 0 remaining.", "cause": "You've used all missions for this billing period.", "fixes": ["Wait for the monthly reset on your billing date.", "Upgrade to a higher plan for more missions (Pro = unlimited)."] }
+        ],
+        "faqs": [
+          { "q": "Does the mission save results to Shopify automatically?", "a": "Yes — when a mission completes, results (translations, SEO, metafields, blog articles, collections) are saved to Shopify automatically." },
+          { "q": "Can I resume a mission that was interrupted?", "a": "Yes — find it in Mission History and click \"Resume\" to continue from where it stopped." },
+          { "q": "What happens if I skip an agent step?", "a": "The mission continues to the next agent. The skipped agent's output won't be included in the final results." },
+          { "q": "Which preset mission should I start with?", "a": "For your first mission, try \"Social Hype-Man\" (Basic) or \"Full Launch\" (Pro) to see how missions chain agents together." }
+        ]
+      },
+      "dashboard": {
+        "title": "Dashboard",
+        "short": "Monitor your plan, track usage and credits, manage Meta integration, configure language and target market — all from a single view.",
+        "what": [
+          "Your operational command center: plan status, usage tracking, feature availability, and integrations.",
+          "Track missions used, image credits, and monthly product rewrites.",
+          "Configure content target market and app language.",
+          "Manage Meta (Facebook/Instagram) integration for autonomous ad publishing (Pro)."
+        ],
+        "how": [
+          "Open Dashboard from the navigation menu.",
+          "Review your plan status, total products optimized, and active markets.",
+          "Check the Usage Summary for mission credits, image credits, and rewrite counts.",
+          "Set your Content Target Market to choose which locale AI content targets.",
+          "Switch App Language between English and Japanese.",
+          "Pro: Set up Meta Integration with your access token and page ID for autonomous publishing."
+        ],
+        "sections": [
+          { "title": "Usage Summary", "body": ["Missions: Shows used/total missions for the current billing period. Free plan has lifetime credits; paid plans reset monthly.", "Images: Shows used/total image credits (Pro only, 150/month).", "Product Rewrites: Shows used/total rewrites for the current month.", "Reset date is displayed for monthly quotas."] },
+          { "title": "Content Target Market", "body": ["Choose which market your AI-generated content targets (e.g. English US, Traditional Chinese Taiwan, Korean, etc.).", "This affects language, cultural tone, and competitor analysis across all features.", "12 supported markets: en, zh-TW, ko, de, fr, es, it, pt, th, vi, zh-CN."] },
+          { "title": "App Language", "body": ["Switch the app UI between English and Japanese.", "This applies globally across all pages — navigation, labels, buttons, tooltips.", "Content generation language is controlled separately by Content Target Market."] },
+          { "title": "Meta Integration (Pro)", "body": ["Connect your Facebook/Instagram page for autonomous ad publishing.", "Enter a long-lived Page access token (with pages_manage_posts permission) and your numeric Page ID.", "Once connected, marketing ad templates can be published directly to your Meta page.", "Connection status shows as Connected/Not connected in the Dashboard."] },
+          { "title": "Grace Period", "body": ["If you downgrade or cancel, a grace period keeps your current plan active until the end of the billing cycle.", "During grace period, all features of your previous plan remain accessible.", "After grace period ends, features revert to the new plan level."] }
+        ],
+        "troubleshooting": [
+          { "symptom": "Authentication error / reconnect banner.", "cause": "Backend sync/auth issue for the shop session.", "fixes": ["Click \"Reconnect\" or \"Refresh Session\" and return to the dashboard.", "Retry the action after re-auth completes."] },
+          { "symptom": "Usage numbers seem wrong.", "cause": "Usage data may take a moment to sync after operations.", "fixes": ["Refresh the page to get the latest usage data.", "If usage still seems incorrect, contact support with your shop domain."] },
+          { "symptom": "Locked features I expected to have.", "cause": "Plan sync may be delayed, or the feature requires a higher tier.", "fixes": ["Check your current plan in the Dashboard header.", "If you recently upgraded, refresh the page to sync the latest plan.", "Review the locked features section to see which plan is needed."] }
+        ],
+        "faqs": [
+          { "q": "Does Dashboard change store content?", "a": "No — Dashboard is informational and configurational. It helps you monitor, configure, and decide what to do next." },
+          { "q": "What happens during grace period?", "a": "Your previous plan features remain active until the end of your current billing cycle. After that, your plan reverts to the new level." },
+          { "q": "How do I change the app language?", "a": "In the Dashboard, find the App Language section and click the toggle to switch between English and Japanese." }
+        ]
+      }
+    }
   }
 }

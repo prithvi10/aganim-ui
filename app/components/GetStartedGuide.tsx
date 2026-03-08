@@ -70,6 +70,7 @@ export function GetStartedGuide({
         title: t("components.guideBrandSoulTitle"),
         subtitle: t("components.guideBrandSoulSubtitle"),
         body: t("components.guideBrandSoulBody"),
+        imageSrc: "/onboarding/guide-brand-soul.png",
         actions: [
           {
             label: t("components.openBrandSoul"),
@@ -82,6 +83,7 @@ export function GetStartedGuide({
         title: t("components.guideWritingStudioTitle"),
         subtitle: t("components.guideWritingStudioSubtitle"),
         body: t("components.guideWritingStudioBody"),
+        imageSrc: "/onboarding/guide-writing-studio.png",
         actions: [
           { label: t("components.openWritingStudio"), onClick: () => navigate(nav("/app/writing-studio")), primary: true },
         ],
@@ -90,6 +92,7 @@ export function GetStartedGuide({
         title: t("components.guideMarketingTitle"),
         subtitle: t("components.guideMarketingSubtitle"),
         body: t("components.guideMarketingBody"),
+        imageSrc: "/onboarding/guide-marketing.png",
         actions: [
           { label: t("components.openMarketing"), onClick: () => navigate(nav("/app/marketing")), primary: true },
         ],
@@ -98,6 +101,7 @@ export function GetStartedGuide({
         title: t("components.guideSeoTitle"),
         subtitle: t("components.guideSeoSubtitle"),
         body: t("components.guideSeoBody"),
+        imageSrc: "/onboarding/guide-seo.png",
         actions: [
           { label: t("components.openSeo"), onClick: () => navigate(nav("/app/seo")), primary: true },
         ],
@@ -106,6 +110,7 @@ export function GetStartedGuide({
         title: t("components.guidePriceScoutTitle"),
         subtitle: t("components.guidePriceScoutSubtitle"),
         body: t("components.guidePriceScoutBody"),
+        imageSrc: "/onboarding/guide-price-scout.png",
         actions: [
           { label: t("components.openPriceScout"), onClick: () => navigate(nav("/app/pricing")), primary: true },
         ],
@@ -114,6 +119,7 @@ export function GetStartedGuide({
         title: t("components.guidePipelinesTitle"),
         subtitle: t("components.guidePipelinesSubtitle"),
         body: t("components.guidePipelinesBody"),
+        imageSrc: "/onboarding/guide-pipelines.png",
         actions: [
           { label: t("components.openPipelines"), onClick: () => navigate(nav("/app/optimize")), primary: true },
         ],
@@ -122,6 +128,7 @@ export function GetStartedGuide({
         title: t("components.guideDashboardTitle"),
         subtitle: t("components.guideDashboardSubtitle"),
         body: t("components.guideDashboardBody"),
+        imageSrc: "/onboarding/guide-dashboard.png",
         actions: [
           { label: t("components.openDashboard"), onClick: () => navigate(nav("/app/dashboard")), primary: true },
         ],
@@ -166,36 +173,57 @@ export function GetStartedGuide({
         open={open}
         onClose={handleClose}
         title={t("components.getStartedWithCbai")}
-        size="large"
       >
         <Modal.Section>
-          <BlockStack gap="400">
-            {/* Step icon header */}
-            <Box
-              padding="600"
-              background="bg-surface-secondary"
-              borderRadius="300"
-            >
-              <BlockStack gap="300" align="center">
+          <BlockStack gap="300">
+            {current?.imageSrc ? (
+              <div style={{ textAlign: "center" }}>
+                <img
+                  src={current.imageSrc}
+                  alt={current.subtitle || "Guide step"}
+                  style={{
+                    maxWidth: "100%",
+                    height: "auto",
+                    display: "inline-block",
+                    borderRadius: 12,
+                  }}
+                />
+              </div>
+            ) : (
+              <Box
+                padding="500"
+                background="bg-surface-secondary"
+                borderRadius="300"
+              >
                 <InlineStack align="center">
-                  <div style={{ transform: "scale(2)" }}>
+                  <div style={{ transform: "scale(2.5)" }}>
                     <Icon source={CurrentIcon} tone="base" />
                   </div>
                 </InlineStack>
-                <Text as="h3" variant="headingLg" alignment="center">
+              </Box>
+            )}
+
+            <BlockStack gap="100">
+              <InlineStack gap="200" blockAlign="center">
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {activeIndex === 0 ? (
+                    <img src="/Brand soul logo.png" alt="Brand Soul" style={{ width: 24, height: 24, objectFit: "contain" }} />
+                  ) : (
+                    <Icon source={CurrentIcon} tone="base" />
+                  )}
+                </div>
+                <Text as="h3" variant="headingLg">
                   {current?.title}
                 </Text>
-                <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                  {current?.subtitle}
-                </Text>
-              </BlockStack>
-            </Box>
-
-            <Box padding="200">
-              <Text as="p" variant="bodyMd">
-                {current?.body}
+              </InlineStack>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                {current?.subtitle}
               </Text>
-            </Box>
+            </BlockStack>
+
+            <Text as="p" variant="bodyMd">
+              {current?.body}
+            </Text>
 
             <InlineStack gap="200" align="center">
               {(current?.actions || []).map((a: { label: string; onClick: () => void; primary?: boolean }) => (
