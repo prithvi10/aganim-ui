@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { MetaFunction } from "react-router";
 import styles from "../styles/support.module.css";
 
@@ -54,472 +55,34 @@ type SupportCard = {
   notes?: string[];
 };
 
-const ALL_PLANS: Array<PlanName | "All"> = ["All", "Free", "Basic", "Standard", "Pro"];
+const PLAN_TABS: Array<PlanName | "All"> = ["All", "Free", "Basic", "Standard", "Pro"];
 
-// Optional: embed your Google Form at the end (later).
-const GOOGLE_FORM_EMBED_URL = ""; // e.g. "https://docs.google.com/forms/d/e/<id>/viewform?embedded=true"
-const GOOGLE_FORM_DIRECT_URL = ""; // e.g. "https://docs.google.com/forms/d/e/<id>/viewform"
+const GOOGLE_FORM_EMBED_URL = "";
+const GOOGLE_FORM_DIRECT_URL = "";
 
 function isIncludedForPlan(card: SupportCard, plan: PlanName | "All") {
   if (plan === "All") return true;
   return Boolean(card.plans?.[plan]);
 }
 
-const SUPPORT_CARDS: SupportCard[] = [
-  {
-    id: "rewriter-workspace",
-    title: "Rewriter Workspace",
-    short:
-      "Generate localized drafts (title + HTML description + SEO title/meta) per market and save translations back to Shopify.",
-    gifHintPath: "/support-gifs/rewriter-workspace-overview.gif",
-    plans: { Basic: true, Standard: true, Pro: true },
-    what: [
-      "A workspace to optimize a product for global markets (per locale).",
-      "Generates: title, HTML description, SEO title, meta description, and optional SEO alt text.",
-      "Supports per-locale editing so you can tailor messaging and SEO to each market.",
-    ],
-    how: [
-      "Open Rewriter and select a product.",
-      "Select target market(s)/locale(s). (Basic: 1 locale. Standard/Pro: multi-locale.)",
-      "Set Optimization Preferences (tone, measurements, strip irrelevant content).",
-      "Click “Optimize for Global” to generate drafts.",
-      "Review and edit drafts for the active locale (title, HTML, SEO fields).",
-      "Optionally add Japanese Value insights to strengthen proof and differentiation.",
-      "Click “Save to Shopify” to persist translations + SEO fields for that locale.",
-    ],
-    planMatrix: {
-      title: "Plan features (Rewriter)",
-      rows: [
-        {
-          feature:
-            'AI “Optimize for Global” (draft title + HTML description + SEO title/desc)',
-          Basic: "✅",
-          Standard: "✅",
-          Pro: "✅",
-          notes: "Calls generation via UI + backend proxy/generation endpoint(s).",
-        },
-        {
-          feature: "Rewrite markets selection (published locales)",
-          Basic: "✅ (1 locale)",
-          Standard: "✅ (multi)",
-          Pro: "✅ (multi)",
-          notes:
-            "UI blocks >1 when maxLocales===1; backend blocks multi-locale for non-Standard/Pro.",
-        },
-        {
-          feature: "Bulk multi-market generation in one click",
-          Basic: "❌",
-          Standard: "✅",
-          Pro: "✅",
-          notes:
-            "Backend hard-gate: if len(target_locales)>1 then requires Standard/Pro.",
-        },
-        {
-          feature: "Tone / Market Persona / Brand Tone selector",
-          Basic: "❌ (forced Professional)",
-          Standard: "✅",
-          Pro: "✅",
-          notes:
-            "Backend + UI: Basic forces professional; Standard/Pro allow professional/luxury/minimalist/playful.",
-        },
-        {
-          feature: "Auto-convert units to US Standard (EN only)",
-          Basic: "✅",
-          Standard: "✅",
-          Pro: "✅",
-          notes:
-            "Applies when enabled + locale starts with “en”. Metric is preserved; US values are appended.",
-        },
-        {
-          feature:
-            "SEO Details editor (SEO title + meta description + SERP preview + char guidance)",
-          Basic: "✅",
-          Standard: "✅",
-          Pro: "✅",
-          notes: "Editable per locale; saved back to Shopify.",
-        },
-        {
-          feature:
-            "Save to Shopify (title/body_html translations + SEO fields where supported)",
-          Basic: "✅",
-          Standard: "✅",
-          Pro: "✅",
-          notes:
-            "Uses digests + translations register for non-primary locales; safer ordering to avoid digest invalidation.",
-        },
-        {
-          feature:
-            "Key Details (Nuance) / “Verified Japanese Value Detected” panel",
-          Basic: "✅",
-          Standard: "✅",
-          Pro: "✅",
-          notes:
-            "Driven by backend discovered_values; can append footer and persist as metafield.",
-        },
-        {
-          feature:
-            "Auto-reset cached context/drafts when product description changes",
-          Basic: "✅",
-          Standard: "✅",
-          Pro: "✅",
-          notes:
-            "Uses description hash metafields to detect manual changes vs app writes; resets stale context/drafts.",
-        },
-      ],
-    },
-    troubleshooting: [
-      {
-        symptom: "I can’t select multiple locales.",
-        cause:
-          "Basic supports 1 locale per run, or additional markets aren’t published in Shopify.",
-        fixes: [
-          "Publish additional markets/locales in Shopify settings.",
-          "Upgrade to Pro for multi-locale bulk runs.",
-        ],
-      },
-      {
-        symptom: "Save failed or content didn’t show up in Shopify.",
-        cause:
-          "Translation digests can become invalid if product content changes during save.",
-        fixes: [
-          "Avoid editing the same product in Shopify while saving from the app.",
-          "Re-run Optimize and try Save again.",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        q: "Does this overwrite my original product content?",
-        a: "It saves translations for selected locale(s) and related SEO fields. Your primary content remains the reference unless you intentionally update it.",
-      },
-      {
-        q: "Can I edit output before saving?",
-        a: "Yes—title, description HTML, and SEO fields are editable before saving.",
-      },
-    ],
-  },
-
-  {
-    id: "seo",
-    title: "SEO",
-    short:
-      "Edit SEO title/meta with SERP preview, apply CTR best practices, use competitor intel (Standard/Pro), and follow recommendations.",
-    gifHintPath: "/support-gifs/seo-editor-ctr.gif",
-    plans: { Basic: true, Standard: true, Pro: true },
-    what: [
-      "SEO Details lets you edit SEO Title + Meta Description per locale and preview how it may appear in Google.",
-      "All plans can receive recommendations; Standard/Pro can also enrich generation with competitor SERP context (best-effort).",
-    ],
-    how: [
-      "Run Optimize in Rewriter.",
-      "Open SEO Details for the active locale.",
-      "Edit SEO title and meta description while watching preview and length guidance.",
-      "Save to Shopify to persist SEO fields for that locale.",
-    ],
-    sections: [
-      {
-        title: "3.1 Improve CTR (click-through rate)",
-        body: [
-          "Lead with the primary keyword + clear product type.",
-          "Add one strong differentiator (material, craft detail, outcome) without stuffing keywords.",
-          "Keep it readable: titles ~70 chars, meta descriptions ~160 chars to avoid truncation.",
-        ],
-      },
-      {
-        title: "3.2 Competitor info (Standard/Pro)",
-        body: [
-          "Standard/Pro can pull a small set of top Google results for a product keyword (product name + category).",
-          "This is used as context to guide copy and highlight differentiators (without copying).",
-          "If SERP integration is unavailable, competitor info may not appear (best-effort enrichment).",
-        ],
-      },
-      {
-        title: "3.3 Recommendations (all plans)",
-        body: [
-          "Recommendations are guidance only (no auto-overwrite).",
-          "Includes competitive edge and buyer intent strategy suggestions based only on facts present in your description.",
-          "If the system cannot be confident without inventing facts, it may return empty recommendations—add real specifics and re-run.",
-        ],
-      },
-    ],
-    troubleshooting: [
-      {
-        symptom: "Competitor info doesn’t show up.",
-        cause:
-          "Competitor enrichment is Standard/Pro and depends on SERP integration availability.",
-        fixes: [
-          "Confirm you’re on Standard/Pro.",
-          "Treat competitor info as best-effort; you can still use SEO editor + recommendations without it.",
-        ],
-      },
-      {
-        symptom: "Recommendations are blank or too generic.",
-        cause:
-          "Sparse source descriptions produce weaker recommendations (the system avoids inventing facts).",
-        fixes: [
-          "Add authentic details (materials, what’s included, dimensions, care, origin/craft).",
-          "Re-run Optimize and review recommendations again.",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        q: "Will SEO edits change my product title on the page?",
-        a: "No—SEO title/meta are separate fields used for search snippets and sharing previews (theme/search behavior may vary).",
-      },
-      {
-        q: "Do I have to accept recommendations?",
-        a: "No—recommendations are optional guidance. You control what is saved.",
-      },
-    ],
-  },
-
-  {
-    id: "japanese-value",
-    title: "Japanese Value",
-    short:
-      "Surface verified Japanese nuance/craft details and add them into your description as proof and differentiation.",
-    gifHintPath: "/support-gifs/japanese-value-add-to-description.gif",
-    plans: { Basic: true, Standard: true, Pro: true },
-    what: [
-      "Highlights craftsmanship/cultural nuance detected from the source text and explains why it matters to global buyers.",
-      "Designed to strengthen credibility without making up claims.",
-    ],
-    how: [
-      "Run Optimize in Rewriter.",
-      "Open Japanese Value / Key Details panel.",
-      "Review evidence + explanation + suggested footer lines.",
-      "Insert the insight into your description and Save to Shopify.",
-    ],
-    troubleshooting: [
-      {
-        symptom: "No insights detected.",
-        cause:
-          "The source text doesn’t include clear craft/provenance/unique detail signals.",
-        fixes: [
-          "Add authentic details (materials, origin, method, care, what’s included).",
-          "Re-run Optimize to re-detect nuance.",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        q: "Will it invent cultural claims?",
-        a: "It is designed not to. If a detail isn’t present, it shouldn’t be introduced as fact.",
-      },
-    ],
-  },
-
-  {
-    id: "optimization-preferences",
-    title: "Optimization Preferences",
-    short:
-      "Control tone, measurements, and content cleanup so output matches your brand and avoids common localization mistakes.",
-    gifHintPath: "/support-gifs/optimization-preferences.gif",
-    plans: { Basic: true, Standard: true, Pro: true },
-    what: [
-      "Preferences that influence generation before you save to Shopify.",
-      "Includes: tone (Standard/Pro), EN measurement conversions, and irrelevant content stripping.",
-    ],
-    how: [
-      "Choose tone before Optimize (Standard/Pro).",
-      "Enable auto-convert units for English locales if needed.",
-      "Keep irrelevant-content stripping on for most stores; disable only when you intentionally include policy blocks in product descriptions.",
-      "Optimize, review, and regenerate if needed.",
-    ],
-    sections: [
-      {
-        title: "5.1 Tones of rewriters",
-        body: [
-          "Basic: Professional tone only.",
-          "Standard/Pro: Professional, Luxury, Minimalist, Playful.",
-          "Use tone to match brand identity while keeping facts unchanged.",
-        ],
-      },
-      {
-        title: "5.2 Measurements (EN only)",
-        body: [
-          "When enabled for English locales, the app keeps metric values and appends US equivalents (when available).",
-          "If the source has no measurable units, there may be nothing to convert.",
-        ],
-      },
-      {
-        title: "5.3 Irrelevant content strip",
-        body: [
-          "Removes non-product boilerplate so the model focuses on product facts and selling points.",
-          "If you want policy content, prefer storing it in theme sections/pages rather than product descriptions.",
-        ],
-      },
-    ],
-    troubleshooting: [
-      {
-        symptom: "Tone selector is disabled.",
-        cause: "Basic forces Professional tone.",
-        fixes: ["Upgrade to Standard/Pro to unlock additional tones."],
-      },
-      {
-        symptom: "No conversions appear.",
-        cause:
-          "Conversions apply to English locales and only if the source contains measurable units.",
-        fixes: [
-          "Run for an `en-*` locale.",
-          "Ensure the description includes dimensions/weight/volume units.",
-        ],
-      },
-      {
-        symptom: "It removed content I wanted to keep.",
-        cause: "Stripping may remove policy/boilerplate blocks.",
-        fixes: [
-          "Disable stripping and re-run Optimize.",
-          "Or move policy content outside product descriptions (theme sections/pages).",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        q: "Should I keep irrelevant content strip on?",
-        a: "Yes for most stores. Turn it off only if your product description intentionally includes required policy text that must remain.",
-      },
-    ],
-  },
-
-  {
-    id: "multi-locale-editor",
-    title: "Multi locale editor",
-    short:
-      "Edit drafts per locale and save translations safely (Basic: 1 locale at a time; Standard/Pro: multi-locale + bulk).",
-    gifHintPath: "/support-gifs/multi-locale-edit-save.gif",
-    plans: { Basic: true, Standard: true, Pro: true },
-    what: [
-      "Per-locale editing and saving flow so each market gets tailored copy and SEO.",
-      "Standard/Pro can generate multiple locales in one run; Basic runs one locale at a time.",
-    ],
-    how: [
-      "Select a locale tab/market.",
-      "Edit title, description HTML, and SEO fields for that locale.",
-      "Save to Shopify for that locale.",
-      "Repeat for other locales (or bulk-generate on Standard/Pro).",
-    ],
-    troubleshooting: [
-      {
-        symptom: "I saw a digest/hash error during save.",
-        cause:
-          "Shopify translation registration can fail if primary content changes mid-save.",
-        fixes: [
-          "Avoid editing primary content in Shopify while saving translations.",
-          "Re-run Optimize and Save again.",
-        ],
-      },
-      {
-        symptom: "Drafts/context reset unexpectedly.",
-        cause:
-          "The app detected manual content changes and reset cached drafts to avoid stale writes.",
-        fixes: ["Re-run Optimize using the updated Shopify description."],
-      },
-    ],
-    faqs: [
-      {
-        q: "Why is Basic limited to one locale per run?",
-        a: "Multi-locale and bulk workflows are Standard/Pro features to support higher volume optimization across markets.",
-      },
-    ],
-  },
-
-  {
-    id: "marketing",
-    title: "Marketing",
-    short:
-      "Generate Instagram hooks/captions/hashtags, overlay suggestions, and seasonal campaign ideas; cache outputs to metafields to avoid repeat calls.",
-    gifHintPath: "/support-gifs/marketing-hooks-to-metafields.gif",
-    plans: { Basic: true, Standard: true, Pro: true },
-    what: [
-      "Product Marketing workspace generates social-ready marketing copy for a selected product.",
-      "Outputs can be cached to Shopify metafields so you can reuse them without regenerating every time.",
-    ],
-    how: [
-      "Open Marketing and select a product.",
-      "Generate Instagram hooks/captions + hashtags.",
-      "Review variations and pick the best fit for your brand.",
-      "Generate overlay suggestions for short-form video (reels).",
-      "Save outputs to Shopify metafields (for caching/reuse).",
-      "Use Seasonal Campaign to get an upcoming campaign idea and optional seasonal caption copy.",
-    ],
-    sections: [
-      {
-        title: "7.1 Seasonal Campaigns",
-        body: [
-          "Creates an upcoming seasonal hook + campaign concept + suggested discount code direction.",
-          "Use “Re-check” to refresh ideas when you need new angles.",
-        ],
-      },
-      {
-        title: "7.2 Caption generator",
-        body: [
-          "Generates hooks, captions, hashtags, and overlay suggestions.",
-          "Caching keeps your app fast and reduces repeated generation cost.",
-        ],
-      },
-    ],
-    troubleshooting: [
-      {
-        symptom: "Generate button is disabled / content looks cached.",
-        cause: "Fresh cached outputs exist in Shopify metafields.",
-        fixes: [
-          "If available, use re-check/regenerate behavior.",
-          "Update the product description to refresh context and generate again.",
-        ],
-      },
-      {
-        symptom: "Seasonal output looks generic.",
-        cause: "Not enough product differentiation in the source.",
-        fixes: [
-          "Add specific differentiators (materials, use case, bundle contents).",
-          "Re-check Seasonal Campaign.",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        q: "Where are marketing results stored?",
-        a: "They can be saved to Shopify product metafields so you can reuse them and avoid repeated generation.",
-      },
-    ],
-  },
-
-  {
-    id: "dashboard",
-    title: "Dashboard",
-    short:
-      "Monitor plan, usage, active markets, locked features, and authentication/connection health.",
-    gifHintPath: "/support-gifs/dashboard-overview.gif",
-    plans: { Free: true, Basic: true, Standard: true, Pro: true },
-    what: [
-      "A quick operational view of what’s happening in your store and what’s unlocked.",
-      "Helps you track usage, markets configured, and whether an upgrade would unlock needed capabilities.",
-    ],
-    how: [
-      "Check total optimized/usage to understand your pace.",
-      "Review active markets count to confirm markets are enabled.",
-      "Use locked feature sections as an upgrade roadmap.",
-      "If you see an auth error, reconnect and retry.",
-    ],
-    troubleshooting: [
-      {
-        symptom: "Authentication error / reconnect banner.",
-        cause: "Backend sync/auth issue for the shop session.",
-        fixes: [
-          "Reconnect (re-auth) and return to the dashboard.",
-          "Retry the action after re-auth completes.",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        q: "Does Dashboard change store content?",
-        a: "No—Dashboard is informational. It helps you decide what to do next.",
-      },
-    ],
-  },
+const CARD_META: Array<{
+  id: string;
+  gifHintPath: string;
+  plans: Partial<Record<PlanName, boolean>>;
+}> = [
+  { id: "brand-soul", gifHintPath: "/support-gifs/brand-soul.gif", plans: { Free: true, Basic: true, Standard: true, Pro: true } },
+  { id: "rewriter-workspace", gifHintPath: "/support-gifs/rewriter-workspace-overview.gif", plans: { Basic: true, Standard: true, Pro: true } },
+  { id: "writing-studio", gifHintPath: "/support-gifs/writing-studio.gif", plans: { Basic: true, Standard: true, Pro: true } },
+  { id: "content-templates", gifHintPath: "/support-gifs/content-templates.gif", plans: { Basic: true, Standard: true, Pro: true } },
+  { id: "image-refinement", gifHintPath: "/support-gifs/image-refinement.gif", plans: { Pro: true } },
+  { id: "seo", gifHintPath: "/support-gifs/seo-editor-ctr.gif", plans: { Basic: true, Standard: true, Pro: true } },
+  { id: "japanese-value", gifHintPath: "/support-gifs/japanese-value-add-to-description.gif", plans: { Basic: true, Standard: true, Pro: true } },
+  { id: "optimization-preferences", gifHintPath: "/support-gifs/optimization-preferences.gif", plans: { Basic: true, Standard: true, Pro: true } },
+  { id: "multi-locale-editor", gifHintPath: "/support-gifs/multi-locale-edit-save.gif", plans: { Basic: true, Standard: true, Pro: true } },
+  { id: "marketing", gifHintPath: "/support-gifs/marketing-hooks-to-metafields.gif", plans: { Basic: true, Standard: true, Pro: true } },
+  { id: "price-scout", gifHintPath: "/support-gifs/price-scout.gif", plans: { Standard: true, Pro: true } },
+  { id: "missions", gifHintPath: "/support-gifs/missions-overview.gif", plans: { Free: true, Basic: true, Standard: true, Pro: true } },
+  { id: "dashboard", gifHintPath: "/support-gifs/dashboard-overview.gif", plans: { Free: true, Basic: true, Standard: true, Pro: true } },
 ];
 
 function Table({
@@ -533,16 +96,17 @@ function Table({
     notes: string;
   }>;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={styles.tableWrap} role="region" aria-label="Plan feature table">
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Feature</th>
+            <th>{t("support.tableFeature")}</th>
             <th>Basic</th>
             <th>Standard</th>
             <th>Pro</th>
-            <th>Notes</th>
+            <th>{t("support.tableNotes")}</th>
           </tr>
         </thead>
         <tbody>
@@ -562,18 +126,34 @@ function Table({
 }
 
 export default function SupportPage() {
+  const { t } = useTranslation();
   const [plan, setPlan] = useState<PlanName | "All">("All");
 
+  const allCards = useMemo<SupportCard[]>(() => {
+    return CARD_META.map((meta) => {
+      const c = t(`support.cards.${meta.id}`, { returnObjects: true }) as Record<string, unknown>;
+      return {
+        ...meta,
+        title: (c?.title as string) ?? meta.id,
+        short: (c?.short as string) ?? "",
+        what: (c?.what as string[]) ?? [],
+        how: (c?.how as string[]) ?? [],
+        sections: c?.sections as SupportCard["sections"],
+        planMatrix: c?.planMatrix as SupportCard["planMatrix"],
+        troubleshooting: (c?.troubleshooting as Troubleshoot[]) ?? [],
+        faqs: (c?.faqs as Faq[]) ?? [],
+        notes: c?.notes as string[],
+      };
+    });
+  }, [t]);
+
   const filtered = useMemo(() => {
-    return SUPPORT_CARDS.filter((c) => isIncludedForPlan(c, plan));
-  }, [plan]);
+    return allCards.filter((c) => isIncludedForPlan(c, plan));
+  }, [allCards, plan]);
 
   const indexLinks = useMemo(() => {
-    return SUPPORT_CARDS.filter((c) => isIncludedForPlan(c, plan)).map((c) => ({
-      id: c.id,
-      title: c.title,
-    }));
-  }, [plan]);
+    return filtered.map((c) => ({ id: c.id, title: c.title }));
+  }, [filtered]);
 
   useEffect(() => {
     const openFromHash = () => {
@@ -592,6 +172,11 @@ export default function SupportPage() {
     return () => window.removeEventListener("hashchange", openFromHash);
   }, []);
 
+  const getPlanLabel = (p: PlanName | "All"): string => {
+    if (p === "All") return t("support.planAll");
+    return p;
+  };
+
   return (
     <main id="top" className={styles.page}>
       <header className={styles.header}>
@@ -599,19 +184,17 @@ export default function SupportPage() {
           <div className={styles.brandRow}>
             <div className={styles.brandMark} aria-hidden />
             <div>
-              <div className={styles.kicker}>Help Center</div>
-              <h1 className={styles.h1}>Support</h1>
-              <p className={styles.subtitle}>
-                Feature guides, plan availability, troubleshooting, and FAQs for Cross-Border AI.
-              </p>
+              <div className={styles.kicker}>{t("support.helpCenter")}</div>
+              <h1 className={styles.h1}>{t("support.pageTitle")}</h1>
+              <p className={styles.subtitle}>{t("support.subtitle")}</p>
             </div>
           </div>
 
           <div className={styles.controls}>
             <div className={styles.planWrap}>
-              <div className={styles.label}>Plan filter</div>
-              <div className={styles.planTabs} role="tablist" aria-label="Plan filter">
-                {ALL_PLANS.map((p) => {
+              <div className={styles.label}>{t("support.planFilter")}</div>
+              <div className={styles.planTabs} role="tablist" aria-label={t("support.planFilter")}>
+                {PLAN_TABS.map((p) => {
                   const active = p === plan;
                   return (
                     <button
@@ -622,14 +205,12 @@ export default function SupportPage() {
                       role="tab"
                       aria-selected={active}
                     >
-                      {p}
+                      {getPlanLabel(p)}
                     </button>
                   );
                 })}
               </div>
-              <div className={styles.planHint}>
-                Tip: Keep “All” for public browsing, or filter to a plan to see what’s included.
-              </div>
+              <div className={styles.planHint}>{t("support.planHint")}</div>
             </div>
           </div>
         </div>
@@ -637,15 +218,13 @@ export default function SupportPage() {
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.h2}>Feature docs</h2>
-          <p className={styles.sectionSub}>
-            Each feature below includes plan availability, step-by-step usage, and common fixes.
-          </p>
+          <h2 className={styles.h2}>{t("support.featureDocs")}</h2>
+          <p className={styles.sectionSub}>{t("support.featureDocsDesc")}</p>
         </div>
 
         <div className={styles.contentLayout}>
-          <aside className={styles.indexNav} aria-label="Support index">
-            <div className={styles.indexTitle}>Index</div>
+          <aside className={styles.indexNav} aria-label={t("support.index")}>
+            <div className={styles.indexTitle}>{t("support.index")}</div>
             <div className={styles.indexList}>
               {indexLinks.map((l) => (
                 <a key={l.id} href={`#${l.id}`} className={styles.indexLink}>
@@ -672,7 +251,7 @@ export default function SupportPage() {
                           <span
                             key={p}
                             className={on ? styles.badgeOn : styles.badgeOff}
-                            title={on ? `Included in ${p}` : `Not included in ${p}`}
+                            title={on ? `${p} ✓` : `${p} ✗`}
                           >
                             {p}
                           </span>
@@ -685,19 +264,17 @@ export default function SupportPage() {
                 <div className={styles.featureBody}>
                   <div className={styles.featureGrid}>
                     <div className={styles.panel}>
-                      <div className={styles.panelTitle}>GIF demo</div>
+                      <div className={styles.panelTitle}>{t("support.gifDemo")}</div>
                       <div className={styles.gifBox}>
                         <div className={styles.gifText}>
-                          Add a GIF later at <code>{c.gifHintPath}</code>
+                          {t("support.addGifLater")} <code>{c.gifHintPath}</code>
                         </div>
-                        <div className={styles.gifHint}>
-                          Keep it ~10–25s, cropped, and show the happy path.
-                        </div>
+                        <div className={styles.gifHint}>{t("support.gifHint")}</div>
                       </div>
                     </div>
 
                     <div className={styles.panel}>
-                      <div className={styles.panelTitle}>What</div>
+                      <div className={styles.panelTitle}>{t("support.whatLabel")}</div>
                       <ul className={styles.ul}>
                         {c.what.map((x) => (
                           <li key={x}>{x}</li>
@@ -706,7 +283,7 @@ export default function SupportPage() {
                     </div>
 
                     <div className={styles.panel}>
-                      <div className={styles.panelTitle}>How</div>
+                      <div className={styles.panelTitle}>{t("support.howLabel")}</div>
                       <ol className={styles.ol}>
                         {c.how.map((x) => (
                           <li key={x}>{x}</li>
@@ -716,7 +293,7 @@ export default function SupportPage() {
 
                     {c.sections?.length ? (
                       <div className={styles.panel}>
-                        <div className={styles.panelTitle}>Deep dive</div>
+                        <div className={styles.panelTitle}>{t("support.deepDive")}</div>
                         <div className={styles.deepDive}>
                           {c.sections.map((s) => (
                             <div key={s.title} className={styles.deepBlock}>
@@ -740,23 +317,23 @@ export default function SupportPage() {
                     ) : null}
 
                     <div className={styles.panel}>
-                      <div className={styles.panelTitle}>Troubleshooting</div>
+                      <div className={styles.panelTitle}>{t("support.troubleshootingLabel")}</div>
                       <div className={styles.troubleshoot}>
-                        {c.troubleshooting.map((t) => (
-                          <details key={t.symptom} className={styles.details}>
+                        {c.troubleshooting.map((ts) => (
+                          <details key={ts.symptom} className={styles.details}>
                             <summary className={styles.summary}>
-                              <span className={styles.summaryTitle}>{t.symptom}</span>
+                              <span className={styles.summaryTitle}>{ts.symptom}</span>
                             </summary>
                             <div className={styles.detailsBody}>
                               <div className={styles.kv}>
-                                <div className={styles.k}>Likely cause</div>
-                                <div className={styles.v}>{t.cause}</div>
+                                <div className={styles.k}>{t("support.likelyCause")}</div>
+                                <div className={styles.v}>{ts.cause}</div>
                               </div>
                               <div className={styles.kv}>
-                                <div className={styles.k}>Fix</div>
+                                <div className={styles.k}>{t("support.fix")}</div>
                                 <div className={styles.v}>
                                   <ul className={styles.ulCompact}>
-                                    {t.fixes.map((f) => (
+                                    {ts.fixes.map((f) => (
                                       <li key={f}>{f}</li>
                                     ))}
                                   </ul>
@@ -769,7 +346,7 @@ export default function SupportPage() {
                     </div>
 
                     <div className={styles.panel}>
-                      <div className={styles.panelTitle}>FAQs</div>
+                      <div className={styles.panelTitle}>{t("support.faqsLabel")}</div>
                       <div className={styles.faqs}>
                         {c.faqs.map((f) => (
                           <details key={f.q} className={styles.details}>
@@ -782,7 +359,7 @@ export default function SupportPage() {
 
                     {c.notes?.length ? (
                       <div className={styles.panel}>
-                        <div className={styles.panelTitle}>Notes</div>
+                        <div className={styles.panelTitle}>{t("support.notesLabel")}</div>
                         <ul className={styles.ul}>
                           {c.notes.map((n) => (
                             <li key={n}>{n}</li>
@@ -794,7 +371,7 @@ export default function SupportPage() {
 
                   <div className={styles.backToTop}>
                     <a className={styles.link} href="#top">
-                      Back to top
+                      {t("support.backToTop")}
                     </a>
                   </div>
                 </div>
@@ -806,10 +383,8 @@ export default function SupportPage() {
 
       <section className={styles.section} id="contact">
         <div className={styles.sectionHeader}>
-          <h2 className={styles.h2}>Still need help?</h2>
-          <p className={styles.sectionSub}>
-            If you contact us, include: shop domain, plan, feature, locale, screenshots, and steps to reproduce.
-          </p>
+          <h2 className={styles.h2}>{t("support.stillNeedHelp")}</h2>
+          <p className={styles.sectionSub}>{t("support.contactInfo")}</p>
         </div>
 
         <div className={styles.panel}>
@@ -822,21 +397,17 @@ export default function SupportPage() {
             />
           ) : (
             <div className={styles.formPlaceholder}>
-              <div className={styles.formTitle}>Add your Google Form</div>
-              <div className={styles.formText}>
-                Set <code>GOOGLE_FORM_EMBED_URL</code> and <code>GOOGLE_FORM_DIRECT_URL</code> in this file.
-              </div>
-              <div className={styles.formText}>
-                Suggested fields: shop domain, plan, feature, locale, expected result, actual result, screenshots, steps.
-              </div>
+              <div className={styles.formTitle}>{t("support.addFormTitle")}</div>
+              <div className={styles.formText}>{t("support.addFormText")}</div>
+              <div className={styles.formText}>{t("support.addFormFields")}</div>
             </div>
           )}
 
           {GOOGLE_FORM_DIRECT_URL ? (
             <div className={styles.formFooter}>
-              Prefer a new tab?{" "}
+              {t("support.preferNewTab")}{" "}
               <a className={styles.link} href={GOOGLE_FORM_DIRECT_URL} target="_blank" rel="noreferrer">
-                Open the form
+                {t("support.openTheForm")}
               </a>
               .
             </div>
@@ -847,7 +418,7 @@ export default function SupportPage() {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerNote}>
-            © {new Date().getFullYear()} Cross-Border AI. Support content is updated regularly.
+            © {new Date().getFullYear()} {t("support.copyright")}
           </div>
         </div>
       </footer>
