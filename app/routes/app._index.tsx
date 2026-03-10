@@ -9,7 +9,7 @@ import {
   Box,
   InlineGrid,
   Collapsible,
-  FooterHelp,
+
   ProgressBar,
   Icon,
   Spinner,
@@ -30,6 +30,7 @@ import {
   ChartVerticalIcon,
   CheckCircleIcon,
   XCircleIcon,
+  HomeIcon,
 } from "@shopify/polaris-icons";
 import { useTranslation } from "react-i18next";
 
@@ -742,7 +743,7 @@ export default function LandingPage() {
               </Box>
             </Card>
 
-            {/* Card 5: Marketing Agent */}
+            {/* Card 4: Marketing Agent */}
             <Card>
               <Box padding="500" background="bg-surface-secondary">
                 <BlockStack gap="400">
@@ -775,14 +776,14 @@ export default function LandingPage() {
               </Box>
           </Card>
 
-            {/* Card 6: SEO Manager */}
+            {/* Card 5: SEO Manager */}
             <Card>
               <Box padding="500" background="bg-surface-secondary">
                 <BlockStack gap="400">
                   <InlineStack align="space-between" blockAlign="start">
                     <Text as="h3" variant="headingLg">
                       {t("home.seoManager")}
-                      </Text>
+                    </Text>
                     <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <div style={{ transform: "scale(1.5)" }}>
                         <Icon source={ChartVerticalIcon} tone="base" />
@@ -807,19 +808,42 @@ export default function LandingPage() {
                 </BlockStack>
               </Box>
             </Card>
+
+            {/* Card 6: Dashboard */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      {t("home.dashboardCard")}
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={HomeIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {t("home.dashboardCardDesc")}
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-6">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/dashboard"))}
+                      >
+                        {t("home.open")}
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
           </InlineGrid>
         </BlockStack>
 
-        {/* Footer */}
-        <FooterHelp>
-          <a href="https://support.example.com" target="_blank" rel="noopener noreferrer">
-            {t("home.contactSupport")}
-          </a>{" "}
-          or{" "}
-          <a href="https://guide.example.com" target="_blank" rel="noopener noreferrer">
-            {t("home.readTheGuide")}
-          </a>
-        </FooterHelp>
           </BlockStack>
 
       {/* Modals */}

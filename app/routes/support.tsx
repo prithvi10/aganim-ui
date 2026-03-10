@@ -1,6 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { MetaFunction } from "react-router";
+import {
+  StarIcon,
+  EditIcon,
+  SearchIcon,
+  SocialAdIcon,
+  ChartVerticalIcon,
+  HomeIcon,
+  ImageIcon,
+  NoteIcon,
+  SettingsIcon,
+  GlobeIcon,
+} from "@shopify/polaris-icons";
 import styles from "../styles/support.module.css";
 
 export const meta: MetaFunction = () => {
@@ -9,12 +21,10 @@ export const meta: MetaFunction = () => {
     {
       name: "description",
       content:
-        "Support docs for Cross-Border AI: feature guides, plan availability, troubleshooting, FAQs, and contact.",
+        "Support docs for Cross-Border AI: feature guides, troubleshooting, FAQs, and contact.",
     },
   ];
 };
-
-type PlanName = "Free" | "Basic" | "Standard" | "Pro";
 
 type Troubleshoot = {
   symptom: string;
@@ -28,8 +38,9 @@ type SupportCard = {
   id: string;
   title: string;
   short: string;
-  gifHintPath: string;
-  plans: Partial<Record<PlanName, boolean>>;
+  demoPath: string;
+  icon?: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
+  iconImage?: string;
 
   what: string[];
   how: string[];
@@ -55,34 +66,28 @@ type SupportCard = {
   notes?: string[];
 };
 
-const PLAN_TABS: Array<PlanName | "All"> = ["All", "Free", "Basic", "Standard", "Pro"];
-
 const GOOGLE_FORM_EMBED_URL = "";
 const GOOGLE_FORM_DIRECT_URL = "";
 
-function isIncludedForPlan(card: SupportCard, plan: PlanName | "All") {
-  if (plan === "All") return true;
-  return Boolean(card.plans?.[plan]);
-}
-
 const CARD_META: Array<{
   id: string;
-  gifHintPath: string;
-  plans: Partial<Record<PlanName, boolean>>;
+  demoPath: string;
+  icon?: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
+  iconImage?: string;
 }> = [
-  { id: "brand-soul", gifHintPath: "/support-gifs/brand-soul.gif", plans: { Free: true, Basic: true, Standard: true, Pro: true } },
-  { id: "rewriter-workspace", gifHintPath: "/support-gifs/rewriter-workspace-overview.gif", plans: { Basic: true, Standard: true, Pro: true } },
-  { id: "writing-studio", gifHintPath: "/support-gifs/writing-studio.gif", plans: { Basic: true, Standard: true, Pro: true } },
-  { id: "content-templates", gifHintPath: "/support-gifs/content-templates.gif", plans: { Basic: true, Standard: true, Pro: true } },
-  { id: "image-refinement", gifHintPath: "/support-gifs/image-refinement.gif", plans: { Pro: true } },
-  { id: "seo", gifHintPath: "/support-gifs/seo-editor-ctr.gif", plans: { Basic: true, Standard: true, Pro: true } },
-  { id: "japanese-value", gifHintPath: "/support-gifs/japanese-value-add-to-description.gif", plans: { Basic: true, Standard: true, Pro: true } },
-  { id: "optimization-preferences", gifHintPath: "/support-gifs/optimization-preferences.gif", plans: { Basic: true, Standard: true, Pro: true } },
-  { id: "multi-locale-editor", gifHintPath: "/support-gifs/multi-locale-edit-save.gif", plans: { Basic: true, Standard: true, Pro: true } },
-  { id: "marketing", gifHintPath: "/support-gifs/marketing-hooks-to-metafields.gif", plans: { Basic: true, Standard: true, Pro: true } },
-  { id: "price-scout", gifHintPath: "/support-gifs/price-scout.gif", plans: { Standard: true, Pro: true } },
-  { id: "missions", gifHintPath: "/support-gifs/missions-overview.gif", plans: { Free: true, Basic: true, Standard: true, Pro: true } },
-  { id: "dashboard", gifHintPath: "/support-gifs/dashboard-overview.gif", plans: { Free: true, Basic: true, Standard: true, Pro: true } },
+  { id: "brand-soul", demoPath: "/support-gifs/brand-soul.mp4", iconImage: "/Brand soul logo.png" },
+  { id: "rewriter-workspace", demoPath: "/support-gifs/rewriter-workspace.mp4", icon: EditIcon },
+  { id: "writing-studio", demoPath: "/support-gifs/writing-studio.mp4", icon: EditIcon },
+  { id: "content-templates", demoPath: "/support-gifs/content-templates.mp4", icon: NoteIcon },
+  { id: "image-refinement", demoPath: "/support-gifs/image-refinement.mp4", icon: ImageIcon },
+  { id: "seo", demoPath: "/support-gifs/seo-editor-ctr.mp4", icon: ChartVerticalIcon },
+  { id: "japanese-value", demoPath: "/support-gifs/japanese-value-add-to-description.mp4", icon: StarIcon },
+  { id: "optimization-preferences", demoPath: "/support-gifs/optimization-preferences.mp4", icon: SettingsIcon },
+  { id: "multi-locale-editor", demoPath: "/support-gifs/multi-locale-edit-save.mp4", icon: GlobeIcon },
+  { id: "marketing", demoPath: "/support-gifs/marketing-hooks-to-metafields.mp4", icon: SocialAdIcon },
+  { id: "price-scout", demoPath: "/support-gifs/price-scout.mp4", icon: SearchIcon },
+  { id: "missions", demoPath: "/support-gifs/missions-overview.mp4", icon: StarIcon },
+  { id: "dashboard", demoPath: "/support-gifs/dashboard-overview.mp4", icon: HomeIcon },
 ];
 
 function Table({
@@ -125,9 +130,23 @@ function Table({
   );
 }
 
+function CardIcon({ card }: { card: SupportCard }) {
+  if (card.iconImage) {
+    return <img src={card.iconImage} alt="" className={styles.featureIconImg} />;
+  }
+  const Ic = card.icon;
+  if (Ic) {
+    return (
+      <div className={styles.featureIconSvg}>
+        <Ic />
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function SupportPage() {
   const { t } = useTranslation();
-  const [plan, setPlan] = useState<PlanName | "All">("All");
 
   const allCards = useMemo<SupportCard[]>(() => {
     return CARD_META.map((meta) => {
@@ -147,13 +166,9 @@ export default function SupportPage() {
     });
   }, [t]);
 
-  const filtered = useMemo(() => {
-    return allCards.filter((c) => isIncludedForPlan(c, plan));
-  }, [allCards, plan]);
-
   const indexLinks = useMemo(() => {
-    return filtered.map((c) => ({ id: c.id, title: c.title }));
-  }, [filtered]);
+    return allCards.map((c) => ({ id: c.id, title: c.title }));
+  }, [allCards]);
 
   useEffect(() => {
     const openFromHash = () => {
@@ -172,11 +187,6 @@ export default function SupportPage() {
     return () => window.removeEventListener("hashchange", openFromHash);
   }, []);
 
-  const getPlanLabel = (p: PlanName | "All"): string => {
-    if (p === "All") return t("support.planAll");
-    return p;
-  };
-
   return (
     <main id="top" className={styles.page}>
       <header className={styles.header}>
@@ -187,30 +197,6 @@ export default function SupportPage() {
               <div className={styles.kicker}>{t("support.helpCenter")}</div>
               <h1 className={styles.h1}>{t("support.pageTitle")}</h1>
               <p className={styles.subtitle}>{t("support.subtitle")}</p>
-            </div>
-          </div>
-
-          <div className={styles.controls}>
-            <div className={styles.planWrap}>
-              <div className={styles.label}>{t("support.planFilter")}</div>
-              <div className={styles.planTabs} role="tablist" aria-label={t("support.planFilter")}>
-                {PLAN_TABS.map((p) => {
-                  const active = p === plan;
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      className={active ? styles.planTabActive : styles.planTab}
-                      onClick={() => setPlan(p)}
-                      role="tab"
-                      aria-selected={active}
-                    >
-                      {getPlanLabel(p)}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className={styles.planHint}>{t("support.planHint")}</div>
             </div>
           </div>
         </div>
@@ -235,65 +221,63 @@ export default function SupportPage() {
           </aside>
 
           <div className={styles.stack}>
-            {filtered.map((c) => (
+            {allCards.map((c) => (
               <details key={c.id} id={c.id} className={styles.feature}>
                 <summary className={styles.featureSummary}>
                   <div className={styles.featureHeader}>
-                    <div>
+                    <div className={styles.featureTitleRow}>
+                      <div className={styles.featureIcon}>
+                        <CardIcon card={c} />
+                      </div>
                       <h3 className={styles.h3}>{c.title}</h3>
-                      <p className={styles.featureShort}>{c.short}</p>
                     </div>
-
-                    <div className={styles.badges} aria-label="Plan availability">
-                      {(["Free", "Basic", "Standard", "Pro"] as PlanName[]).map((p) => {
-                        const on = Boolean(c.plans?.[p]);
-                        return (
-                          <span
-                            key={p}
-                            className={on ? styles.badgeOn : styles.badgeOff}
-                            title={on ? `${p} ✓` : `${p} ✗`}
-                          >
-                            {p}
-                          </span>
-                        );
-                      })}
-                    </div>
+                    <p className={styles.featureShort}>{c.short}</p>
                   </div>
                 </summary>
 
                 <div className={styles.featureBody}>
-                  <div className={styles.featureGrid}>
-                    <div className={styles.panel}>
-                      <div className={styles.panelTitle}>{t("support.gifDemo")}</div>
-                      <div className={styles.gifBox}>
-                        <div className={styles.gifText}>
-                          {t("support.addGifLater")} <code>{c.gifHintPath}</code>
-                        </div>
-                        <div className={styles.gifHint}>{t("support.gifHint")}</div>
-                      </div>
-                    </div>
+                  {/* Video Demo — full width */}
+                  <div className={styles.panel}>
+                    <video
+                      src={c.demoPath}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      controls
+                      className={styles.demoVideo}
+                    />
+                  </div>
 
-                    <div className={styles.panel}>
-                      <div className={styles.panelTitle}>{t("support.whatLabel")}</div>
-                      <ul className={styles.ul}>
-                        {c.what.map((x) => (
-                          <li key={x}>{x}</li>
-                        ))}
-                      </ul>
-                    </div>
+                  {/* Guide — What + How + Deep Dive merged */}
+                  <div className={styles.panel}>
+                    <div className={styles.panelTitle}>{t("support.guideLabel")}</div>
 
-                    <div className={styles.panel}>
-                      <div className={styles.panelTitle}>{t("support.howLabel")}</div>
-                      <ol className={styles.ol}>
-                        {c.how.map((x) => (
-                          <li key={x}>{x}</li>
-                        ))}
-                      </ol>
-                    </div>
+                    {c.what.length > 0 && (
+                      <>
+                        <div className={styles.subTitle}>{t("support.whatLabel")}</div>
+                        <ul className={styles.ul}>
+                          {c.what.map((x) => (
+                            <li key={x}>{x}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+
+                    {c.how.length > 0 && (
+                      <>
+                        <div className={styles.subTitle}>{t("support.howLabel")}</div>
+                        <ol className={styles.ol}>
+                          {c.how.map((x) => (
+                            <li key={x}>{x}</li>
+                          ))}
+                        </ol>
+                      </>
+                    )}
 
                     {c.sections?.length ? (
-                      <div className={styles.panel}>
-                        <div className={styles.panelTitle}>{t("support.deepDive")}</div>
+                      <>
+                        <div className={styles.subTitle}>{t("support.deepDive")}</div>
                         <div className={styles.deepDive}>
                           {c.sections.map((s) => (
                             <div key={s.title} className={styles.deepBlock}>
@@ -306,68 +290,81 @@ export default function SupportPage() {
                             </div>
                           ))}
                         </div>
-                      </div>
-                    ) : null}
-
-                    {c.planMatrix ? (
-                      <div className={styles.panelWide}>
-                        <div className={styles.panelTitle}>{c.planMatrix.title}</div>
-                        <Table rows={c.planMatrix.rows} />
-                      </div>
-                    ) : null}
-
-                    <div className={styles.panel}>
-                      <div className={styles.panelTitle}>{t("support.troubleshootingLabel")}</div>
-                      <div className={styles.troubleshoot}>
-                        {c.troubleshooting.map((ts) => (
-                          <details key={ts.symptom} className={styles.details}>
-                            <summary className={styles.summary}>
-                              <span className={styles.summaryTitle}>{ts.symptom}</span>
-                            </summary>
-                            <div className={styles.detailsBody}>
-                              <div className={styles.kv}>
-                                <div className={styles.k}>{t("support.likelyCause")}</div>
-                                <div className={styles.v}>{ts.cause}</div>
-                              </div>
-                              <div className={styles.kv}>
-                                <div className={styles.k}>{t("support.fix")}</div>
-                                <div className={styles.v}>
-                                  <ul className={styles.ulCompact}>
-                                    {ts.fixes.map((f) => (
-                                      <li key={f}>{f}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                          </details>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className={styles.panel}>
-                      <div className={styles.panelTitle}>{t("support.faqsLabel")}</div>
-                      <div className={styles.faqs}>
-                        {c.faqs.map((f) => (
-                          <details key={f.q} className={styles.details}>
-                            <summary className={styles.summary}>{f.q}</summary>
-                            <div className={styles.detailsBody}>{f.a}</div>
-                          </details>
-                        ))}
-                      </div>
-                    </div>
-
-                    {c.notes?.length ? (
-                      <div className={styles.panel}>
-                        <div className={styles.panelTitle}>{t("support.notesLabel")}</div>
-                        <ul className={styles.ul}>
-                          {c.notes.map((n) => (
-                            <li key={n}>{n}</li>
-                          ))}
-                        </ul>
-                      </div>
+                      </>
                     ) : null}
                   </div>
+
+                  {/* Plan Matrix (if present) */}
+                  {c.planMatrix ? (
+                    <div className={styles.panel}>
+                      <div className={styles.panelTitle}>{c.planMatrix.title}</div>
+                      <Table rows={c.planMatrix.rows} />
+                    </div>
+                  ) : null}
+
+                  {/* Issues & FAQs — Troubleshooting + FAQ merged */}
+                  {(c.troubleshooting.length > 0 || c.faqs.length > 0) && (
+                    <div className={styles.panel}>
+                      <div className={styles.panelTitle}>{t("support.issuesAndFaqs")}</div>
+
+                      {c.troubleshooting.length > 0 && (
+                        <>
+                          <div className={styles.subTitle}>{t("support.troubleshootingLabel")}</div>
+                          <div className={styles.troubleshoot}>
+                            {c.troubleshooting.map((ts) => (
+                              <details key={ts.symptom} className={styles.details}>
+                                <summary className={styles.summary}>
+                                  <span className={styles.summaryTitle}>{ts.symptom}</span>
+                                </summary>
+                                <div className={styles.detailsBody}>
+                                  <div className={styles.kv}>
+                                    <div className={styles.k}>{t("support.likelyCause")}</div>
+                                    <div className={styles.v}>{ts.cause}</div>
+                                  </div>
+                                  <div className={styles.kv}>
+                                    <div className={styles.k}>{t("support.fix")}</div>
+                                    <div className={styles.v}>
+                                      <ul className={styles.ulCompact}>
+                                        {ts.fixes.map((f) => (
+                                          <li key={f}>{f}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                </div>
+                              </details>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {c.faqs.length > 0 && (
+                        <>
+                          <div className={styles.subTitle}>{t("support.faqsLabel")}</div>
+                          <div className={styles.faqs}>
+                            {c.faqs.map((f) => (
+                              <details key={f.q} className={styles.details}>
+                                <summary className={styles.summary}>{f.q}</summary>
+                                <div className={styles.detailsBody}>{f.a}</div>
+                              </details>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Notes (if present) */}
+                  {c.notes?.length ? (
+                    <div className={styles.panel}>
+                      <div className={styles.panelTitle}>{t("support.notesLabel")}</div>
+                      <ul className={styles.ul}>
+                        {c.notes.map((n) => (
+                          <li key={n}>{n}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
 
                   <div className={styles.backToTop}>
                     <a className={styles.link} href="#top">

@@ -864,10 +864,14 @@ export function MissionTimeline({
                 {/* Visual assets carousel — rendered incrementally as images arrive */}
                 {(() => {
                   const va = missionState?.visual_assets;
-                  if (!va?.ad_url) return null;
-                  const slides: CarouselSlide[] = [
-                    { url: va.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" },
-                  ];
+                  if (!va?.refined_url && !va?.ad_url) return null;
+                  const slides: CarouselSlide[] = [];
+                  if (va.refined_url) {
+                    slides.push({ url: va.refined_url, label: "Refined Image", sublabel: "Background cleaned & enhanced", aspectRatio: "1 / 1" });
+                  }
+                  if (va.ad_url) {
+                    slides.push({ url: va.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" });
+                  }
                   return <ImageCarousel slides={slides} />;
                 })()}
 
@@ -923,9 +927,10 @@ export function MissionTimeline({
                     >
                       <BlockStack gap="400">
                         {/* Image carousel */}
-                        {missionState.visual_assets?.ad_url && (
+                        {(missionState.visual_assets?.refined_url || missionState.visual_assets?.ad_url) && (
                           <ImageCarousel slides={[
-                            { url: missionState.visual_assets.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" },
+                            ...(missionState.visual_assets.refined_url ? [{ url: missionState.visual_assets.refined_url, label: "Refined Image", sublabel: "Background cleaned & enhanced", aspectRatio: "1 / 1" }] : []),
+                            ...(missionState.visual_assets.ad_url ? [{ url: missionState.visual_assets.ad_url, label: "Marketing Ad", sublabel: "Ready-to-post social creative", aspectRatio: "1 / 1" }] : []),
                           ]} />
                         )}
 

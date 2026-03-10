@@ -224,6 +224,15 @@ export function VisualStepCard({ progress, assets, isComplete }: VisualStepCardP
 
   const slides: CarouselSlide[] = [];
 
+  if (assets?.refined_url) {
+    slides.push({
+      url: assets.refined_url,
+      label: "Refined Image",
+      sublabel: "Background cleaned & enhanced",
+      aspectRatio: "1 / 1",
+    });
+  }
+
   if (assets?.ad_url) {
     slides.push({
       url: assets.ad_url,

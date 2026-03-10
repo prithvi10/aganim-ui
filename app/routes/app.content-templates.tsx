@@ -357,25 +357,6 @@ function contentJsonToHtml(raw: string, heroUrl?: string | null): string {
     ? `<div style="margin-bottom:16px;border-radius:8px;overflow:hidden"><img src="${heroUrl}" alt="Hero banner" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block" /></div>`
     : '';
 
-  // Collection description
-  if (parsed.description && !parsed.faqs && !parsed.body_html) {
-    if (heroImgHtml) parts.push(heroImgHtml);
-    parts.push(
-      `<div style="border-left:3px solid #2c6ecb;padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:0 8px 8px 0">` +
-        `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Collection Description</p>` +
-        `<div style="font-size:15px;line-height:1.6">${parsed.description}</div>` +
-      `</div>`,
-    );
-  }
-  if (parsed.meta_description && !parsed.body_html) {
-    parts.push(
-      `<div style="background:#f6f6f7;border-radius:8px;padding:12px 18px;margin-bottom:14px">` +
-        `<p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">SEO Meta Description</p>` +
-        `<p style="margin:0;font-size:14px;color:#6d7175">${parsed.meta_description}</p>` +
-      `</div>`,
-    );
-  }
-
   // FAQs (no hero image)
   if (Array.isArray(parsed.faqs)) {
     parts.push(
@@ -391,7 +372,7 @@ function contentJsonToHtml(raw: string, heroUrl?: string | null): string {
     });
   }
 
-  // Landing page hero
+  // Landing page hero (check BEFORE collection to avoid `description` fallback collision)
   if (parsed.headline && !parsed.faqs) {
     if (heroImgHtml && parts.length === 0) parts.push(heroImgHtml);
     parts.push(
@@ -433,6 +414,25 @@ function contentJsonToHtml(raw: string, heroUrl?: string | null): string {
       `<div style="margin-bottom:14px">` +
         `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Social Proof</p>` +
         `<ul style="margin:0;padding-left:18px">${proofItems}</ul>` +
+      `</div>`,
+    );
+  }
+
+  // Collection description (only when there's no headline — avoids collision with hero fallback)
+  if (parsed.description && !parsed.faqs && !parsed.body_html && !parsed.headline) {
+    if (heroImgHtml && parts.length === 0) parts.push(heroImgHtml);
+    parts.push(
+      `<div style="border-left:3px solid #2c6ecb;padding:14px 18px;margin-bottom:14px;background:#f9fafb;border-radius:0 8px 8px 0">` +
+        `<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">Collection Description</p>` +
+        `<div style="font-size:15px;line-height:1.6">${parsed.description}</div>` +
+      `</div>`,
+    );
+  }
+  if (parsed.meta_description && !parsed.body_html && !parsed.headline) {
+    parts.push(
+      `<div style="background:#f6f6f7;border-radius:8px;padding:12px 18px;margin-bottom:14px">` +
+        `<p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6d7175;text-transform:uppercase;letter-spacing:0.5px">SEO Meta Description</p>` +
+        `<p style="margin:0;font-size:14px;color:#6d7175">${parsed.meta_description}</p>` +
       `</div>`,
     );
   }
@@ -529,6 +529,7 @@ function ResultBlock({
   handlePublish,
   handleCopy,
   editableHtmlRef,
+  publishLabel,
 }: {
   templateId: string;
   templateName: string;
@@ -542,6 +543,7 @@ function ResultBlock({
   handlePublish: () => void;
   handleCopy: () => void;
   editableHtmlRef: React.MutableRefObject<string>;
+  publishLabel?: string;
 }) {
   const { t } = useTranslation();
   return (
@@ -553,7 +555,7 @@ function ResultBlock({
         <InlineStack gap="200">
           {canPublish && !published && (
             <Button onClick={handlePublish} variant="primary" size="slim" loading={publishing} disabled={publishing}>
-              {t('contentTemplates.publishToShopify')}
+              {publishLabel || t('contentTemplates.publishToShopify')}
             </Button>
           )}
           {canPublish && published && (
@@ -686,7 +688,7 @@ function FaqCard({
           </InlineStack>
           {error && <Banner tone="critical">{error}</Banner>}
           {result && (
-            <ResultBlock templateId={template.id} templateName="FAQ" result={result} heroUrl={null} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} />
+            <ResultBlock templateId={template.id} templateName="FAQ" result={result} heroUrl={null} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} publishLabel={t('contentTemplates.addToProductDescription')} />
           )}
         </BlockStack>
       </Box>
