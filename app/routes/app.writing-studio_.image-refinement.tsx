@@ -556,9 +556,65 @@ export default function ImageRefinement() {
                         />
                       )}
 
-                      {/* Save to Shopify */}
+                      {/* Before / After preview + Save to Shopify */}
                       {isComplete && refinedImageUrl && !savedSuccess && (
-                        <BlockStack gap="300">
+                        <BlockStack gap="400">
+                          <Card>
+                            <Box padding="400">
+                              <BlockStack gap="300">
+                                <Text as="h3" variant="headingMd">
+                                  {t('imageRefinement.resultPreview')}
+                                </Text>
+                                <InlineStack gap="400" align="center" wrap>
+                                  {selectedProduct?.featuredImageUrl && (
+                                    <BlockStack gap="200">
+                                      <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                                        {t('imageRefinement.before')}
+                                      </Text>
+                                      <div
+                                        style={{
+                                          width: '180px',
+                                          height: '180px',
+                                          borderRadius: '12px',
+                                          overflow: 'hidden',
+                                          border: '1px solid #e1e3e5',
+                                        }}
+                                      >
+                                        <img
+                                          src={selectedProduct.featuredImageUrl}
+                                          alt={t('imageRefinement.originalAlt')}
+                                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                      </div>
+                                    </BlockStack>
+                                  )}
+                                  <div style={{ fontSize: '24px', color: '#8c9196' }}>→</div>
+                                  <BlockStack gap="200">
+                                    <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                                      {t('imageRefinement.after')}
+                                    </Text>
+                                    <div
+                                      style={{
+                                        width: '180px',
+                                        height: '180px',
+                                        borderRadius: '12px',
+                                        overflow: 'hidden',
+                                        border: '2px solid #2c6ecb',
+                                        boxShadow: '0 0 0 3px rgba(44, 110, 203, 0.15)',
+                                      }}
+                                    >
+                                      <img
+                                        src={refinedImageUrl}
+                                        alt={t('imageRefinement.refinedAlt')}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                      />
+                                    </div>
+                                  </BlockStack>
+                                </InlineStack>
+                              </BlockStack>
+                            </Box>
+                          </Card>
+
                           {saveError && (
                             <Banner tone="critical" title={t('imageRefinement.saveFailed')}>
                               <Text as="p">{saveError}</Text>

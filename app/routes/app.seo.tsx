@@ -714,8 +714,8 @@ export default function SEOPage() {
                   <saveFetcher.Form method="post">
                     <input type="hidden" name="intent" value="save_seo" />
                     <input type="hidden" name="productId" value={selectedProduct.id} />
-                    <input type="hidden" name="seoTitle" value={isEditingSeo ? editedSeoTitle : (seoResult.seo_title || "")} />
-                    <input type="hidden" name="seoDescription" value={isEditingSeo ? editedSeoDescription : (seoResult.seo_description || "")} />
+                    <input type="hidden" name="seoTitle" value={editedSeoTitle} />
+                    <input type="hidden" name="seoDescription" value={editedSeoDescription} />
                     <Button
                       size="large"
                       variant={isSaved ? "secondary" : "primary"}

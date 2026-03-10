@@ -51,6 +51,8 @@
     "seoManagerDesc": "SEOタイトル、ディスクリプション、Altテキストを最適化します。",
     "contactSupport": "サポートに連絡",
     "readTheGuide": "ガイドを読む",
+    "dashboardCard": "ダッシュボード",
+    "dashboardCardDesc": "プランの確認、使用状況とクレジットの追跡、連携の管理。",
     "stepBrandSoul": "ブランドソウルを設定",
     "stepWritingStudio": "ライティングスタジオを試す",
     "stepMarketing": "マーケティングコンテンツを作成",
@@ -395,6 +397,7 @@
     "hideResult": "▾ 結果を非表示",
     "showResult": "▸ 結果を表示",
     "publishToShopify": "Shopifyに公開",
+    "addToProductDescription": "商品説明に追加",
     "published": "公開済み",
     "copy": "コピー",
     "productFaq": "商品FAQ",
@@ -466,7 +469,12 @@
     "analyzing": "🔍 商品画像を分析中...",
     "isolating": "✂️ 背景から商品を切り出し中...",
     "regenerating": "🎨 ブランドに合った背景を再生成中...",
-    "polishing": "✨ 最終仕上げ中..."
+    "polishing": "✨ 最終仕上げ中...",
+    "resultPreview": "結果プレビュー",
+    "before": "変更前",
+    "after": "変更後",
+    "originalAlt": "元の商品画像",
+    "refinedAlt": "最適化された商品画像"
   },
   "compliance": {
     "complianceCheck": "コンプライアンスチェック",
@@ -723,6 +731,8 @@
     "tableFeature": "機能",
     "tableNotes": "備考",
     "planAll": "すべて",
+    "guideLabel": "ガイド",
+    "issuesAndFaqs": "問題とよくある質問",
     "cards": {
       "brand-soul": {
         "title": "Brand Soul",

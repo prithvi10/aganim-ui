@@ -53,7 +53,9 @@
     "seoManager": "SEO Manager",
     "seoManagerDesc": "Optimize SEO titles, descriptions, and alt text.",
     "contactSupport": "Contact Support",
-    "readTheGuide": "Read the Guide"
+    "readTheGuide": "Read the Guide",
+    "dashboardCard": "Dashboard",
+    "dashboardCardDesc": "Monitor your plan, track usage and credits, and manage integrations."
   },
   "onboarding": {
     "setup": "Setup",
@@ -391,6 +393,7 @@
     "hideResult": "▾ Hide Result",
     "showResult": "▸ Show Result",
     "publishToShopify": "Publish to Shopify",
+    "addToProductDescription": "Add to Product Description",
     "published": "Published",
     "copy": "Copy",
     "productFaq": "Product FAQ",
@@ -462,7 +465,12 @@
     "analyzing": "🔍 Analyzing product image...",
     "isolating": "✂️ Isolating product from background...",
     "regenerating": "🎨 Regenerating brand-aligned background...",
-    "polishing": "✨ Polishing final details..."
+    "polishing": "✨ Polishing final details...",
+    "resultPreview": "Result Preview",
+    "before": "Before",
+    "after": "After",
+    "originalAlt": "Original product image",
+    "refinedAlt": "Refined product image"
   },
   "compliance": {
     "complianceCheck": "Compliance Check",
@@ -718,6 +726,8 @@
     "tableFeature": "Feature",
     "tableNotes": "Notes",
     "planAll": "All",
+    "guideLabel": "Guide",
+    "issuesAndFaqs": "Issues & FAQs",
     "cards": {
       "brand-soul": {
         "title": "Brand Soul",
