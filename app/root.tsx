@@ -5,6 +5,7 @@ import {
   Scripts,
   ScrollRestoration,
   useRouteError,
+  useLocation,
   type HeadersFunction,
 } from "react-router";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
@@ -39,8 +40,48 @@ export default function App() {
   );
 }
 
+function PortalErrorFallback({ error }: { error: unknown }) {
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+      </head>
+      <body style={{ fontFamily: "Inter, sans-serif", padding: 40 }}>
+        <h1>Something went wrong</h1>
+        <p>{error instanceof Error ? error.message : "Unexpected error"}</p>
+        <a href="/portal/login">Back to login</a>
+      </body>
+    </html>
+  );
+}
+
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+
+  // On the client, check window.location
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/portal")) {
+    return <PortalErrorFallback error={error} />;
+  }
+
+  // On the server, try useLocation (may throw in some error states)
+  try {
+    const location = useLocation();
+    if (location.pathname.startsWith("/portal")) {
+      return <PortalErrorFallback error={error} />;
+    }
+  } catch {
+    // useLocation can fail in certain error states — if the error itself
+    // was a Response redirect (e.g. from boundary.error), check the error
+    if (error instanceof Response && [302, 301, 307, 308].includes(error.status)) {
+      const loc = error.headers?.get("Location") || "";
+      if (loc.includes("/auth/login") || loc.includes("/auth?")) {
+        return <PortalErrorFallback error={new Error("Shopify auth is not available for this page.")} />;
+      }
+    }
+  }
+
+  return boundary.error(error);
 }
 
 export const headers: HeadersFunction = (headersArgs) => {
