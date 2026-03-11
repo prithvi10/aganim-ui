@@ -101,6 +101,7 @@ export default function App() {
             <s-link href={nav("/app/seo")}>{t("nav.seo")}</s-link>
             <s-link href={nav("/app/pricing")}>{t("nav.pricing")}</s-link>
             <s-link href={nav("/app/dashboard")}>{t("nav.dashboard")}</s-link>
+            <s-link href={nav("/app/support")}>Support</s-link>
           </s-app-nav>
           <Outlet />
         </Frame>
