@@ -29,6 +29,7 @@ import {
   TextField,
   FormLayout,
   Select,
+  Collapsible,
 } from "@shopify/polaris";
 import { PlanCard } from "../components/PlanCard";
 import { PlanGateBadge } from "../components/PlanGateBadge";
@@ -489,6 +490,45 @@ export default function Dashboard() {
     }
   };
 
+  // Concern form state
+  const [concernFormOpen, setConcernFormOpen] = useState(false);
+  const [concernEmail, setConcernEmail] = useState("");
+  const [concernSubject, setConcernSubject] = useState("");
+  const [concernMessage, setConcernMessage] = useState("");
+  const [concernSending, setConcernSending] = useState(false);
+  const [concernSuccess, setConcernSuccess] = useState(false);
+  const [concernError, setConcernError] = useState<string | null>(null);
+
+  const handleConcernSubmit = useCallback(async () => {
+    setConcernSending(true);
+    setConcernError(null);
+    setConcernSuccess(false);
+    try {
+      const resp = await fetch(`${backendApiUrl}/api/admin/submit-concern`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Shop-Domain": shop,
+        },
+        body: JSON.stringify({
+          shop_domain: shop,
+          email: concernEmail.trim(),
+          subject: concernSubject.trim(),
+          message: concernMessage.trim(),
+        }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      setConcernSuccess(true);
+      setConcernEmail("");
+      setConcernSubject("");
+      setConcernMessage("");
+    } catch (e: any) {
+      setConcernError(t("dashboard.concernFailed"));
+    } finally {
+      setConcernSending(false);
+    }
+  }, [backendApiUrl, shop, concernEmail, concernSubject, concernMessage, t]);
+
   const isUnlimited = quotaCount === -1;
   const usagePercent = isUnlimited || quotaCount <= 0 ? 0 : Math.min(100, Math.round((usedCount / quotaCount) * 100));
   const isCritical = usagePercent > 90;
@@ -923,26 +963,90 @@ export default function Dashboard() {
             </Layout.Section>
           )}
 
-          {/* FOOTER */}
+          {/* SUPPORT */}
           <Layout.Section>
-             <BlockStack gap="400">
-                <Banner tone="info" title={t("dashboard.supportTitle")}>
-                  <p>{t("dashboard.supportText")}</p>
-                </Banner>
+            <BlockStack gap="400">
+              <Card>
+                <Box padding="400">
+                  <BlockStack gap="400">
+                    <InlineStack align="space-between" blockAlign="center">
+                      <BlockStack gap="100">
+                        <Text as="h2" variant="headingLg">{t("dashboard.supportTitle")}</Text>
+                        <Text as="p" variant="bodySm" tone="subdued">{t("dashboard.supportText")}</Text>
+                      </BlockStack>
+                      <Button variant="primary" url="/support" target="_blank">
+                        {t("dashboard.openSupportPage")}
+                      </Button>
+                    </InlineStack>
 
-                <InlineStack align="space-between" blockAlign="center">
-                   <InlineStack gap="200">
-                      <Badge tone="success" progress="complete">{t("dashboard.allSystemsOperational")}</Badge>
-                   </InlineStack>
-                  <InlineStack gap="400">
-                      <Text as="span" variant="bodySm" tone="subdued">{t("dashboard.quickStart")}:</Text>
-                      <Link url="/support" target="_blank">{t("dashboard.quickHelp")}</Link>
-                      <Link url="https://docs.crossborder.ai" target="_blank">{t("dashboard.docs")}</Link>
-                      <Link url="#" target="_blank">{t("dashboard.video")}</Link>
-                      <Link url="/privacy-policy" target="_blank">{t("dashboard.privacyPolicy")}</Link>
-                   </InlineStack>
-                </InlineStack>
-             </BlockStack>
+                    <Button
+                      variant="plain"
+                      onClick={() => setConcernFormOpen(!concernFormOpen)}
+                    >
+                      {concernFormOpen ? t("dashboard.hideConcernForm") : t("dashboard.submitAConcern")}
+                    </Button>
+
+                    <Collapsible
+                      open={concernFormOpen}
+                      id="concern-form-collapsible"
+                      transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
+                    >
+                      <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                        <BlockStack gap="300">
+                          {concernSuccess ? (
+                            <Banner tone="success">
+                              {t("dashboard.concernSubmitted")}
+                            </Banner>
+                          ) : null}
+                          {concernError ? (
+                            <Banner tone="critical">{concernError}</Banner>
+                          ) : null}
+
+                          <FormLayout>
+                            <TextField
+                              label={t("dashboard.concernEmail")}
+                              type="email"
+                              value={concernEmail}
+                              onChange={setConcernEmail}
+                              autoComplete="email"
+                              helpText={t("dashboard.concernEmailHelp")}
+                            />
+                            <TextField
+                              label={t("dashboard.concernSubject")}
+                              value={concernSubject}
+                              onChange={setConcernSubject}
+                              autoComplete="off"
+                              requiredIndicator
+                            />
+                            <TextField
+                              label={t("dashboard.concernMessage")}
+                              value={concernMessage}
+                              onChange={setConcernMessage}
+                              multiline={4}
+                              autoComplete="off"
+                              requiredIndicator
+                            />
+                            <Button
+                              variant="primary"
+                              onClick={handleConcernSubmit}
+                              loading={concernSending}
+                              disabled={!concernSubject.trim() || !concernMessage.trim()}
+                            >
+                              {t("dashboard.submitConcern")}
+                            </Button>
+                          </FormLayout>
+                        </BlockStack>
+                      </Box>
+                    </Collapsible>
+                  </BlockStack>
+                </Box>
+              </Card>
+
+              <InlineStack align="space-between" blockAlign="center">
+                <Badge tone="success" progress="complete">{t("dashboard.allSystemsOperational")}</Badge>
+                <Link url="/privacy-policy" target="_blank">{t("dashboard.privacyPolicy")}</Link>
+              </InlineStack>
+            </BlockStack>
           </Layout.Section>
         </Layout>
       </BlockStack>

@@ -77,7 +77,7 @@ const CARD_META: Array<{
 }> = [
   { id: "brand-soul", demoPath: "/support-gifs/brand-soul.mp4", iconImage: "/Brand soul logo.png" },
   { id: "rewriter-workspace", demoPath: "/support-gifs/rewriter-workspace.mp4", icon: EditIcon },
-  { id: "writing-studio", demoPath: "/support-gifs/writing-studio.mp4", icon: EditIcon },
+  { id: "writing-studio", demoPath: "/support-gifs/writing-studio.png", icon: EditIcon },
   { id: "content-templates", demoPath: "/support-gifs/content-templates.mp4", icon: NoteIcon },
   { id: "image-refinement", demoPath: "/support-gifs/image-refinement.mp4", icon: ImageIcon },
   { id: "seo", demoPath: "/support-gifs/seo-editor-ctr.mp4", icon: ChartVerticalIcon },
@@ -236,17 +236,25 @@ export default function SupportPage() {
                 </summary>
 
                 <div className={styles.featureBody}>
-                  {/* Video Demo — full width */}
+                  {/* Demo — full width (video or image) */}
                   <div className={styles.panel}>
-                    <video
-                      src={c.demoPath}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      controls
-                      className={styles.demoVideo}
-                    />
+                    {/\.(png|jpe?g|webp|gif|svg)$/i.test(c.demoPath) ? (
+                      <img
+                        src={c.demoPath}
+                        alt={c.title}
+                        className={styles.demoVideo}
+                      />
+                    ) : (
+                      <video
+                        src={c.demoPath}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        controls
+                        className={styles.demoVideo}
+                      />
+                    )}
                   </div>
 
                   {/* Guide — What + How + Deep Dive merged */}
