@@ -27,7 +27,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { requirePortalAuth, getBackendBaseUrl } from "../utils/portal-auth.server";
+import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
 
 const COLORS = ["#5C6AC4", "#47C1BF", "#F49342", "#DE3618", "#9C6ADE", "#50B83C", "#EEC200", "#007ACE"];
 const PLAN_COLORS: Record<string, string> = { Basic: "#5C6AC4", Standard: "#47C1BF", Pro: "#F49342" };
@@ -39,13 +39,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const [overview, timeseries, tokenUsage, imageCredits, planStats, featureUsage, revenue] =
     await Promise.all([
-      fetch(`${base}/api/superadmin/dashboard/overview`, { headers }).then((r) => r.json()),
-      fetch(`${base}/api/superadmin/dashboard/usage-timeseries?period=30d`, { headers }).then((r) => r.json()),
-      fetch(`${base}/api/superadmin/dashboard/token-usage`, { headers }).then((r) => r.json()),
-      fetch(`${base}/api/superadmin/dashboard/image-credits`, { headers }).then((r) => r.json()),
-      fetch(`${base}/api/superadmin/dashboard/plan-stats`, { headers }).then((r) => r.json()),
-      fetch(`${base}/api/superadmin/dashboard/feature-usage`, { headers }).then((r) => r.json()),
-      fetch(`${base}/api/superadmin/dashboard/revenue`, { headers }).then((r) => r.json()),
+      safeFetchJson(`${base}/api/superadmin/dashboard/overview`, { headers }),
+      safeFetchJson(`${base}/api/superadmin/dashboard/usage-timeseries?period=30d`, { headers }),
+      safeFetchJson(`${base}/api/superadmin/dashboard/token-usage`, { headers }),
+      safeFetchJson(`${base}/api/superadmin/dashboard/image-credits`, { headers }),
+      safeFetchJson(`${base}/api/superadmin/dashboard/plan-stats`, { headers }),
+      safeFetchJson(`${base}/api/superadmin/dashboard/feature-usage`, { headers }),
+      safeFetchJson(`${base}/api/superadmin/dashboard/revenue`, { headers }),
     ]);
 
   return { overview, timeseries, tokenUsage, imageCredits, planStats, featureUsage, revenue };

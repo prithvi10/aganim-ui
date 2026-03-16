@@ -12,23 +12,23 @@ import {
   DataTable,
   Box,
 } from "@shopify/polaris";
-import { requirePortalAuth, getBackendBaseUrl } from "../utils/portal-auth.server";
+import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const token = requirePortalAuth(request);
   const base = getBackendBaseUrl();
   const shopDomain = params.shopDomain!;
 
-  const resp = await fetch(
+  const data = await safeFetchJson(
     `${base}/api/superadmin/merchants/${encodeURIComponent(shopDomain)}`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
 
-  if (!resp.ok) {
-    throw new Response("Merchant not found", { status: 404 });
+  if (data?._error) {
+    throw new Response("Merchant not found", { status: data._status ?? 404 });
   }
 
-  return await resp.json();
+  return data;
 };
 
 export default function MerchantDetail() {

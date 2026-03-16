@@ -86,3 +86,22 @@ export function requirePortalAuth(request: Request): string {
 
   return token;
 }
+
+/**
+ * Fetch JSON from the backend with graceful error handling.
+ * Returns the parsed body on success, or a `{ _error, _status }` object
+ * when the response is non-2xx (e.g. 429 Too Many Requests) instead of
+ * crashing on JSON.parse.
+ */
+export async function safeFetchJson<T = any>(
+  url: string,
+  init?: RequestInit,
+): Promise<T> {
+  const resp = await fetch(url, init);
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "unknown error");
+    console.error(`[Portal] ${resp.status} from ${url}: ${text.slice(0, 200)}`);
+    return { _error: text.slice(0, 200), _status: resp.status } as T;
+  }
+  return resp.json();
+}

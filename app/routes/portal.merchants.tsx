@@ -16,7 +16,7 @@ import {
   Button,
   Tabs,
 } from "@shopify/polaris";
-import { requirePortalAuth, getBackendBaseUrl } from "../utils/portal-auth.server";
+import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const token = requirePortalAuth(request);
@@ -30,8 +30,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const params = new URLSearchParams({ search, plan, page });
 
   const [merchantsResp, limitsResp] = await Promise.all([
-    fetch(`${base}/api/superadmin/merchants?${params}`, { headers }).then((r) => r.json()),
-    fetch(`${base}/api/superadmin/dashboard/approaching-limits?threshold=80`, { headers }).then((r) => r.json()),
+    safeFetchJson(`${base}/api/superadmin/merchants?${params}`, { headers }),
+    safeFetchJson(`${base}/api/superadmin/dashboard/approaching-limits?threshold=80`, { headers }),
   ]);
 
   return { ...merchantsResp, approachingLimits: limitsResp, filters: { search, plan, page: Number(page) } };
