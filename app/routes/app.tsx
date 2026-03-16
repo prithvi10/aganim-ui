@@ -22,11 +22,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const tokenSyncSecret =
     process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
 
-  // Token handshake (fire & forget)
+  // Token handshake — await so the token is persisted before complete-install
   try {
     if (tokenSyncSecret && session?.accessToken) {
       const tokenType = session.isOnline ? "online" : "offline";
-      fetch(`${backendApiUrl}/api/admin/sync-token`, {
+      await fetch(`${backendApiUrl}/api/admin/sync-token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -38,10 +38,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           token_type: tokenType,
           force: true,
         }),
-      }).catch((e) => console.error("[Token Sync] Background failed", e));
+      });
     }
   } catch (e) {
     console.error("[Token Sync] Error", e);
+  }
+
+  // Fetch shop email from Shopify + send welcome email (deferred so token is active)
+  try {
+    await fetch(
+      `${backendApiUrl}/api/admin/complete-install?shop=${encodeURIComponent(session.shop)}`,
+      { method: "POST" },
+    );
+  } catch (e) {
+    console.error("[CompleteInstall] Error", e);
   }
 
   // Fetch ui_language from backend usage endpoint
