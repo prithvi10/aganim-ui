@@ -15,5 +15,3 @@ export function trailError(...args: any[]) {
   // eslint-disable-next-line no-console
   console.error(...args);
 }
-
-

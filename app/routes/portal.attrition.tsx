@@ -26,7 +26,7 @@ import {
   PieChart,
   Pie,
 } from "recharts";
-import { requirePortalAuth, getBackendBaseUrl } from "../utils/portal-auth.server";
+import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
 
 const COLORS = ["#5C6AC4", "#47C1BF", "#F49342", "#DE3618", "#9C6ADE", "#50B83C"];
 const PLAN_COLORS: Record<string, string> = { Free: "#9C6ADE", Basic: "#5C6AC4", Standard: "#47C1BF", Pro: "#F49342" };
@@ -38,10 +38,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const days = url.searchParams.get("days") || "30";
   const headers = { Authorization: `Bearer ${token}` };
 
-  const data = await fetch(
+  const data = await safeFetchJson(
     `${base}/api/superadmin/dashboard/attrition?days=${days}`,
     { headers },
-  ).then((r) => r.json());
+  );
 
   return { ...data, selectedDays: days };
 };

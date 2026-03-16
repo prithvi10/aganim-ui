@@ -17,7 +17,7 @@ import {
   Modal,
   TextField,
 } from "@shopify/polaris";
-import { requirePortalAuth, getBackendBaseUrl } from "../utils/portal-auth.server";
+import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const token = requirePortalAuth(request);
@@ -31,8 +31,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const params = new URLSearchParams({ status, shop, page });
 
   const [missions, stuck] = await Promise.all([
-    fetch(`${base}/api/superadmin/missions?${params}`, { headers }).then((r) => r.json()),
-    fetch(`${base}/api/superadmin/missions/stuck`, { headers }).then((r) => r.json()),
+    safeFetchJson(`${base}/api/superadmin/missions?${params}`, { headers }),
+    safeFetchJson(`${base}/api/superadmin/missions/stuck`, { headers }),
   ]);
 
   return { ...missions, stuck, filters: { status, shop, page: Number(page) } };

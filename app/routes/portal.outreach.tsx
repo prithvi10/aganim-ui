@@ -18,7 +18,7 @@ import {
   Modal,
   Divider,
 } from "@shopify/polaris";
-import { requirePortalAuth, getBackendBaseUrl } from "../utils/portal-auth.server";
+import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -60,18 +60,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const base = getBackendBaseUrl();
   const headers = { Authorization: `Bearer ${token}` };
 
-  const [histResp, allCount, proCount, oldCount] = await Promise.all([
-    fetch(`${base}/api/superadmin/outreach/history?page_size=3`, { headers }),
-    fetch(`${base}/api/superadmin/outreach/recipients/count?recipient_filter=all_active`, { headers }).catch(() => null),
-    fetch(`${base}/api/superadmin/outreach/recipients/count?recipient_filter=pro_only`, { headers }).catch(() => null),
-    fetch(`${base}/api/superadmin/outreach/recipients/count?recipient_filter=installed_14d_ago`, { headers }).catch(() => null),
+  const [histData, allCount, proCount, oldCount] = await Promise.all([
+    safeFetchJson(`${base}/api/superadmin/outreach/history?page_size=3`, { headers }),
+    safeFetchJson<{ count?: number }>(`${base}/api/superadmin/outreach/recipients/count?recipient_filter=all_active`, { headers }).catch(() => null),
+    safeFetchJson<{ count?: number }>(`${base}/api/superadmin/outreach/recipients/count?recipient_filter=pro_only`, { headers }).catch(() => null),
+    safeFetchJson<{ count?: number }>(`${base}/api/superadmin/outreach/recipients/count?recipient_filter=installed_14d_ago`, { headers }).catch(() => null),
   ]);
 
-  const histData = await histResp.json();
   const counts: Record<string, number> = {};
-  if (allCount?.ok) counts.all_active = (await allCount.json()).count;
-  if (proCount?.ok) counts.pro_only = (await proCount.json()).count;
-  if (oldCount?.ok) counts.installed_14d_ago = (await oldCount.json()).count;
+  if (allCount?.count != null) counts.all_active = allCount.count;
+  if (proCount?.count != null) counts.pro_only = proCount.count;
+  if (oldCount?.count != null) counts.installed_14d_ago = oldCount.count;
 
   return { ...histData, counts };
 };
