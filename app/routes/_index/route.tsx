@@ -1,8 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { Link, redirect } from "react-router";
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { useEffect } from "react";
 import {
   ArrowRight,
   Layers,
@@ -11,18 +9,21 @@ import {
   Zap,
   Globe,
   ShieldCheck,
+  Search,
+  Megaphone,
+  Target,
 } from "lucide-react";
+import {
+  LandingHeader,
+  LandingFooter,
+  Reveal,
+} from "../../components/LandingLayout";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
 
   if (shop) {
-    // Shopify loads the app at the configured application_url (origin), so embedded loads land on `/`.
-    // We run the reinstall "pathfinder" HERE (one-time entry), then send the merchant to:
-    // - /app/dashboard (paid grace OR free with credits)
-    // - /app/pricing?returning_paid=1 (expired paid)
-    // - /app/pricing (free no credits)
     const backendApiUrl =
       process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
     try {
@@ -39,7 +40,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         throw redirect(`${target.pathname}${target.search}`);
       }
     } catch (e) {
-      // ignore and fall back
+      if (e instanceof Response) throw e;
     }
 
     url.pathname = "/app";
@@ -49,24 +50,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return null;
 };
 
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  transition: { duration: 0.7, ease: "easeOut" },
-  viewport: { once: true, amount: 0.3 },
-};
-
-type RevealProps = {
-  children: ReactNode;
-  className?: string;
-};
-
-const Reveal = ({ children, className }: RevealProps) => (
-  <motion.div {...fadeUp} className={className}>
-    {children}
-  </motion.div>
-);
-
+/* ------------------------------------------------------------------ */
+/*  Hero                                                               */
+/* ------------------------------------------------------------------ */
 const Hero = () => (
   <section id="hero" className="relative overflow-hidden pt-28">
     <div className="absolute inset-0 -z-10">
@@ -84,7 +70,7 @@ const Hero = () => (
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-slate-200">
           Localized storytelling, competitive SEO intelligence, and brand-aware
-          translations for Shopify, Shopee, and beyond.
+          translations — purpose-built for Shopify merchants selling worldwide.
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
           <Link
@@ -131,10 +117,22 @@ const Hero = () => (
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-slate-400">Shopify</p>
-                    <p className="text-sm text-white">SEO Benchmarking</p>
+                    <p className="text-xs text-slate-400">Brand Soul</p>
+                    <p className="text-sm text-white">Identity & Tone</p>
                   </div>
-                  <LineChart className="h-5 w-5 text-sky-300" />
+                  <Sparkles className="h-5 w-5 text-fuchsia-300" />
+                </div>
+                <div className="mt-3 h-2 w-full rounded-full bg-white/10">
+                  <div className="h-2 w-full rounded-full bg-gradient-to-r from-fuchsia-400 to-amber-300" />
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-400">Rewriter</p>
+                    <p className="text-sm text-white">Localized Copy</p>
+                  </div>
+                  <Globe className="h-5 w-5 text-sky-300" />
                 </div>
                 <div className="mt-3 h-2 w-full rounded-full bg-white/10">
                   <div className="h-2 w-2/3 rounded-full bg-gradient-to-r from-sky-400 to-fuchsia-400" />
@@ -143,20 +141,8 @@ const Hero = () => (
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-slate-400">Shopee</p>
-                    <p className="text-sm text-white">Localized Listings</p>
-                  </div>
-                  <Globe className="h-5 w-5 text-fuchsia-300" />
-                </div>
-                <div className="mt-3 h-2 w-full rounded-full bg-white/10">
-                  <div className="h-2 w-3/4 rounded-full bg-gradient-to-r from-fuchsia-400 to-amber-300" />
-                </div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-slate-400">Enterprise</p>
-                    <p className="text-sm text-white">Bulk API Localization</p>
+                    <p className="text-xs text-slate-400">Missions</p>
+                    <p className="text-sm text-white">Automated Pipelines</p>
                   </div>
                   <Zap className="h-5 w-5 text-emerald-300" />
                 </div>
@@ -173,149 +159,182 @@ const Hero = () => (
   </section>
 );
 
-const ChannelShowcase = () => {
-  const [activeTab, setActiveTab] = useState<"shopify" | "enterprise">("shopify");
+/* ------------------------------------------------------------------ */
+/*  Shopify Showcase (simplified — no Shopee tab)                      */
+/* ------------------------------------------------------------------ */
+const ShopifyShowcase = () => (
+  <section id="solutions" className="scroll-mt-28 py-24">
+    <div className="mx-auto max-w-6xl px-6">
+      <Reveal>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-slate-400">
+              Built for Shopify
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+              SEO competitor benchmarking built for Shopify themes.
+            </h2>
+            <p className="mt-4 max-w-2xl text-base text-slate-300">
+              Track the top ranking pages, mirror winning metadata, and deploy
+              translations directly into theme app embeds without touching your
+              code.
+            </p>
+          </div>
+          <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-1 text-sm">
+            <span className="rounded-full bg-white px-4 py-2 text-slate-900">
+              Shopify
+            </span>
+          </div>
+        </div>
+      </Reveal>
+      <Reveal className="mt-10">
+        <div className="grid gap-6 rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/70 via-slate-900/50 to-slate-950 p-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">
+              Shopify
+            </div>
+            <h3 className="text-2xl font-semibold text-white">
+              End-to-end localization across 12 markets.
+            </h3>
+            <p className="text-slate-300">
+              Rewrite product listings in brand-safe copy, inject LSI keywords,
+              optimize SEO metadata, and publish translations — all from one
+              workspace.
+            </p>
+            <div className="grid gap-3 text-sm text-slate-200">
+              <div className="flex items-center gap-3">
+                <LineChart className="h-5 w-5 text-sky-300" />
+                SERP analysis with geo-intent clustering.
+              </div>
+              <div className="flex items-center gap-3">
+                <Layers className="h-5 w-5 text-fuchsia-300" />
+                Theme app embeds for localized PDPs.
+              </div>
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-5 w-5 text-emerald-300" />
+                Guardrails for brand-safe translations.
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <div className="text-xs uppercase tracking-[0.25em] text-slate-400">
+              Live channel view
+            </div>
+            <div className="mt-4 space-y-4">
+              {[
+                {
+                  title: "Localized Titles",
+                  desc: "Context-aware, brand-safe rewrites.",
+                },
+                {
+                  title: "SEO Metadata",
+                  desc: "LSI enrichment + competitor mirroring.",
+                },
+                {
+                  title: "QA Loop",
+                  desc: "Multi-agent validation workflow.",
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-xl border border-white/10 bg-slate-950/40 p-4"
+                >
+                  <p className="text-sm font-semibold text-white">
+                    {item.title}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-300">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Reveal>
+    </div>
+  </section>
+);
 
-  return (
-    <section id="solutions" className="scroll-mt-28 py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <Reveal>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-400">
-                Multi-channel ready
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
-                One engine, every marketplace.
-              </h2>
-              <p className="mt-4 max-w-2xl text-base text-slate-300">
-                Switch between platforms to see how Cross-Border AI adapts
-                workflows, metadata, and SEO strategy for each channel.
-              </p>
-            </div>
-            <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-1 text-sm">
-              <button
-                type="button"
-                onClick={() => setActiveTab("shopify")}
-                className={`rounded-full px-4 py-2 transition ${
-                  activeTab === "shopify"
-                    ? "bg-white text-slate-900"
-                    : "text-slate-300 hover:text-white"
-                }`}
-              >
-                Shopify
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("enterprise")}
-                className={`rounded-full px-4 py-2 transition ${
-                  activeTab === "enterprise"
-                    ? "bg-white text-slate-900"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Shopee / Enterprise
-                <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300">
-                  Coming soon
-                </span>
-              </button>
-            </div>
-          </div>
-        </Reveal>
-        <Reveal className="mt-10">
-          <div className="grid gap-6 rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/70 via-slate-900/50 to-slate-950 p-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">
-                {activeTab === "shopify" ? "Shopify" : "Shopee / Enterprise"}
-              </div>
-              <h3 className="text-2xl font-semibold text-white">
-                {activeTab === "shopify"
-                  ? "SEO competitor benchmarking built for Shopify themes."
-                  : "Bulk, high-speed API localization for catalog-scale teams."}
-              </h3>
-              <p className="text-slate-300">
-                {activeTab === "shopify"
-                  ? "Track the top ranking pages, mirror winning metadata, and deploy translations directly into theme app embeds without touching your code."
-                  : "Queue tens of thousands of SKUs, sync localized catalogs to marketplaces, and orchestrate workflows through secured enterprise APIs."}
-              </p>
-              <div className="grid gap-3 text-sm text-slate-200">
-                {activeTab === "shopify" ? (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <LineChart className="h-5 w-5 text-sky-300" />
-                      SERP analysis with geo-intent clustering.
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Layers className="h-5 w-5 text-fuchsia-300" />
-                      Theme app embeds for localized PDPs.
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <ShieldCheck className="h-5 w-5 text-emerald-300" />
-                      Guardrails for brand-safe translations.
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <Zap className="h-5 w-5 text-amber-300" />
-                      Async pipelines with retry-safe batching.
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Globe className="h-5 w-5 text-sky-300" />
-                      Multi-lingual listings in minutes, not weeks.
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <ShieldCheck className="h-5 w-5 text-emerald-300" />
-                      Secure audit logs and compliance controls.
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-400">
-                Live channel view
-              </div>
-              <div className="mt-4 space-y-4">
-                {[
-                  {
-                    title: "Localized Titles",
-                    desc:
-                      activeTab === "shopify"
-                        ? "Context-aware, brand-safe rewrites."
-                        : "Bulk API translations with brand guardrails.",
-                  },
-                  {
-                    title: "SEO Metadata",
-                    desc:
-                      activeTab === "shopify"
-                        ? "LSI enrichment + competitor mirroring."
-                        : "Regional SEO keyword overlays.",
-                  },
-                  {
-                    title: "QA Loop",
-                    desc:
-                      activeTab === "shopify"
-                        ? "Multi-agent validation workflow."
-                        : "Enterprise QA automation hooks.",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-xl border border-white/10 bg-slate-950/40 p-4"
-                  >
-                    <p className="text-sm font-semibold text-white">{item.title}</p>
-                    <p className="mt-1 text-xs text-slate-300">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-};
+/* ------------------------------------------------------------------ */
+/*  Brand Soul icon — heart + DNA helix, matching the reference image  */
+/* ------------------------------------------------------------------ */
+const BrandSoulIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path
+      d="M12 21 C12 21 3 15 3 8.5 C3 5.5 5.5 3 8.5 3 C10.2 3 11.7 3.8 12 5 C12.3 3.8 13.8 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 15 12 21 12 21Z"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    />
+  </svg>
+);
+
+/* ------------------------------------------------------------------ */
+/*  AI Rewriter icon — writing pencil with AI sparkle                  */
+/* ------------------------------------------------------------------ */
+const RewriterIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    {/* Large 4-point sparkle — top-left */}
+    <path
+      d="M8 4 L10 10 L16 12 L10 14 L8 20 L6 14 L0 12 L6 10 Z"
+      fill="currentColor"
+    />
+    {/* Small 4-point sparkle — below-left of the large one */}
+    <path
+      d="M3 22 L4 24.5 L6.5 25.5 L4 26.5 L3 29 L2 26.5 L-0.5 25.5 L2 24.5 Z"
+      fill="#38bdf8"
+    />
+    {/* Pencil — solid filled, tilted right */}
+    <g transform="translate(18, 2) rotate(20)">
+      {/* Pencil body */}
+      <rect x="0" y="0" width="7" height="22" rx="1" fill="currentColor" />
+      {/* Pencil tip */}
+      <path d="M0 22 L3.5 29 L7 22 Z" fill="currentColor" />
+      {/* Tip accent — lighter point */}
+      <path d="M2 24 L3.5 28 L5 24 Z" fill="#38bdf8" />
+      {/* Band near top */}
+      <rect x="0" y="3" width="7" height="1.5" fill="rgba(255,255,255,0.25)" />
+      {/* Small check/tick mark on pencil body */}
+      <path d="M2 12 L3.2 13.5 L5.5 10" stroke="rgba(255,255,255,0.5)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </g>
+  </svg>
+);
+
+/* ------------------------------------------------------------------ */
+/*  Feature Grid (6 preview cards)                                     */
+/* ------------------------------------------------------------------ */
+const PREVIEW_FEATURES: Array<{
+  title: string;
+  desc: string;
+  icon?: React.ComponentType<{ className?: string }>;
+}> = [
+  {
+    title: "Brand Soul",
+    desc: "Define your brand identity — archetype, tone, power words, banned phrases, and cultural touchpoints — to power all AI-generated content.",
+    icon: BrandSoulIcon,
+  },
+  {
+    title: "AI Rewriter",
+    desc: "Generate localized drafts (title + HTML description + SEO title/meta) per market and save translations back to Shopify.",
+    icon: RewriterIcon,
+  },
+  {
+    title: "Missions",
+    desc: "Run multi-agent AI pipelines that chain Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows.",
+    icon: Zap,
+  },
+  {
+    title: "SEO",
+    desc: "Edit SEO title/meta with SERP preview, apply CTR best practices, use competitor intel, and follow recommendations.",
+    icon: Target,
+  },
+  {
+    title: "Price Scout",
+    desc: "Analyze competitor pricing from Google search results and get AI-powered pricing recommendations.",
+    icon: Search,
+  },
+  {
+    title: "Marketing",
+    desc: "Generate social media captions, ad copy, seasonal campaigns, email templates, and hero images — with optional Meta autonomous publishing.",
+    icon: Megaphone,
+  },
+];
 
 const FeatureGrid = () => (
   <section id="features" className="scroll-mt-28 py-24">
@@ -330,87 +349,119 @@ const FeatureGrid = () => (
           </h2>
           <p className="mt-4 text-base text-slate-300">
             Build durable rankings and consistent brand voice, no matter the
-            language or channel.
+            language or market.
           </p>
         </div>
       </Reveal>
-      <div className="mt-12 grid gap-6 lg:grid-cols-3">
-        {[
-          {
-            title: "Strategic RAG",
-            desc: "Learns your brand history to write authentic copy.",
-            icon: Sparkles,
-          },
-          {
-            title: "SERP Intelligence",
-            desc: "Outrank US competitors by mirroring the winners.",
-            icon: LineChart,
-          },
-          {
-            title: "Dual-Engine Precision",
-            desc: "One AI for creativity, one AI for technical specs.",
-            icon: Layers,
-          },
-        ].map((feature) => (
+
+      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {PREVIEW_FEATURES.map((f) => (
           <Reveal
-            key={feature.title}
-            className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-6 shadow-lg"
+            key={f.title}
+            className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-6 shadow-lg"
           >
-            <feature.icon className="h-7 w-7 text-fuchsia-300" />
+            {f.icon && <f.icon className="h-7 w-7 text-fuchsia-300" />}
             <h3 className="mt-4 text-xl font-semibold text-white">
-              {feature.title}
+              {f.title}
             </h3>
-            <p className="mt-2 text-sm text-slate-300">{feature.desc}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              {f.desc}
+            </p>
           </Reveal>
         ))}
       </div>
+
+      <Reveal className="mt-10 text-center">
+        <Link
+          to="/features"
+          className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/60"
+        >
+          See All Features
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </Reveal>
     </div>
   </section>
 );
 
+/* ------------------------------------------------------------------ */
+/*  Pricing (matches planCatalog.ts)                                   */
+/* ------------------------------------------------------------------ */
 type PricingTier = {
   name: string;
   price: string;
+  period: string;
   description: string;
+  productLimit: string;
   features: string[];
+  badge?: string;
   highlight?: boolean;
 };
 
 const Pricing = () => {
   const tiers: PricingTier[] = [
     {
-      name: "Basic",
-      price: "$79",
-      description: "For emerging brands testing new regions.",
+      name: "Free",
+      price: "$0",
+      period: "forever",
+      description: "Try everything, limited access.",
+      productLimit: "10 products (1 week trial)",
       features: [
-        "Localized product titles & descriptions",
-        "LSI keyword injection",
-        "RAG brand memory (lite)",
-        "Multi-channel export (Shopify)",
+        "AI product rewrite (title + description)",
+        "SEO title + meta description",
+        "Instagram captions + hashtags",
+        "Competitive pricing analysis",
+        "Full product launch mission",
+        "Image refinement",
+      ],
+    },
+    {
+      name: "Basic",
+      price: "$29",
+      period: "/ month",
+      description: "For emerging brands testing new regions.",
+      productLimit: "50 products / month",
+      features: [
+        "AI rewrite + Key Details auto-detected",
+        "EN unit conversion (metric + US)",
+        "Instagram captions + hashtags",
+        "Seasonal campaign ideas",
+        "Text-only mission (Rewriter + Marketing)",
       ],
     },
     {
       name: "Standard",
-      price: "$199",
-      description: "Best Value for scaling multi-store growth.",
+      price: "$79",
+      period: "/ month",
+      description: "Full toolkit, one market at a time.",
+      productLimit: "Unlimited products",
       features: [
-        "Full SERP intelligence suite",
-        "Multi-agent SEO loops",
-        "Brand-safe RAG + QA workflow",
-        "Theme app embeds & sync",
+        "Everything in Basic",
+        "12 target markets (single locale per rewrite)",
+        "Brand tones: Luxury / Minimalist / Playful",
+        "SEO editor + SERP preview",
+        "Competitive pricing analysis",
+        "Full text pipeline missions",
       ],
+      badge: "Best Value",
       highlight: true,
     },
     {
       name: "Pro",
-      price: "$449",
-      description: "For enterprise localization teams.",
+      price: "$199",
+      period: "/ month",
+      description: "Go global — bulk-generate for all 12 markets at once.",
+      productLimit: "Unlimited products",
       features: [
-        "Bulk API localization",
-        "Advanced multi-agent validation",
-        "Competitive SEO benchmarking",
-        "Dedicated growth strategist",
+        "Everything in Standard",
+        "Multi-market bulk generation (all 12 locales)",
+        "Visual Ad generation + Social Post preview",
+        "Auto-apply price to Shopify",
+        "Image refinement across all features",
+        "Agentic workflows + Publish to Shopify",
+        "Meta (Facebook/Instagram) integration",
       ],
+      badge: "Most Popular",
     },
   ];
 
@@ -426,37 +477,43 @@ const Pricing = () => {
               Choose the plan that matches your expansion.
             </h2>
             <p className="mt-4 max-w-2xl text-base text-slate-300">
-              Transparent pricing with SEO features included in every tier.
+              Start free and scale as you grow. SEO, marketing, and missions
+              included in every tier.
             </p>
           </div>
         </Reveal>
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {tiers.map((tier) => (
             <Reveal
               key={tier.name}
-              className={`relative rounded-3xl border ${
+              className={`relative flex flex-col rounded-3xl border ${
                 tier.highlight
                   ? "border-fuchsia-400/60 bg-gradient-to-br from-fuchsia-500/20 via-slate-950 to-slate-950"
                   : "border-white/10 bg-white/5"
               } p-6 shadow-lg`}
             >
-              {tier.highlight && (
-                <div className="absolute -top-3 right-6 rounded-full bg-fuchsia-500 px-3 py-1 text-xs font-semibold text-white">
-                  Best Value
+              {tier.badge && (
+                <div
+                  className={`absolute -top-3 right-6 rounded-full px-3 py-1 text-xs font-semibold text-white ${
+                    tier.highlight ? "bg-fuchsia-500" : "bg-sky-500"
+                  }`}
+                >
+                  {tier.badge}
                 </div>
               )}
               <h3 className="text-xl font-semibold text-white">{tier.name}</h3>
+              <p className="mt-1 text-xs text-slate-400">{tier.productLimit}</p>
               <p className="mt-2 text-sm text-slate-300">{tier.description}</p>
               <div className="mt-6 flex items-end gap-2">
                 <span className="text-4xl font-semibold text-white">
                   {tier.price}
                 </span>
-                <span className="text-sm text-slate-400">/ month</span>
+                <span className="text-sm text-slate-400">{tier.period}</span>
               </div>
-              <ul className="mt-6 space-y-3 text-sm text-slate-200">
+              <ul className="mt-6 flex-1 space-y-3 text-sm text-slate-200">
                 {tier.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-fuchsia-300" />
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-fuchsia-300" />
                     {feature}
                   </li>
                 ))}
@@ -469,7 +526,7 @@ const Pricing = () => {
                     : "border border-white/20 text-white hover:border-white/60"
                 }`}
               >
-                Get started
+                {tier.name === "Free" ? "Start Free" : "Get started"}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Reveal>
@@ -480,6 +537,9 @@ const Pricing = () => {
   );
 };
 
+/* ------------------------------------------------------------------ */
+/*  CTA                                                                */
+/* ------------------------------------------------------------------ */
 const CTASection = () => (
   <section className="py-24">
     <div className="mx-auto max-w-6xl px-6">
@@ -493,8 +553,8 @@ const CTASection = () => (
             Ready to launch everywhere?
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base text-slate-200">
-            Start with Shopify today, then expand into Shopee and enterprise
-            channels as we roll out new integrations.
+            Start free, scale globally. Localize products, optimize SEO, and
+            automate marketing — all from one Shopify app.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
             <Link
@@ -504,12 +564,12 @@ const CTASection = () => (
               Start Your Global Journey
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <a
-              href="#features"
+            <Link
+              to="/features"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/60"
             >
               Explore Features
-            </a>
+            </Link>
           </div>
         </div>
       </Reveal>
@@ -517,7 +577,10 @@ const CTASection = () => (
   </section>
 );
 
-export default function App() {
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
+export default function LandingPage() {
   useEffect(() => {
     const root = document.documentElement;
     const previous = root.style.scrollBehavior;
@@ -529,60 +592,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
-      <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-slate-950/70 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-3 text-sm font-semibold">
-            <img
-              src="/Icon-final.png"
-              alt="Cross-Border AI"
-              className="h-8 w-8"
-            />
-            Cross-Border AI
-          </Link>
-          <nav className="hidden items-center gap-8 text-sm text-slate-300 md:flex">
-            <a href="#features" className="transition hover:text-white">
-              Features
-            </a>
-            <a href="#solutions" className="transition hover:text-white">
-              Solutions
-            </a>
-            <a href="#pricing" className="transition hover:text-white">
-              Pricing
-            </a>
-          </nav>
-          <Link
-            to="/login"
-            className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-white transition hover:border-white/60"
-          >
-            Login
-          </Link>
-        </div>
-      </header>
+      <LandingHeader />
 
       <main className="space-y-10">
         <Hero />
-        <ChannelShowcase />
+        <ShopifyShowcase />
         <FeatureGrid />
         <Pricing />
         <CTASection />
       </main>
 
-      <footer className="border-t border-white/10 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
-          <p>© 2026 Cross-Border AI. All rights reserved.</p>
-          <div className="flex flex-wrap gap-6">
-            <Link to="/support" className="transition hover:text-white">
-              Support
-            </Link>
-            <Link to="/privacy-policy" className="transition hover:text-white">
-              Privacy Policy
-            </Link>
-            <Link to="/login" className="transition hover:text-white">
-              Login
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }
