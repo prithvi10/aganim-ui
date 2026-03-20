@@ -153,7 +153,7 @@ export const PLAN_CATALOG: PlanCardModel[] = [
         title: "Rewriter",
         features: [
           { label: "Everything in Standard", included: true },
-          { label: "Multi-market bulk generation (all 12 locales at once)", included: true, highlight: true },
+          { label: "Bulk inventory setup", included: true, highlight: true },
           { label: "Priority AI model", included: true },
         ],
       },

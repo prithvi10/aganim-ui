@@ -454,7 +454,7 @@ const Pricing = () => {
       productLimit: "Unlimited products",
       features: [
         "Everything in Standard",
-        "Multi-market bulk generation (all 12 locales)",
+        "Bulk inventory setup",
         "Visual Ad generation + Social Post preview",
         "Auto-apply price to Shopify",
         "Image refinement across all features",
