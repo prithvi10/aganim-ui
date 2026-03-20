@@ -22,10 +22,7 @@ function FeatureRow({ feature }: { feature: PlanFeature }) {
             {
               icon: CheckIcon,
               description: (
-                <InlineStack gap="200" blockAlign="center" wrap={false}>
-                  <span style={{ fontWeight: 600 }}>{feature.label}</span>
-                  <Badge tone="info">Pro</Badge>
-                </InlineStack>
+                <span style={{ fontWeight: 600 }}>{feature.label}</span>
               ) as unknown as string,
             },
           ]}
