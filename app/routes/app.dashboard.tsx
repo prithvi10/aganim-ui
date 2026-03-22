@@ -818,7 +818,6 @@ export default function Dashboard() {
                                       },
                                     ]}
                                   />
-                                  <PlanGateBadge tierName={f.tier} />
                                 </InlineStack>
                               ))}
                             </BlockStack>

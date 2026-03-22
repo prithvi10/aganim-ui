@@ -75,7 +75,7 @@ const CARD_META: Array<{
   icon?: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   iconImage?: string;
 }> = [
-  { id: "brand-soul", demoPath: "/support-gifs/brand-soul.mp4", iconImage: "/Brand soul logo.png" },
+  { id: "brand-soul", demoPath: "/support-gifs/brand-soul.mp4", iconImage: "/landing%20page/Brand%20soul%20logo.png" },
   { id: "rewriter-workspace", demoPath: "/support-gifs/rewriter-workspace.mp4", icon: EditIcon },
   { id: "writing-studio", demoPath: "/support-gifs/writing-studio.png", icon: EditIcon },
   { id: "content-templates", demoPath: "/support-gifs/content-templates.mp4", icon: NoteIcon },

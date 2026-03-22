@@ -24,6 +24,8 @@ import {
   type WorkflowStep,
   type MissionExtraContext,
 } from "../components/MissionArchitect";
+import { BulkUploadWizard } from "../components/BulkUploadWizard";
+import { BulkMissionStatus } from "../components/BulkMissionStatus";
 import { formatUsage, type Entitlements, type FeatureUsageMap } from "../utils/entitlements";
 import "../styles/optimize-button.css";
 
@@ -209,6 +211,10 @@ export default function OptimizePage() {
   const [toastSuccess, setToastSuccess] = useState(true);
   const [viewingSavedMission, setViewingSavedMission] = useState(false);
 
+  // Bulk upload state
+  const [bulkMissionType, setBulkMissionType] = useState<"text_only" | "full_launch" | null>(null);
+  const [bulkMissionId, setBulkMissionId] = useState<string | null>(null);
+
   // ── Product selection (syncs to URL) ────────────────────────────────────
 
   const handleProductChange = useCallback(
@@ -336,6 +342,42 @@ export default function OptimizePage() {
     };
   }, [selectedProduct]);
 
+  // ── Auth token helper ────────────────────────────────────────────────────
+
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    try {
+      return await getSessionToken(app);
+    } catch {
+      return null;
+    }
+  }, [app]);
+
+  // ── Bulk upload handlers ───────────────────────────────────────────────
+
+  const handleBulkSelect = useCallback((type: "text_only" | "full_launch") => {
+    setBulkMissionType(type);
+    setBulkMissionId(null);
+  }, []);
+
+  const handleBulkBack = useCallback(() => {
+    setBulkMissionType(null);
+    setBulkMissionId(null);
+  }, []);
+
+  const handleBulkLaunched = useCallback((id: string) => {
+    setBulkMissionId(id);
+  }, []);
+
+  const handleBulkReset = useCallback(() => {
+    setBulkMissionType(null);
+    setBulkMissionId(null);
+  }, []);
+
+  const handleBulkMissionClick = useCallback((id: string) => {
+    setBulkMissionId(id);
+    setBulkMissionType(null);
+  }, []);
+
   // ── Resume a paused mission from history ────────────────────────────────
 
   const handleResumeMission = useCallback((resumeId: string) => {
@@ -407,7 +449,7 @@ export default function OptimizePage() {
           <Layout.Section>
             <BlockStack gap="400">
               {/* ── Mission usage counter ───────────────────────────────── */}
-              {!missionId && (() => {
+              {!missionId && !bulkMissionType && !bulkMissionId && (() => {
                 const missionsStr = formatUsage(feature_usage.missions, false);
                 return missionsStr ? (
                   <InlineStack gap="200" blockAlign="center">
@@ -418,13 +460,41 @@ export default function OptimizePage() {
                 ) : null;
               })()}
 
+              {/* ── Bulk Upload Wizard ────────────────────────────────────── */}
+              {bulkMissionType && !bulkMissionId && !missionId && (
+                <BulkUploadWizard
+                  missionType={bulkMissionType}
+                  backendApiUrl={backendApiUrl}
+                  shop={shop}
+                  defaultTargetLocale={defaultTargetLocale}
+                  imageCreditsRemaining={
+                    150 - ((feature_usage?.image_generation as any)?.used ?? 0)
+                  }
+                  onBack={handleBulkBack}
+                  onLaunched={handleBulkLaunched}
+                  getAuthToken={getAuthToken}
+                />
+              )}
+
+              {/* ── Bulk Mission Status ───────────────────────────────────── */}
+              {bulkMissionId && (
+                <BulkMissionStatus
+                  bulkMissionId={bulkMissionId}
+                  backendApiUrl={backendApiUrl}
+                  shop={shop}
+                  onReset={handleBulkReset}
+                  getAuthToken={getAuthToken}
+                />
+              )}
+
               {/* ── Mission Architect Wizard ─────────────────────────────── */}
-              {!missionId && (
+              {!missionId && !bulkMissionType && !bulkMissionId && (
                 <MissionArchitect
                   products={products}
                   selectedProductId={selectedProduct?.id || ""}
                   onProductChange={handleProductChange}
                   onStartMission={handleOptimize}
+                  onBulkSelect={handleBulkSelect}
                   isRunning={isOptimizing}
                   planTier={planName}
                   entitlements={entitlements}
@@ -473,12 +543,13 @@ export default function OptimizePage() {
               )}
 
               {/* Mission History */}
-              {!missionId && (
+              {!missionId && !bulkMissionType && !bulkMissionId && (
                 <MissionHistory
                   apiBaseUrl={backendApiUrl}
                   shop={shop}
                   onResumeMission={handleResumeMission}
-                  limit={5}
+                  onBulkMissionClick={handleBulkMissionClick}
+                  limit={10}
                 />
               )}
             </BlockStack>
