@@ -427,7 +427,7 @@ export default function LandingPage() {
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
                 <InlineStack align="start" gap="200" blockAlign="center">
-                  <img src="/Brand soul logo.png" alt="" style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 4 }} />
+                  <img src="/landing%20page/Brand%20soul%20logo.png" alt="" style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 4 }} />
                   <Text as="h2" variant="headingLg">
                         {t("home.brandSoul")}
                       </Text>

@@ -26,6 +26,7 @@ interface MissionListItem {
   error_message: string | null;
   product_name: string | null;
   mission_title: string | null;
+  is_bulk_parent?: boolean;
 }
 
 interface MissionHistoryProps {
@@ -35,6 +36,8 @@ interface MissionHistoryProps {
   onResumeMission?: (missionId: string) => void;
   /** Called when user clicks "View Details" on a completed mission */
   onViewMission?: (missionId: string, state: MissionState) => void;
+  /** Called when user clicks a bulk parent mission to view its status */
+  onBulkMissionClick?: (bulkMissionId: string) => void;
   /** Maximum number of missions to display */
   limit?: number;
 }
@@ -46,6 +49,7 @@ export function MissionHistory({
   shop,
   onResumeMission,
   onViewMission,
+  onBulkMissionClick,
   limit = 5,
 }: MissionHistoryProps) {
   const { t } = useTranslation("missions");
@@ -191,6 +195,7 @@ export function MissionHistory({
 
           <BlockStack gap="200">
             {missions.map((mission) => {
+              const isBulk = mission.is_bulk_parent;
               const isExpanded = expandedId === mission.id;
               const details = missionDetails[mission.id];
               const isLoadingThis = loadingDetails === mission.id;
@@ -208,14 +213,20 @@ export function MissionHistory({
                       <InlineStack gap="300" blockAlign="center">
                         <div
                           style={{ cursor: "pointer" }}
-                          onClick={() => toggleExpand(mission.id)}
+                          onClick={() => {
+                            if (isBulk && onBulkMissionClick) {
+                              onBulkMissionClick(mission.id);
+                            } else {
+                              toggleExpand(mission.id);
+                            }
+                          }}
                         >
                           <BlockStack gap="050">
                             <Text as="span" variant="bodyMd" fontWeight="semibold">
-                              {isExpanded ? "▼" : "▶"}{" "}
+                              {!isBulk && (isExpanded ? "▼" : "▶")}{" "}
                               {mission.mission_title || mission.product_name || t("productFallback", { id: mission.product_id })}
                             </Text>
-                            {mission.mission_title && mission.product_name && (
+                            {mission.mission_title && mission.product_name && !isBulk && (
                               <Text as="span" variant="bodySm" tone="subdued">
                                 {mission.product_name}
                               </Text>
@@ -223,13 +234,22 @@ export function MissionHistory({
                           </BlockStack>
                         </div>
                         {getStatusBadge(mission.status)}
+                        {isBulk && <Badge tone="info">{t("bulkBadge")}</Badge>}
                       </InlineStack>
 
                       <InlineStack gap="200" blockAlign="center">
                         <Text as="span" variant="bodySm" tone="subdued">
                           {relativeTime(mission.created_at)}
                         </Text>
-                        {mission.status === "AWAITING_APPROVAL" && onResumeMission && (
+                        {isBulk && onBulkMissionClick && (
+                          <Button
+                            size="slim"
+                            onClick={() => onBulkMissionClick(mission.id)}
+                          >
+                            {t("viewStatus")}
+                          </Button>
+                        )}
+                        {!isBulk && mission.status === "AWAITING_APPROVAL" && onResumeMission && (
                           <Button
                             size="slim"
                             variant="primary"
@@ -241,8 +261,8 @@ export function MissionHistory({
                       </InlineStack>
                     </InlineStack>
 
-                    {/* Expanded details */}
-                    <Collapsible
+                    {/* Expanded details (not for bulk parents) */}
+                    {!isBulk && <Collapsible
                       open={isExpanded}
                       id={`mission-details-${mission.id}`}
                       transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
@@ -317,7 +337,7 @@ export function MissionHistory({
                           )}
                         </Box>
                       </Box>
-                    </Collapsible>
+                    </Collapsible>}
                   </BlockStack>
                 </Box>
               );

@@ -207,7 +207,7 @@ export function GetStartedGuide({
               <InlineStack gap="200" blockAlign="center">
                 <div style={{ display: "flex", alignItems: "center" }}>
                   {activeIndex === 0 ? (
-                    <img src="/Brand soul logo.png" alt="Brand Soul" style={{ width: 24, height: 24, objectFit: "contain" }} />
+                    <img src="/landing%20page/Brand%20soul%20logo.png" alt="Brand Soul" style={{ width: 24, height: 24, objectFit: "contain" }} />
                   ) : (
                     <Icon source={CurrentIcon} tone="base" />
                   )}

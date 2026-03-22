@@ -88,6 +88,8 @@ interface MissionArchitectProps {
   onProductChange: (productId: string) => void;
   /** Callback when user clicks "Launch Mission" with the pipeline + extra context */
   onStartMission: (pipeline: WorkflowStep[], extraContext?: MissionExtraContext) => void;
+  /** Callback when a bulk upload preset is selected */
+  onBulkSelect?: (missionType: "text_only" | "full_launch") => void;
   /** Whether a mission is currently running */
   isRunning?: boolean;
   /** User's plan tier */
@@ -251,7 +253,7 @@ export function getStepDisplayInfo(step: WorkflowStep): {
 
 // ─── Context Types ──────────────────────────────────────────────────────────
 
-type ContextType = "product" | "product_blog" | "product_hero" | "collection";
+type ContextType = "product" | "product_blog" | "product_hero" | "collection" | "bulk_csv" | "bulk_zip";
 
 // ─── Presets ────────────────────────────────────────────────────────────────
 
@@ -417,6 +419,24 @@ const PRESETS: Record<string, Preset> = {
     contextType: "product",
     minTier: "Pro",
   },
+  bulk_text_only: {
+    label: "Bulk Text Upload",
+    icon: "📄",
+    description:
+      "Upload a CSV with up to 10 products — rewrite and SEO-optimize all at once",
+    steps: [],
+    contextType: "bulk_csv",
+    minTier: "Pro",
+  },
+  bulk_full_launch: {
+    label: "Bulk Full Launch",
+    icon: "📦",
+    description:
+      "Upload a ZIP with products and images — rewrite, refine images, and SEO-optimize",
+    steps: [],
+    contextType: "bulk_zip",
+    minTier: "Pro",
+  },
 };
 
 // ─── Mission Card ───────────────────────────────────────────────────────────
@@ -491,7 +511,7 @@ function MissionCard({
           <Text as="h3" variant="headingSm" fontWeight="bold">
             {label}
           </Text>
-          {isLocked && minTier && <PlanGateBadge tierName={minTier} />}
+          {/* Badge intentionally removed for cleaner UX */}
         </InlineStack>
         <Text as="p" variant="bodySm" tone="subdued">
           {isLocked
@@ -510,6 +530,7 @@ export function MissionArchitect({
   selectedProductId,
   onProductChange,
   onStartMission,
+  onBulkSelect,
   isRunning = false,
   planTier = "Basic",
   entitlements,
@@ -555,6 +576,8 @@ export function MissionArchitect({
       market_awareness_audit: t("marketAwarenessAudit"),
       full_launch: t("fullLaunch"),
       visual_ad_blitz: t("visualAdBlitz"),
+      bulk_text_only: t("bulkTextOnly"),
+      bulk_full_launch: t("bulkFullLaunch"),
     };
     return map[key] || key;
   };
@@ -573,6 +596,8 @@ export function MissionArchitect({
       market_awareness_audit: t("marketAwarenessAuditDesc"),
       full_launch: t("fullLaunchDesc"),
       visual_ad_blitz: t("visualAdBlitzDesc"),
+      bulk_text_only: t("bulkTextOnlyDesc"),
+      bulk_full_launch: t("bulkFullLaunchDesc"),
     };
     return map[key] || "";
   };
@@ -633,6 +658,16 @@ export function MissionArchitect({
 
   const handleMissionSelect = useCallback(
     (key: string) => {
+      // Bulk presets are handled by the parent via onBulkSelect
+      if (key === "bulk_text_only" && onBulkSelect) {
+        onBulkSelect("text_only");
+        return;
+      }
+      if (key === "bulk_full_launch" && onBulkSelect) {
+        onBulkSelect("full_launch");
+        return;
+      }
+
       setSelectedMissionKey(key);
       if (key === "custom") {
         setPipeline([]);
@@ -641,7 +676,7 @@ export function MissionArchitect({
       }
       setWizardStep(2);
     },
-    [],
+    [onBulkSelect],
   );
 
   const handleBack = useCallback(() => {
@@ -1142,4 +1177,5 @@ export function MissionArchitect({
   );
 }
 
-export type { MissionArchitectProps, ProductOption, MissionExtraContext as ExtraContext };
+export { PRESETS };
+export type { MissionArchitectProps, ProductOption, MissionExtraContext as ExtraContext, ContextType };
