@@ -31,6 +31,8 @@ const PERSONA_OPTIONS = [
   { label: "The Lifestyle Curator", value: "Lifestyle Curator" },
 ];
 
+const ACCEPTED_FILE_TYPES = ["application/pdf", "text/plain"];
+
 function parseUrls(raw: string): string[] {
   return raw
     .split(/\s|,|\n/)
@@ -48,9 +50,6 @@ export function BrandSoulWizard({
   const app = useAppBridge() as unknown as ClientApplication<any>;
   const [step, setStep] = useState(0);
   const [persona, setPersona] = useState(PERSONA_OPTIONS[0].value);
-  const [pillar1, setPillar1] = useState("");
-  const [pillar2, setPillar2] = useState("");
-  const [pillar3, setPillar3] = useState("");
   const [rawNotes, setRawNotes] = useState("");
   const [urls, setUrls] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -89,50 +88,67 @@ export function BrandSoulWizard({
     return n === "standard" || n === "pro";
   }, [planName]);
 
-  const progress = Math.round(((step + 1) / 3) * 100);
+  const totalSteps = 2;
+  const progress = Math.round(((step + 1) / totalSteps) * 100);
 
   const handleDrop = useCallback(
     async (_: File[], accepted: File[]) => {
       const file = accepted?.[0];
       if (!file) return;
+
+      if (!ACCEPTED_FILE_TYPES.includes(file.type) && !file.name.endsWith(".txt")) {
+        setError("Only PDF and text files are accepted.");
+        return;
+      }
+
       setFileName(file.name);
       setFileLoading(true);
       setError(null);
       try {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ""));
-          reader.onerror = () => reject(new Error("Failed to read file"));
-          reader.readAsDataURL(file);
-        });
-        const match = dataUrl.match(/^data:(.*);base64,(.*)$/);
-        if (!match) {
-          throw new Error("Unsupported file format");
-        }
-        const mimeType = match[1];
-        const fileB64 = match[2];
+        if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+          const text = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsText(file);
+          });
+          setFileText(text);
+        } else {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsDataURL(file);
+          });
+          const match = dataUrl.match(/^data:(.*);base64,(.*)$/);
+          if (!match) {
+            throw new Error("Unsupported file format");
+          }
+          const mimeType = match[1];
+          const fileB64 = match[2];
 
-        const token = await getTokenOrThrow();
-        const resp = await fetch(`${backendApiUrl}/api/admin/brand-context/extract-file`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ file_b64: fileB64, mime_type: mimeType }),
-        });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok || data?.status !== "success") {
-          throw new Error(data?.detail || "Failed to extract text");
+          const token = await getTokenOrThrow();
+          const resp = await fetch(`${backendApiUrl}/api/admin/brand-context/extract-file`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ file_b64: fileB64, mime_type: mimeType }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || data?.status !== "success") {
+            throw new Error(data?.detail || "Failed to extract text");
+          }
+          setFileText(String(data?.text || ""));
         }
-        setFileText(String(data?.text || ""));
       } catch (e: any) {
         setError(e?.message || "Failed to extract text from file");
       } finally {
         setFileLoading(false);
       }
     },
-    [app, backendApiUrl],
+    [app, backendApiUrl, getTokenOrThrow],
   );
 
   const submit = useCallback(async () => {
@@ -143,7 +159,7 @@ export function BrandSoulWizard({
       const payload = {
         urls: parseUrls(urls),
         brand_persona: persona,
-        core_pillars: [pillar1, pillar2, pillar3].filter((p) => p?.trim()),
+        core_pillars: [],
         raw_text: rawNotes,
         file_text: fileText,
       };
@@ -169,16 +185,12 @@ export function BrandSoulWizard({
       setSaving(false);
     }
   }, [
-    app,
     backendApiUrl,
     fileText,
     getTokenOrThrow,
     onClose,
     onComplete,
     persona,
-    pillar1,
-    pillar2,
-    pillar3,
     rawNotes,
     urls,
   ]);
@@ -189,7 +201,7 @@ export function BrandSoulWizard({
         <BlockStack gap="300">
           <InlineStack align="space-between" blockAlign="center">
             <Text as="p" variant="bodySm" tone="subdued">
-              Step {step + 1} of 3
+              Step {step + 1} of {totalSteps}
             </Text>
             <Text as="p" variant="bodySm" tone="subdued">
               {progress}%
@@ -199,7 +211,7 @@ export function BrandSoulWizard({
 
           {!isStandardPlus ? (
             <Banner tone="info" title="Standard+ feature">
-              Build your Brand Soul now. The “Enhance with Brand Soul” toggle is available
+              Build your Brand Soul now. The "Enhance with Brand Soul" toggle is available
               on Standard and Pro plans.
             </Banner>
           ) : null}
@@ -218,7 +230,7 @@ export function BrandSoulWizard({
                 onChange={(v) => setPersona(v)}
               />
               <TextField
-                label="Additional notes (optional)"
+                label="Brand information (optional)"
                 value={rawNotes}
                 onChange={setRawNotes}
                 multiline={4}
@@ -230,18 +242,7 @@ export function BrandSoulWizard({
           {step === 1 ? (
             <BlockStack gap="300">
               <Text as="h3" variant="headingMd">
-                Core Pillars
-              </Text>
-              <TextField label="Pillar 1" value={pillar1} onChange={setPillar1} autoComplete="off" />
-              <TextField label="Pillar 2" value={pillar2} onChange={setPillar2} autoComplete="off" />
-              <TextField label="Pillar 3" value={pillar3} onChange={setPillar3} autoComplete="off" />
-            </BlockStack>
-          ) : null}
-
-          {step === 2 ? (
-            <BlockStack gap="300">
-              <Text as="h3" variant="headingMd">
-                Optional Upload or URLs
+                Additional Information
               </Text>
               <TextField
                 label="Website URLs (About Us / Story / Blog)"
@@ -252,11 +253,15 @@ export function BrandSoulWizard({
                 autoComplete="off"
               />
               <Box>
-                <DropZone onDrop={handleDrop} allowMultiple={false}>
+                <DropZone
+                  onDrop={handleDrop}
+                  allowMultiple={false}
+                  accept={ACCEPTED_FILE_TYPES.join(",")}
+                >
                   <DropZone.FileUpload />
                 </DropZone>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Upload a PDF or image with brand guidelines (optional).
+                  Upload a PDF or text file with brand guidelines (optional).
                 </Text>
                 {fileName ? (
                   <Text as="p" variant="bodySm">
@@ -280,8 +285,8 @@ export function BrandSoulWizard({
             <Button onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || saving}>
               Back
             </Button>
-            {step < 2 ? (
-              <Button variant="primary" onClick={() => setStep((s) => Math.min(2, s + 1))}>
+            {step < totalSteps - 1 ? (
+              <Button variant="primary" onClick={() => setStep((s) => Math.min(totalSteps - 1, s + 1))}>
                 Next
               </Button>
             ) : (

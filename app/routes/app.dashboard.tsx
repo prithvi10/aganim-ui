@@ -640,45 +640,61 @@ export default function Dashboard() {
             </Card>
           </Layout.Section>
 
-          {/* IMPACT METRICS */}
+          {/* LANGUAGE SETTINGS */}
+          <Layout.Section>
+            <Card>
+              <Box padding="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">{t("dashboard.languageTitle")}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t("dashboard.languageDesc")}
+                    </Text>
+                  </BlockStack>
+                  <InlineStack gap="200" blockAlign="center">
+                    <Badge tone={currentLang === "en" ? "info" : undefined}>English</Badge>
+                    <Button onClick={toggleLanguage} variant="primary">
+                      {t("dashboard.switchTo")}
+                    </Button>
+                    <Badge tone={currentLang === "ja" ? "info" : undefined}>日本語</Badge>
+                  </InlineStack>
+                </InlineStack>
+              </Box>
+            </Card>
+          </Layout.Section>
+
+          {/* CONTENT TARGET MARKET */}
+          <Layout.Section>
+            <Card>
+              <Box padding="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">{t("dashboard.contentLocaleTitle")}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t("dashboard.contentLocaleDesc")}
+                    </Text>
+                  </BlockStack>
+                  <div style={{ minWidth: 220 }}>
+                    <Select
+                      label=""
+                      labelHidden
+                      options={LOCALE_OPTIONS.map((lc) => ({
+                        label: t(`localeLabels.${lc}`),
+                        value: lc,
+                      }))}
+                      value={currentLocale}
+                      onChange={handleLocaleChange}
+                    />
+                  </div>
+                </InlineStack>
+              </Box>
+            </Card>
+          </Layout.Section>
+
+          {/* USAGE METRICS */}
           <Layout.Section>
             <InlineStack gap="400" align="start">
-               {/* Optimized Count */}
-               <div style={{ flex: 1 }}>
-                <Card>
-                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">{t("dashboard.totalOptimized")}</Text>
-                      <Text as="p" variant="heading2xl">{usedCount.toLocaleString()}</Text>
-                    </BlockStack>
-
-                    <div style={{ marginTop: "auto" }}>
-                      {usedCount === 0 && !welcomeBack ? (
-                        <Button size="micro" onClick={() => navigate(rewriterUrl)}>
-                          {t("dashboard.optimizeFirstProduct")}
-                        </Button>
-                      ) : (
-                        <div style={{ height: 28 }} />
-                      )}
-                    </div>
-                  </div>
-                </Card>
-               </div>
-               
-               {/* Active Markets */}
-               <div style={{ flex: 1 }}>
-                <Card>
-                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">{t("dashboard.activeMarkets")}</Text>
-                      <Text as="p" variant="heading2xl">{activeMarketsCount}</Text>
-                    </BlockStack>
-                    <div style={{ marginTop: "auto", height: 28 }} />
-                  </div>
-                </Card>
-               </div>
-               
-               {/* Usage Summary: products, missions, images ───────────────── */}
+               {/* Usage Summary: products, missions, images */}
                <div style={{ flex: 1 }}>
                 <Card>
                   <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
@@ -700,7 +716,7 @@ export default function Dashboard() {
                 </Card>
                </div>
 
-               {/* Monthly Product Rewrite Usage */}
+               {/* Lifetime / Monthly Credits */}
                <div style={{ flex: 1 }}>
                 <Card>
                   <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
@@ -836,57 +852,6 @@ export default function Dashboard() {
               </InlineStack>
 
             </BlockStack>
-          </Layout.Section>
-
-          {/* LANGUAGE SETTINGS */}
-          <Layout.Section>
-            <Card>
-              <Box padding="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <BlockStack gap="100">
-                    <Text as="h2" variant="headingMd">{t("dashboard.languageTitle")}</Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t("dashboard.languageDesc")}
-                    </Text>
-                  </BlockStack>
-                  <InlineStack gap="200" blockAlign="center">
-                    <Badge tone={currentLang === "en" ? "info" : undefined}>English</Badge>
-                    <Button onClick={toggleLanguage} variant="primary">
-                      {t("dashboard.switchTo")}
-                    </Button>
-                    <Badge tone={currentLang === "ja" ? "info" : undefined}>日本語</Badge>
-                  </InlineStack>
-                </InlineStack>
-              </Box>
-            </Card>
-          </Layout.Section>
-
-          {/* CONTENT TARGET MARKET */}
-          <Layout.Section>
-            <Card>
-              <Box padding="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <BlockStack gap="100">
-                    <Text as="h2" variant="headingMd">{t("dashboard.contentLocaleTitle")}</Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t("dashboard.contentLocaleDesc")}
-                    </Text>
-                  </BlockStack>
-                  <div style={{ minWidth: 220 }}>
-                    <Select
-                      label=""
-                      labelHidden
-                      options={LOCALE_OPTIONS.map((lc) => ({
-                        label: t(`localeLabels.${lc}`),
-                        value: lc,
-                      }))}
-                      value={currentLocale}
-                      onChange={handleLocaleChange}
-                    />
-                  </div>
-                </InlineStack>
-              </Box>
-            </Card>
           </Layout.Section>
 
           {/* META API CREDENTIALS – gated by meta_integration entitlement */}
