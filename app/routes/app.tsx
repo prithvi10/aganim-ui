@@ -10,12 +10,37 @@ import "@shopify/polaris/build/esm/styles.css";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
-import { authenticate } from "../shopify.server";
+import { authenticate, sessionStorage } from "../shopify.server";
+import db from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const host = url.searchParams.get("host") || "";
-  const { session } = await authenticate.admin(request);
+  let { admin, session } = await authenticate.admin(request);
+
+  // ── Token health check ─────────────────────────────────────────────
+  // authenticate.admin() trusts a Prisma session if it exists, but on
+  // reinstall the stored offline token may be revoked.  A quick GraphQL
+  // probe catches this *before* any child loader (dashboard, etc.) runs,
+  // so we can re-auth via App Bridge instead of showing "refused to
+  // connect" inside the iframe.
+  if (session?.accessToken) {
+    try {
+      const probe = await admin.graphql(`{ shop { name } }`);
+      await probe.json();
+    } catch {
+      console.warn("[app.tsx] Token probe failed (401) — clearing stale sessions for", session.shop);
+      try {
+        await db.session.deleteMany({ where: { shop: session.shop } });
+      } catch {
+        // best-effort
+      }
+      // Re-run authenticate.admin; with no session in Prisma it will
+      // trigger a proper App Bridge OAuth redirect (not a raw 302).
+      ({ admin, session } = await authenticate.admin(request));
+    }
+  }
+  // ── End token health check ─────────────────────────────────────────
 
   const backendApiUrl =
     process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
