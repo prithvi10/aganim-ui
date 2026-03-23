@@ -44,15 +44,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error("[Token Sync] Error", e);
   }
 
-  // Fetch shop email from Shopify + send welcome email (deferred so token is active)
-  try {
-    await fetch(
-      `${backendApiUrl}/api/admin/complete-install?shop=${encodeURIComponent(session.shop)}`,
-      { method: "POST" },
-    );
-  } catch (e) {
-    console.error("[CompleteInstall] Error", e);
-  }
+  // Fire-and-forget: backend handles email fetch + welcome email in a background task
+  fetch(
+    `${backendApiUrl}/api/admin/complete-install?shop=${encodeURIComponent(session.shop)}`,
+    { method: "POST" },
+  ).catch(() => {});
 
   // Fetch ui_language from backend usage endpoint
   let uiLanguage = "en";

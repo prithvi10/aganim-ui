@@ -15,6 +15,16 @@ export default async function handleRequest(
   reactRouterContext: EntryContext
 ) {
   const url = new URL(request.url);
+
+  // Concise request log with truncated query string (avoids leaking JWTs)
+  const qs = url.search.length > 80 ? url.search.slice(0, 80) + "…" : url.search;
+  const t0 = Date.now();
+  const logFinish = () => {
+    console.log(
+      `${request.method} ${url.pathname}${qs} ${responseStatusCode} ${Date.now() - t0}ms`
+    );
+  };
+
   if (!url.pathname.startsWith("/portal")) {
     addDocumentResponseHeaders(request, responseHeaders);
   }
@@ -35,6 +45,7 @@ export default async function handleRequest(
           const stream = createReadableStreamFromReadable(body);
 
           responseHeaders.set("Content-Type", "text/html");
+          logFinish();
           resolve(
             new Response(stream, {
               headers: responseHeaders,

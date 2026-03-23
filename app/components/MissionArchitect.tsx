@@ -267,7 +267,7 @@ interface Preset {
 }
 
 const PRESETS: Record<string, Preset> = {
-  // ── Basic: Rewriter + Marketing captions ───────────────────────────
+  // ── Free: Rewriter + Marketing captions (3 lifetime missions) ──────
   social_hype_man: {
     label: "Social Hype-Man",
     icon: "📱",
@@ -278,7 +278,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/ad-facebook" },
     ],
     contextType: "product",
-    minTier: "Basic",
+    minTier: "Free",
   },
   new_arrival_blast: {
     label: "New Arrival Blast",
@@ -290,7 +290,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-launch" },
     ],
     contextType: "product",
-    minTier: "Basic",
+    minTier: "Free",
   },
   welcome_journey: {
     label: "Welcome Journey",
@@ -302,7 +302,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "MarketingAgent", has_gate: true, template_id: "marketing/email-welcome" },
     ],
     contextType: "product",
-    minTier: "Basic",
+    minTier: "Free",
   },
   artisan_storyteller: {
     label: "Artisan Storyteller",
@@ -314,7 +314,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "RewriterAgent", has_gate: true, template_id: "product/landing-hero" },
     ],
     contextType: "product_hero",
-    minTier: "Basic",
+    minTier: "Free",
   },
 
   // ── Standard: +SEO and Pricing missions ────────────────────────────

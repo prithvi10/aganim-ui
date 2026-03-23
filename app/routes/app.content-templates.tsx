@@ -909,7 +909,7 @@ function HeroSectionCard({
   const editableHtmlRef = useRef<string>('');
 
   const [heroSubject, setHeroSubject] = useState('');
-  const [overlayText, setOverlayText] = useState('');
+  const [shortDescription, setShortDescription] = useState('');
   const [imageStyle, setImageStyle] = useState('attractive');
   const [customImageFile, setCustomImageFile] = useState<File | null>(null);
 
@@ -933,7 +933,7 @@ function HeroSectionCard({
         target_locale: defaultTargetLocale || 'en',
         title: heroSubject,
         subject_text: heroSubject,
-        overlay_text: overlayText,
+        short_description: shortDescription,
         image_style: imageStyle,
         ...(imageUrl && { image_url: imageUrl }),
       };
@@ -957,7 +957,7 @@ function HeroSectionCard({
     } finally {
       setLoading(false);
     }
-  }, [canGenerate, heroSubject, overlayText, imageStyle, customImageFile, template, shop, backendApiUrl, onToast, t]);
+  }, [canGenerate, heroSubject, shortDescription, imageStyle, customImageFile, template, shop, backendApiUrl, onToast, t]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
@@ -997,7 +997,7 @@ function HeroSectionCard({
             <ProductImageUploader productTitle={heroSubject || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
             <BlockStack gap="300">
               <TextField label={t('contentTemplates.subjectTheme')} value={heroSubject} onChange={setHeroSubject} placeholder={t('contentTemplates.subjectPlaceholder')} autoComplete="off" requiredIndicator />
-              <TextField label={t('contentTemplates.overlayTextOptional')} value={overlayText} onChange={setOverlayText} placeholder={t('contentTemplates.overlayPlaceholder')} autoComplete="off" />
+              <TextField label={t('contentTemplates.shortDescription')} value={shortDescription} onChange={setShortDescription} placeholder={t('contentTemplates.shortDescriptionPlaceholder')} autoComplete="off" multiline={2} />
               <Select label={t('contentTemplates.imageStyle')} options={getImageStyleOptions(t)} value={imageStyle} onChange={setImageStyle} />
               <div style={{ flex: 1 }} />
               <InlineStack align="end">
@@ -1046,6 +1046,7 @@ function BlogPostCard({
 
   const [blogTopic, setBlogTopic] = useState('');
   const [blogCategory, setBlogCategory] = useState('');
+  const [blogShortDescription, setBlogShortDescription] = useState('');
   const [blogContext, setBlogContext] = useState('');
   const [imageStyle, setImageStyle] = useState('attractive');
   const [customImageFile, setCustomImageFile] = useState<File | null>(null);
@@ -1070,6 +1071,7 @@ function BlogPostCard({
         target_locale: defaultTargetLocale || 'en',
         topic: blogTopic,
         category: blogCategory,
+        short_description: blogShortDescription,
         context: blogContext,
         image_style: imageStyle,
         ...(imageUrl && { image_url: imageUrl }),
@@ -1094,7 +1096,7 @@ function BlogPostCard({
     } finally {
       setLoading(false);
     }
-  }, [canGenerate, blogTopic, blogCategory, blogContext, imageStyle, customImageFile, template, shop, backendApiUrl, onToast, t]);
+  }, [canGenerate, blogTopic, blogCategory, blogShortDescription, blogContext, imageStyle, customImageFile, template, shop, backendApiUrl, onToast, t]);
 
   const handleCopy = useCallback(async () => {
     const toCopy = editableHtmlRef.current || result || '';
@@ -1135,6 +1137,7 @@ function BlogPostCard({
             <BlockStack gap="300">
               <TextField label={t('contentTemplates.subjectTopic')} value={blogTopic} onChange={setBlogTopic} placeholder={t('contentTemplates.topicPlaceholder')} autoComplete="off" requiredIndicator />
               <TextField label={t('contentTemplates.category')} value={blogCategory} onChange={setBlogCategory} placeholder={t('contentTemplates.categoryPlaceholder')} autoComplete="off" requiredIndicator />
+              <TextField label={t('contentTemplates.shortDescription')} value={blogShortDescription} onChange={setBlogShortDescription} placeholder={t('contentTemplates.shortDescriptionPlaceholder')} autoComplete="off" multiline={2} />
               <TextField label={t('contentTemplates.additionalContext')} value={blogContext} onChange={setBlogContext} multiline={3} placeholder={t('contentTemplates.contextPlaceholder')} autoComplete="off" />
               <Select label={t('contentTemplates.imageStyle')} options={getImageStyleOptions(t)} value={imageStyle} onChange={setImageStyle} />
               <div style={{ flex: 1 }} />
