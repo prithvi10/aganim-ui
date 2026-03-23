@@ -15,7 +15,7 @@ import {
 } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { PlanCard } from "../components/PlanCard";
-import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
+import { buildPlanCatalog, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 type ActiveSub = { name?: string; status?: string; test?: boolean };
@@ -308,7 +308,8 @@ export default function PlansPage() {
   const location = useLocation();
 
   const isUpgrading = navigation.state === "submitting";
-  const visiblePlans = PLAN_CATALOG.filter((p) => p.name !== PLAN_FREE);
+  const planCatalog = useMemo(() => buildPlanCatalog(t), [t]);
+  const visiblePlans = useMemo(() => planCatalog.filter((p) => p.name !== PLAN_FREE), [planCatalog]);
 
   const postAction = useMemo(() => {
     const sp = new URLSearchParams(location.search);

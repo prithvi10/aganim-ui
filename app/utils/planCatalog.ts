@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 export const PLAN_FREE = "Free" as const;
 export const PLAN_BASIC = "Basic" as const;
 export const PLAN_STANDARD = "Standard" as const;
@@ -29,169 +31,171 @@ export type PlanCardModel = {
   sections: PlanSection[];
 };
 
-export const PLAN_CATALOG: PlanCardModel[] = [
-  {
-    name: PLAN_FREE,
-    price: "$0",
-    tagline: "Try everything, limited access",
-    productLimit: "10 products (1 week trial)",
-    sections: [
-      {
-        title: "Rewriter",
-        features: [
-          { label: "AI product rewrite (title + description)", included: true },
-          { label: "Key Details auto-detected", included: true },
-        ],
-      },
-      {
-        title: "SEO",
-        features: [
-          { label: "SEO title + meta description", included: true },
-          { label: "SEO editor + preview", included: true },
-        ],
-      },
-      {
-        title: "Marketing",
-        features: [
-          { label: "Instagram captions + hashtags", included: true },
-          { label: "Seasonal campaign ideas", included: true },
-        ],
-      },
-      {
-        title: "Price Scout",
-        features: [{ label: "Competitive pricing analysis", included: true }],
-      },
-      {
-        title: "Missions",
-        features: [
-          { label: "Full product launch (incl. images)", included: true },
-        ],
-      },
-      {
-        title: "Images",
-        features: [
-          { label: "Image refinement", included: true },
-        ],
-      },
-    ],
-  },
-  {
-    name: PLAN_BASIC,
-    price: "$29",
-    tagline: "",
-    productLimit: "50 products / month",
-    sections: [
-      {
-        title: "Rewriter",
-        features: [
-          { label: "AI product rewrite (title + description)", included: true },
-          { label: "Key Details auto-detected", included: true },
-          { label: "EN unit conversion (metric + US)", included: true },
-        ],
-      },
-      {
-        title: "Marketing",
-        features: [
-          { label: "Instagram captions + hashtags", included: true },
-          { label: "Seasonal campaign ideas", included: true },
-        ],
-      },
-      {
-        title: "Missions",
-        features: [
-          { label: "Text-only mission (Rewriter + Marketing)", included: true },
-        ],
-      },
-    ],
-  },
-  {
-    name: PLAN_STANDARD,
-    price: "$79",
-    tagline: "Full toolkit, one market at a time",
-    productLimit: "Unlimited products",
-    sections: [
-      {
-        title: "Rewriter",
-        features: [
-          { label: "Everything in Basic", included: true },
-          { label: "12 target markets (single locale per rewrite)", included: true },
-          { label: "Brand tones: Luxury / Minimalist / Playful", included: true },
-        ],
-      },
-      {
-        title: "SEO",
-        features: [
-          { label: "SEO title + meta description", included: true },
-          { label: "SEO editor + preview", included: true },
-        ],
-      },
-      {
-        title: "Marketing",
-        features: [
-          { label: "Everything in Basic", included: true },
-        ],
-      },
-      {
-        title: "Price Scout",
-        features: [{ label: "Competitive pricing analysis", included: true }],
-      },
-      {
-        title: "Missions",
-        features: [
-          { label: "Full text pipeline (no image agents)", included: true },
-        ],
-      },
-    ],
-  },
-  {
-    name: PLAN_PRO,
-    price: "$199",
-    tagline: "Go global — bulk-generate for all 12 markets at once",
-    productLimit: "Unlimited products",
-    sections: [
-      {
-        title: "Rewriter",
-        features: [
-          { label: "Everything in Standard", included: true },
-          { label: "Bulk inventory setup", included: true, highlight: true },
-          { label: "Priority AI model", included: true },
-        ],
-      },
-      {
-        title: "SEO",
-        features: [{ label: "Full SEO optimization", included: true }],
-      },
-      {
-        title: "Marketing",
-        features: [
-          { label: "Everything in Standard", included: true },
-          { label: "Visual Ad generation", included: true },
-          { label: "Social Post preview", included: true },
-        ],
-      },
-      {
-        title: "Price Scout",
-        features: [
-          { label: "Pricing analysis", included: true },
-          { label: "Auto-apply price to Shopify", included: true },
-        ],
-      },
-      {
-        title: "Missions & Autonomous",
-        features: [
-          { label: "Full pipeline with image agents", included: true },
-          { label: "Agentic workflows", included: true },
-          { label: "Publish to Shopify", included: true },
-          { label: "Apply recommended price", included: true },
-          { label: "Meta (Facebook/Instagram) integration", included: true },
-        ],
-      },
-      {
-        title: "Images",
-        features: [
-          { label: "Image refinement across all features", included: true },
-        ],
-      },
-    ],
-  },
-];
+export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
+  return [
+    {
+      name: PLAN_FREE,
+      price: "$0",
+      tagline: t("planCatalog.tryEverything"),
+      productLimit: t("planCatalog.products10"),
+      sections: [
+        {
+          title: t("planCatalog.rewriter"),
+          features: [
+            { label: t("planCatalog.aiProductRewrite"), included: true },
+            { label: t("planCatalog.keyDetailsAutoDetected"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.seoSection"),
+          features: [
+            { label: t("planCatalog.seoTitleMeta"), included: true },
+            { label: t("planCatalog.seoEditorPreview"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.marketingSection"),
+          features: [
+            { label: t("planCatalog.instagramCaptions"), included: true },
+            { label: t("planCatalog.seasonalCampaigns"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.priceScoutSection"),
+          features: [{ label: t("planCatalog.competitivePricing"), included: true }],
+        },
+        {
+          title: t("planCatalog.missionsSection"),
+          features: [
+            { label: t("planCatalog.fullProductLaunch"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.imagesSection"),
+          features: [
+            { label: t("planCatalog.imageRefinement"), included: true },
+          ],
+        },
+      ],
+    },
+    {
+      name: PLAN_BASIC,
+      price: "$29",
+      tagline: "",
+      productLimit: t("planCatalog.products50"),
+      sections: [
+        {
+          title: t("planCatalog.rewriter"),
+          features: [
+            { label: t("planCatalog.aiProductRewrite"), included: true },
+            { label: t("planCatalog.keyDetailsAutoDetected"), included: true },
+            { label: t("planCatalog.enUnitConversion"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.marketingSection"),
+          features: [
+            { label: t("planCatalog.instagramCaptions"), included: true },
+            { label: t("planCatalog.seasonalCampaigns"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.missionsSection"),
+          features: [
+            { label: t("planCatalog.textOnlyMission"), included: true },
+          ],
+        },
+      ],
+    },
+    {
+      name: PLAN_STANDARD,
+      price: "$79",
+      tagline: t("planCatalog.standardTagline"),
+      productLimit: t("planCatalog.unlimitedProducts"),
+      sections: [
+        {
+          title: t("planCatalog.rewriter"),
+          features: [
+            { label: t("planCatalog.everythingInBasic"), included: true },
+            { label: t("planCatalog.twelveTargetMarkets"), included: true },
+            { label: t("planCatalog.brandTones"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.seoSection"),
+          features: [
+            { label: t("planCatalog.seoTitleMeta"), included: true },
+            { label: t("planCatalog.seoEditorPreview"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.marketingSection"),
+          features: [
+            { label: t("planCatalog.everythingInBasic"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.priceScoutSection"),
+          features: [{ label: t("planCatalog.competitivePricing"), included: true }],
+        },
+        {
+          title: t("planCatalog.missionsSection"),
+          features: [
+            { label: t("planCatalog.fullTextPipeline"), included: true },
+          ],
+        },
+      ],
+    },
+    {
+      name: PLAN_PRO,
+      price: "$199",
+      tagline: t("planCatalog.proTagline"),
+      productLimit: t("planCatalog.unlimitedProducts"),
+      sections: [
+        {
+          title: t("planCatalog.rewriter"),
+          features: [
+            { label: t("planCatalog.everythingInStandard"), included: true },
+            { label: t("planCatalog.multiMarketBulk"), included: true, highlight: true },
+            { label: t("planCatalog.priorityAiModel"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.seoSection"),
+          features: [{ label: t("planCatalog.fullSeoOptimization"), included: true }],
+        },
+        {
+          title: t("planCatalog.marketingSection"),
+          features: [
+            { label: t("planCatalog.everythingInStandard"), included: true },
+            { label: t("planCatalog.visualAdGeneration"), included: true },
+            { label: t("planCatalog.socialPostPreview"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.priceScoutSection"),
+          features: [
+            { label: t("planCatalog.pricingAnalysis"), included: true },
+            { label: t("planCatalog.autoApplyPrice"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.missionsAutonomous"),
+          features: [
+            { label: t("planCatalog.fullPipelineWithImages"), included: true },
+            { label: t("planCatalog.agenticWorkflows"), included: true },
+            { label: t("planCatalog.publishToShopify"), included: true },
+            { label: t("planCatalog.applyRecommendedPrice"), included: true },
+            { label: t("planCatalog.metaIntegration"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.imagesSection"),
+          features: [
+            { label: t("planCatalog.imageRefinementAllFeatures"), included: true },
+          ],
+        },
+      ],
+    },
+  ];
+}

@@ -14,7 +14,6 @@ import {
   BlockStack,
   InlineStack,
   Button,
-  ProgressBar,
   Badge,
   Banner,
   Box,
@@ -35,7 +34,7 @@ import { PlanCard } from "../components/PlanCard";
 import { PlanGateBadge } from "../components/PlanGateBadge";
 import { DowngradeScheduledBanner } from "../components/DowngradeScheduledBanner";
 import { canAccess, formatUsage, getRequiredTier, type Entitlements, type FeatureUsageMap } from "../utils/entitlements";
-import { PLAN_CATALOG, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
+import { buildPlanCatalog, PLAN_BASIC, PLAN_FREE, PLAN_PRO, PLAN_STANDARD, type PlanName } from "../utils/planCatalog";
 import { XSmallIcon } from "@shopify/polaris-icons";
 import db from "../db.server";
 
@@ -416,29 +415,31 @@ export default function Dashboard() {
   );
   const [metaSaving, setMetaSaving] = useState(false);
   
+  const planCatalog = useMemo(() => buildPlanCatalog(t), [t]);
+
   const activePlanCard = useMemo(() => {
     const name = String(planName || "Free") as PlanName;
-    return PLAN_CATALOG.find((p) => p.name === name) ?? PLAN_CATALOG[0];
-  }, [planName]);
+    return planCatalog.find((p) => p.name === name) ?? planCatalog[0];
+  }, [planName, planCatalog]);
 
 
-  const KEY_FEATURES: Array<{ key: string; label: string }> = [
-    { key: "seo", label: "SEO optimization" },
-    { key: "price_scout", label: "Price Scout" },
-    { key: "image_refinement_adhoc", label: "Image refinement" },
-    { key: "ad_image_generation", label: "Ad image generation" },
-    { key: "social_post_preview", label: "Social post preview" },
-    { key: "autonomous", label: "Autonomous publishing" },
-    { key: "publish", label: "Publish to Meta" },
-    { key: "apply_price", label: "Apply price changes" },
-    { key: "meta_integration", label: "Meta integration" },
-  ];
+  const KEY_FEATURES = useMemo<Array<{ key: string; label: string }>>(() => [
+    { key: "seo", label: t("dashboard.featureSeoOptimization") },
+    { key: "price_scout", label: t("dashboard.featurePriceScout") },
+    { key: "image_refinement_adhoc", label: t("dashboard.featureImageRefinement") },
+    { key: "ad_image_generation", label: t("dashboard.featureAdImageGeneration") },
+    { key: "social_post_preview", label: t("dashboard.featureSocialPostPreview") },
+    { key: "autonomous", label: t("dashboard.featureAutonomousPublishing") },
+    { key: "publish", label: t("dashboard.featurePublishToMeta") },
+    { key: "apply_price", label: t("dashboard.featureApplyPriceChanges") },
+    { key: "meta_integration", label: t("dashboard.featureMetaIntegration") },
+  ], [t]);
 
   const lockedFeaturesWithTiers = useMemo(() => {
     return KEY_FEATURES
       .filter((f) => !canAccess(entitlements, f.key))
       .map((f) => ({ ...f, tier: getRequiredTier(f.key) ?? "Pro" }));
-  }, [entitlements, currentLang]);
+  }, [entitlements, KEY_FEATURES]);
 
   useEffect(() => {
     // Artificial delay to prevent skeleton flash on fast loads
@@ -448,21 +449,6 @@ export default function Dashboard() {
 
   const usedCount = Number(usage?.used || 0);
   const quotaCount = Number(usage?.quota ?? 0);
-  const isLifetime =
-    String((usage as any)?.billingCycleType || "").toLowerCase() === "lifetime" ||
-    String(usage?.planName || "").toLowerCase() === "free" ||
-    String(planName || "").toLowerCase() === "free";
-  const lifetimeTotal = isLifetime ? (quotaCount > 0 ? quotaCount : 10) : 0;
-  const lifetimeRemaining = isLifetime
-    ? Number(
-        (usage as any)?.lifetimeRemaining ??
-          Math.max(0, Number(lifetimeTotal) - Number(usedCount)),
-      )
-    : 0;
-  const lifetimeRemainingPct =
-    isLifetime && lifetimeTotal > 0
-      ? Math.max(0, Math.min(100, Math.round((lifetimeRemaining / lifetimeTotal) * 100)))
-      : 0;
 
   const welcomeBack = Boolean((usage as any)?.welcomeBack);
   useEffect(() => {
@@ -550,12 +536,10 @@ export default function Dashboard() {
     }
   }, [backendApiUrl, shop, concernEmail, concernSubject, concernMessage, t]);
 
-  const isUnlimited = quotaCount === -1;
-  const usagePercent = isUnlimited || quotaCount <= 0 ? 0 : Math.min(100, Math.round((usedCount / quotaCount) * 100));
-  const isCritical = usagePercent > 90;
   const resetDateLabel = usage?.nextResetDate
     ? new Date(usage.nextResetDate).toLocaleDateString()
     : null;
+  const isFree = String(planName || "").toLowerCase() === "free";
 
   // 1. Re-Auth State
   if (needsReauth) {
@@ -714,84 +698,34 @@ export default function Dashboard() {
 
           {/* USAGE METRICS */}
           <Layout.Section>
-            <InlineStack gap="400" align="start">
-               {/* Usage Summary: products, missions, images */}
-               <div style={{ flex: 1 }}>
-                <Card>
-                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">Usage Summary</Text>
-                      <BlockStack gap="100">
-                        <Text as="p" variant="bodyMd">
-                          Products: {usedCount} / {quotaCount > 0 ? quotaCount : "—"} rewrites
-                        </Text>
-                        <Text as="p" variant="bodyMd">
-                          {t("dashboard.missions")} {formatUsage(feature_usage.missions, false) || "—"}
-                        </Text>
-                        <Text as="p" variant="bodyMd">
-                          {t("dashboard.images")} {formatUsage(feature_usage.image_generation, false) || "—"}
-                        </Text>
-                      </BlockStack>
-                    </BlockStack>
-                  </div>
-                </Card>
-               </div>
-
-               {/* Lifetime / Monthly Credits */}
-               <div style={{ flex: 1 }}>
-                <Card>
-                  <div style={{ padding: "var(--p-space-400)", height: 140, display: "flex", flexDirection: "column" }}>
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingSm" tone="subdued">
-                        {isLifetime ? t("dashboard.lifetimeCredits") : t("dashboard.monthlyProductRewrites")}
-                      </Text>
-                      {isLifetime ? (
-                        <BlockStack gap="100">
-                          <InlineStack align="space-between">
-                            <Text as="p" variant="headingMd">
-                              {lifetimeRemaining} / {lifetimeTotal} {t("dashboard.left")}
-                            </Text>
-                            <Badge tone={lifetimeRemaining <= 2 ? "critical" : "success"}>
-                              {`${lifetimeRemainingPct}%`}
-                            </Badge>
-                          </InlineStack>
-                          <ProgressBar
-                            progress={lifetimeRemainingPct}
-                            tone={lifetimeRemaining <= 2 ? "critical" : "highlight"}
-                          />
-                          <div style={{marginTop: "6px"}}>
-                            <Button onClick={() => navigate(plansUrl)} variant="primary">
-                              {t("dashboard.get50Rewrites")}
-                            </Button>
-                          </div>
-                        </BlockStack>
-                      ) : isUnlimited ? (
-                        <BlockStack gap="100">
-                          <InlineStack align="space-between" blockAlign="center">
-                            <Text as="p" variant="headingMd">{t("dashboard.unlimited")}</Text>
-                            <Badge tone="success">{t("dashboard.unlimited")}</Badge>
-                          </InlineStack>
-                          {resetDateLabel ? (
-                            <Text as="p" variant="bodySm" tone="subdued">{`${t("dashboard.resetsOn")} ${resetDateLabel}`}</Text>
-                          ) : null}
-                        </BlockStack>
-                      ) : (
-                        <BlockStack gap="100">
-                      <InlineStack align="space-between">
-                        <Text as="p" variant="headingMd">{usedCount} / {quotaCount}</Text>
-                        <Badge tone={isCritical ? "critical" : "success"}>{`${usagePercent}%`}</Badge>
-                      </InlineStack>
-                      <ProgressBar progress={usagePercent} tone={isCritical ? "critical" : "highlight"} />
-                          {resetDateLabel ? (
-                            <Text as="p" variant="bodySm" tone="subdued">{`${t("dashboard.resetsOn")} ${resetDateLabel}`}</Text>
-                          ) : null}
-                        </BlockStack>
-                      )}
-                    </BlockStack>
-                  </div>
-                </Card>
-               </div>
-            </InlineStack>
+            <Card>
+              <Box padding="400">
+                <BlockStack gap="200">
+                  <Text as="h2" variant="headingSm" tone="subdued">{t("dashboard.usageSummary")}</Text>
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodyMd">
+                      {t("dashboard.productsRewritesSummary", { used: usedCount, quota: quotaCount > 0 ? quotaCount : "—" })}
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      {t("dashboard.missions")} {formatUsage(feature_usage.missions, false) || "—"}
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      {t("dashboard.images")} {formatUsage(feature_usage.image_generation, false) || "—"}
+                    </Text>
+                  </BlockStack>
+                  {resetDateLabel ? (
+                    <Text as="p" variant="bodySm" tone="subdued">{`${t("dashboard.resetsOn")} ${resetDateLabel}`}</Text>
+                  ) : null}
+                  {isFree ? (
+                    <div style={{ marginTop: 4 }}>
+                      <Button onClick={() => navigate(plansUrl)} variant="primary">
+                        {t("dashboard.get50Rewrites")}
+                      </Button>
+                    </div>
+                  ) : null}
+                </BlockStack>
+              </Box>
+            </Card>
           </Layout.Section>
 
           {/* PLAN & BENEFITS */}
