@@ -125,13 +125,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     `;
     
     // The client.query wrapper in shopify.server.ts handles 401s by returning null
-    const localeResponse = await client.query({ data: localeQuery });
+    let localeResponse = await client.query({ data: localeQuery });
     trail(`[🔍 Trail] ✅ Locale Response received. Status: ${localeResponse ? "OK" : "NULL"}`);
     if (!localeResponse) {
       trailWarn(`[🔍 Trail] 🛑 Locale Fetch returned NULL (401 caught by wrapper).`);
       trailWarn(`[🔍 Trail] 🚑 TRIGGERING RE-AUTH (Self-Healing)...`);
       console.warn("[Dashboard] Master Key is dead (401). Clearing stale sessions + triggering re-auth.");
-      // The offline token is invalid after uninstall/reinstall. Clear it so we don't loop on 401.
       try {
         if (shopParam) {
           await db.session.deleteMany({ where: { shop: shopParam } });
@@ -139,15 +138,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       } catch {
         // best-effort
       }
-      // Force OAuth refresh.
-      const sp = new URLSearchParams();
-      if (shopParam) sp.set("shop", shopParam);
-      const host = url.searchParams.get("host");
-      if (host) sp.set("host", host);
-      throw redirect(`/auth/login?${sp.toString()}`);
+      // Use authenticate.admin which handles embedded re-auth correctly
+      // (sends an App Bridge-aware bounce page instead of a raw 302 that
+      // would show "refused to connect" inside the Shopify iframe).
+      const { admin, session: freshSession } = await authenticate.admin(request);
+      session = freshSession;
+      client = {
+        query: async ({ data }: { data: string }) => {
+          try {
+            const response = await admin.graphql(data);
+            const body = await response.json();
+            return { body };
+          } catch (error) {
+            console.error("[Dashboard] Fresh online client query failed", error);
+            return null;
+          }
+        }
+      };
+      localeResponse = await client.query({ data: localeQuery });
     }
-    trail(`[🔍 Trail] ✅ Locales Fetched Successfully. Count: ${localeResponse.body?.data?.shopLocales?.length}`);
-    const locales = localeResponse.body?.data?.shopLocales || [];
+    trail(`[🔍 Trail] ✅ Locales Fetched Successfully. Count: ${localeResponse?.body?.data?.shopLocales?.length}`);
+    const locales = localeResponse?.body?.data?.shopLocales || [];
     activeMarketsCount = locales.filter((l: any) => l.published).length;
     trail(`[🔍 Trail] ✅ Active Markets Count: ${activeMarketsCount}`);
     // B. Fetch Billing/Plan
@@ -173,14 +184,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       } catch {
         // best-effort
       }
-      const sp = new URLSearchParams();
-      if (shopParam) sp.set("shop", shopParam);
-      const host = url.searchParams.get("host");
-      if (host) sp.set("host", host);
-      throw redirect(`/auth/login?${sp.toString()}`);
+      // Use authenticate.admin for embedded-safe re-auth (avoids iframe "refused to connect")
+      const { admin, session: freshSession } = await authenticate.admin(request);
+      session = freshSession;
+      client = {
+        query: async ({ data }: { data: string }) => {
+          try {
+            const response = await admin.graphql(data);
+            const body = await response.json();
+            return { body };
+          } catch (error) {
+            console.error("[Dashboard] Fresh online client query failed (billing)", error);
+            return null;
+          }
+        }
+      };
     }
 
-    const activeSubs = billingResponse.body?.data?.currentAppInstallation?.activeSubscriptions || [];
+    const activeSubs = billingResponse?.body?.data?.currentAppInstallation?.activeSubscriptions || [];
     const hasShopifySubscription = activeSubs.length > 0;
     // Shopify billing is NOT the source of truth for plan display/gating.
     // Keep this only for trial-day display.
