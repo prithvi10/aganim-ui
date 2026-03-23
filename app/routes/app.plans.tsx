@@ -303,6 +303,7 @@ export const headers: HeadersFunction = (headersArgs) => {
 
 export default function PlansPage() {
   const { activePlan, returningPaid, graceActive, accessExpiresAt, promoEnabled } = useLoaderData<typeof loader>();
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const location = useLocation();
 
