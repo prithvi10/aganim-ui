@@ -14,6 +14,7 @@ import {
   Icon,
   Spinner,
   List,
+  TextField,
 } from "@shopify/polaris";
 import "../styles/optimize-button.css";
 import type { Entitlements, FeatureUsageMap } from "../utils/entitlements";
@@ -181,6 +182,9 @@ export default function LandingPage() {
   const [brandSoulCollapsed, setBrandSoulCollapsed] = useState(false);
   const [intelligenceOpen, setIntelligenceOpen] = useState(false);
   const [onboardingModalOpen, setOnboardingModalOpen] = useState(false);
+  const [brandEditMode, setBrandEditMode] = useState(false);
+  const [brandEditText, setBrandEditText] = useState("");
+  const [brandEditSaving, setBrandEditSaving] = useState(false);
   const [brandStatusState, setBrandStatusState] = useState(brandStatus);
   const [brandSummaryEnState, setBrandSummaryEnState] = useState(brandSummaryEn);
   const [brandSummaryJaState, setBrandSummaryJaState] = useState(brandSummaryJa);
@@ -208,6 +212,28 @@ export default function LandingPage() {
     },
     [host, shop],
   );
+
+  const handleBrandEditSave = useCallback(async () => {
+    setBrandEditSaving(true);
+    try {
+      const resp = await fetch(`${backendApiUrl}/api/admin/brand-context/update`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Shop-Domain": shop,
+        },
+        body: JSON.stringify({ clean_text_en: brandEditText }),
+      });
+      if (!resp.ok) throw new Error("Failed to save");
+      const data = await resp.json().catch(() => ({}));
+      setBrandSummaryEnState(data.summary_en || brandEditText);
+      setBrandEditMode(false);
+    } catch {
+      // best-effort
+    } finally {
+      setBrandEditSaving(false);
+    }
+  }, [backendApiUrl, shop, brandEditText]);
 
   // Auto-launch onboarding modal if not seen
   useEffect(() => {
@@ -463,23 +489,69 @@ export default function LandingPage() {
                   >
                     <Box padding="300" background="bg-surface" borderRadius="200">
                       <BlockStack gap="200">
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t("home.latestSummary")}
-                        </Text>
-                        {displayBrandSummary.includes("\n") ? (
-                          <List type="bullet">
-                            {displayBrandSummary
-                              .split("\n")
-                              .map((line) => line.replace(/^•\s?/, "").trim())
-                              .filter(Boolean)
-                              .map((line, idx) => (
-                                <List.Item key={`${idx}-${line}`}>{line}</List.Item>
-                              ))}
-                          </List>
-                        ) : (
-                          <Text as="p" variant="bodyMd">
-                            {displayBrandSummary}
+                        <InlineStack align="space-between" blockAlign="center">
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            {t("home.latestSummary")}
                           </Text>
+                          {!brandEditMode ? (
+                            <Button
+                              variant="plain"
+                              size="slim"
+                              onClick={() => {
+                                setBrandEditText(displayBrandSummary);
+                                setBrandEditMode(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          ) : null}
+                        </InlineStack>
+                        {brandEditMode ? (
+                          <BlockStack gap="200">
+                            <TextField
+                              label=""
+                              labelHidden
+                              value={brandEditText}
+                              onChange={setBrandEditText}
+                              multiline={6}
+                              autoComplete="off"
+                            />
+                            <InlineStack gap="200">
+                              <Button
+                                variant="primary"
+                                size="slim"
+                                loading={brandEditSaving}
+                                onClick={handleBrandEditSave}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="slim"
+                                onClick={() => setBrandEditMode(false)}
+                                disabled={brandEditSaving}
+                              >
+                                Cancel
+                              </Button>
+                            </InlineStack>
+                          </BlockStack>
+                        ) : (
+                          <>
+                            {displayBrandSummary.includes("\n") ? (
+                              <List type="bullet">
+                                {displayBrandSummary
+                                  .split("\n")
+                                  .map((line) => line.replace(/^•\s?/, "").trim())
+                                  .filter(Boolean)
+                                  .map((line, idx) => (
+                                    <List.Item key={`${idx}-${line}`}>{line}</List.Item>
+                                  ))}
+                              </List>
+                            ) : (
+                              <Text as="p" variant="bodyMd">
+                                {displayBrandSummary}
+                              </Text>
+                            )}
+                          </>
                         )}
                         {displayKeyFacts.length > 0 && (
                           <BlockStack gap="100">

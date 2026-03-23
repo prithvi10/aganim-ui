@@ -215,7 +215,7 @@
     "autoConvertUnits": "Auto-convert units to US Standard",
     "autoConvertUnitsHelp": "Keeps metric specs (cm, g, kg, ml, L) and appends US equivalents in parentheses for English output.",
     "enhanceWithBrandSoul": "Enhance description using your brand's soul",
-    "brandSoulHelp": "Pulls your brand story and pillars into the rewrite for richer storytelling.",
+    "brandSoulHelp": "Pulls your brand story and voice into the rewrite for richer storytelling.",
     "removeIrrelevantContent": "Remove irrelevant content",
     "removeIrrelevantHelp": "Remove any not product related information from the product description.",
     "goToDashboard": "Go to Dashboard",
@@ -795,7 +795,7 @@
           {
             "title": "How Brand Soul powers other features",
             "body": [
-              "Rewriter: When \"Enhance with Brand Soul\" is enabled, your brand story and pillars enrich the rewrite for richer storytelling.",
+              "Rewriter: When \"Enhance with Brand Soul\" is enabled, your brand story and voice enrich the rewrite for richer storytelling.",
               "Missions: Brand context is automatically injected when the Rewriter agent runs in a mission pipeline.",
               "Content Templates: Blog posts, hero sections, and collection descriptions draw on your brand voice.",
               "Hero Banners: Your uploaded logo appears in the \"Informative\" image style for hero sections and collections."
@@ -807,7 +807,7 @@
           { "symptom": "Logo upload failed.", "cause": "File format or size issue.", "fixes": ["Ensure the file is PNG, JPG, or WebP.", "Try a smaller file if the upload times out."] }
         ],
         "faqs": [
-          { "q": "Can I edit the generated brand profile?", "a": "The profile is auto-generated from your store content. To refresh it, re-run the Brand Soul wizard after updating your store." },
+          { "q": "Can I edit the generated brand profile?", "a": "Yes — click the Edit button on the Brand Soul summary on the Home page to edit the generated text directly. To fully regenerate, re-run the Brand Soul wizard." },
           { "q": "How often should I re-run Brand Soul?", "a": "Re-run whenever you significantly change your brand messaging, add new product categories, or want to refresh the AI's understanding of your store." },
           { "q": "Where is the logo used?", "a": "Your logo appears in the \"Informative\" image style when generating hero banners for collections, hero sections, and blog posts." }
         ]
@@ -837,7 +837,7 @@
             { "feature": "Bulk multi-market generation in one click", "Basic": "❌", "Standard": "✅", "Pro": "✅", "notes": "Generate content for multiple locales simultaneously." },
             { "feature": "Tone / Market Persona / Brand Tone selector", "Basic": "❌ (forced Professional)", "Standard": "✅", "Pro": "✅", "notes": "Basic forces Professional; Standard/Pro allow Professional/Luxury/Minimalist/Playful." },
             { "feature": "Auto-convert units to US Standard (EN only)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Keeps metric values and appends US equivalents in parentheses." },
-            { "feature": "Enhance with Brand Soul", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Pulls your brand story and pillars into the rewrite." },
+            { "feature": "Enhance with Brand Soul", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Pulls your brand story and voice into the rewrite." },
             { "feature": "SEO Details editor (SEO title + meta description + SERP preview)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Editable per locale; saved back to Shopify." },
             { "feature": "Save to Shopify (translations + SEO fields)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Uses digest-based translations for non-primary locales." },
             { "feature": "Key Details (Nuance) / \"Verified Japanese Value\" panel", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Driven by backend discovered values; can append footer and persist as metafield." },
