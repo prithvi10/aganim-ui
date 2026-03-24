@@ -345,7 +345,7 @@ export default function Dashboard() {
   const [currentLang, setCurrentLang] = useState(uiLanguage);
   const [currentLocale, setCurrentLocale] = useState(defaultTargetLocale || "en");
 
-  const LOCALE_OPTIONS = ["en", "zh-TW", "ko", "de", "fr", "es", "it", "pt", "th", "vi", "zh-CN"] as const;
+  const LOCALE_OPTIONS = ["ja", "en", "zh-TW", "ko", "de", "fr", "es", "it", "pt", "th", "vi", "zh-CN"] as const;
 
   const handleLocaleChange = useCallback(
     async (newValue: string) => {

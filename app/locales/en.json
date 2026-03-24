@@ -81,6 +81,7 @@
     "confirm": "Confirm"
   },
   "localeLabels": {
+    "ja": "日本語 (Japan)",
     "en": "English (US)",
     "zh-TW": "繁體中文 (Taiwan)",
     "ko": "한국어 (Korea)",
