@@ -247,7 +247,6 @@ export default function SupportPage() {
                     ) : (
                       <video
                         src={c.demoPath}
-                        autoPlay
                         loop
                         muted
                         playsInline
