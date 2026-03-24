@@ -693,7 +693,13 @@ export default function DigitalMarketing() {
         const mData = await missionResp.json();
         setVisualMissionId(mData.mission_id || null);
       } else {
-        throw new Error(`Mission creation failed: ${missionResp.status}`);
+        const errBody = await missionResp.json().catch(() => ({}));
+        const detail = errBody?.detail || `Mission creation failed (${missionResp.status})`;
+        throw new Error(
+          typeof detail === 'string'
+            ? detail
+            : `Mission creation failed (${missionResp.status})`
+        );
       }
     } catch (e: any) {
       setVisualAdError(e?.message ?? 'Failed to generate visual ad.');

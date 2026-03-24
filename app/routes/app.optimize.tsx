@@ -269,7 +269,13 @@ export default function OptimizePage() {
           }),
         });
 
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          const detail = errBody?.detail;
+          throw new Error(
+            typeof detail === 'string' ? detail : `Mission failed (${response.status})`
+          );
+        }
         const data = await response.json();
         setMissionId(data.mission_id);
       } catch (err) {
