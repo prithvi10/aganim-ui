@@ -970,9 +970,7 @@ function RewriterWorkspaceInner({
   const app = useAppBridge() as unknown as ClientApplication<any>;
 
   const [search, setSearch] = useState('');
-  const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
   const [activeLocale, setActiveLocale] = useState<string>('');
-  const [overLimit, setOverLimit] = useState(false);
   const [autoConvertUnits, setAutoConvertUnits] = useState(true);
   const [toneProfile, setToneProfile] = useState<'professional' | 'luxury' | 'minimalist' | 'playful'>('professional');
 
@@ -1040,12 +1038,10 @@ function RewriterWorkspaceInner({
     >
   >({});
 
-  const allowsMultiLocale = maxLocales !== 1;
   const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = toneProfile;
+  const effectiveTargetLocale = defaultTargetLocale || primaryLocale;
   const isOutOfFreeCredits =
     billingCycleType === 'lifetime' && Number(lifetimeRewritesRemaining ?? 0) <= 0;
-
-  const localeLimitMsg = t("upgradeToProMultiLocale");
 
   const isExpiredPaid = useMemo(() => {
     // If last plan is paid and access_expires_at has passed, the merchant must upgrade.
@@ -1096,28 +1092,18 @@ function RewriterWorkspaceInner({
     [locales],
   );
 
-  // Default selected locale: prefer merchant's saved default_target_locale if in published locales, else primary
-  useEffect(() => {
-    if (selectedLocales.length > 0) return;
-    const primary = publishedLocales.find((l) => l.primary)?.locale || primaryLocale;
-    const defaultFromBackend = defaultTargetLocale && publishedLocales.some((l) => l.locale === defaultTargetLocale)
-      ? defaultTargetLocale
-      : null;
-    const defaultLocale = defaultFromBackend || primary;
-    if (defaultLocale) setSelectedLocales([defaultLocale]);
-  }, [publishedLocales, selectedLocales.length, defaultTargetLocale, primaryLocale]);
-
-  // Keep active locale in sync (tabs control the visible draft)
+  // Keep active locale in sync — prefer dashboard default, then primary
   useEffect(() => {
     const published = publishedLocales.map((l) => l.locale);
     if (activeLocale && published.includes(activeLocale)) return;
     const next =
+      (defaultTargetLocale && published.includes(defaultTargetLocale) ? defaultTargetLocale : null) ||
       publishedLocales.find((l) => l.primary)?.locale ||
       primaryLocale ||
       published[0] ||
       '';
     setActiveLocale(next);
-  }, [activeLocale, primaryLocale, publishedLocales]);
+  }, [activeLocale, primaryLocale, publishedLocales, defaultTargetLocale]);
 
   // When product changes, reset reference + draft to current product
   useEffect(() => {
@@ -1459,7 +1445,6 @@ function RewriterWorkspaceInner({
       return;
     }
     setOptimizeError(null);
-    setOverLimit(false);
     setDiscoveredValues([]);
     setAddedValueKeys({});
 
@@ -1488,8 +1473,7 @@ function RewriterWorkspaceInner({
         product_name: referenceTitle ?? '',
         category: selectedProduct?.productType ?? '',
         product_id: productIdFromGid(selectedProduct?.id),
-        // Pro users can generate for multiple locales at once; we still preview the activeLocale in the Draft pane.
-        target_locales: selectedLocales.length > 0 ? selectedLocales : [activeLocale],
+        target_locales: [effectiveTargetLocale],
         auto_convert_units: Boolean(autoConvertUnits),
         tone_profile: effectiveTone,
         remove_irrelevant_content: Boolean(removeIrrelevantContent),
@@ -1687,10 +1671,10 @@ function RewriterWorkspaceInner({
     autoConvertUnits,
     brandSoulEnabled,
     effectiveTone,
+    effectiveTargetLocale,
     removeIrrelevantContent,
     referenceDescription,
     referenceTitle,
-    selectedLocales,
     selectedProduct?.id,
     selectedProduct?.productType,
     startLoading,
@@ -1724,19 +1708,6 @@ function RewriterWorkspaceInner({
   }, [uniqueValues.length, t]);
 
   const selectedProductId = searchParams.get('productId') || (products[0]?.id ?? '');
-
-  const toggleLocale = (locale: string, nextChecked: boolean) => {
-    setOverLimit(false);
-    setSelectedLocales((prev) => {
-      const next = nextChecked ? Array.from(new Set([...prev, locale])) : prev.filter((l) => l !== locale);
-      if (!allowsMultiLocale && next.length > 1) {
-        setOverLimit(true);
-        setToastContent(localeLimitMsg);
-        return prev;
-      }
-      return next;
-    });
-  };
 
   const draftTabs = useMemo(() => {
     // Show all published locales as tabs (EN, FR, KO, zh-TW, etc.)
@@ -2121,39 +2092,14 @@ function RewriterWorkspaceInner({
                       </Box>
 
                       <Box paddingBlockStart="200">
-                        <InlineStack align="space-between" blockAlign="center">
+                        <InlineStack align="start" gap="200" blockAlign="center">
                           <Text as="p" variant="bodyMd" tone="subdued">
-                            {t("rewriteMarkets")}
+                            {t("targetMarket")}:
                           </Text>
+                          <Badge tone="info">
+                            {(effectiveTargetLocale || 'en').toUpperCase()}
+                          </Badge>
                         </InlineStack>
-                        {overLimit ? (
-                          <Box paddingBlockStart="200">
-                            <LockedFeatureNotice
-                              title={t("proPlanRequired")}
-                              description={<>{localeLimitMsg}</>}
-                              ctaLabel={t("upgradeToPro")}
-                              ctaUrl={plansUrl}
-                              tone="warning"
-                            />
-                          </Box>
-                        ) : null}
-                        <Box paddingBlockStart="200">
-                          <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
-                            {publishedLocales.map((loc) => {
-                              const short =
-                                String(loc.locale).split('-')[0]?.toUpperCase() ||
-                                String(loc.locale).toUpperCase();
-                              return (
-                                <Checkbox
-                                  key={loc.locale}
-                                  label={short}
-                                  checked={selectedLocales.includes(loc.locale)}
-                                  onChange={(v) => toggleLocale(loc.locale, v)}
-                                />
-                              );
-                            })}
-                          </div>
-                        </Box>
                       </Box>
 
                       <Box paddingBlockStart="200">
@@ -2205,7 +2151,6 @@ function RewriterWorkspaceInner({
                           <div
                             className={`aiOptimizeWrap${
                               !selectedProduct ||
-                              selectedLocales.length === 0 ||
                               isOptimizing ||
                               saveFetcher.state !== 'idle'
                                 ? ' aiOptimizeWrap--disabled'
@@ -2218,7 +2163,6 @@ function RewriterWorkspaceInner({
                                 onClick={handleOptimize}
                                 disabled={
                                   !selectedProduct ||
-                                  selectedLocales.length === 0 ||
                                   isOptimizing ||
                                   saveFetcher.state !== 'idle'
                                 }

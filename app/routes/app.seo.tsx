@@ -48,6 +48,7 @@ type LoaderData = {
   selectedProduct: SelectedProduct | null;
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 type SEOResult = {
@@ -148,6 +149,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let defaultTargetLocale: string | undefined = undefined;
   try {
     const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`);
     if (usageResp.ok) {
@@ -156,6 +158,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (eff === "Basic" || eff === "Standard" || eff === "Pro") planName = eff as LoaderData["planName"];
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      defaultTargetLocale = data.default_target_locale ?? undefined;
     }
   } catch { /* ignore */ }
 
@@ -167,6 +170,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     selectedProduct,
     entitlements,
     feature_usage,
+    defaultTargetLocale,
   };
 };
 
@@ -334,7 +338,7 @@ function CTRScoreDisplay({ ctrCheck }: { ctrCheck: SEOResult["ctr_check"] }) {
 
 export default function SEOPage() {
   const { t } = useTranslation();
-  const { shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage } = useLoaderData<typeof loader>();
+  const { shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage, defaultTargetLocale } = useLoaderData<typeof loader>();
   const seoLocked = !canAccess(entitlements, "seo");
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
@@ -400,7 +404,7 @@ export default function SEOPage() {
             category: selectedProduct.productType || "General",
           },
           context: {
-            target_locale: "en",
+            target_locale: defaultTargetLocale || "en",
           },
         }),
       });
