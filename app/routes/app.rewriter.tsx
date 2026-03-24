@@ -964,7 +964,7 @@ function RewriterWorkspaceInner({
   brandContextLastError,
   brandContextSummary,
 }: LoaderData) {
-  const { t } = useTranslation("rewriter");
+  const { t, i18n } = useTranslation("rewriter");
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const app = useAppBridge() as unknown as ClientApplication<any>;
@@ -1040,6 +1040,16 @@ function RewriterWorkspaceInner({
 
   const effectiveTone: 'professional' | 'luxury' | 'minimalist' | 'playful' = toneProfile;
   const effectiveTargetLocale = defaultTargetLocale || primaryLocale;
+
+  /** Heading / metafield label for Key Details — follows target market locale, not admin UI language. */
+  const keyDetailsHeadingForSave = useCallback(
+    (targetLocale: string | undefined) => {
+      const raw = String(targetLocale || 'en').trim().toLowerCase();
+      const rewriterBundleLang = raw === 'ja' || raw.startsWith('ja-') ? 'ja' : 'en';
+      return i18n.getFixedT(rewriterBundleLang, 'rewriter')('keyDetailsNuance');
+    },
+    [i18n],
+  );
   const isOutOfFreeCredits =
     billingCycleType === 'lifetime' && Number(lifetimeRewritesRemaining ?? 0) <= 0;
 
@@ -1284,7 +1294,7 @@ function RewriterWorkspaceInner({
 
   const upsertKeyDetailsNuance = useCallback(
     (descHtml: string, bullets: string[]) => {
-      const heading = t("keyDetailsNuance");
+      const heading = keyDetailsHeadingForSave(effectiveTargetLocale);
       const h = `<h3>${heading}</h3>`;
 
       const clean = Array.from(
@@ -1336,7 +1346,7 @@ function RewriterWorkspaceInner({
         `</div>\n`;
       return base ? `${base}${snippet}` : snippet.trim();
     },
-    [escapeHtml, t],
+    [escapeHtml, effectiveTargetLocale, keyDetailsHeadingForSave],
   );
 
   const handleAdd = useCallback(
@@ -1364,7 +1374,7 @@ function RewriterWorkspaceInner({
 
       // Persist to Shopify as a product metafield (theme/SEO usage).
       if (selectedProduct?.id) {
-        const metaValue = `${t("keyDetailsNuance")}\n\n${footerText}`;
+        const metaValue = `${keyDetailsHeadingForSave(effectiveTargetLocale)}\n\n${footerText}`;
         const fd = new FormData();
         fd.set('intent', 'set_cultural_context');
         fd.set('productId', selectedProduct.id);
@@ -1381,6 +1391,8 @@ function RewriterWorkspaceInner({
       currentDraft.title,
       selectedProduct?.id,
       setDraftByLocale,
+      effectiveTargetLocale,
+      keyDetailsHeadingForSave,
       upsertKeyDetailsNuance,
       valueKey,
       t,
