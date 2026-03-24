@@ -347,7 +347,13 @@ export default function ImageRefinement() {
         }),
       });
 
-      if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => ({}));
+        const detail = errBody?.detail;
+        throw new Error(
+          typeof detail === 'string' ? detail : `Image refinement failed (${resp.status})`
+        );
+      }
       const data = await resp.json();
       setMissionId(data.mission_id);
     } catch (e: any) {

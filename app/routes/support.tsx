@@ -176,10 +176,11 @@ export default function SupportPage() {
       const id = decodeURIComponent(raw.replace("#", "")).trim();
       if (!id) return;
       const el = document.getElementById(id);
+      if (!el) return;
       if (el instanceof HTMLDetailsElement) {
         el.open = true;
-        el.scrollIntoView({ block: "start", behavior: "smooth" });
       }
+      el.scrollIntoView({ block: "start", behavior: "smooth" });
     };
 
     openFromHash();
@@ -213,7 +214,19 @@ export default function SupportPage() {
             <div className={styles.indexTitle}>{t("support.index")}</div>
             <div className={styles.indexList}>
               {indexLinks.map((l) => (
-                <a key={l.id} href={`#${l.id}`} className={styles.indexLink}>
+                <a
+                  key={l.id}
+                  href={`#${l.id}`}
+                  className={styles.indexLink}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const el = document.getElementById(l.id);
+                    if (!el) return;
+                    if (el instanceof HTMLDetailsElement) el.open = true;
+                    el.scrollIntoView({ block: "start", behavior: "smooth" });
+                    window.history.replaceState(null, "", `#${l.id}`);
+                  }}
+                >
                   {l.title}
                 </a>
               ))}
@@ -374,7 +387,16 @@ export default function SupportPage() {
                   ) : null}
 
                   <div className={styles.backToTop}>
-                    <a className={styles.link} href="#top">
+                    <a
+                      className={styles.link}
+                      href="#top"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const el = document.getElementById("top");
+                        if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+                        window.history.replaceState(null, "", "#top");
+                      }}
+                    >
                       {t("support.backToTop")}
                     </a>
                   </div>
