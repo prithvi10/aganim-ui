@@ -1158,38 +1158,44 @@
       },
       "bulk-upload": {
         "title": "Bulk Upload",
-        "short": "Upload a CSV of products to optimize multiple items in one batch — text-only or full launch with images.",
+        "short": "Upload up to 10 products via CSV to optimize in one batch — text-only or full launch with images. Pro plan only.",
         "what": [
-          "Upload a CSV file with product data (title, description, category) to process multiple products at once.",
-          "Two modes: Text-only (rewrite + SEO) and Full Launch (rewrite + SEO + image refinement + visual marketing).",
-          "Full Launch mode accepts product images alongside the CSV for end-to-end processing.",
-          "Results are saved to Shopify automatically as each product completes.",
+          "Upload a CSV file with up to 10 products (title, description, category, target market) to process in one batch.",
+          "Hard limit: maximum 10 products per upload.",
+          "Two modes: Text-only (Rewriter → SEO) and Full Launch (Rewriter → Image Refinement → SEO).",
+          "Full Launch mode requires a ZIP file containing products.csv and an images/ folder.",
+          "Products are created as drafts in Shopify automatically as each one completes.",
           "Requires Pro plan. Image credits are checked before starting Full Launch batches."
         ],
         "how": [
-          "Navigate to Bulk Upload from the menu (Pro plan required).",
-          "Choose a mode: Text-only or Full Launch.",
-          "Prepare a CSV file with columns: product_id, title, description, category.",
-          "For Full Launch: include an images/ folder with product images named to match product IDs.",
-          "Upload the file and click \"Start Batch\".",
-          "Monitor progress as products are processed in parallel.",
-          "Results are saved to Shopify as each product completes."
+          "Navigate to Missions and select a bulk mission (Bulk Text Upload or Bulk Full Launch). Pro plan required.",
+          "Choose a mode: Text-only (.csv file) or Full Launch (.zip file with CSV + images).",
+          "Prepare a CSV file named products.csv with required columns: row_id, product_name_ja, description_ja, category, target_market.",
+          "For Full Launch: add an image_ref column to the CSV pointing to filenames in the images/ folder, then package everything in a ZIP.",
+          "Configure preferences: tone profile, Brand Soul, US unit conversion, and target market.",
+          "Click \"Launch Bulk Mission\" to start processing.",
+          "Products are processed sequentially. Monitor progress on the status page — you can leave and come back anytime.",
+          "Completed products are automatically created as drafts in Shopify."
         ],
         "sections": [
-          { "title": "CSV Format", "body": ["Required columns: product_id, title, description, category.", "product_id should be the numeric Shopify product ID.", "description should be the source-language product description (HTML is supported).", "category should match the Shopify product type (e.g. \"Tableware\", \"Clothing\")."] },
-          { "title": "Full Launch Images", "body": ["Place product images in an images/ folder alongside the CSV.", "Name images to match product IDs (e.g. 123456789.jpg).", "Supported formats: JPEG, PNG, WebP.", "Each image uses one image credit from your monthly allowance."] },
-          { "title": "Quota and Limits", "body": ["Text-only: each product uses 1 rewrite credit.", "Full Launch: each product uses 1 rewrite credit + 1 image credit.", "The system checks your remaining credits before starting and rejects the batch if insufficient.", "Pro plan provides 150 image credits/month and unlimited rewrites."] }
+          { "title": "CSV Format", "body": ["Required columns: row_id, product_name_ja, description_ja, category, target_market.", "row_id: a unique identifier for each product row.", "product_name_ja: the Japanese product name.", "description_ja: the Japanese product description.", "category: the product type (e.g. \"Tableware\", \"Clothing\").", "target_market: locale code (e.g. \"en\", \"zh-TW\", \"ko\").", "For Full Launch: add an image_ref column with the filename of the product image in the images/ folder (e.g. \"matcha_powder.jpg\")."] },
+          { "title": "Full Launch (ZIP) Structure", "body": ["ZIP must contain a products.csv file and an images/ folder.", "Each row's image_ref value must match a file in the images/ folder.", "Supported image formats: JPEG, PNG, WebP.", "Each product uses 1 image credit from your monthly allowance (150/month on Pro)."] },
+          { "title": "Limits and Credits", "body": ["Maximum 10 products per upload (enforced on both frontend and backend).", "Each product consumes 1 mission credit (Pro plan has unlimited missions).", "Full Launch: each product additionally uses 1 image credit. The system checks remaining image credits before starting and rejects the batch if insufficient.", "Pro plan provides 150 image credits/month and unlimited mission credits."] }
         ],
         "troubleshooting": [
-          { "symptom": "Batch requires N image credits but you have M remaining.", "cause": "Your image credit balance is too low for the number of products in the Full Launch batch.", "fixes": ["Reduce the number of products in the CSV.", "Switch to Text-only mode (no image credits needed).", "Wait for your monthly image credit reset, or upgrade your plan."] },
-          { "symptom": "CSV upload fails or products are skipped.", "cause": "The CSV format may be incorrect or product IDs may not match existing Shopify products.", "fixes": ["Verify the CSV has the required columns: product_id, title, description, category.", "Ensure product_id values are valid numeric Shopify product IDs.", "Check that the CSV is UTF-8 encoded (important for Japanese text)."] },
-          { "symptom": "Some products fail while others succeed.", "cause": "Individual products may fail due to API rate limits, missing data, or temporary service issues.", "fixes": ["Check the batch results for specific error messages per product.", "Re-upload a CSV with only the failed products.", "Ensure all products have a title and description."] },
-          { "symptom": "Images not found for some products.", "cause": "Image filenames don't match the product IDs in the CSV.", "fixes": ["Verify image filenames match product_id values (e.g. 123456789.jpg for product_id 123456789).", "Check that images are in the images/ folder at the same level as the CSV.", "Supported formats: .jpg, .jpeg, .png, .webp."] }
+          { "symptom": "\"Maximum 10 products per upload\" error.", "cause": "The CSV contains more than 10 data rows.", "fixes": ["Reduce the CSV to 10 products or fewer.", "Split larger batches into multiple uploads of up to 10 products each."] },
+          { "symptom": "\"Batch requires N image credits but you have M remaining.\"", "cause": "Your image credit balance is too low for the number of products in the Full Launch batch.", "fixes": ["Reduce the number of products in the CSV.", "Switch to Text-only mode (no image credits needed).", "Wait for your monthly image credit reset."] },
+          { "symptom": "\"CSV is missing required column(s)\" error.", "cause": "The CSV headers don't match the expected column names.", "fixes": ["Ensure the CSV has all required columns: row_id, product_name_ja, description_ja, category, target_market.", "For Full Launch mode, also include an image_ref column.", "Column names are case-sensitive."] },
+          { "symptom": "\"Image file not found in images/ folder\" error.", "cause": "An image_ref value in the CSV doesn't match any file in the ZIP's images/ folder.", "fixes": ["Verify that each image_ref value exactly matches a filename in the images/ folder (e.g. \"photo.jpg\", not \"images/photo.jpg\").", "Check for typos or case differences in filenames.", "Ensure the images/ folder is at the root level of the ZIP."] },
+          { "symptom": "Some products fail while others succeed.", "cause": "Individual products may fail due to API errors or issues with specific product data.", "fixes": ["Check the batch status page for specific error messages per product.", "Re-upload a new CSV with only the failed products.", "Ensure all products have non-empty titles and descriptions."] },
+          { "symptom": "\"This feature requires the Pro plan\" error.", "cause": "Bulk upload is exclusively available on the Pro plan.", "fixes": ["Upgrade to the Pro plan ($199/month) to unlock bulk upload."] }
         ],
         "faqs": [
-          { "q": "How many products can I upload at once?", "a": "There is no hard limit on the number of rows in the CSV, but image credit limits apply for Full Launch mode. Text-only mode is limited by your rewrite credits." },
-          { "q": "Can I upload Japanese product data?", "a": "Yes — the CSV should be UTF-8 encoded. Japanese text in title and description fields is fully supported. Make sure your target market is set to JP on the Dashboard for best results." },
-          { "q": "What happens if I cancel a batch mid-way?", "a": "Products that have already been processed will keep their results. Remaining products will not be processed. Credits are only consumed for completed products." }
+          { "q": "How many products can I upload at once?", "a": "Maximum 10 products per upload. This is a hard limit enforced by both the app and the server. For larger inventories, split products into batches of up to 10." },
+          { "q": "Can I upload Japanese product data?", "a": "Yes — the CSV should be UTF-8 encoded. Japanese text in product_name_ja and description_ja columns is fully supported. Set the target_market column per row to control the output language." },
+          { "q": "What's the difference between Text-only and Full Launch?", "a": "Text-only uploads a .csv and runs Rewriter → SEO. Full Launch uploads a .zip with images and runs Rewriter → Image Refinement → SEO. Full Launch uses image credits in addition to mission credits." },
+          { "q": "What happens if some products fail mid-batch?", "a": "Products that have already been processed keep their results and are created in Shopify. Failed products are tracked in the status page. Credits are consumed per completed product." },
+          { "q": "Which plan includes bulk upload?", "a": "Bulk upload is a Pro plan exclusive feature ($199/month). It is not available on Free, Basic, or Standard plans." }
         ]
       },
       "dashboard": {
