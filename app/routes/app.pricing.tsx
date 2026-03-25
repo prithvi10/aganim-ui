@@ -157,6 +157,7 @@ export default function PricingPage() {
     competitors: Competitor[];
     recommendedPrice?: number;
     confidence?: number;
+    currency?: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -252,6 +253,7 @@ export default function PricingPage() {
         confidence: analysis.confidence != null 
           ? (analysis.confidence <= 1 ? Math.round(analysis.confidence * 100) : analysis.confidence)
           : undefined,
+        currency: analysis.currency || "$",
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze prices");
@@ -364,6 +366,7 @@ export default function PricingPage() {
                 competitors={analysisResult.competitors}
                 recommendedPrice={analysisResult.recommendedPrice}
                 confidence={analysisResult.confidence}
+                currency={analysisResult.currency}
                 onApplyPrice={handleApplyPrice}
                 isApplying={isApplying}
                 applyPriceBadge={applyPriceLocked ? <PlanGateBadge tierName="Pro" /> : undefined}
