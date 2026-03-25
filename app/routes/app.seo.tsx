@@ -529,6 +529,12 @@ export default function SEOPage() {
               />
             ) : (
               <>
+            <Banner tone="info">
+              <p>
+                SEO optimization targets your <strong>target market ({(defaultTargetLocale || 'en').toUpperCase()})</strong>.
+                For more tailored results, adjust the target market from the Dashboard.
+              </p>
+            </Banner>
             {formatUsage(feature_usage.seo) && (
               <InlineStack gap="200" blockAlign="center">
                 <Text as="span" variant="bodySm" tone="subdued">

@@ -330,6 +330,12 @@ export default function PricingPage() {
               />
             )}
             {!priceScoutLocked && (<>
+            <Banner tone="info">
+              <p>
+                Price Scout searches competitors in your <strong>target market ({(defaultTargetLocale || 'en').toUpperCase()})</strong>.
+                For more tailored results, adjust the target market from the Dashboard.
+              </p>
+            </Banner>
             <Card>
               <BlockStack gap="300">
                 <Text variant="headingMd" as="h2">{t("pricing.selectProduct")}</Text>

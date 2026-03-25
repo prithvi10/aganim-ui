@@ -848,7 +848,11 @@
         },
         "troubleshooting": [
           { "symptom": "I can't select multiple locales.", "cause": "Basic supports 1 locale per run, or additional markets aren't published in Shopify.", "fixes": ["Publish additional markets/locales in Shopify settings.", "Upgrade to Standard or Pro for multi-locale bulk runs."] },
-          { "symptom": "Save failed or content didn't show up in Shopify.", "cause": "Translation digests can become invalid if product content changes during save.", "fixes": ["Avoid editing the same product in Shopify while saving from the app.", "Re-run Optimize and try Save again."] }
+          { "symptom": "Save failed or content didn't show up in Shopify.", "cause": "Translation digests can become invalid if product content changes during save.", "fixes": ["Avoid editing the same product in Shopify while saving from the app.", "Re-run Optimize and try Save again."] },
+          { "symptom": "Output is in the wrong language.", "cause": "The target market on the Dashboard may not match what you expect.", "fixes": ["Go to Dashboard and verify the Content Target Market setting.", "Change target market to match your intended output language, then re-run Optimize."] },
+          { "symptom": "Optimization takes a long time or seems stuck.", "cause": "Complex products with long descriptions or multiple sections take more processing time.", "fixes": ["Wait 30-60 seconds — the AI processes each section individually.", "If it exceeds 2 minutes, refresh the page and try again.", "Simplify very long descriptions by removing duplicate content before optimizing."] },
+          { "symptom": "Generated content is too short or missing sections.", "cause": "The source description may lack sufficient detail for the AI to expand.", "fixes": ["Add more product details to the Shopify description (materials, dimensions, care instructions, usage).", "Ensure the source text has clear section structure for best results."] },
+          { "symptom": "Error: Shopify Access Token not found.", "cause": "The app's connection to your Shopify store has expired or was revoked.", "fixes": ["Go to your Shopify admin and reinstall or re-authorize the app.", "Contact support if the issue persists after reinstalling."] }
         ],
         "faqs": [
           { "q": "Does this overwrite my original product content?", "a": "It saves translations for selected locale(s) and related SEO fields. Your primary content remains the reference unless you intentionally update it." },
@@ -959,7 +963,8 @@
         ],
         "troubleshooting": [
           { "symptom": "Competitor info doesn't show up.", "cause": "Competitor enrichment is Standard/Pro and depends on SERP integration availability.", "fixes": ["Confirm you're on Standard/Pro.", "Treat competitor info as best-effort; you can still use SEO editor + recommendations without it."] },
-          { "symptom": "Recommendations are blank or too generic.", "cause": "Sparse source descriptions produce weaker recommendations (the system avoids inventing facts).", "fixes": ["Add authentic details (materials, what's included, dimensions, care, origin/craft).", "Re-run Optimize and review recommendations again."] }
+          { "symptom": "Recommendations are blank or too generic.", "cause": "Sparse source descriptions produce weaker recommendations (the system avoids inventing facts).", "fixes": ["Add authentic details (materials, what's included, dimensions, care, origin/craft).", "Re-run Optimize and review recommendations again."] },
+          { "symptom": "SEO results seem off or not relevant to the product's language.", "cause": "SEO uses your target market setting from the Dashboard to determine the search locale. If your product is in Japanese but the target market is set to English, the SEO agent will generate for the wrong market.", "fixes": ["Go to Dashboard and set the target market to match the language of your product (e.g. JP for Japanese products).", "Re-run SEO optimization after changing the target market."] }
         ],
         "faqs": [
           { "q": "Will SEO edits change my product title on the page?", "a": "No — SEO title/meta are separate fields used for search snippets and sharing previews (theme/search behavior may vary)." },
@@ -1066,7 +1071,10 @@
         "troubleshooting": [
           { "symptom": "Generate button is disabled / content looks cached.", "cause": "Fresh cached outputs exist in Shopify metafields.", "fixes": ["If available, use re-check/regenerate behavior.", "Update the product description to refresh context and generate again."] },
           { "symptom": "Seasonal output looks generic.", "cause": "Not enough product differentiation in the source.", "fixes": ["Add specific differentiators (materials, use case, bundle contents).", "Re-check Seasonal Campaign."] },
-          { "symptom": "Meta publishing failed.", "cause": "Invalid or expired Meta access token, or incorrect Page ID.", "fixes": ["Go to Dashboard → Meta Integration and update your credentials.", "Ensure the token has pages_manage_posts permission.", "Verify the Page ID is correct (numeric ID from Facebook Page settings)."] }
+          { "symptom": "Meta publishing failed.", "cause": "Invalid or expired Meta access token, or incorrect Page ID.", "fixes": ["Go to Dashboard and update your Meta credentials.", "Ensure the token has pages_manage_posts permission.", "Verify the Page ID is correct (numeric ID from Facebook Page settings)."] },
+          { "symptom": "Social captions are in the wrong language.", "cause": "The target market setting on the Dashboard doesn't match the intended language.", "fixes": ["Go to Dashboard and set the Content Target Market to match your desired output language.", "Re-generate captions after changing the target market."] },
+          { "symptom": "Ad banner generation failed (403 or quota error).", "cause": "You've exhausted your image credits for this billing period.", "fixes": ["Check your image credit usage on the Dashboard.", "Wait for the monthly reset, or upgrade to Pro for more credits.", "Use text-only features (captions, emails) which don't require image credits."] },
+          { "symptom": "Hashtags are not relevant or in the wrong language.", "cause": "The AI generates hashtags based on the target market. Mismatched market settings produce off-target hashtags.", "fixes": ["Ensure the target market matches your product's audience.", "For Japanese products targeting Japanese buyers, set target market to JP."] }
         ],
         "faqs": [
           { "q": "Where are marketing results stored?", "a": "They can be saved to Shopify product metafields so you can reuse them and avoid repeated generation." },
@@ -1091,7 +1099,8 @@
         ],
         "troubleshooting": [
           { "symptom": "No competitor prices found.", "cause": "SERP data may be limited for niche or very specific products.", "fixes": ["Ensure the product title and type are descriptive enough for search.", "Try adjusting the product type or category to broaden the search."] },
-          { "symptom": "Price recommendation seems too high or too low.", "cause": "The AI recommendation is based on available competitor data which may not cover your exact market segment.", "fixes": ["Use the recommendation as guidance alongside your own market knowledge.", "Adjust the price manually if the recommendation doesn't fit your strategy."] }
+          { "symptom": "Price recommendation seems too high or too low.", "cause": "The AI recommendation is based on available competitor data which may not cover your exact market segment.", "fixes": ["Use the recommendation as guidance alongside your own market knowledge.", "Adjust the price manually if the recommendation doesn't fit your strategy."] },
+          { "symptom": "Competitor results are from the wrong country (e.g. US results for a Japanese product).", "cause": "Price Scout uses your target market setting from the Dashboard to determine which Google locale to search. If the target market doesn't match the product's language, results will be from the wrong region.", "fixes": ["Go to Dashboard and set the target market to match the language of your product (e.g. JP for Japanese products, EN for English products).", "Re-run Price Scout after changing the target market.", "For best results, always match the target market with the primary language of your product descriptions."] }
         ],
         "faqs": [
           { "q": "Does it change my price automatically?", "a": "No — price analysis is informational. On Pro, you can optionally click to apply a recommended price, but it never changes automatically." },
@@ -1135,13 +1144,52 @@
         "troubleshooting": [
           { "symptom": "Mission failed or got stuck.", "cause": "A backend agent encountered an error or timed out.", "fixes": ["Check the mission timeline for error details.", "Try launching a new mission with the same configuration.", "If it keeps failing, the product may have insufficient data — add more product details."] },
           { "symptom": "An agent was skipped automatically.", "cause": "The agent may not be available on your plan, or a prerequisite agent's output was empty.", "fixes": ["Check plan availability for each agent.", "Ensure the product has enough content for all agents to work with."] },
-          { "symptom": "Mission counter shows 0 remaining.", "cause": "You've used all missions for this billing period.", "fixes": ["Wait for the monthly reset on your billing date.", "Upgrade to a higher plan for more missions (Pro = unlimited)."] }
+          { "symptom": "Mission counter shows 0 remaining.", "cause": "You've used all missions for this billing period.", "fixes": ["Wait for the monthly reset on your billing date.", "Upgrade to a higher plan for more missions (Pro = unlimited)."] },
+          { "symptom": "403 Forbidden when launching a mission.", "cause": "Mission or image credits are exhausted for your plan.", "fixes": ["Check mission and image credit usage on the Dashboard.", "Image-only missions (Image Refinement, Visual Marketing) use image credits, not mission credits.", "Full missions use both mission credits and rewriter credits.", "Upgrade your plan for more credits."] },
+          { "symptom": "Visual Marketing / Image Refinement step failed.", "cause": "No product image URL available, or image credits are exhausted.", "fixes": ["Ensure the product has at least one image in Shopify.", "Check image credit usage on the Dashboard.", "Upload a custom image when launching the mission."] },
+          { "symptom": "Rewriter output saved but SEO fields are empty.", "cause": "The SEO agent may have failed or produced incomplete output.", "fixes": ["After the mission completes, open the SEO page for the product and run a manual SEO optimization.", "Check if the product has enough description content for SEO generation."] }
         ],
         "faqs": [
           { "q": "Does the mission save results to Shopify automatically?", "a": "Yes — when a mission completes, results (translations, SEO, metafields, blog articles, collections) are saved to Shopify automatically." },
           { "q": "Can I resume a mission that was interrupted?", "a": "Yes — find it in Mission History and click \"Resume\" to continue from where it stopped." },
           { "q": "What happens if I skip an agent step?", "a": "The mission continues to the next agent. The skipped agent's output won't be included in the final results." },
           { "q": "Which preset mission should I start with?", "a": "For your first mission, try \"Social Hype-Man\" (Basic) or \"Full Launch\" (Pro) to see how missions chain agents together." }
+        ]
+      },
+      "bulk-upload": {
+        "title": "Bulk Upload",
+        "short": "Upload a CSV of products to optimize multiple items in one batch — text-only or full launch with images.",
+        "what": [
+          "Upload a CSV file with product data (title, description, category) to process multiple products at once.",
+          "Two modes: Text-only (rewrite + SEO) and Full Launch (rewrite + SEO + image refinement + visual marketing).",
+          "Full Launch mode accepts product images alongside the CSV for end-to-end processing.",
+          "Results are saved to Shopify automatically as each product completes.",
+          "Requires Pro plan. Image credits are checked before starting Full Launch batches."
+        ],
+        "how": [
+          "Navigate to Bulk Upload from the menu (Pro plan required).",
+          "Choose a mode: Text-only or Full Launch.",
+          "Prepare a CSV file with columns: product_id, title, description, category.",
+          "For Full Launch: include an images/ folder with product images named to match product IDs.",
+          "Upload the file and click \"Start Batch\".",
+          "Monitor progress as products are processed in parallel.",
+          "Results are saved to Shopify as each product completes."
+        ],
+        "sections": [
+          { "title": "CSV Format", "body": ["Required columns: product_id, title, description, category.", "product_id should be the numeric Shopify product ID.", "description should be the source-language product description (HTML is supported).", "category should match the Shopify product type (e.g. \"Tableware\", \"Clothing\")."] },
+          { "title": "Full Launch Images", "body": ["Place product images in an images/ folder alongside the CSV.", "Name images to match product IDs (e.g. 123456789.jpg).", "Supported formats: JPEG, PNG, WebP.", "Each image uses one image credit from your monthly allowance."] },
+          { "title": "Quota and Limits", "body": ["Text-only: each product uses 1 rewrite credit.", "Full Launch: each product uses 1 rewrite credit + 1 image credit.", "The system checks your remaining credits before starting and rejects the batch if insufficient.", "Pro plan provides 150 image credits/month and unlimited rewrites."] }
+        ],
+        "troubleshooting": [
+          { "symptom": "Batch requires N image credits but you have M remaining.", "cause": "Your image credit balance is too low for the number of products in the Full Launch batch.", "fixes": ["Reduce the number of products in the CSV.", "Switch to Text-only mode (no image credits needed).", "Wait for your monthly image credit reset, or upgrade your plan."] },
+          { "symptom": "CSV upload fails or products are skipped.", "cause": "The CSV format may be incorrect or product IDs may not match existing Shopify products.", "fixes": ["Verify the CSV has the required columns: product_id, title, description, category.", "Ensure product_id values are valid numeric Shopify product IDs.", "Check that the CSV is UTF-8 encoded (important for Japanese text)."] },
+          { "symptom": "Some products fail while others succeed.", "cause": "Individual products may fail due to API rate limits, missing data, or temporary service issues.", "fixes": ["Check the batch results for specific error messages per product.", "Re-upload a CSV with only the failed products.", "Ensure all products have a title and description."] },
+          { "symptom": "Images not found for some products.", "cause": "Image filenames don't match the product IDs in the CSV.", "fixes": ["Verify image filenames match product_id values (e.g. 123456789.jpg for product_id 123456789).", "Check that images are in the images/ folder at the same level as the CSV.", "Supported formats: .jpg, .jpeg, .png, .webp."] }
+        ],
+        "faqs": [
+          { "q": "How many products can I upload at once?", "a": "There is no hard limit on the number of rows in the CSV, but image credit limits apply for Full Launch mode. Text-only mode is limited by your rewrite credits." },
+          { "q": "Can I upload Japanese product data?", "a": "Yes — the CSV should be UTF-8 encoded. Japanese text in title and description fields is fully supported. Make sure your target market is set to JP on the Dashboard for best results." },
+          { "q": "What happens if I cancel a batch mid-way?", "a": "Products that have already been processed will keep their results. Remaining products will not be processed. Credits are only consumed for completed products." }
         ]
       },
       "dashboard": {
