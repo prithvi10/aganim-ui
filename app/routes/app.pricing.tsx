@@ -43,6 +43,7 @@ type LoaderData = {
   selectedProduct: SelectedProduct | null;
   entitlements: Entitlements;
   feature_usage: FeatureUsageMap;
+  defaultTargetLocale?: string;
 };
 
 function productIdFromGid(gid: string | null | undefined) {
@@ -116,6 +117,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let defaultTargetLocale: string | undefined;
   try {
     const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`);
     if (usageResp.ok) {
@@ -124,15 +126,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (eff === "Basic" || eff === "Standard" || eff === "Pro") planName = eff as LoaderData["planName"];
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      defaultTargetLocale = data.default_target_locale ?? undefined;
     }
   } catch { /* ignore */ }
 
-  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage };
+  return { planName, shop: session.shop, backendApiUrl, products, selectedProduct, entitlements, feature_usage, defaultTargetLocale };
 };
 
 export default function PricingPage() {
   const { t } = useTranslation();
-  const { shop, backendApiUrl, products, selectedProduct, entitlements } = useLoaderData<typeof loader>();
+  const { shop, backendApiUrl, products, selectedProduct, entitlements, defaultTargetLocale } = useLoaderData<typeof loader>();
   const priceScoutLocked = !canAccess(entitlements, "price_scout");
   const applyPriceLocked = !canAccess(entitlements, "apply_price");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -209,7 +212,7 @@ export default function PricingPage() {
             description: selectedProduct.descriptionHtml,
             category: selectedProduct.productType || "General",
           },
-          context: {},
+          context: { target_locale: defaultTargetLocale || 'en' },
         }),
       });
       
