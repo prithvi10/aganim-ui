@@ -12,6 +12,7 @@ import {
   NoteIcon,
   SettingsIcon,
   GlobeIcon,
+  ImportIcon,
 } from "@shopify/polaris-icons";
 import styles from "../styles/support.module.css";
 
@@ -87,6 +88,7 @@ const CARD_META: Array<{
   { id: "marketing", demoPath: "/support-gifs/marketing-hooks-to-metafields.mp4", icon: SocialAdIcon },
   { id: "price-scout", demoPath: "/support-gifs/price-scout.mp4", icon: SearchIcon },
   { id: "missions", demoPath: "/support-gifs/missions-overview.mp4", icon: StarIcon },
+  { id: "bulk-upload", demoPath: "/support-gifs/missions-overview.mp4", icon: ImportIcon },
   { id: "dashboard", demoPath: "/support-gifs/dashboard-overview.mp4", icon: HomeIcon },
 ];
 
@@ -193,7 +195,7 @@ export default function SupportPage() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.brandRow}>
-            <div className={styles.brandMark} aria-hidden />
+            <img src="/Icon-final.png" alt="Cross-Border AI" className={styles.brandLogo} />
             <div>
               <div className={styles.kicker}>{t("support.helpCenter")}</div>
               <h1 className={styles.h1}>{t("support.pageTitle")}</h1>
