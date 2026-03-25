@@ -88,7 +88,7 @@ const CARD_META: Array<{
   { id: "marketing", demoPath: "/support-gifs/marketing-hooks-to-metafields.mp4", icon: SocialAdIcon },
   { id: "price-scout", demoPath: "/support-gifs/price-scout.mp4", icon: SearchIcon },
   { id: "missions", demoPath: "/support-gifs/missions-overview.mp4", icon: StarIcon },
-  { id: "bulk-upload", demoPath: "/support-gifs/missions-overview.mp4", icon: ImportIcon },
+  { id: "bulk-upload", demoPath: "/support-gifs/bulk-upload.mp4", icon: ImportIcon },
   { id: "dashboard", demoPath: "/support-gifs/dashboard-overview.mp4", icon: HomeIcon },
 ];
 
@@ -252,6 +252,7 @@ export default function SupportPage() {
 
                 <div className={styles.featureBody}>
                   {/* Demo — full width (video or image) */}
+                  {c.demoPath && (
                   <div className={styles.panel}>
                     {/\.(png|jpe?g|webp|gif|svg)$/i.test(c.demoPath) ? (
                       <img
@@ -270,6 +271,7 @@ export default function SupportPage() {
                       />
                     )}
                   </div>
+                  )}
 
                   {/* Guide — What + How + Deep Dive merged */}
                   <div className={styles.panel}>
