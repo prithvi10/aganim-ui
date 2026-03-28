@@ -10,10 +10,10 @@
     "langToggle": "日本語"
   },
   "home": {
-    "crossBorderAi": "Cross-Border AI",
+    "crossBorderAi": "Aganim AI",
     "tagline": "Transform product info into a world-class marketing copy.",
     "gettingStarted": "Getting Started",
-    "gettingStartedDesc": "Complete these steps to unlock the full power of Cross-Border AI.",
+    "gettingStartedDesc": "Complete these steps to unlock the full power of Aganim AI.",
     "stepBrandSoul": "Set up Brand Soul",
     "stepWritingStudio": "Try Writing Studio",
     "stepMarketing": "Create marketing content",
@@ -95,7 +95,7 @@
     "zh-CN": "简体中文 (China)"
   },
   "dashboard": {
-    "title": "Cross-Border AI",
+    "title": "Aganim AI",
     "totalOptimized": "Total Products Optimized",
     "activeMarkets": "Active Markets",
     "currentPlan": "Current Plan",
@@ -498,9 +498,9 @@
   },
   "components": {
     "getStartedGuide": "Get started guide",
-    "learnHowToUse": "Learn how to use Cross-Border AI with a quick step-by-step guide.",
+    "learnHowToUse": "Learn how to use Aganim AI with a quick step-by-step guide.",
     "openGuide": "Open guide",
-    "getStartedWithCbai": "Get started with Cross-Border AI",
+    "getStartedWithCbai": "Get started with Aganim AI",
     "guideBrandSoulTitle": "Step 1: Brand Soul",
     "guideBrandSoulSubtitle": "Define your brand identity",
     "guideBrandSoulBody": "Brand Soul analyzes your store and creates a brand profile — archetype, tone, power words, and cultural touchpoints — that powers all AI-generated content across every feature.",
@@ -745,7 +745,7 @@
   "support": {
     "helpCenter": "Help Center",
     "pageTitle": "Support",
-    "subtitle": "Feature guides, plan availability, troubleshooting, and FAQs for Cross-Border AI.",
+    "subtitle": "Feature guides, plan availability, troubleshooting, and FAQs for Aganim AI.",
     "featureDocs": "Feature docs",
     "featureDocsDesc": "Each feature below includes plan availability, step-by-step usage, and common fixes.",
     "planFilter": "Plan filter",
@@ -770,7 +770,7 @@
     "notesLabel": "Notes",
     "likelyCause": "Likely cause",
     "fix": "Fix",
-    "copyright": "Cross-Border AI. Support content is updated regularly.",
+    "copyright": "Aganim AI. Support content is updated regularly.",
     "tableFeature": "Feature",
     "tableNotes": "Notes",
     "planAll": "All",

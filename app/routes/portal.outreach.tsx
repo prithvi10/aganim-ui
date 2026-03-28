@@ -112,9 +112,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       template: form.get("email_type") || "custom",
       to_email: String(form.get("admin_email") || ""),
       merchant_name: "Test Store",
-      app_url: String(form.get("app_url") || "https://app.crossborderagent.com"),
+      app_url: String(form.get("app_url") || "https://app.aganim.com"),
       plan_name: String(form.get("plan_name") || "Pro"),
-      upgrade_url: String(form.get("upgrade_url") || "https://app.crossborderagent.com/pricing"),
+      upgrade_url: String(form.get("upgrade_url") || "https://app.aganim.com/pricing"),
       feedback_link: String(form.get("feedback_link") || ""),
       app_store_review_link: String(form.get("app_store_review_link") || ""),
       subject: String(form.get("subject") || ""),
@@ -152,11 +152,11 @@ export default function PortalOutreach() {
 
   const [subject, setSubject] = useState("");
   const [htmlBody, setHtmlBody] = useState("");
-  const [appUrl, setAppUrl] = useState("https://app.crossborderagent.com");
+  const [appUrl, setAppUrl] = useState("https://app.aganim.com");
   const [planName, setPlanName] = useState("Pro");
-  const [upgradeUrl, setUpgradeUrl] = useState("https://app.crossborderagent.com/pricing");
-  const [feedbackLink, setFeedbackLink] = useState("https://forms.gle/crossborderagent-feedback");
-  const [reviewLink, setReviewLink] = useState("https://apps.shopify.com/crossborderagent#reviews");
+  const [upgradeUrl, setUpgradeUrl] = useState("https://app.aganim.com/pricing");
+  const [feedbackLink, setFeedbackLink] = useState("https://forms.gle/aganim-feedback");
+  const [reviewLink, setReviewLink] = useState("https://apps.shopify.com/aganim#reviews");
 
   const [adminEmail, setAdminEmail] = useState("");
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -278,7 +278,7 @@ export default function PortalOutreach() {
                   value={appUrl}
                   onChange={setAppUrl}
                   autoComplete="off"
-                  placeholder="https://app.crossborderagent.com"
+                  placeholder="https://app.aganim.com"
                   helpText="CTA button link in the email."
                 />
               )}
@@ -300,7 +300,7 @@ export default function PortalOutreach() {
                   value={upgradeUrl}
                   onChange={setUpgradeUrl}
                   autoComplete="off"
-                  placeholder="https://app.crossborderagent.com/pricing"
+                  placeholder="https://app.aganim.com/pricing"
                   helpText="Link to the pricing/upgrade page."
                 />
               )}

@@ -1745,7 +1745,7 @@ function RewriterWorkspaceInner({
           <InlineStack gap="300" blockAlign="center">
             <img
               src="/Icon-final.png"
-              alt="Cross-Border AI"
+              alt="Aganim AI"
               style={{width: 24, height: 24}}
             />
             <Text as="h1" variant="headingLg">

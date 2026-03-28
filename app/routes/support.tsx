@@ -18,11 +18,11 @@ import styles from "../styles/support.module.css";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Support | Cross-Border AI" },
+    { title: "Support | Aganim AI" },
     {
       name: "description",
       content:
-        "Support docs for Cross-Border AI: feature guides, troubleshooting, FAQs, and contact.",
+        "Support docs for Aganim AI: feature guides, troubleshooting, FAQs, and contact.",
     },
   ];
 };
@@ -195,7 +195,7 @@ export default function SupportPage() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.brandRow}>
-            <img src="/Icon-final.png" alt="Cross-Border AI" className={styles.brandLogo} />
+            <img src="/Icon-final.png" alt="Aganim AI" className={styles.brandLogo} />
             <div>
               <div className={styles.kicker}>{t("support.helpCenter")}</div>
               <h1 className={styles.h1}>{t("support.pageTitle")}</h1>

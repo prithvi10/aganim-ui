@@ -27,10 +27,10 @@ export const LandingHeader = () => (
       <Link to="/" className="flex items-center gap-3 text-sm font-semibold">
         <img
           src="/Icon-final.png"
-          alt="Cross-Border AI"
+          alt="Aganim AI"
           className="h-8 w-8"
         />
-        Cross-Border AI
+        Aganim AI
       </Link>
       <nav className="hidden items-center gap-8 text-sm text-slate-300 md:flex">
         <Link to="/features" className="transition hover:text-white">
@@ -53,7 +53,7 @@ export const LandingHeader = () => (
 export const LandingFooter = () => (
   <footer className="border-t border-white/10 py-10">
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
-      <p>&copy; 2026 Cross-Border AI. All rights reserved.</p>
+      <p>&copy; 2026 Aganim AI. All rights reserved.</p>
       <div className="flex flex-wrap gap-6">
         <Link to="/support" className="transition hover:text-white">
           Support

@@ -31,7 +31,7 @@ export default function Auth() {
           <Page>
             <Card>
               <BlockStack gap="400">
-                <Text as="h1" variant="headingMd">Log in to Cross-Border AI</Text>
+                <Text as="h1" variant="headingMd">Log in to Aganim AI</Text>
                 {errors.shop && <Banner tone="critical"><p>{errors.shop}</p></Banner>}
                 <Form method="post">
                   <BlockStack gap="400">

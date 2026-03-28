@@ -1,5 +1,5 @@
 {
-  "name": "cross-border-agent",
+  "name": "aganim",
   "private": true,
   "scripts": {
     "build": "react-router build",

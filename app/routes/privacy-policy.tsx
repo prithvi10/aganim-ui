@@ -2,11 +2,11 @@ import type { MetaFunction } from "react-router";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Privacy Policy | Cross-Border AI" },
+    { title: "Privacy Policy | Aganim AI" },
     {
       name: "description",
       content:
-        "Cross-Border AI privacy policy for Shopify merchants. Describes what data is accessed, processed, stored, and how deletion requests are handled.",
+        "Aganim AI privacy policy for Shopify merchants. Describes what data is accessed, processed, stored, and how deletion requests are handled.",
     },
   ];
 };
@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <header style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 32, lineHeight: 1.2, margin: 0 }}>
-            Cross-Border AI Privacy Policy
+            Aganim AI Privacy Policy
           </h1>
           <p style={{ margin: "8px 0 0 0", color: "#4b5563" }}>
             Effective Date: January 13, 2026
@@ -35,7 +35,7 @@ export default function PrivacyPolicy() {
         <section style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, marginBottom: 8 }}>1. Introduction</h2>
           <p style={{ margin: 0, color: "#111827" }}>
-            Cross-Border AI (“we”, “us”, “the App”) provides AI-driven product
+            Aganim AI (“we”, “us”, “the App”) provides AI-driven product
             localization, rewriting, and marketing assistance for Shopify
             merchants. This Privacy Policy explains what data we access, what we
             store, how we use it, and how we delete it.
@@ -128,7 +128,7 @@ export default function PrivacyPolicy() {
           <h3 style={{ fontSize: 16, margin: "0 0 8px 0" }}>1. Purpose and Scope</h3>
           <p style={{ marginTop: 0 }}>
             To ensure consistent performance and priority access for all our merchants,
-            Cross-Border AI (the “App”) employs a Fair Use Policy. While our “Pro” and
+            Aganim AI (the “App”) employs a Fair Use Policy. While our “Pro” and
             “Enterprise” plans may offer “Unlimited” product rewrites, these services are
             intended for the standard business operations of a single Shopify store.
           </p>
@@ -152,7 +152,7 @@ export default function PrivacyPolicy() {
 
           <h3 style={{ fontSize: 16, margin: "0 0 8px 0" }}>3. Monitoring and Intervention</h3>
           <p style={{ marginTop: 0 }}>
-            Cross-Border AI monitors lifetime and monthly token usage purely for cost-stability
+            Aganim AI monitors lifetime and monthly token usage purely for cost-stability
             and system integrity. If your usage is flagged as “Extraordinary” or “Abusive,” we
             reserve the right to:
           </p>
