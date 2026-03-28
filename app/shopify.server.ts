@@ -52,7 +52,7 @@ const SHOPIFY_APP_URL = (() => {
     // IMPORTANT: appUrl must be the ORIGIN only (no path/query/hash) or embedded auth can loop/401.
     if (u.pathname !== "/" || u.search || u.hash) {
       throw new Error(
-        `[Config] SHOPIFY_APP_URL must be an origin (e.g. https://shopify-translator-ui.onrender.com) but got: ${SHOPIFY_APP_URL_RAW}`
+        `[Config] SHOPIFY_APP_URL must be an origin (e.g. https://aganim-ui.onrender.com) but got: ${SHOPIFY_APP_URL_RAW}`
       );
     }
     return u.origin;
@@ -136,7 +136,7 @@ const shopify = shopifyApp({
         // The widget calls the API directly via app proxy, so the API must have a stored token.
         try {
           const backendApiUrl =
-            process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+            process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
           const tokenSyncSecret =
             process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
 

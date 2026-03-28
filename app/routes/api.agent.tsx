@@ -2,7 +2,7 @@ import type {ActionFunctionArgs, LoaderFunctionArgs} from 'react-router';
 
 function getBackendBaseUrl(): string {
   return (
-    process.env.BACKEND_API_URL?.trim() || 'https://shopify-translator-api.onrender.com'
+    process.env.BACKEND_API_URL?.trim() || 'https://aganim-api.onrender.com'
   );
 }
 

@@ -145,7 +145,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   const shopSlug = sessionShop.replace('.myshopify.com', '');
   const backendApiUrl =
-    process.env.BACKEND_API_URL || 'https://shopify-translator-api.onrender.com';
+    process.env.BACKEND_API_URL || 'https://aganim-api.onrender.com';
 
   const planQuery = `query AppPlan {
     appInstallation {

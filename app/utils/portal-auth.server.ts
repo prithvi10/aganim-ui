@@ -10,7 +10,7 @@ const COOKIE_NAME = "portal_token";
 function getBackendBaseUrl(): string {
   return (
     process.env.BACKEND_API_URL?.trim() ||
-    "https://shopify-translator-api.onrender.com"
+    "https://aganim-api.onrender.com"
   );
 }
 

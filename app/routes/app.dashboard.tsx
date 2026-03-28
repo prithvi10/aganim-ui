@@ -81,7 +81,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   const shop = session.shop;
-  const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+  const backendApiUrl = process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
 
   // Defaults
   let uiLanguage = "en";
@@ -308,7 +308,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       trialDays: 0,
       backendError401: false,
       isSyncing: false,
-      backendApiUrl: process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com",
+      backendApiUrl: process.env.BACKEND_API_URL || "https://aganim-api.onrender.com",
       metaCredentials: { access_token_present: false, page_id_present: false, page_id: null },
       entitlements: {},
       feature_usage: {},

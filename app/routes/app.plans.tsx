@@ -84,7 +84,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let promoEnabled = false;
     try {
       const backendApiUrl =
-        process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+        process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
       const usageResp = await fetch(
         `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`
       );
@@ -232,7 +232,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // treat that as the effective current plan to prevent re-purchasing the same tier.
       try {
         const backendApiUrl =
-          process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+          process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
         const usageResp = await fetch(
           `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`
         );
@@ -253,7 +253,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         // backend DB is in sync (the subscription webhook may have failed).
         try {
           const backendApiUrl =
-            process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+            process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
           await fetch(
             `${backendApiUrl}/api/admin/sync-plan`,
             {

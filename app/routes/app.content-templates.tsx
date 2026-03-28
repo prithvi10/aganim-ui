@@ -110,7 +110,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   const shop = sessionShop;
   const backendApiUrl =
-    process.env.BACKEND_API_URL || 'https://shopify-translator-api.onrender.com';
+    process.env.BACKEND_API_URL || 'https://aganim-api.onrender.com';
 
   // Fetch products
   const productsQuery = usingOfflineClient
