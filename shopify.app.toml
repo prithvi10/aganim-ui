@@ -4,7 +4,7 @@ client_id = "315cfaf63c9baf27e4ba9a22b91b168e"
 name = "CrossBorderAgent"
 # IMPORTANT: This must be the app ORIGIN (no path). The embedded entry route can be /app,
 # but the app URL itself must match SHOPIFY_APP_URL origin exactly to avoid auth 401 loops.
-application_url = "https://shopify-translator-ui.onrender.com"
+application_url = "https://aganim-ui.onrender.com"
 embedded = true
 
 [build]
@@ -15,20 +15,20 @@ api_version = "2026-01"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
-  uri = "https://shopify-translator-api.onrender.com/webhooks/app/uninstalled"
+  uri = "https://aganim-api.onrender.com/webhooks/app/uninstalled"
 
   [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
-  uri = "https://shopify-translator-api.onrender.com/webhooks/app/scopes_update"
+  uri = "https://aganim-api.onrender.com/webhooks/app/scopes_update"
 
   [[webhooks.subscriptions]]
   topics = [ "app_subscriptions/update" ]
-  uri = "https://shopify-translator-api.onrender.com/webhooks/subscription-activated"
+  uri = "https://aganim-api.onrender.com/webhooks/subscription-activated"
 
   # Mandatory GDPR compliance webhooks (required for App Store review)
   [[webhooks.subscriptions]]
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
-  uri = "https://shopify-translator-api.onrender.com/api/webhooks/compliance"
+  uri = "https://aganim-api.onrender.com/api/webhooks/compliance"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -36,12 +36,12 @@ scopes = "read_products,write_products,read_locales,read_translations,write_tran
 
 [auth]
 redirect_urls = [ 
-  "https://shopify-translator-api.onrender.com/api/auth/callback",
-  "https://shopify-translator-ui.onrender.com/auth/callback", 
-  "https://shopify-translator-ui.onrender.com/auth/login"
+  "https://aganim-api.onrender.com/api/auth/callback",
+  "https://aganim-ui.onrender.com/auth/callback", 
+  "https://aganim-ui.onrender.com/auth/login"
 ]
 
 [app_proxy]
-url = "https://shopify-translator-api.onrender.com/api/proxy"
+url = "https://aganim-api.onrender.com/api/proxy"
 subpath = "cross-border"
 prefix = "apps"

@@ -39,7 +39,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const shop = session.shop;
   const backendApiUrl =
-    process.env.BACKEND_API_URL || 'https://shopify-translator-api.onrender.com';
+    process.env.BACKEND_API_URL || 'https://aganim-api.onrender.com';
 
   // Fetch template details
   let template: Template | null = null;
@@ -70,7 +70,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const shop = formData.get('shop') as string;
   const templateId = formData.get('template_id') as string;
   const backendApiUrl =
-    process.env.BACKEND_API_URL || 'https://shopify-translator-api.onrender.com';
+    process.env.BACKEND_API_URL || 'https://aganim-api.onrender.com';
 
   const body: Record<string, any> = {};
   formData.forEach((value, key) => {

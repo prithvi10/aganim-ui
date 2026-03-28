@@ -43,7 +43,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // ── End token health check ─────────────────────────────────────────
 
   const backendApiUrl =
-    process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+    process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
   const tokenSyncSecret =
     process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET;
 

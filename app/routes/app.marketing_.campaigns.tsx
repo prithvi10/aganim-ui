@@ -40,7 +40,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = sessionShop;
   const shopSlug = shop.replace('.myshopify.com', '');
   const backendApiUrl =
-    process.env.BACKEND_API_URL || 'https://shopify-translator-api.onrender.com';
+    process.env.BACKEND_API_URL || 'https://aganim-api.onrender.com';
 
   let retailCalendar: RetailCalendarEntry[] = [];
   try {

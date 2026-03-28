@@ -25,7 +25,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (shop) {
     const backendApiUrl =
-      process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+      process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
     try {
       const resp = await fetch(
         `${backendApiUrl}/api/admin/reinstall-path?shop=${encodeURIComponent(shop)}`

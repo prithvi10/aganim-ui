@@ -40,7 +40,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shopParam = url.searchParams.get("shop") || "";
   const host = url.searchParams.get("host") || "";
   const backendApiUrl =
-    process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+    process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
 
   let planName = "Free";
   let brandStatus = "idle";

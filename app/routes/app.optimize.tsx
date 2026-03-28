@@ -176,7 +176,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   let planName: LoaderData["planName"] = "Free";
   let defaultTargetLocale: string | undefined = undefined;
-  const backendApiUrl = process.env.BACKEND_API_URL || "https://shopify-translator-api.onrender.com";
+  const backendApiUrl = process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
 
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
