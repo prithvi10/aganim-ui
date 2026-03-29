@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "315cfaf63c9baf27e4ba9a22b91b168e"
-name = "CrossBorderAgent"
+name = "Aganim"
 # IMPORTANT: This must be the app ORIGIN (no path). The embedded entry route can be /app,
 # but the app URL itself must match SHOPIFY_APP_URL origin exactly to avoid auth 401 loops.
 application_url = "https://aganim-ui.onrender.com"
