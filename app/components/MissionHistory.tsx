@@ -185,14 +185,34 @@ export function MissionHistory({
     );
   }
 
+  const [sectionOpen, setSectionOpen] = useState(false);
+
   return (
     <Card>
       <Box padding="400">
         <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">
-            {t("recentMissions")}
-          </Text>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setSectionOpen((o) => !o)}
+            onKeyDown={(e) => e.key === "Enter" && setSectionOpen((o) => !o)}
+            style={{ cursor: "pointer", userSelect: "none" }}
+          >
+            <InlineStack align="space-between" blockAlign="center">
+              <Text as="h3" variant="headingMd">
+                {sectionOpen ? "▼" : "▶"} {t("recentMissions")}
+              </Text>
+              <Text as="span" variant="bodySm" tone="subdued">
+                {missions.length} {missions.length === 1 ? "mission" : "missions"}
+              </Text>
+            </InlineStack>
+          </div>
 
+          <Collapsible
+            open={sectionOpen}
+            id="recent-missions-section"
+            transition={{ duration: "250ms", timingFunction: "ease-in-out" }}
+          >
           <BlockStack gap="200">
             {missions.map((mission) => {
               const isBulk = mission.is_bulk_parent;
@@ -343,6 +363,7 @@ export function MissionHistory({
               );
             })}
           </BlockStack>
+          </Collapsible>
         </BlockStack>
       </Box>
     </Card>

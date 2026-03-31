@@ -141,7 +141,7 @@ export const AVAILABLE_AGENTS: AgentDefinition[] = [
   {
     name: "VisualMarketingAgent",
     displayName: "Visual Marketing",
-    description: "Marketing ad and hero banner generation (Pro)",
+    description: "Marketing ad generation (Pro)",
     icon: "📸",
     color: "info",
   },
@@ -411,13 +411,13 @@ const PRESETS: Record<string, Preset> = {
     label: "Visual Ad Blitz",
     icon: "📸",
     description:
-      "Generate social hooks then produce ready-to-post marketing ads and hero banners",
+      "Generate social hooks then produce ready-to-post marketing ads",
     steps: [
       { agent_name: "MarketingAgent", has_gate: true },
       { agent_name: "VisualMarketingAgent", has_gate: true },
     ],
     contextType: "product",
-    minTier: "Free",
+    minTier: "Pro",
   },
   bulk_text_only: {
     label: "Bulk Text Upload",
