@@ -189,11 +189,12 @@ function getCompletedActions(state: MissionState): Array<{
   // Pricing actions
   if (state.pricing_analysis) {
     const { recommended_price, price_position, confidence, competitors } = state.pricing_analysis;
+    const currency = state.pricing_analysis.currency || "$";
     actions.push({
       icon: SearchIcon,
       title: "Price Analysis Complete",
       description: recommended_price
-        ? `Recommended $${recommended_price.toFixed(2)} (${confidence || 0}% confidence, ${competitors?.length || 0} competitors analyzed)`
+        ? `Recommended ${currency}${recommended_price.toFixed(2)} (${confidence || 0}% confidence, ${competitors?.length || 0} competitors analyzed)`
         : `Position: ${price_position || "Unknown"}`,
       success: true,
     });
@@ -386,7 +387,7 @@ export function MissionSummary({
                     <InlineStack gap="200" blockAlignment="center">
                       <Text variant="bodyMd" fontWeight="semibold">Suggested Price:</Text>
                       <Badge tone="success" size="large">
-                        ${state.pricing_analysis.recommended_price.toFixed(2)}
+                        {state.pricing_analysis.currency || "$"}{state.pricing_analysis.recommended_price.toFixed(2)}
                       </Badge>
                       {state.pricing_analysis.confidence !== undefined && (
                         <Badge tone={state.pricing_analysis.confidence >= 0.7 ? "success" : "warning"}>

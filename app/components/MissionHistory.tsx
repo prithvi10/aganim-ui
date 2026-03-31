@@ -298,7 +298,7 @@ export function MissionHistory({
                                 <Text as="p" variant="bodySm">
                                   <strong>{t("priceLabel")}</strong>{" "}
                                   {(details.pricing_analysis as Record<string, unknown>).recommended_price
-                                    ? `$${(details.pricing_analysis as Record<string, unknown>).recommended_price}`
+                                    ? `${(details.pricing_analysis as Record<string, unknown>).currency || "$"}${(details.pricing_analysis as Record<string, unknown>).recommended_price}`
                                     : t("na")}{" "}
                                   ({String((details.pricing_analysis as Record<string, unknown>).price_position || "")})
                                 </Text>
