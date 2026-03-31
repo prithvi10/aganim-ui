@@ -560,7 +560,7 @@ export default function Dashboard() {
   if (showExpiredModal) {
     const qs =
       typeof window !== "undefined" ? (window.location.search || "") : "";
-    const target = `/app/pricing?returning_paid=1${qs ? `&${qs.replace(/^\?/, "")}` : ""}`;
+    const target = `/app/plans?returning_paid=1${qs ? `&${qs.replace(/^\?/, "")}` : ""}`;
     return (
       <Page title={t("dashboard.title")} fullWidth>
         <TitleBar title={t("dashboard.title")} />
