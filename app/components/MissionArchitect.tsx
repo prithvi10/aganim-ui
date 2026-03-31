@@ -810,7 +810,14 @@ export function MissionArchitect({
                 gap: "16px",
               }}
             >
-              {Object.entries(PRESETS).map(([key, p]) => (
+              {Object.entries(PRESETS)
+                .sort(([, a], [, b]) => {
+                  const aLocked = !tierMeetsMin(currentTier, a.minTier);
+                  const bLocked = !tierMeetsMin(currentTier, b.minTier);
+                  if (aLocked === bLocked) return 0;
+                  return aLocked ? 1 : -1;
+                })
+                .map(([key, p]) => (
                 <MissionCard
                   key={key}
                   icon={p.icon}
