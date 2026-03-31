@@ -433,7 +433,7 @@ const Pricing = () => {
       name: "Standard",
       price: "$79",
       period: "/ month",
-      description: "Full toolkit, one market at a time.",
+      description: "",
       productLimit: "Unlimited products",
       features: [
         "Everything in Basic",
@@ -450,7 +450,7 @@ const Pricing = () => {
       name: "Pro",
       price: "$199",
       period: "/ month",
-      description: "Go global — bulk-generate for all 12 markets at once.",
+      description: "",
       productLimit: "Unlimited products",
       features: [
         "Everything in Standard",
