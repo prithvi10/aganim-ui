@@ -391,7 +391,7 @@ const PRESETS: Record<string, Preset> = {
     minTier: "Standard",
   },
 
-  // ── Pro: All missions including visual ─────────────────────────────
+  // ── Full pipeline (Free trial + Pro) ────────────────────────────
   full_launch: {
     label: "Full Launch",
     icon: "🚀",
@@ -405,7 +405,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "VisualMarketingAgent", has_gate: true },
     ],
     contextType: "product",
-    minTier: "Pro",
+    minTier: "Free",
   },
   visual_ad_blitz: {
     label: "Visual Ad Blitz",
@@ -417,7 +417,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "VisualMarketingAgent", has_gate: true },
     ],
     contextType: "product",
-    minTier: "Pro",
+    minTier: "Free",
   },
   bulk_text_only: {
     label: "Bulk Text Upload",
