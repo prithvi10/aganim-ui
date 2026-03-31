@@ -223,105 +223,70 @@ function SearchEnginePreview({
 }
 
 /**
- * CTR Score Display with traffic light indicators (matches Rewriter exactly)
+ * CTR Score Display driven by server-side ctr_check data.
+ * Falls back gracefully when the SEO agent hasn't returned ctr_check yet.
  */
 function CTRScoreDisplay({
-  seoTitle,
-  seoDescription,
-  ctrScore,
+  ctrCheck,
 }: {
-  seoTitle: string;
-  seoDescription: string;
-  ctrScore?: number;
+  ctrCheck?: {
+    pain_present?: boolean;
+    solution_present?: boolean;
+    trust_present?: boolean;
+    score?: number;
+    suggestions?: string[];
+  };
 }) {
-  const titleLen = seoTitle.length;
-  const descLower = seoDescription.toLowerCase();
-  
-  // PST (Problem-Solution-Trust) Check
-  const problemWords = ["tired", "struggling", "problem", "frustrated", "looking for", "need a", "wish"];
-  const hasProblemSignal = seoDescription.includes("?") || problemWords.some((w) => descLower.includes(w));
-  
-  // Brand Trust Check
-  const hasBrandTrust =
-    /japan/i.test(seoDescription) ||
-    /handcrafted/i.test(seoDescription) ||
-    /free shipping/i.test(seoDescription) ||
-    /authentic/i.test(seoDescription) ||
-    /artisan/i.test(seoDescription);
-  
-  // Determine tones
-  const pstTone: "green" | "yellow" | "red" = hasProblemSignal
-    ? "green"
-    : /shop now|discover|order|buy/i.test(seoDescription)
-      ? "yellow"
-      : "red";
-  const trustTone: "green" | "yellow" | "red" = hasBrandTrust
-    ? "green"
-    : /premium|quality|original/i.test(seoDescription)
-      ? "yellow"
-      : "red";
-  const lenTone: "green" | "yellow" | "red" =
-    titleLen > 50 && titleLen < 70
-      ? "green"
-      : titleLen >= 45 && titleLen <= 75
-        ? "yellow"
-        : "red";
-  
-  const colorFor = (t: "green" | "yellow" | "red") =>
-    t === "green"
-      ? "var(--p-color-bg-fill-success)"
-      : t === "yellow"
-        ? "var(--p-color-bg-fill-warning)"
-        : "var(--p-color-bg-fill-critical)";
-  
-  const Light = ({ tone }: { tone: "green" | "yellow" | "red" }) => (
+  if (!ctrCheck) return null;
+
+  const Light = ({ active }: { active: boolean }) => (
     <span
       style={{
         width: 12,
         height: 12,
         borderRadius: 999,
         display: "inline-block",
-        background: colorFor(tone),
+        background: active ? "var(--p-color-bg-fill-success)" : "var(--p-color-bg-fill-critical)",
         boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.6) inset",
       }}
     />
   );
-  
-  const Row = ({
-    label,
-    tone,
-    hint,
-  }: {
-    label: string;
-    tone: "green" | "yellow" | "red";
-    hint: string;
-  }) => (
+
+  const Row = ({ label, active, hint }: { label: string; active: boolean; hint: string }) => (
     <InlineStack align="space-between" blockAlign="center">
       <InlineStack gap="200" blockAlign="center">
-        <Light tone={tone} />
+        <Light active={active} />
         <Text as="span" variant="bodySm">{label}</Text>
       </InlineStack>
       <Text as="span" variant="bodySm" tone="subdued">{hint}</Text>
     </InlineStack>
   );
-  
+
   return (
     <BlockStack gap="200">
-      <Row 
-        label="PST Check" 
-        tone={pstTone} 
-        hint={hasProblemSignal ? "✓ OK" : "Add a problem/question"} 
+      <Row
+        label="PST Check"
+        active={ctrCheck.pain_present || false}
+        hint={ctrCheck.pain_present ? "✓ OK" : "Add a problem/question"}
+      />
+      <Row
+        label="Solution"
+        active={ctrCheck.solution_present || false}
+        hint={ctrCheck.solution_present ? "✓ OK" : "Add benefit + spec"}
       />
       <Row
         label="Brand Trust"
-        tone={trustTone}
-        hint={hasBrandTrust ? "✓ OK" : 'Add trust signals'}
+        active={ctrCheck.trust_present || false}
+        hint={ctrCheck.trust_present ? "✓ OK" : "Add trust signals"}
       />
-      <Row 
-        label="Title Length" 
-        tone={lenTone} 
-        hint={`${titleLen}/70 chars`} 
-      />
+      {ctrCheck.score !== undefined && (
+        <InlineStack align="space-between" blockAlign="center">
+          <Text as="span" variant="bodySm" fontWeight="semibold">CTR Score</Text>
+          <Badge tone={ctrCheck.score >= 0.7 ? "success" : ctrCheck.score >= 0.4 ? "warning" : "critical"}>
+            {Math.round(ctrCheck.score * 100)}%
+          </Badge>
+        </InlineStack>
+      )}
     </BlockStack>
   );
 }
@@ -710,30 +675,11 @@ export function StepApproval({
             {/* CTR Optimization Score */}
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h4" variant="headingSm" fontWeight="semibold">
-                    CTR Optimization Score
-                  </Text>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "2px 10px",
-                      borderRadius: 999,
-                      background: "var(--p-color-bg-fill-success)",
-                      color: "white",
-                      fontSize: 12,
-                      fontWeight: 500,
-                    }}
-                  >
-                    Optimized for US Search
-                  </span>
-                </InlineStack>
+                <Text as="h4" variant="headingSm" fontWeight="semibold">
+                  CTR Optimization Score
+                </Text>
                 
-                <CTRScoreDisplay
-                  seoTitle={editedSeoTitle || ""}
-                  seoDescription={editedSeoDescription || ""}
-                  ctrScore={output.ctr_check?.score}
-                />
+                <CTRScoreDisplay ctrCheck={output.ctr_check} />
               </BlockStack>
             </Box>
           </BlockStack>
@@ -826,7 +772,7 @@ export function StepApproval({
                   <InlineStack gap="200" blockAlign="center">
                     <Text as="span" variant="bodySm" fontWeight="semibold">Recommended Price:</Text>
                     <Badge tone="success">
-                      {`$${output.pricing_analysis.recommended_price.toFixed(2)}`}
+                      {`${output.pricing_analysis.currency || "$"}${output.pricing_analysis.recommended_price.toFixed(2)}`}
                     </Badge>
                   </InlineStack>
                 )}
