@@ -59,6 +59,7 @@ export function MissionHistory({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [missionDetails, setMissionDetails] = useState<Record<string, Record<string, unknown>>>({});
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
+  const [sectionOpen, setSectionOpen] = useState(false);
 
   function getStatusBadge(status: string) {
     switch (status) {
@@ -184,8 +185,6 @@ export function MissionHistory({
       </Card>
     );
   }
-
-  const [sectionOpen, setSectionOpen] = useState(false);
 
   return (
     <Card>
