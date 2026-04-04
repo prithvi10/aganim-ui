@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   Card,
@@ -451,6 +452,13 @@ const PRESETS: Record<string, Preset> = {
   },
 };
 
+function isDeepLinkableMissionKey(key: string, tier: PlanTier): boolean {
+  const preset = PRESETS[key];
+  if (!preset?.steps?.length) return false;
+  if (preset.contextType === "bulk_csv" || preset.contextType === "bulk_zip") return false;
+  return tierMeetsMin(tier, preset.minTier);
+}
+
 // ─── Mission Card ───────────────────────────────────────────────────────────
 
 function MissionCard({
@@ -548,6 +556,7 @@ export function MissionArchitect({
   entitlements,
 }: MissionArchitectProps) {
   const { t } = useTranslation("missions");
+  const [searchParams, setSearchParams] = useSearchParams();
   const currentTier = (["Free", "Basic", "Standard", "Pro"].includes(planTier) ? planTier : "Free") as PlanTier;
 
   const agentLabel = (name: string) => {
@@ -661,6 +670,34 @@ export function MissionArchitect({
 
   // Refinement theme — default to "ai_choice" (Let AI decide) for missions
   const [refinementTheme, setRefinementTheme] = useState("ai_choice");
+
+  const missionDeepLinkConsumed = useRef(false);
+
+  // Open a preset mission directly from ?mission=<preset_key> (e.g. homepage → Full Launch)
+  useEffect(() => {
+    if (missionDeepLinkConsumed.current || isRunning) return;
+    const raw = (searchParams.get("mission") || "").trim();
+    if (!raw) return;
+
+    if (!isDeepLinkableMissionKey(raw, currentTier)) {
+      const next = new URLSearchParams(searchParams);
+      if (next.has("mission")) {
+        next.delete("mission");
+        setSearchParams(next, { replace: true });
+      }
+      return;
+    }
+
+    missionDeepLinkConsumed.current = true;
+    const presetEntry = PRESETS[raw];
+    setSelectedMissionKey(raw);
+    setPipeline([...presetEntry.steps]);
+    setWizardStep(2);
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("mission");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, isRunning, currentTier]);
 
   // Derived
   const isCustom = selectedMissionKey === "custom";
