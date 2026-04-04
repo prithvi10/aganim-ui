@@ -185,7 +185,11 @@
     "contentLocaleTitle": "Content Target Market",
     "contentLocaleDesc": "Choose which market your AI-generated content targets. This affects language, cultural tone, and competitor analysis.",
     "currentMarket": "Current market:",
-    "changeMarket": "Change"
+    "changeMarket": "Change",
+    "brandSoulToggle": "Brand Soul",
+    "brandSoulToggleHelp": "Blend your brand identity into all AI-generated content — rewrites, images, SEO, and marketing.",
+    "brandSoulOn": "Enabled",
+    "brandSoulOff": "Disabled"
   },
   "rewriter": {
     "rewriter": "Rewriter",
@@ -304,7 +308,7 @@
     "productRewriterDesc": "Select a Shopify product, generate optimized descriptions, titles, and SEO copy. Results save directly to your store.",
     "open": "Open",
     "imageRefinement": "Image Refinement",
-    "imageRefinementDesc": "AI-powered product photo refinement. Clean backgrounds, generate marketing ads, and hero banners from any product image.",
+    "imageRefinementDesc": "AI-powered product photo refinement. Clean backgrounds and generate marketing ads from any product image.",
     "contentTemplates": "Content Templates",
     "contentTemplatesDesc": "Generate product titles, FAQs, collection copy, and landing page content using AI-powered templates with brand voice."
   },
@@ -588,6 +592,20 @@
     "agentImageRefinementDesc": "AI product photo cleanup and background refinement (Pro)",
     "agentVisualMarketing": "Visual Marketing",
     "agentVisualMarketingDesc": "Marketing ad generation (Pro)",
+    "refinementThemeClean": "Clean Studio",
+    "refinementThemeCleanDesc": "White/grey studio, 100% fidelity",
+    "refinementThemeLifestyle": "Lifestyle Scene",
+    "refinementThemeLifestyleDesc": "Product in a natural living environment",
+    "refinementThemeNatural": "Natural & Organic",
+    "refinementThemeNaturalDesc": "Raw wood, linen, botanical props",
+    "refinementThemePremium": "Premium Luxury",
+    "refinementThemePremiumDesc": "Dark marble, dramatic lighting",
+    "refinementThemeSeasonal": "Seasonal",
+    "refinementThemeSeasonalDesc": "Season-appropriate setting and props",
+    "refinementThemeMinimalist": "Minimalist",
+    "refinementThemeMinimalistDesc": "Muji-inspired, geometric shadows",
+    "refinementThemeLabel": "Image Style",
+    "refinementThemeLabelHelp": "Choose a background theme for image refinement",
     "tplProductFaq": "Product FAQ",
     "tplProductFaqDesc": "Generate FAQ from product details",
     "tplHeroSection": "Hero Section",
@@ -968,7 +986,8 @@
         ],
         "faqs": [
           { "q": "Will SEO edits change my product title on the page?", "a": "No — SEO title/meta are separate fields used for search snippets and sharing previews (theme/search behavior may vary)." },
-          { "q": "Do I have to accept recommendations?", "a": "No — recommendations are optional guidance. You control what is saved." }
+          { "q": "Do I have to accept recommendations?", "a": "No — recommendations are optional guidance. You control what is saved." },
+          { "q": "My product is in Japanese but I want SEO for an overseas market. What should I do?", "a": "First rewrite your product into the target language using the Rewriter, then run SEO optimization. Rewritten content in the target language produces more accurate SERP analysis and keyword suggestions." }
         ]
       },
       "japanese-value": {
@@ -1104,7 +1123,8 @@
         ],
         "faqs": [
           { "q": "Does it change my price automatically?", "a": "No — price analysis is informational. On Pro, you can optionally click to apply a recommended price, but it never changes automatically." },
-          { "q": "How often should I scout prices?", "a": "Scout when launching a new product, adjusting pricing strategy, or when you suspect competitor prices have changed significantly." }
+          { "q": "How often should I scout prices?", "a": "Scout when launching a new product, adjusting pricing strategy, or when you suspect competitor prices have changed significantly." },
+          { "q": "My product is in Japanese but I want pricing for an overseas market. What should I do?", "a": "First rewrite your product into the target language, then run Price Scout. The agent uses product text to find relevant competitors, so content in the target language produces more accurate pricing results." }
         ]
       },
       "missions": {
@@ -1126,7 +1146,7 @@
           "When complete, results are automatically saved to Shopify."
         ],
         "sections": [
-          { "title": "Preset Missions", "body": ["Basic: Social Hype-Man (Rewriter → FB/IG Ad), New Arrival Blast (Rewriter → Launch Email), Welcome Journey (Rewriter → Welcome Email), Artisan Storyteller (Rewriter → Hero Section).", "Standard: Competitor Rebuttal (SEO → Product FAQ), Abandoned Cart Fix (PriceScout → Abandoned Cart Email), SEO Content Factory (SEO → Blog Post), Collection Refresher (SEO → Collection), Google Ads Shield (SEO → Google Ads), Market Awareness Audit (SEO → PriceScout).", "Pro: Full Launch (all 6 agents), Visual Ad Blitz (Marketing → Image Refinement → Visual Marketing)."] },
+          { "title": "Preset Missions", "body": ["Basic: Social Hype-Man (Rewriter → FB/IG Ad), New Arrival Blast (Rewriter → Launch Email), Welcome Journey (Rewriter → Welcome Email), Artisan Storyteller (Rewriter → Hero Section).", "Standard: Competitor Rebuttal (SEO → Product FAQ), Abandoned Cart Fix (PriceScout → Abandoned Cart Email), SEO Content Factory (SEO → Blog Post), Collection Refresher (SEO → Collection), Google Ads Shield (SEO → Google Ads), Market Awareness Audit (SEO → PriceScout).", "Pro: Full Launch (all 6 agents), Visual Ad Blitz (Marketing → Visual Marketing)."] },
           { "title": "Custom Missions", "body": ["Add any combination of agents: Rewriter, SEO, Marketing, PriceScout, Image Refinement, Visual Marketing.", "Reorder agents by dragging them up/down in the pipeline.", "Select optional templates for each step (e.g. Product FAQ, Blog Post, Launch Email).", "Some agents are plan-gated (Image Refinement and Visual Marketing require Pro)."] },
           { "title": "Auto-flow vs Step-by-step", "body": ["Auto-flow: All agents run in sequence automatically. Results stream in real-time.", "Step-by-step: Each agent pauses after completing. Review the output, then Continue, Regenerate, or Skip.", "Step-by-step is recommended for your first few missions to understand how each agent contributes."] },
           { "title": "Mission History", "body": ["Recent missions are shown below the mission builder.", "Each mission shows: status (Completed, In Progress, Error, Awaiting Approval), agents used, product, and time.", "Click \"Resume\" on an in-progress or awaiting-approval mission to continue where you left off.", "Click \"View Full Details\" to see the complete output of a completed mission."] }
@@ -1153,7 +1173,8 @@
           { "q": "Does the mission save results to Shopify automatically?", "a": "Yes — when a mission completes, results (translations, SEO, metafields, blog articles, collections) are saved to Shopify automatically." },
           { "q": "Can I resume a mission that was interrupted?", "a": "Yes — find it in Mission History and click \"Resume\" to continue from where it stopped." },
           { "q": "What happens if I skip an agent step?", "a": "The mission continues to the next agent. The skipped agent's output won't be included in the final results." },
-          { "q": "Which preset mission should I start with?", "a": "For your first mission, try \"Social Hype-Man\" (Basic) or \"Full Launch\" (Pro) to see how missions chain agents together." }
+          { "q": "Which preset mission should I start with?", "a": "For your first mission, try \"Social Hype-Man\" (Basic) or \"Full Launch\" (Pro) to see how missions chain agents together." },
+          { "q": "My product content is in Japanese — how do I get accurate SEO or pricing analysis for overseas markets?", "a": "First rewrite the product into the target language, then run SEO or PriceScout. Rewritten content in the target language produces more accurate SERP and competitor pricing results." }
         ]
       },
       "bulk-upload": {
