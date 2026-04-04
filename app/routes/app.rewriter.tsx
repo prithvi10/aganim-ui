@@ -47,6 +47,7 @@ import {
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';
+import {parsePythonDict, parsePythonList} from '../utils/templateHtmlParser';
 import { DowngradeScheduledBanner } from '../components/DowngradeScheduledBanner';
 import { LockedFeatureNotice } from '../components/LockedFeatureNotice';
 import { type Entitlements, type FeatureUsageMap } from '../utils/entitlements';
@@ -1013,6 +1014,7 @@ function RewriterWorkspaceInner({
   const [faqResult, setFaqResult] = useState<string | null>(null);
   const [faqError, setFaqError] = useState<string | null>(null);
   const [faqOpen, setFaqOpen] = useState(false);
+  const [faqAppended, setFaqAppended] = useState(false);
   const [removeIrrelevantContent, setRemoveIrrelevantContent] = useState(true);
   const [brandStatus, setBrandStatus] = useState<string>(brandContextStatus || 'idle');
   const [brandStatusError, setBrandStatusError] = useState<string | null>(brandContextLastError || null);
@@ -1126,6 +1128,11 @@ function RewriterWorkspaceInner({
     setDiscoveredValues([]);
     setAddedValueKeys({});
     setCulturalContextSaved(didResetMetaCache ? false : Boolean(selectedProduct?.culturalContext?.value));
+    setFaqLoading(false);
+    setFaqResult(null);
+    setFaqError(null);
+    setFaqOpen(false);
+    setFaqAppended(false);
 
     const baseTitle = selectedProduct?.title ?? '';
     const baseDesc = selectedProduct?.descriptionHtml ?? '';
@@ -1294,6 +1301,102 @@ function RewriterWorkspaceInner({
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
   }, []);
+
+  const faqHeadingForSave = useCallback(
+    (targetLocale: string | undefined) => {
+      const raw = String(targetLocale || 'en').trim().toLowerCase();
+      const rewriterBundleLang = raw === 'ja' || raw.startsWith('ja-') ? 'ja' : 'en';
+      return i18n.getFixedT(rewriterBundleLang, 'rewriter')('productFaq');
+    },
+    [i18n],
+  );
+
+  const parseFaqToHtml = useCallback(
+    (content: unknown): string => {
+      // If backend already returns HTML, keep it as-is.
+      if (typeof content === 'string' && content.trim().startsWith('<')) {
+        return content;
+      }
+
+      let parsed: any = null;
+      if (content && typeof content === 'object') {
+        parsed = content;
+      } else if (typeof content === 'string') {
+        const raw = content.trim();
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = parsePythonDict(raw);
+          if (!parsed) {
+            const arr = parsePythonList(raw);
+            if (arr) parsed = arr;
+          }
+        }
+      }
+
+      if (Array.isArray(parsed)) parsed = {faqs: parsed};
+      if (parsed && typeof parsed === 'object' && Array.isArray((parsed as any).faq)) {
+        parsed = {faqs: (parsed as any).faq};
+      }
+
+      const faqs: Array<{question: string; answer: string}> = Array.isArray(parsed?.faqs)
+        ? parsed.faqs
+            .map((f: any) => ({
+              question: String(f?.question ?? f?.q ?? '').trim(),
+              answer: String(f?.answer ?? f?.a ?? '').trim(),
+            }))
+            .filter((f: any) => f.question && f.answer)
+        : [];
+
+      if (faqs.length === 0) {
+        // Last-resort: show something stable rather than blank.
+        if (typeof content === 'string') return content;
+        try {
+          return JSON.stringify(content, null, 2);
+        } catch {
+          return String(content ?? '');
+        }
+      }
+
+      const heading = escapeHtml(faqHeadingForSave(effectiveTargetLocale));
+      const blocks = faqs
+        .map(
+          (f) =>
+            `<details>` +
+            `<summary>${escapeHtml(f.question)}</summary>` +
+            `<p>${escapeHtml(f.answer)}</p>` +
+            `</details>`,
+        )
+        .join('\n');
+
+      // Exact HTML that will be appended to the product description.
+      return `<hr />\n<h3>${heading}</h3>\n${blocks}`.trim();
+    },
+    [effectiveTargetLocale, escapeHtml, faqHeadingForSave],
+  );
+
+  const handleAppendFaqToDescription = useCallback(() => {
+    const html = String(faqResult || '').trim();
+    if (!html) return;
+    if (!activeLocale) return;
+
+    setDraftByLocale((prev) => {
+      const cur = prev[activeLocale];
+      if (!cur) return prev;
+      const base = String(cur.description || '');
+      if (base.includes(html)) return prev;
+      const nextDesc = base ? `${base}\n\n${html}` : html;
+      return {
+        ...prev,
+        [activeLocale]: {
+          ...cur,
+          description: nextDesc,
+        },
+      };
+    });
+    setFaqAppended(true);
+    setToastContent(t('faqAppendedToDescription'));
+  }, [activeLocale, faqResult, t]);
 
   const upsertKeyDetailsNuance = useCallback(
     (descHtml: string, bullets: string[]) => {
@@ -2382,9 +2485,10 @@ function RewriterWorkspaceInner({
                                 );
                                 const data = await resp.json();
                                 if (resp.ok && data.status === "success") {
-                                  const raw = typeof data.content === "object" ? JSON.stringify(data.content) : data.content || "";
-                                  setFaqResult(raw);
+                                  const html = parseFaqToHtml(data.content);
+                                  setFaqResult(html);
                                   setFaqOpen(true);
+                                  setFaqAppended(false);
                                 } else {
                                   setFaqError(data.detail || data.error || "Generation failed");
                                 }
@@ -2406,6 +2510,19 @@ function RewriterWorkspaceInner({
                             <BlockStack gap="200">
                               <div dangerouslySetInnerHTML={{ __html: faqResult }} />
                               <InlineStack align="end" gap="200">
+                                {!faqAppended ? (
+                                  <Button
+                                    size="slim"
+                                    variant="primary"
+                                    onClick={handleAppendFaqToDescription}
+                                  >
+                                    {t('appendFaqToDescription')}
+                                  </Button>
+                                ) : (
+                                  <Button size="slim" variant="plain" disabled tone="success">
+                                    {t('faqAppended')}
+                                  </Button>
+                                )}
                                 <Button
                                   size="slim"
                                   onClick={async () => {
