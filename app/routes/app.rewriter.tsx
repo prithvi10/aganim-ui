@@ -1010,7 +1010,6 @@ function RewriterWorkspaceInner({
   const [seoIntelOpen, setSeoIntelOpen] = useState(false);
   const [jvOpen, setJvOpen] = useState(false);
   const [removeIrrelevantContent, setRemoveIrrelevantContent] = useState(true);
-  const [brandSoulEnabled, setBrandSoulEnabled] = useState(false);
   const [brandStatus, setBrandStatus] = useState<string>(brandContextStatus || 'idle');
   const [brandStatusError, setBrandStatusError] = useState<string | null>(brandContextLastError || null);
   const [brandSummary, setBrandSummary] = useState<string>(brandContextSummary || '');
@@ -1489,7 +1488,7 @@ function RewriterWorkspaceInner({
         auto_convert_units: Boolean(autoConvertUnits),
         tone_profile: effectiveTone,
         remove_irrelevant_content: Boolean(removeIrrelevantContent),
-        brand_soul_enabled: Boolean(brandSoulEnabled),
+
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
@@ -1681,7 +1680,6 @@ function RewriterWorkspaceInner({
     activeLocale,
     app,
     autoConvertUnits,
-    brandSoulEnabled,
     effectiveTone,
     effectiveTargetLocale,
     removeIrrelevantContent,
@@ -2122,19 +2120,6 @@ function RewriterWorkspaceInner({
                         />
                         <Text as="p" variant="bodySm" tone="subdued">
                           {t("autoConvertUnitsHelp")}
-                        </Text>
-                      </Box>
-
-                      <Box paddingBlockStart="200">
-                        <InlineStack align="space-between" blockAlign="center">
-                          <Checkbox
-                            label={t("enhanceWithBrandSoul")}
-                            checked={brandSoulEnabled}
-                            onChange={setBrandSoulEnabled}
-                          />
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t("brandSoulHelp")}
                         </Text>
                       </Box>
 

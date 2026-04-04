@@ -23,6 +23,24 @@ import { TEMPLATE_DEFINITIONS } from "./MissionArchitect";
 import { templateOutputToHtml } from "../utils/templateHtmlParser";
 import "../styles/optimize-button.css";
 
+const LOCALE_CURRENCY: Record<string, string> = {
+  ja: "¥", ko: "₩", "zh-TW": "NT$", "zh-CN": "¥", th: "฿", pt: "R$",
+};
+
+const LOCALE_MARKET: Record<string, string> = {
+  en: "US", ja: "JP", ko: "KR", "zh-TW": "TW", "zh-CN": "CN", th: "TH", pt: "BR",
+  fr: "FR", de: "DE", es: "ES",
+};
+
+const REFINEMENT_THEME_LABELS: Record<string, string> = {
+  clean: "Clean Studio",
+  lifestyle: "Lifestyle Scene",
+  natural: "Natural & Organic",
+  premium: "Premium Luxury",
+  seasonal: "Seasonal",
+  minimalist: "Minimalist",
+};
+
 export interface AgentOutput {
   // Copywriter outputs
   draft_content?: string;
@@ -56,10 +74,15 @@ export interface AgentOutput {
     confidence?: number;
     competitors?: Array<{ name?: string; price?: number }>;
     reasoning?: string;
+    currency?: string;
   };
   
   // Compliance outputs
   compliance_flags?: string[];
+
+  // Mission-level metadata
+  target_locale?: string;
+  refinement_theme?: string;
 }
 
 interface StepApprovalProps {
@@ -101,6 +124,10 @@ function getAgentDisplayName(agentName: string): string {
       return "Social Media Marketing";
     case "PriceScoutAgent":
       return "Pricing Analysis";
+    case "ImageRefinementAgent":
+      return "Image Refinement";
+    case "VisualMarketingAgent":
+      return "Visual Marketing";
     default:
       return agentName.replace("Agent", "");
   }
@@ -117,6 +144,10 @@ function getAgentIcon(agentName: string): string {
       return "📱";
     case "PriceScoutAgent":
       return "💰";
+    case "ImageRefinementAgent":
+      return "✨";
+    case "VisualMarketingAgent":
+      return "📸";
     default:
       return "🤖";
   }
@@ -402,7 +433,11 @@ export function StepApproval({
   // Template-aware display: use template info when available
   const templateId = output?.template_id;
   const templateDef = templateId ? TEMPLATE_DEFINITIONS[templateId] : undefined;
-  const displayName = templateDef ? templateDef.displayName : getAgentDisplayName(agentName);
+  const baseDisplayName = templateDef ? templateDef.displayName : getAgentDisplayName(agentName);
+  const themeLabel = (agentName === "ImageRefinementAgent" && output?.refinement_theme)
+    ? REFINEMENT_THEME_LABELS[output.refinement_theme] || null
+    : null;
+  const displayName = themeLabel ? `${baseDisplayName} — ${themeLabel}` : baseDisplayName;
   const icon = templateDef ? templateDef.icon : getAgentIcon(agentName);
   const description = templateDef ? templateDef.description : getAgentDescription(agentName);
   const isLastStep = stepIndex === totalSteps - 1;
@@ -660,7 +695,14 @@ export function StepApproval({
                     <Text as="h4" variant="headingSm" fontWeight="semibold">
                       Your Product (Preview)
                     </Text>
-                    <Badge tone="success">Optimized</Badge>
+                    <InlineStack gap="100">
+                      {output.target_locale && LOCALE_MARKET[output.target_locale] && (
+                        <Badge tone="info">
+                          Optimized for {LOCALE_MARKET[output.target_locale]} Search
+                        </Badge>
+                      )}
+                      <Badge tone="success">Optimized</Badge>
+                    </InlineStack>
                   </InlineStack>
                   <SearchEnginePreview
                     title={editedSeoTitle || "Your SEO Title"}
@@ -675,9 +717,28 @@ export function StepApproval({
             {/* CTR Optimization Score */}
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="300">
-                <Text as="h4" variant="headingSm" fontWeight="semibold">
-                  CTR Optimization Score
-                </Text>
+                <InlineStack gap="200" blockAlign="center">
+                  <Text as="h4" variant="headingSm" fontWeight="semibold">
+                    CTR Optimization Score
+                  </Text>
+                  {output.target_locale && LOCALE_MARKET[output.target_locale] && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "2px 8px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        lineHeight: "18px",
+                        borderRadius: 999,
+                        background: "var(--p-color-bg-fill-success)",
+                        color: "#fff",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Optimized for {LOCALE_MARKET[output.target_locale]} Search
+                    </span>
+                  )}
+                </InlineStack>
                 
                 <CTRScoreDisplay ctrCheck={output.ctr_check} />
               </BlockStack>
@@ -763,43 +824,48 @@ export function StepApproval({
           </BlockStack>
         );
         
-      case "PriceScoutAgent":
+      case "PriceScoutAgent": {
+        const pa = output.pricing_analysis;
+        const currencySymbol = pa?.currency
+          || (output.target_locale && LOCALE_CURRENCY[output.target_locale])
+          || "$";
         return (
           <BlockStack gap="300">
-            {output.pricing_analysis && (
+            {pa && (
               <>
-                {output.pricing_analysis.recommended_price && (
+                {pa.recommended_price && (
                   <InlineStack gap="200" blockAlign="center">
                     <Text as="span" variant="bodySm" fontWeight="semibold">Recommended Price:</Text>
                     <Badge tone="success">
-                      {`${output.pricing_analysis.currency || "$"}${output.pricing_analysis.recommended_price.toFixed(2)}`}
+                      {`${currencySymbol}${pa.recommended_price.toFixed(2)}`}
                     </Badge>
                   </InlineStack>
                 )}
-                {output.pricing_analysis.price_position && (
+                {pa.price_position && (
                   <InlineStack gap="200" blockAlign="center">
                     <Text as="span" variant="bodySm" fontWeight="semibold">Market Position:</Text>
-                    <Badge>{output.pricing_analysis.price_position}</Badge>
+                    <Badge>{pa.price_position}</Badge>
                   </InlineStack>
                 )}
-                {output.pricing_analysis.confidence !== undefined && (
+                {pa.confidence !== undefined && (
                   <InlineStack gap="200" blockAlign="center">
                     <Text as="span" variant="bodySm" fontWeight="semibold">Confidence:</Text>
-                    <Badge tone={output.pricing_analysis.confidence >= 0.7 ? "success" : "warning"}>
-                      {`${Math.round(output.pricing_analysis.confidence * 100)}%`}
+                    <Badge tone={pa.confidence >= 0.7 ? "success" : "warning"}>
+                      {`${Math.round(pa.confidence * 100)}%`}
                     </Badge>
                   </InlineStack>
                 )}
-                {output.pricing_analysis.reasoning && (
+                {pa.reasoning && (
                   <Box>
                     <Text as="span" variant="bodySm" fontWeight="semibold">Reasoning:</Text>
-                    <Text as="p" variant="bodySm" tone="subdued">{output.pricing_analysis.reasoning}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">{pa.reasoning}</Text>
                   </Box>
                 )}
               </>
             )}
           </BlockStack>
         );
+      }
 
       case "VisualAgent":
       case "Visual":

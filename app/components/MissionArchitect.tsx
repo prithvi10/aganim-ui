@@ -56,6 +56,7 @@ export interface MissionExtraContext {
   collection_name?: string;
   /** GID list of products selected for collection missions */
   product_ids?: string[];
+  refinement_theme?: string;
 }
 
 interface ProductOption {
@@ -265,6 +266,15 @@ interface Preset {
   contextType: ContextType;
   minTier: PlanTier;
 }
+
+const REFINEMENT_THEMES = [
+  { id: "clean", icon: "✨", labelKey: "refinementThemeClean", descKey: "refinementThemeCleanDesc" },
+  { id: "lifestyle", icon: "🏠", labelKey: "refinementThemeLifestyle", descKey: "refinementThemeLifestyleDesc" },
+  { id: "natural", icon: "🌿", labelKey: "refinementThemeNatural", descKey: "refinementThemeNaturalDesc" },
+  { id: "premium", icon: "💎", labelKey: "refinementThemePremium", descKey: "refinementThemePremiumDesc" },
+  { id: "seasonal", icon: "🌸", labelKey: "refinementThemeSeasonal", descKey: "refinementThemeSeasonalDesc" },
+  { id: "minimalist", icon: "◻️", labelKey: "refinementThemeMinimalist", descKey: "refinementThemeMinimalistDesc" },
+];
 
 const PRESETS: Record<string, Preset> = {
   // ── Free: Rewriter + Marketing captions (3 lifetime missions) ──────
@@ -647,12 +657,16 @@ export function MissionArchitect({
   const [collectionName, setCollectionName] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
+  // Refinement theme
+  const [refinementTheme, setRefinementTheme] = useState("clean");
+
   // Derived
   const isCustom = selectedMissionKey === "custom";
   const preset = !isCustom ? PRESETS[selectedMissionKey] : null;
   const contextType: ContextType = isCustom
     ? "product"
     : preset?.contextType || "product";
+  const hasImageRefinement = pipeline.some((s) => s.agent_name === "ImageRefinementAgent");
 
   // ── Mission selection (Step 1 → Step 2) ─────────────────────────────────
 
@@ -687,6 +701,7 @@ export function MissionArchitect({
     setBlogCategory("");
     setCollectionName("");
     setSelectedProductIds([]);
+    setRefinementTheme("clean");
   }, []);
 
   // ── Custom pipeline manipulation ────────────────────────────────────────
@@ -738,9 +753,9 @@ export function MissionArchitect({
       const unique = [...new Set(agentNames)];
       missionTitle = unique.join(" + ");
     } else if (preset) {
-      missionTitle = `${preset.icon} ${preset.label}`;
+      missionTitle = `${preset.icon} ${presetLabel(selectedMissionKey)}`;
     } else {
-      missionTitle = "Mission";
+      missionTitle = t("mission");
     }
 
     const ctx: MissionExtraContext = { mission_title: missionTitle };
@@ -748,6 +763,9 @@ export function MissionArchitect({
     if (blogCategory) ctx.blog_category = blogCategory;
     if (collectionName) ctx.collection_name = collectionName;
     if (selectedProductIds.length > 0) ctx.product_ids = selectedProductIds;
+    if (hasImageRefinement && refinementTheme !== "clean") {
+      ctx.refinement_theme = refinementTheme;
+    }
     onStartMission(pipeline, ctx);
   }, [
     pipeline,
@@ -758,6 +776,8 @@ export function MissionArchitect({
     collectionName,
     selectedProductIds,
     onStartMission,
+    hasImageRefinement,
+    refinementTheme,
   ]);
 
   // ── Can launch? ─────────────────────────────────────────────────────────
@@ -1038,6 +1058,66 @@ export function MissionArchitect({
                   ))}
                 </InlineStack>
               </BlockStack>
+          )}
+
+          {hasImageRefinement && (
+            <BlockStack gap="300">
+              <Text as="h3" variant="headingMd">
+                {t("refinementThemeLabel")}
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                {t("refinementThemeLabelHelp")}
+              </Text>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                {REFINEMENT_THEMES.map((theme) => (
+                  <div
+                    key={theme.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setRefinementTheme(theme.id)}
+                    onKeyDown={(e) => e.key === "Enter" && setRefinementTheme(theme.id)}
+                    style={{
+                      padding: "16px 12px",
+                      borderRadius: "10px",
+                      border: `2px solid ${
+                        refinementTheme === theme.id
+                          ? "var(--p-color-border-emphasis)"
+                          : "var(--p-color-border)"
+                      }`,
+                      background:
+                        refinementTheme === theme.id
+                          ? "var(--p-color-bg-surface-secondary)"
+                          : "var(--p-color-bg-surface)",
+                      cursor: "pointer",
+                      textAlign: "center",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <BlockStack gap="100" inlineAlign="center">
+                      <Text as="span" variant="headingLg">
+                        {theme.icon}
+                      </Text>
+                      <Text
+                        as="span"
+                        variant="bodySm"
+                        fontWeight={refinementTheme === theme.id ? "bold" : "regular"}
+                      >
+                        {t(theme.labelKey)}
+                      </Text>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        {t(theme.descKey)}
+                      </Text>
+                    </BlockStack>
+                  </div>
+                ))}
+              </div>
+            </BlockStack>
           )}
 
           <Divider />

@@ -61,7 +61,7 @@ function getAgentDescription(agentName: string): string {
     case "pricescout":
       return "Analyzes competitor pricing for recommendations";
     case "visual":
-      return "Refines product images, generates ads and hero banners";
+      return "Refines product images and generates marketing ads";
     case "imagerefinement":
     case "image refinement":
     case "imagerefinementagent":
@@ -69,7 +69,7 @@ function getAgentDescription(agentName: string): string {
     case "visualmarketing":
     case "visual marketing":
     case "visualmarketingagent":
-      return "Marketing ad and hero banner generation";
+      return "Marketing ad generation";
     case "compliance":
       return "Checks content for regulatory compliance";
     default:

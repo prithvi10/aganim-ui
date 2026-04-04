@@ -189,7 +189,11 @@
     "contentLocaleTitle": "コンテンツターゲット市場",
     "contentLocaleDesc": "AI生成コンテンツのターゲット市場を選択します。言語、文化的トーン、競合分析に影響します。",
     "currentMarket": "現在の市場：",
-    "changeMarket": "変更"
+    "changeMarket": "変更",
+    "brandSoulToggle": "ブランドソウル",
+    "brandSoulToggleHelp": "ブランドのアイデンティティをすべてのAI生成コンテンツ（リライト、画像、SEO、マーケティング）に反映します。",
+    "brandSoulOn": "有効",
+    "brandSoulOff": "無効"
   },
   "rewriter": {
     "rewriter": "リライター",
@@ -308,7 +312,7 @@
     "productRewriterDesc": "Shopify商品を選択して、最適化された説明文、タイトル、SEOコピーを生成します。結果はストアに直接保存されます。",
     "open": "開く",
     "imageRefinement": "画像リファインメント",
-    "imageRefinementDesc": "AI搭載の商品写真リファインメント。背景のクリーンアップ、マーケティング広告の生成、商品画像からのヒーローバナー作成。",
+    "imageRefinementDesc": "AI搭載の商品写真リファインメント。背景のクリーンアップ、商品画像からマーケティング広告を生成。",
     "contentTemplates": "コンテンツテンプレート",
     "contentTemplatesDesc": "AIテンプレートとブランドボイスを使って、商品タイトル、FAQ、コレクションコピー、ランディングページコンテンツを生成します。"
   },
@@ -592,6 +596,20 @@
     "agentImageRefinementDesc": "AI商品写真クリーンアップ＆背景リファインメント（Pro）",
     "agentVisualMarketing": "ビジュアルマーケティング",
     "agentVisualMarketingDesc": "マーケティング広告生成（Pro）",
+    "refinementThemeClean": "クリーンスタジオ",
+    "refinementThemeCleanDesc": "白/グレーのスタジオ、100%忠実再現",
+    "refinementThemeLifestyle": "ライフスタイル",
+    "refinementThemeLifestyleDesc": "自然な生活空間に商品を配置",
+    "refinementThemeNatural": "ナチュラル＆オーガニック",
+    "refinementThemeNaturalDesc": "天然木、リネン、ボタニカル小物",
+    "refinementThemePremium": "プレミアムラグジュアリー",
+    "refinementThemePremiumDesc": "ダークマーブル、ドラマティックなライティング",
+    "refinementThemeSeasonal": "シーズナル",
+    "refinementThemeSeasonalDesc": "季節に合った演出と小物",
+    "refinementThemeMinimalist": "ミニマリスト",
+    "refinementThemeMinimalistDesc": "無印インスパイア、幾何学的な影",
+    "refinementThemeLabel": "画像スタイル",
+    "refinementThemeLabelHelp": "画像リファインメントの背景テーマを選択",
     "tplProductFaq": "商品FAQ",
     "tplProductFaqDesc": "商品詳細からFAQを生成",
     "tplHeroSection": "ヒーローセクション",
@@ -969,7 +987,8 @@
         ],
         "faqs": [
           { "q": "SEO編集でページの商品タイトルは変わりますか？", "a": "いいえ — SEOタイトル/メタは検索スニペットとシェアプレビュー用の別フィールドです（テーマ/検索の動作は異なる場合あり）。" },
-          { "q": "推奨を採用する必要がありますか？", "a": "いいえ — 推奨は任意のガイダンスです。保存内容はご自身でコントロールできます。" }
+          { "q": "推奨を採用する必要がありますか？", "a": "いいえ — 推奨は任意のガイダンスです。保存内容はご自身でコントロールできます。" },
+          { "q": "日本語の商品を海外市場向けにSEO最適化するには？", "a": "まずリライターで商品をターゲット言語に翻訳し、その後SEO最適化を実行してください。ターゲット言語でのコンテンツがより正確なSERP分析とキーワード提案を生成します。" }
         ]
       },
       "japanese-value": {
@@ -1102,7 +1121,8 @@
         ],
         "faqs": [
           { "q": "価格は自動で変わりますか？", "a": "いいえ — 価格分析は情報提供のみ。Proでは推奨価格を適用するボタンをクリックできますが、自動では変更されません。" },
-          { "q": "どのくらいの頻度で価格をスカウトすべきですか？", "a": "新商品の発売時、価格戦略の調整時、競合価格が大きく変わったと疑うときにスカウトしてください。" }
+          { "q": "どのくらいの頻度で価格をスカウトすべきですか？", "a": "新商品の発売時、価格戦略の調整時、競合価格が大きく変わったと疑うときにスカウトしてください。" },
+          { "q": "日本語の商品を海外市場向けに価格分析するには？", "a": "まずリライターで商品をターゲット言語に翻訳し、その後Price Scoutを実行してください。エージェントは商品テキストを使って関連競合を検索するため、ターゲット言語のコンテンツがより正確な価格結果を生成します。" }
         ]
       },
       "missions": {
@@ -1124,7 +1144,7 @@
           "完了時、結果は自動でShopifyに保存。"
         ],
         "sections": [
-          { "title": "プリセットミッション", "body": ["Basic: Social Hype-Man（リライター → FB/IG広告）、New Arrival Blast（リライター → Launch Email）、Welcome Journey（リライター → Welcome Email）、Artisan Storyteller（リライター → Hero Section）。", "Standard: Competitor Rebuttal（SEO → Product FAQ）、Abandoned Cart Fix（PriceScout → Abandoned Cart Email）、SEO Content Factory（SEO → Blog Post）、Collection Refresher（SEO → Collection）、Google Ads Shield（SEO → Google Ads）、Market Awareness Audit（SEO → PriceScout）。", "Pro: Full Launch（全6エージェント）、Visual Ad Blitz（Marketing → Image Refinement → Visual Marketing）。"] },
+          { "title": "プリセットミッション", "body": ["Basic: Social Hype-Man（リライター → FB/IG広告）、New Arrival Blast（リライター → Launch Email）、Welcome Journey（リライター → Welcome Email）、Artisan Storyteller（リライター → Hero Section）。", "Standard: Competitor Rebuttal（SEO → Product FAQ）、Abandoned Cart Fix（PriceScout → Abandoned Cart Email）、SEO Content Factory（SEO → Blog Post）、Collection Refresher（SEO → Collection）、Google Ads Shield（SEO → Google Ads）、Market Awareness Audit（SEO → PriceScout）。", "Pro: Full Launch（全6エージェント）、Visual Ad Blitz（Marketing → Visual Marketing）。"] },
           { "title": "カスタムミッション", "body": ["任意のエージェント組み合わせを追加: Rewriter、SEO、Marketing、PriceScout、Image Refinement、Visual Marketing。", "パイプライン内でドラッグしてエージェントの順序を変更。", "各ステップの任意テンプレートを選択（例: Product FAQ、Blog Post、Launch Email）。", "一部のエージェントはプラン制限あり（Image RefinementとVisual MarketingはProが必要）。"] },
           { "title": "オートフロー vs ステップバイステップ", "body": ["オートフロー: 全エージェントが自動で順次実行。結果はリアルタイムでストリーム。", "ステップバイステップ: 各エージェントは完了後に一時停止。出力を確認してから続行、再生成、またはスキップ。", "最初の数回のミッションではステップバイステップを推奨し、各エージェントの貢献を理解。"] },
           { "title": "ミッション履歴", "body": ["最近のミッションはミッションビルダーの下に表示。", "各ミッションに表示: ステータス（完了、進行中、エラー、承認待ち）、使用エージェント、商品、時刻。", "進行中または承認待ちのミッションで「再開」をクリックして続行。", "完了したミッションで「全詳細を表示」をクリックして完全な出力を確認。"] }
@@ -1148,7 +1168,8 @@
           { "q": "ミッションは結果をShopifyに自動保存しますか？", "a": "はい — ミッション完了時、結果（翻訳、SEO、メタフィールド、ブログ記事、コレクション）は自動でShopifyに保存されます。" },
           { "q": "中断したミッションを再開できますか？", "a": "はい — ミッション履歴で見つけて「再開」をクリックすると、停止したところから続行できます。" },
           { "q": "エージェントステップをスキップすると？", "a": "ミッションは次のエージェントに進みます。スキップしたエージェントの出力は最終結果に含まれません。" },
-          { "q": "最初にどのプリセットミッションを試すべきですか？", "a": "最初のミッションには「Social Hype-Man」（Basic）または「Full Launch」（Pro）で、ミッションがエージェントをどう連携させるか確認してください。" }
+          { "q": "最初にどのプリセットミッションを試すべきですか？", "a": "最初のミッションには「Social Hype-Man」（Basic）または「Full Launch」（Pro）で、ミッションがエージェントをどう連携させるか確認してください。" },
+          { "q": "商品が日本語の場合、海外市場向けのSEO・価格分析はどうすればよいですか？", "a": "まず商品をターゲット言語にリライトしてから、SEOまたはPriceScoutを実行してください。ターゲット言語のコンテンツを使うと、より正確なSERP・競合価格の結果が得られます。" }
         ]
       },
       "bulk-upload": {
