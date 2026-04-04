@@ -39,6 +39,8 @@ const REFINEMENT_THEME_LABELS: Record<string, string> = {
   premium: "Premium Luxury",
   seasonal: "Seasonal",
   minimalist: "Minimalist",
+  informative: "Informative",
+  ai_choice: "Leave it to AI",
 };
 
 export interface AgentOutput {

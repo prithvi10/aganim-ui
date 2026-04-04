@@ -274,6 +274,8 @@ const REFINEMENT_THEMES = [
   { id: "premium", icon: "💎", labelKey: "refinementThemePremium", descKey: "refinementThemePremiumDesc" },
   { id: "seasonal", icon: "🌸", labelKey: "refinementThemeSeasonal", descKey: "refinementThemeSeasonalDesc" },
   { id: "minimalist", icon: "◻️", labelKey: "refinementThemeMinimalist", descKey: "refinementThemeMinimalistDesc" },
+  { id: "informative", icon: "🏷️", labelKey: "refinementThemeInformative", descKey: "refinementThemeInformativeDesc" },
+  { id: "ai_choice", icon: "🤖", labelKey: "refinementThemeAiChoice", descKey: "refinementThemeAiChoiceDesc" },
 ];
 
 const PRESETS: Record<string, Preset> = {
