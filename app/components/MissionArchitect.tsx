@@ -659,8 +659,8 @@ export function MissionArchitect({
   const [collectionName, setCollectionName] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
-  // Refinement theme
-  const [refinementTheme, setRefinementTheme] = useState("clean");
+  // Refinement theme — default to "ai_choice" (Let AI decide) for missions
+  const [refinementTheme, setRefinementTheme] = useState("ai_choice");
 
   // Derived
   const isCustom = selectedMissionKey === "custom";
@@ -703,7 +703,7 @@ export function MissionArchitect({
     setBlogCategory("");
     setCollectionName("");
     setSelectedProductIds([]);
-    setRefinementTheme("clean");
+    setRefinementTheme("ai_choice");
   }, []);
 
   // ── Custom pipeline manipulation ────────────────────────────────────────
@@ -765,8 +765,8 @@ export function MissionArchitect({
     if (blogCategory) ctx.blog_category = blogCategory;
     if (collectionName) ctx.collection_name = collectionName;
     if (selectedProductIds.length > 0) ctx.product_ids = selectedProductIds;
-    if (hasImageRefinement && refinementTheme !== "clean") {
-      ctx.refinement_theme = refinementTheme;
+    if (hasImageRefinement) {
+      ctx.refinement_theme = refinementTheme || "ai_choice";
     }
     onStartMission(pipeline, ctx);
   }, [
@@ -1062,65 +1062,7 @@ export function MissionArchitect({
               </BlockStack>
           )}
 
-          {hasImageRefinement && (
-            <BlockStack gap="300">
-              <Text as="h3" variant="headingMd">
-                {t("refinementThemeLabel")}
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                {t("refinementThemeLabelHelp")}
-              </Text>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-                  gap: "12px",
-                }}
-              >
-                {REFINEMENT_THEMES.map((theme) => (
-                  <div
-                    key={theme.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setRefinementTheme(theme.id)}
-                    onKeyDown={(e) => e.key === "Enter" && setRefinementTheme(theme.id)}
-                    style={{
-                      padding: "16px 12px",
-                      borderRadius: "10px",
-                      border: `2px solid ${
-                        refinementTheme === theme.id
-                          ? "var(--p-color-border-emphasis)"
-                          : "var(--p-color-border)"
-                      }`,
-                      background:
-                        refinementTheme === theme.id
-                          ? "var(--p-color-bg-surface-secondary)"
-                          : "var(--p-color-bg-surface)",
-                      cursor: "pointer",
-                      textAlign: "center",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <BlockStack gap="100" inlineAlign="center">
-                      <Text as="span" variant="headingLg">
-                        {theme.icon}
-                      </Text>
-                      <Text
-                        as="span"
-                        variant="bodySm"
-                        fontWeight={refinementTheme === theme.id ? "bold" : "regular"}
-                      >
-                        {t(theme.labelKey)}
-                      </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        {t(theme.descKey)}
-                      </Text>
-                    </BlockStack>
-                  </div>
-                ))}
-              </div>
-            </BlockStack>
-          )}
+          {/* Refinement theme panel hidden in missions — always uses "Let AI decide" */}
 
           <Divider />
 

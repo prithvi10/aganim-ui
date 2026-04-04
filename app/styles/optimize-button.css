@@ -420,6 +420,36 @@
   }
 }
 
+/* =============================================================================
+   Quick Product Launch CTA card — subtle sparkle blink
+   ============================================================================= */
+
+@keyframes sparkleGlow {
+  0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 0px #a78bfa); }
+  50%      { opacity: 1;    filter: drop-shadow(0 0 6px #a78bfa); }
+}
+
+.quick-launch-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.quick-launch-card:hover {
+  transform: translateY(-1px);
+}
+
+.quick-launch-icon {
+  display: inline-block;
+  font-size: 18px;
+  line-height: 1;
+  animation: sparkleGlow 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-launch-icon {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* Blue spinner for brand soul loading state */
 .brand-soul-spinner svg {
   color: #0066cc !important;
