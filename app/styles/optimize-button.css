@@ -438,7 +438,7 @@
 
 .quick-launch-icon {
   display: inline-block;
-  font-size: 18px;
+  font-size: 22px;
   line-height: 1;
   animation: sparkleGlow 1.8s ease-in-out infinite;
 }

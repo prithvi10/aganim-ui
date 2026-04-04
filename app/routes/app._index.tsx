@@ -201,14 +201,16 @@ export default function LandingPage() {
     ? `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/optimize`
     : "https://admin.shopify.com/";
 
-  // Navigation helper to preserve query params
+  // Navigation helper: merge shop/host into path (preserves existing ?query on path)
   const nav = useCallback(
     (path: string) => {
-      const params = new URLSearchParams();
+      const q = path.indexOf("?");
+      const pathname = q >= 0 ? path.slice(0, q) : path;
+      const params = new URLSearchParams(q >= 0 ? path.slice(q + 1) : "");
       if (host) params.set("host", host);
       if (shop) params.set("shop", shop);
       const qs = params.toString();
-      return qs ? `${path}?${qs}` : path;
+      return qs ? `${pathname}?${qs}` : pathname;
     },
     [host, shop],
   );
@@ -420,14 +422,14 @@ export default function LandingPage() {
             style={{ cursor: "pointer" }}
             role="button"
             tabIndex={0}
-            onClick={() => navigate(nav("/app/optimize"))}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(nav("/app/optimize")); }}
+            onClick={() => navigate(nav("/app/optimize?mission=full_launch"))}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(nav("/app/optimize?mission=full_launch")); }}
           >
             <Card>
               <Box padding="300">
                 <InlineStack align="center" blockAlign="center" gap="200">
                   <span className="quick-launch-icon" aria-hidden="true">&#10024;</span>
-                  <Text as="p" variant="bodyMd" fontWeight="semibold">
+                  <Text as="p" variant="headingSm" fontWeight="semibold">
                     {t("home.quickLaunchCta")}
                   </Text>
                 </InlineStack>
