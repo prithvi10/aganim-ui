@@ -284,6 +284,8 @@ export default function LandingPage() {
     return (brandStatusState === "ready" || brandStatusState === "completed") && !!displayBrandSummary;
   }, [brandStatusState, displayBrandSummary]);
 
+  const isFree = String(planName || "").toLowerCase() === "free";
+
   // Determine status icon
   const brandStatusIcon = useMemo(() => {
     if (brandStatusState === "running" || brandStatusState === "accepted") {
@@ -371,6 +373,7 @@ export default function LandingPage() {
   }, [brandStatusState, backendApiUrl, shop]);
 
   const onboardingSteps = [
+    { id: "target-market", label: t("home.stepTargetMarket"), completed: false },
     { id: "soul", label: t("home.stepBrandSoul"), completed: isBrandSoulActive },
     { id: "writing", label: t("home.stepWritingStudio"), completed: false },
     { id: "marketing", label: t("home.stepMarketing"), completed: false },
@@ -409,43 +412,237 @@ export default function LandingPage() {
                   </InlineStack>
           </Box>
         </Card>
-        {/* Getting Started Guide */}
-        <Card>
-          <Box padding="400">
-            <BlockStack gap="400">
-              <BlockStack gap="200">
-                <Text as="h2" variant="headingLg">
-                  {t("home.gettingStarted")}
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  {t("home.gettingStartedDesc")}
+
+        {/* Quick Product Launch CTA – Free plan only */}
+        {isFree && (
+          <div
+            className="quick-launch-card"
+            style={{ cursor: "pointer" }}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(nav("/app/optimize"))}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(nav("/app/optimize")); }}
+          >
+            <Card>
+              <Box padding="300">
+                <InlineStack align="center" blockAlign="center" gap="200">
+                  <span className="quick-launch-icon" aria-hidden="true">&#10024;</span>
+                  <Text as="p" variant="bodyMd" fontWeight="semibold">
+                    {t("home.quickLaunchCta")}
                   </Text>
-              </BlockStack>
+                </InlineStack>
+              </Box>
+            </Card>
+          </div>
+        )}
 
-              <ProgressBar progress={onboardingProgress} size="medium" />
-
-                  <BlockStack gap="200">
-                {onboardingSteps.map((step) => (
-                  <InlineStack key={step.id} align="space-between" blockAlign="center">
-                    <Text as="p" variant="bodyMd">
-                      {step.label}
+        {/* Features Grid */}
+        <BlockStack gap="400">
+          <Text as="h2" variant="headingLg">
+            {t("home.features")}
+          </Text>
+          <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
+            {/* Card 1: Complete Optimization */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      {t("home.completeOptimization")}
                     </Text>
-                    <Text as="p" variant="bodySm" tone={step.completed ? "success" : "subdued"}>
-                      {step.completed ? "✓" : "○"}
-                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={StarIcon} tone="base" />
+                      </div>
+                    </div>
                   </InlineStack>
-                ))}
-              </BlockStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {t("home.completeOptimizationDesc")}
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-1">
+                          <Button
+                        variant="primary"
+                            onClick={() => {
+                              window.open(optimizeUrl, "_top");
+                            }}
+                          >
+                        {t("home.open")}
+                          </Button>
+                        </div>
+                      </div>
+                </BlockStack>
+              </Box>
+            </Card>
 
+            {/* Card 2: Writing Studio */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      Writing Studio
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={EditIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {t("home.writingStudioDesc")}
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-2">
                     <Button
-                variant="secondary"
-                onClick={() => setOnboardingModalOpen(true)}
-              >
-                {t("home.viewFullGuide")}
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/writing-studio"))}
+                    >
+                        {t("home.open")}
                     </Button>
-                  </BlockStack>
-          </Box>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+
+            {/* Card 3: Price Scout */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      {t("home.priceScout")}
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={SearchIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {t("home.priceScoutDesc")}
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-4">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/pricing"))}
+                      >
+                        {t("home.open")}
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+
+            {/* Card 4: Marketing Agent */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      {t("home.marketingAgent")}
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={SocialAdIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {t("home.marketingAgentDesc")}
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-5">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/marketing"))}
+                      >
+                        {t("home.open")}
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
           </Card>
+
+            {/* Card 5: SEO Manager */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      {t("home.seoManager")}
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={ChartVerticalIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {t("home.seoManagerDesc")}
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-6">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/seo"))}
+                      >
+                        {t("home.open")}
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+
+            {/* Card 6: Dashboard */}
+            <Card>
+              <Box padding="500" background="bg-surface-secondary">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start">
+                    <Text as="h3" variant="headingLg">
+                      {t("home.dashboardCard")}
+                    </Text>
+                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ transform: "scale(1.5)" }}>
+                        <Icon source={HomeIcon} tone="base" />
+                      </div>
+                    </div>
+                  </InlineStack>
+                  <div style={{ marginTop: "-12px" }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {t("home.dashboardCardDesc")}
+                    </Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="feature-btn-glow-6">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate(nav("/app/dashboard"))}
+                      >
+                        {t("home.open")}
+                      </Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+          </InlineGrid>
+        </BlockStack>
 
         {/* Brand Soul Identity Bar */}
             <Card>
@@ -708,215 +905,45 @@ export default function LandingPage() {
           </Box>
         </Card>
 
-        {/* Features Grid */}
-        <BlockStack gap="400">
-          <Text as="h2" variant="headingLg">
-            {t("home.features")}
-          </Text>
-          <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
-            {/* Card 1: Complete Optimization */}
-            <Card>
-              <Box padding="500" background="bg-surface-secondary">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="start">
-                    <Text as="h3" variant="headingLg">
-                      {t("home.completeOptimization")}
-                    </Text>
-                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ transform: "scale(1.5)" }}>
-                        <Icon source={StarIcon} tone="base" />
-                      </div>
-                    </div>
-                  </InlineStack>
-                  <div style={{ marginTop: "-12px" }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      {t("home.completeOptimizationDesc")}
-                    </Text>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <div className="feature-btn-glow-1">
-                          <Button
-                        variant="primary"
-                            onClick={() => {
-                              window.open(optimizeUrl, "_top");
-                            }}
-                          >
-                        {t("home.open")}
-                          </Button>
-                        </div>
-                      </div>
-                </BlockStack>
-              </Box>
-            </Card>
+        {/* Onboarding Guide (formerly Getting Started) */}
+        <Card>
+          <Box padding="400">
+            <BlockStack gap="400">
+              <BlockStack gap="200">
+                <Text as="h2" variant="headingLg">
+                  {t("home.onboardingGuide")}
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  {t("home.gettingStartedDesc")}
+                </Text>
+              </BlockStack>
 
-            {/* Card 2: Writing Studio */}
-            <Card>
-              <Box padding="500" background="bg-surface-secondary">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="start">
-                    <Text as="h3" variant="headingLg">
-                      Writing Studio
-                    </Text>
-                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ transform: "scale(1.5)" }}>
-                        <Icon source={EditIcon} tone="base" />
-                      </div>
-                    </div>
-                  </InlineStack>
-                  <div style={{ marginTop: "-12px" }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      {t("home.writingStudioDesc")}
-                    </Text>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <div className="feature-btn-glow-2">
-                    <Button
-                        variant="primary"
-                        onClick={() => navigate(nav("/app/writing-studio"))}
-                    >
-                        {t("home.open")}
-                    </Button>
-                    </div>
-                  </div>
-                </BlockStack>
-              </Box>
-            </Card>
+              <ProgressBar progress={onboardingProgress} size="medium" />
 
-            {/* Card 3: Price Scout */}
-            <Card>
-              <Box padding="500" background="bg-surface-secondary">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="start">
-                    <Text as="h3" variant="headingLg">
-                      {t("home.priceScout")}
+              <BlockStack gap="200">
+                {onboardingSteps.map((step) => (
+                  <InlineStack key={step.id} align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodyMd">
+                      {step.label}
                     </Text>
-                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ transform: "scale(1.5)" }}>
-                        <Icon source={SearchIcon} tone="base" />
-                      </div>
-                    </div>
+                    <Text as="p" variant="bodySm" tone={step.completed ? "success" : "subdued"}>
+                      {step.completed ? "\u2713" : "\u25CB"}
+                    </Text>
                   </InlineStack>
-                  <div style={{ marginTop: "-12px" }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      {t("home.priceScoutDesc")}
-                    </Text>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <div className="feature-btn-glow-4">
-                      <Button
-                        variant="primary"
-                        onClick={() => navigate(nav("/app/pricing"))}
-                      >
-                        {t("home.open")}
-                      </Button>
-                    </div>
-                  </div>
-                </BlockStack>
-              </Box>
-            </Card>
+                ))}
+              </BlockStack>
 
-            {/* Card 4: Marketing Agent */}
-            <Card>
-              <Box padding="500" background="bg-surface-secondary">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="start">
-                    <Text as="h3" variant="headingLg">
-                      {t("home.marketingAgent")}
-                    </Text>
-                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ transform: "scale(1.5)" }}>
-                        <Icon source={SocialAdIcon} tone="base" />
-                      </div>
-                    </div>
-                  </InlineStack>
-                  <div style={{ marginTop: "-12px" }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      {t("home.marketingAgentDesc")}
-                    </Text>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <div className="feature-btn-glow-5">
-                      <Button
-                        variant="primary"
-                        onClick={() => navigate(nav("/app/marketing"))}
-                      >
-                        {t("home.open")}
-                      </Button>
-                    </div>
-                  </div>
-                </BlockStack>
-              </Box>
-          </Card>
+              <Button
+                variant="secondary"
+                onClick={() => setOnboardingModalOpen(true)}
+              >
+                {t("home.viewFullGuide")}
+              </Button>
+            </BlockStack>
+          </Box>
+        </Card>
 
-            {/* Card 5: SEO Manager */}
-            <Card>
-              <Box padding="500" background="bg-surface-secondary">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="start">
-                    <Text as="h3" variant="headingLg">
-                      {t("home.seoManager")}
-                    </Text>
-                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ transform: "scale(1.5)" }}>
-                        <Icon source={ChartVerticalIcon} tone="base" />
-                      </div>
-                    </div>
-                  </InlineStack>
-                  <div style={{ marginTop: "-12px" }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      {t("home.seoManagerDesc")}
-                    </Text>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <div className="feature-btn-glow-6">
-                      <Button
-                        variant="primary"
-                        onClick={() => navigate(nav("/app/seo"))}
-                      >
-                        {t("home.open")}
-                      </Button>
-                    </div>
-                  </div>
-                </BlockStack>
-              </Box>
-            </Card>
-
-            {/* Card 6: Dashboard */}
-            <Card>
-              <Box padding="500" background="bg-surface-secondary">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="start">
-                    <Text as="h3" variant="headingLg">
-                      {t("home.dashboardCard")}
-                    </Text>
-                    <div style={{ width: "48px", height: "48px", marginRight: "-4px", marginTop: "-8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ transform: "scale(1.5)" }}>
-                        <Icon source={HomeIcon} tone="base" />
-                      </div>
-                    </div>
-                  </InlineStack>
-                  <div style={{ marginTop: "-12px" }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      {t("home.dashboardCardDesc")}
-                    </Text>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <div className="feature-btn-glow-6">
-                      <Button
-                        variant="primary"
-                        onClick={() => navigate(nav("/app/dashboard"))}
-                      >
-                        {t("home.open")}
-                      </Button>
-                    </div>
-                  </div>
-                </BlockStack>
-              </Box>
-            </Card>
-          </InlineGrid>
-        </BlockStack>
-
-          </BlockStack>
+      </BlockStack>
 
       {/* Modals */}
       <GetStartedGuide
