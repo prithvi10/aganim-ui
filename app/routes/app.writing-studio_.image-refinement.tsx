@@ -526,6 +526,8 @@ export default function ImageRefinement() {
                               { id: "premium", icon: "💎", label: t("imageRefinement.themePremium"), desc: t("imageRefinement.themePremiumDesc") },
                               { id: "seasonal", icon: "🌸", label: t("imageRefinement.themeSeasonal"), desc: t("imageRefinement.themeSeasonalDesc") },
                               { id: "minimalist", icon: "◻️", label: t("imageRefinement.themeMinimalist"), desc: t("imageRefinement.themeMinimalistDesc") },
+                              { id: "informative", icon: "🏷️", label: t("imageRefinement.themeInformative"), desc: t("imageRefinement.themeInformativeDesc") },
+                              { id: "ai_choice", icon: "🤖", label: t("imageRefinement.themeAiChoice"), desc: t("imageRefinement.themeAiChoiceDesc") },
                             ] as const).map((theme) => (
                               <div
                                 key={theme.id}
