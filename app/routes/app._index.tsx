@@ -159,7 +159,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function LandingPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     shop,
     host,
@@ -270,17 +270,35 @@ export default function LandingPage() {
     brandLastError,
   ]);
 
+  const preferJapaneseBrandSoul = (i18n.language || "").toLowerCase().startsWith("ja");
+
   const displayBrandSummary = useMemo(() => {
+    if (preferJapaneseBrandSoul) {
+      return brandSummaryJaState || brandSummaryEnState || brandSummaryLegacyState;
+    }
     return brandSummaryEnState || brandSummaryJaState || brandSummaryLegacyState;
-  }, [brandSummaryEnState, brandSummaryJaState, brandSummaryLegacyState]);
+  }, [
+    preferJapaneseBrandSoul,
+    brandSummaryEnState,
+    brandSummaryJaState,
+    brandSummaryLegacyState,
+  ]);
 
   const displayKeyFacts = useMemo(() => {
-    return brandKeyFactsEnState.length
-      ? brandKeyFactsEnState
-      : brandKeyFactsJaState.length
-        ? brandKeyFactsJaState
-        : brandKeyFactsState;
-  }, [brandKeyFactsEnState, brandKeyFactsJaState, brandKeyFactsState]);
+    if (preferJapaneseBrandSoul) {
+      if (brandKeyFactsJaState.length) return brandKeyFactsJaState;
+      if (brandKeyFactsEnState.length) return brandKeyFactsEnState;
+      return brandKeyFactsState;
+    }
+    if (brandKeyFactsEnState.length) return brandKeyFactsEnState;
+    if (brandKeyFactsJaState.length) return brandKeyFactsJaState;
+    return brandKeyFactsState;
+  }, [
+    preferJapaneseBrandSoul,
+    brandKeyFactsEnState,
+    brandKeyFactsJaState,
+    brandKeyFactsState,
+  ]);
 
   const isBrandSoulActive = useMemo(() => {
     return (brandStatusState === "ready" || brandStatusState === "completed") && !!displayBrandSummary;
@@ -766,7 +784,10 @@ export default function LandingPage() {
                         )}
                         {brandUpdatedState && (
                           <Text as="span" variant="bodySm" tone="subdued">
-                            {t("home.updated")} {new Date(brandUpdatedState).toLocaleDateString()}
+                            {t("home.updated")}{" "}
+                            {new Date(brandUpdatedState).toLocaleDateString(
+                              preferJapaneseBrandSoul ? "ja-JP" : undefined,
+                            )}
                           </Text>
                         )}
 
@@ -778,7 +799,7 @@ export default function LandingPage() {
                               onClick={() => setIntelligenceOpen(!intelligenceOpen)}
                               textAlign="start"
                             >
-                              {intelligenceOpen ? "▾ Hide Brand Intelligence" : "▸ Show Brand Intelligence"}
+                              {intelligenceOpen ? t("home.hideBrandIntelligence") : t("home.showBrandIntelligence")}
                             </Button>
                             <Collapsible
                               open={intelligenceOpen}
@@ -790,7 +811,7 @@ export default function LandingPage() {
                                   {/* Archetype */}
                                   <BlockStack gap="100">
                                     <Text as="p" variant="bodySm" fontWeight="semibold">
-                                      Brand Archetype
+                                      {t("home.brandArchetype")}
                                     </Text>
                                     <InlineStack gap="200">
                                       <Text as="span" variant="bodyMd">
@@ -884,7 +905,10 @@ export default function LandingPage() {
 
                                   {brandIntelligenceUpdatedAt && (
                                     <Text as="span" variant="bodySm" tone="subdued">
-                                      {t("home.intelligenceUpdated")} {new Date(brandIntelligenceUpdatedAt).toLocaleDateString()}
+                                      {t("home.intelligenceUpdated")}{" "}
+                                      {new Date(brandIntelligenceUpdatedAt).toLocaleDateString(
+                                        preferJapaneseBrandSoul ? "ja-JP" : undefined,
+                                      )}
                                     </Text>
                                   )}
                                 </BlockStack>
