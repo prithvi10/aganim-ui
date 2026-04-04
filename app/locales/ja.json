@@ -10,10 +10,10 @@
     "langToggle": "English"
   },
   "home": {
-    "crossBorderAi": "越境 AI",
+    "crossBorderAi": "Aganim AI",
     "tagline": "商品情報を世界クラスのマーケティングコピーに変換します。",
     "gettingStarted": "はじめに",
-    "gettingStartedDesc": "越境 AI の機能を最大限に活用するため、以下のステップを完了してください。",
+    "gettingStartedDesc": "Aganim AI の機能を最大限に活用するため、以下のステップを完了してください。",
     "defineSoul": "ブランドの個性を定義",
     "optimizeFirstProduct": "最初の商品を最適化",
     "configureTheme": "テーマを設定",
@@ -102,7 +102,7 @@
     "zh-CN": "簡体中文（中国）"
   },
   "dashboard": {
-    "title": "越境 AI",
+    "title": "Aganim AI",
     "totalOptimized": "最適化済み商品数",
     "activeMarkets": "有効な市場",
     "currentPlan": "現在のプラン",
@@ -540,9 +540,9 @@
   },
   "components": {
     "getStartedGuide": "はじめてガイド",
-    "learnHowToUse": "越境 AI の使い方をステップバイステップで学びましょう。",
+    "learnHowToUse": "Aganim AI の使い方をステップバイステップで学びましょう。",
     "openGuide": "ガイドを開く",
-    "getStartedWithCbai": "越境 AI をはじめよう",
+    "getStartedWithCbai": "Aganim AI をはじめよう",
     "guideTargetMarketTitle": "ステップ1: ターゲット市場と言語",
     "guideTargetMarketSubtitle": "コンテンツ市場とUI言語を設定",
     "guideTargetMarketBody": "AI生成コンテンツのターゲット市場（例: 英語US、日本語、韓国語）を選択し、お好みのUI言語を設定します。これらの設定はトーン、文化的参照、競合分析に影響します。",
@@ -809,7 +809,7 @@
   "support": {
     "helpCenter": "ヘルプセンター",
     "pageTitle": "サポート",
-    "subtitle": "越境 AI の機能ガイド、プラン対応状況、トラブルシューティング、FAQ。",
+    "subtitle": "Aganim AI の機能ガイド、プラン対応状況、トラブルシューティング、FAQ。",
     "featureDocs": "機能ドキュメント",
     "featureDocsDesc": "各機能にはプラン対応、ステップバイステップの使い方、よくある対処法が含まれています。",
     "planFilter": "プランフィルター",
@@ -834,7 +834,7 @@
     "notesLabel": "備考",
     "likelyCause": "想定される原因",
     "fix": "対処法",
-    "copyright": "越境 AI。サポートコンテンツは定期的に更新されます。",
+    "copyright": "Aganim AI。サポートコンテンツは定期的に更新されます。",
     "tableFeature": "機能",
     "tableNotes": "備考",
     "planAll": "すべて",
