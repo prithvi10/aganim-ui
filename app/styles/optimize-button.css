@@ -436,10 +436,11 @@
   transform: translateY(-1px);
 }
 
-/* Larger than Polaris headingLg so the CTA reads clearly on the homepage */
+/* Large but regular weight — Polaris headingLg defaults to semibold */
 .quick-launch-card .quick-launch-cta-text {
   font-size: 1.375rem;
   line-height: 1.35;
+  font-weight: 400;
 }
 
 @media (min-width: 768px) {
