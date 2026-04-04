@@ -259,6 +259,9 @@
     "regenerate": "再生成",
     "copy": "コピー",
     "close": "閉じる",
+    "appendFaqToDescription": "FAQを商品説明に追加",
+    "faqAppended": "FAQ追加済み",
+    "faqAppendedToDescription": "FAQを商品説明に追加しました！",
     "outOfFreeCredits": "無料の10クレジットを使い切りました。Basicにアップグレードして毎月50件のリライトを利用しましょう！",
     "pleaseSelectMarket": "市場を選択してください。",
     "generationFailed": "生成は成功しましたが、コンテンツが返されませんでした。",
@@ -320,7 +323,7 @@
     "imageRefinement": "画像リファインメント",
     "imageRefinementDesc": "AI搭載の商品写真リファインメント。背景のクリーンアップ、商品画像からマーケティング広告を生成。",
     "contentTemplates": "コンテンツテンプレート",
-    "contentTemplatesDesc": "AIテンプレートとブランドボイスを使って、商品タイトル、FAQ、コレクションコピー、ランディングページコンテンツを生成します。"
+    "contentTemplatesDesc": "AIテンプレートとブランドボイスを使って、コレクションコピー、ヒーローセクション、ブログ記事を生成します。"
   },
   "marketing": {
     "marketingConsultant": "マーケティングコンサルタント",
@@ -411,7 +414,7 @@
   },
   "contentTemplates": {
     "contentTemplates": "コンテンツテンプレート",
-    "contentTemplatesSubtitle": "AIテンプレートとブランドボイスを使って、FAQ、コレクションコピー、ヒーローセクション、ブログ記事を生成します。",
+    "contentTemplatesSubtitle": "AIテンプレートとブランドボイスを使って、コレクションコピー、ヒーローセクション、ブログ記事を生成します。",
     "writingStudio": "ライティングスタジオ",
     "heroSection": "ヒーローセクション",
     "generatedContent": "生成されたコンテンツ",
