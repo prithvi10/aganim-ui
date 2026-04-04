@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   Card,
@@ -56,6 +57,7 @@ export interface MissionExtraContext {
   collection_name?: string;
   /** GID list of products selected for collection missions */
   product_ids?: string[];
+  refinement_theme?: string;
 }
 
 interface ProductOption {
@@ -266,6 +268,17 @@ interface Preset {
   minTier: PlanTier;
 }
 
+const REFINEMENT_THEMES = [
+  { id: "clean", icon: "✨", labelKey: "refinementThemeClean", descKey: "refinementThemeCleanDesc" },
+  { id: "lifestyle", icon: "🏠", labelKey: "refinementThemeLifestyle", descKey: "refinementThemeLifestyleDesc" },
+  { id: "natural", icon: "🌿", labelKey: "refinementThemeNatural", descKey: "refinementThemeNaturalDesc" },
+  { id: "premium", icon: "💎", labelKey: "refinementThemePremium", descKey: "refinementThemePremiumDesc" },
+  { id: "seasonal", icon: "🌸", labelKey: "refinementThemeSeasonal", descKey: "refinementThemeSeasonalDesc" },
+  { id: "minimalist", icon: "◻️", labelKey: "refinementThemeMinimalist", descKey: "refinementThemeMinimalistDesc" },
+  { id: "informative", icon: "🏷️", labelKey: "refinementThemeInformative", descKey: "refinementThemeInformativeDesc" },
+  { id: "ai_choice", icon: "🤖", labelKey: "refinementThemeAiChoice", descKey: "refinementThemeAiChoiceDesc" },
+];
+
 const PRESETS: Record<string, Preset> = {
   // ── Free: Rewriter + Marketing captions (3 lifetime missions) ──────
   social_hype_man: {
@@ -439,6 +452,13 @@ const PRESETS: Record<string, Preset> = {
   },
 };
 
+function isDeepLinkableMissionKey(key: string, tier: PlanTier): boolean {
+  const preset = PRESETS[key];
+  if (!preset?.steps?.length) return false;
+  if (preset.contextType === "bulk_csv" || preset.contextType === "bulk_zip") return false;
+  return tierMeetsMin(tier, preset.minTier);
+}
+
 // ─── Mission Card ───────────────────────────────────────────────────────────
 
 function MissionCard({
@@ -536,6 +556,7 @@ export function MissionArchitect({
   entitlements,
 }: MissionArchitectProps) {
   const { t } = useTranslation("missions");
+  const [searchParams, setSearchParams] = useSearchParams();
   const currentTier = (["Free", "Basic", "Standard", "Pro"].includes(planTier) ? planTier : "Free") as PlanTier;
 
   const agentLabel = (name: string) => {
@@ -647,12 +668,44 @@ export function MissionArchitect({
   const [collectionName, setCollectionName] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
+  // Refinement theme — default to "ai_choice" (Let AI decide) for missions
+  const [refinementTheme, setRefinementTheme] = useState("ai_choice");
+
+  const missionDeepLinkConsumed = useRef(false);
+
+  // Open a preset mission directly from ?mission=<preset_key> (e.g. homepage → Full Launch)
+  useEffect(() => {
+    if (missionDeepLinkConsumed.current || isRunning) return;
+    const raw = (searchParams.get("mission") || "").trim();
+    if (!raw) return;
+
+    if (!isDeepLinkableMissionKey(raw, currentTier)) {
+      const next = new URLSearchParams(searchParams);
+      if (next.has("mission")) {
+        next.delete("mission");
+        setSearchParams(next, { replace: true });
+      }
+      return;
+    }
+
+    missionDeepLinkConsumed.current = true;
+    const presetEntry = PRESETS[raw];
+    setSelectedMissionKey(raw);
+    setPipeline([...presetEntry.steps]);
+    setWizardStep(2);
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("mission");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, isRunning, currentTier]);
+
   // Derived
   const isCustom = selectedMissionKey === "custom";
   const preset = !isCustom ? PRESETS[selectedMissionKey] : null;
   const contextType: ContextType = isCustom
     ? "product"
     : preset?.contextType || "product";
+  const hasImageRefinement = pipeline.some((s) => s.agent_name === "ImageRefinementAgent");
 
   // ── Mission selection (Step 1 → Step 2) ─────────────────────────────────
 
@@ -687,6 +740,7 @@ export function MissionArchitect({
     setBlogCategory("");
     setCollectionName("");
     setSelectedProductIds([]);
+    setRefinementTheme("ai_choice");
   }, []);
 
   // ── Custom pipeline manipulation ────────────────────────────────────────
@@ -738,9 +792,9 @@ export function MissionArchitect({
       const unique = [...new Set(agentNames)];
       missionTitle = unique.join(" + ");
     } else if (preset) {
-      missionTitle = `${preset.icon} ${preset.label}`;
+      missionTitle = `${preset.icon} ${presetLabel(selectedMissionKey)}`;
     } else {
-      missionTitle = "Mission";
+      missionTitle = t("mission");
     }
 
     const ctx: MissionExtraContext = { mission_title: missionTitle };
@@ -748,6 +802,9 @@ export function MissionArchitect({
     if (blogCategory) ctx.blog_category = blogCategory;
     if (collectionName) ctx.collection_name = collectionName;
     if (selectedProductIds.length > 0) ctx.product_ids = selectedProductIds;
+    if (hasImageRefinement) {
+      ctx.refinement_theme = refinementTheme || "ai_choice";
+    }
     onStartMission(pipeline, ctx);
   }, [
     pipeline,
@@ -758,6 +815,8 @@ export function MissionArchitect({
     collectionName,
     selectedProductIds,
     onStartMission,
+    hasImageRefinement,
+    refinementTheme,
   ]);
 
   // ── Can launch? ─────────────────────────────────────────────────────────
@@ -1039,6 +1098,8 @@ export function MissionArchitect({
                 </InlineStack>
               </BlockStack>
           )}
+
+          {/* Refinement theme panel hidden in missions — always uses "Let AI decide" */}
 
           <Divider />
 

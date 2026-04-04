@@ -159,7 +159,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function LandingPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     shop,
     host,
@@ -201,14 +201,16 @@ export default function LandingPage() {
     ? `https://admin.shopify.com/store/${shopSlug}/apps/crossborderagent/app/optimize`
     : "https://admin.shopify.com/";
 
-  // Navigation helper to preserve query params
+  // Navigation helper: merge shop/host into path (preserves existing ?query on path)
   const nav = useCallback(
     (path: string) => {
-      const params = new URLSearchParams();
+      const q = path.indexOf("?");
+      const pathname = q >= 0 ? path.slice(0, q) : path;
+      const params = new URLSearchParams(q >= 0 ? path.slice(q + 1) : "");
       if (host) params.set("host", host);
       if (shop) params.set("shop", shop);
       const qs = params.toString();
-      return qs ? `${path}?${qs}` : path;
+      return qs ? `${pathname}?${qs}` : pathname;
     },
     [host, shop],
   );
@@ -268,21 +270,41 @@ export default function LandingPage() {
     brandLastError,
   ]);
 
+  const preferJapaneseBrandSoul = (i18n.language || "").toLowerCase().startsWith("ja");
+
   const displayBrandSummary = useMemo(() => {
+    if (preferJapaneseBrandSoul) {
+      return brandSummaryJaState || brandSummaryEnState || brandSummaryLegacyState;
+    }
     return brandSummaryEnState || brandSummaryJaState || brandSummaryLegacyState;
-  }, [brandSummaryEnState, brandSummaryJaState, brandSummaryLegacyState]);
+  }, [
+    preferJapaneseBrandSoul,
+    brandSummaryEnState,
+    brandSummaryJaState,
+    brandSummaryLegacyState,
+  ]);
 
   const displayKeyFacts = useMemo(() => {
-    return brandKeyFactsEnState.length
-      ? brandKeyFactsEnState
-      : brandKeyFactsJaState.length
-        ? brandKeyFactsJaState
-        : brandKeyFactsState;
-  }, [brandKeyFactsEnState, brandKeyFactsJaState, brandKeyFactsState]);
+    if (preferJapaneseBrandSoul) {
+      if (brandKeyFactsJaState.length) return brandKeyFactsJaState;
+      if (brandKeyFactsEnState.length) return brandKeyFactsEnState;
+      return brandKeyFactsState;
+    }
+    if (brandKeyFactsEnState.length) return brandKeyFactsEnState;
+    if (brandKeyFactsJaState.length) return brandKeyFactsJaState;
+    return brandKeyFactsState;
+  }, [
+    preferJapaneseBrandSoul,
+    brandKeyFactsEnState,
+    brandKeyFactsJaState,
+    brandKeyFactsState,
+  ]);
 
   const isBrandSoulActive = useMemo(() => {
     return (brandStatusState === "ready" || brandStatusState === "completed") && !!displayBrandSummary;
   }, [brandStatusState, displayBrandSummary]);
+
+  const isFree = String(planName || "").toLowerCase() === "free";
 
   // Determine status icon
   const brandStatusIcon = useMemo(() => {
@@ -371,6 +393,7 @@ export default function LandingPage() {
   }, [brandStatusState, backendApiUrl, shop]);
 
   const onboardingSteps = [
+    { id: "target-market", label: t("home.stepTargetMarket"), completed: false },
     { id: "soul", label: t("home.stepBrandSoul"), completed: isBrandSoulActive },
     { id: "writing", label: t("home.stepWritingStudio"), completed: false },
     { id: "marketing", label: t("home.stepMarketing"), completed: false },
@@ -409,304 +432,29 @@ export default function LandingPage() {
                   </InlineStack>
           </Box>
         </Card>
-        {/* Getting Started Guide */}
-        <Card>
-          <Box padding="400">
-            <BlockStack gap="400">
-              <BlockStack gap="200">
-                <Text as="h2" variant="headingLg">
-                  {t("home.gettingStarted")}
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  {t("home.gettingStartedDesc")}
-                  </Text>
-              </BlockStack>
 
-              <ProgressBar progress={onboardingProgress} size="medium" />
-
-                  <BlockStack gap="200">
-                {onboardingSteps.map((step) => (
-                  <InlineStack key={step.id} align="space-between" blockAlign="center">
-                    <Text as="p" variant="bodyMd">
-                      {step.label}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone={step.completed ? "success" : "subdued"}>
-                      {step.completed ? "✓" : "○"}
-                    </Text>
-                  </InlineStack>
-                ))}
-              </BlockStack>
-
-                    <Button
-                variant="secondary"
-                onClick={() => setOnboardingModalOpen(true)}
-              >
-                {t("home.viewFullGuide")}
-                    </Button>
-                  </BlockStack>
-          </Box>
-          </Card>
-
-        {/* Brand Soul Identity Bar */}
+        {/* Quick Product Launch CTA – Free plan only */}
+        {isFree && (
+          <div
+            className="quick-launch-card"
+            style={{ cursor: "pointer" }}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(nav("/app/optimize?mission=full_launch"))}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(nav("/app/optimize?mission=full_launch")); }}
+          >
             <Card>
-          <Box padding="400" background="bg-surface-secondary">
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center">
-                <InlineStack align="start" gap="200" blockAlign="center">
-                  <img src="/landing%20page/Brand%20soul%20logo.png" alt="" style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 4 }} />
-                  <Text as="h2" variant="headingLg">
-                        {t("home.brandSoul")}
-                      </Text>
-                  {brandStatusIcon}
+              <Box padding="200">
+                <InlineStack align="center" blockAlign="center" gap="200">
+                  <span className="quick-launch-icon" aria-hidden="true">&#10024;</span>
+                  <Text as="p" variant="headingLg" className="quick-launch-cta-text">
+                    {t("home.quickLaunchCta")}
+                  </Text>
                 </InlineStack>
-                    <Button variant="primary" onClick={() => setBrandWizardOpen(true)}>
-                  {t("home.editIdentity")}
-                    </Button>
-                  </InlineStack>
-
-              {brandStatusState === "running" || brandStatusState === "accepted" ? (
-                    <Banner tone="info">
-                      {t("home.generatingBrandIntelligence")}
-                    </Banner>
-                  ) : null}
-              {brandStatusState === "failed" && (
-                    <Banner tone="critical">
-                      {t("home.brandIntelligenceFailed")}
-                    </Banner>
-              )}
-              {brandErrorState && (
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {brandErrorState}
-                    </Text>
-              )}
-
-              {displayBrandSummary && (
-                <>
-                  <Collapsible
-                    open={!brandSoulCollapsed}
-                    id="brand-soul-collapsible"
-                    transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
-                  >
-                    <Box padding="300" background="bg-surface" borderRadius="200">
-                      <BlockStack gap="200">
-                        <InlineStack align="space-between" blockAlign="center">
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            {t("home.latestSummary")}
-                          </Text>
-                          {!brandEditMode ? (
-                            <Button
-                              variant="plain"
-                              size="slim"
-                              onClick={() => {
-                                setBrandEditText(displayBrandSummary);
-                                setBrandEditMode(true);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                          ) : null}
-                        </InlineStack>
-                        {brandEditMode ? (
-                          <BlockStack gap="200">
-                            <TextField
-                              label=""
-                              labelHidden
-                              value={brandEditText}
-                              onChange={setBrandEditText}
-                              multiline={6}
-                              autoComplete="off"
-                            />
-                            <InlineStack gap="200">
-                              <Button
-                                variant="primary"
-                                size="slim"
-                                loading={brandEditSaving}
-                                onClick={handleBrandEditSave}
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                size="slim"
-                                onClick={() => setBrandEditMode(false)}
-                                disabled={brandEditSaving}
-                              >
-                                Cancel
-                              </Button>
-                            </InlineStack>
-                          </BlockStack>
-                        ) : (
-                          <>
-                            {displayBrandSummary.includes("\n") ? (
-                              <List type="bullet">
-                                {displayBrandSummary
-                                  .split("\n")
-                                  .map((line) => line.replace(/^•\s?/, "").trim())
-                                  .filter(Boolean)
-                                  .map((line, idx) => (
-                                    <List.Item key={`${idx}-${line}`}>{line}</List.Item>
-                                  ))}
-                              </List>
-                            ) : (
-                              <Text as="p" variant="bodyMd">
-                                {displayBrandSummary}
-                              </Text>
-                            )}
-                          </>
-                        )}
-                        {displayKeyFacts.length > 0 && (
-                          <BlockStack gap="100">
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              {t("home.keyFacts")}
-                            </Text>
-                            <List type="bullet">
-                              {displayKeyFacts.map((fact: string, idx: number) => (
-                                <List.Item key={`${idx}-${fact}`}>{fact}</List.Item>
-                              ))}
-                            </List>
-                          </BlockStack>
-                        )}
-                        {brandUpdatedState && (
-                          <Text as="span" variant="bodySm" tone="subdued">
-                            {t("home.updated")} {new Date(brandUpdatedState).toLocaleDateString()}
-                          </Text>
-                        )}
-
-                        {/* Brand Intelligence dropdown inside Brand Soul */}
-                        {brandIntelligence && (
-                          <BlockStack gap="200">
-                            <Button
-                              variant="plain"
-                              onClick={() => setIntelligenceOpen(!intelligenceOpen)}
-                              textAlign="start"
-                            >
-                              {intelligenceOpen ? "▾ Hide Brand Intelligence" : "▸ Show Brand Intelligence"}
-                            </Button>
-                            <Collapsible
-                              open={intelligenceOpen}
-                              id="brand-intelligence-collapsible"
-                              transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
-                            >
-                              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                                <BlockStack gap="300">
-                                  {/* Archetype */}
-                                  <BlockStack gap="100">
-                                    <Text as="p" variant="bodySm" fontWeight="semibold">
-                                      Brand Archetype
-                                    </Text>
-                                    <InlineStack gap="200">
-                                      <Text as="span" variant="bodyMd">
-                                        {String(brandIntelligence.archetype || "")
-                                          .split("_")
-                                          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-                                          .join(" ")}
-                                      </Text>
-                                      {brandIntelligence.archetype_confidence != null && (
-                                        <Text as="span" variant="bodySm" tone="subdued">
-                                          ({Math.round(brandIntelligence.archetype_confidence * 100)}%)
-                                        </Text>
-                                      )}
-                                    </InlineStack>
-                                    {brandIntelligence.secondary_archetype && (
-                                      <Text as="p" variant="bodySm" tone="subdued">
-                                        {t("home.secondary")} {String(brandIntelligence.secondary_archetype)
-                                          .split("_")
-                                          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-                                          .join(" ")}
-                                      </Text>
-                                    )}
-                                  </BlockStack>
-
-                                  {/* Tonal Guardrails */}
-                                  {brandIntelligence.tonal_guardrails && (
-                                    <BlockStack gap="100">
-                                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        {t("home.tonalGuardrails")}
-                                      </Text>
-                                      <List type="bullet">
-                                        <List.Item>Formality: {brandIntelligence.tonal_guardrails.formality_level}</List.Item>
-                                        <List.Item>Energy: {brandIntelligence.tonal_guardrails.energy_level}</List.Item>
-                                        <List.Item>Emotion: {brandIntelligence.tonal_guardrails.emotional_register}</List.Item>
-                                        <List.Item>Technical: {brandIntelligence.tonal_guardrails.technical_depth}</List.Item>
-                                      </List>
-                                    </BlockStack>
-                                  )}
-
-                                  {/* Power Words */}
-                                  {Array.isArray(brandIntelligence.power_words) && brandIntelligence.power_words.length > 0 && (
-                                    <BlockStack gap="100">
-                                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        {t("home.powerWords")}
-                                      </Text>
-                                      <Text as="p" variant="bodySm">
-                                        {brandIntelligence.power_words.slice(0, 10).join(", ")}
-                                      </Text>
-                                    </BlockStack>
-                                  )}
-
-                                  {/* Banned Phrases */}
-                                  {Array.isArray(brandIntelligence.banned_phrases) && brandIntelligence.banned_phrases.length > 0 && (
-                                    <BlockStack gap="100">
-                                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        {t("home.bannedPhrases")}
-                                      </Text>
-                                      <Text as="p" variant="bodySm" tone="critical">
-                                        {brandIntelligence.banned_phrases.slice(0, 10).join(", ")}
-                                      </Text>
-                                    </BlockStack>
-                                  )}
-
-                                  {/* Core Value Props */}
-                                  {Array.isArray(brandIntelligence.core_value_props) && brandIntelligence.core_value_props.length > 0 && (
-                                    <BlockStack gap="100">
-                                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        {t("home.coreValuePropositions")}
-                                      </Text>
-                                      <List type="bullet">
-                                        {brandIntelligence.core_value_props.map((v: string, i: number) => (
-                                          <List.Item key={i}>{v}</List.Item>
-                                        ))}
-                                      </List>
-                                    </BlockStack>
-                                  )}
-
-                                  {/* Cultural Touchpoints */}
-                                  {Array.isArray(brandIntelligence.cultural_touchpoints) && brandIntelligence.cultural_touchpoints.length > 0 && (
-                                    <BlockStack gap="100">
-                                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        {t("home.culturalTouchpoints")}
-                                      </Text>
-                                      <List type="bullet">
-                                        {brandIntelligence.cultural_touchpoints.map((t: string, i: number) => (
-                                          <List.Item key={i}>{t}</List.Item>
-                                        ))}
-                                      </List>
-                                    </BlockStack>
-                                  )}
-
-                                  {brandIntelligenceUpdatedAt && (
-                                    <Text as="span" variant="bodySm" tone="subdued">
-                                      {t("home.intelligenceUpdated")} {new Date(brandIntelligenceUpdatedAt).toLocaleDateString()}
-                                    </Text>
-                                  )}
-                                </BlockStack>
-                              </Box>
-                            </Collapsible>
-                          </BlockStack>
-                        )}
-                      </BlockStack>
-                    </Box>
-                  </Collapsible>
-                  <Button
-                    variant="plain"
-                    onClick={() => setBrandSoulCollapsed(!brandSoulCollapsed)}
-                  >
-                    {brandSoulCollapsed ? t("home.show") : t("home.hide")}
-                  </Button>
-                </>
-              )}
-            </BlockStack>
-          </Box>
-        </Card>
+              </Box>
+            </Card>
+          </div>
+        )}
 
         {/* Features Grid */}
         <BlockStack gap="400">
@@ -916,7 +664,312 @@ export default function LandingPage() {
           </InlineGrid>
         </BlockStack>
 
-          </BlockStack>
+        {/* Brand Soul Identity Bar */}
+            <Card>
+          <Box padding="400" background="bg-surface-secondary">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
+                <InlineStack align="start" gap="200" blockAlign="center">
+                  <img src="/landing%20page/Brand%20soul%20logo.png" alt="" style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 4 }} />
+                  <Text as="h2" variant="headingLg">
+                        {t("home.brandSoul")}
+                      </Text>
+                  {brandStatusIcon}
+                </InlineStack>
+                    <Button variant="primary" onClick={() => setBrandWizardOpen(true)}>
+                  {t("home.editIdentity")}
+                    </Button>
+                  </InlineStack>
+
+              {brandStatusState === "running" || brandStatusState === "accepted" ? (
+                    <Banner tone="info">
+                      {t("home.generatingBrandIntelligence")}
+                    </Banner>
+                  ) : null}
+              {brandStatusState === "failed" && (
+                    <Banner tone="critical">
+                      {t("home.brandIntelligenceFailed")}
+                    </Banner>
+              )}
+              {brandErrorState && (
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {brandErrorState}
+                    </Text>
+              )}
+
+              {displayBrandSummary && (
+                <>
+                  <Collapsible
+                    open={!brandSoulCollapsed}
+                    id="brand-soul-collapsible"
+                    transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
+                  >
+                    <Box padding="300" background="bg-surface" borderRadius="200">
+                      <BlockStack gap="200">
+                        <InlineStack align="space-between" blockAlign="center">
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            {t("home.latestSummary")}
+                          </Text>
+                          {!brandEditMode ? (
+                            <Button
+                              variant="plain"
+                              size="slim"
+                              onClick={() => {
+                                setBrandEditText(displayBrandSummary);
+                                setBrandEditMode(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          ) : null}
+                        </InlineStack>
+                        {brandEditMode ? (
+                          <BlockStack gap="200">
+                            <TextField
+                              label=""
+                              labelHidden
+                              value={brandEditText}
+                              onChange={setBrandEditText}
+                              multiline={6}
+                              autoComplete="off"
+                            />
+                            <InlineStack gap="200">
+                              <Button
+                                variant="primary"
+                                size="slim"
+                                loading={brandEditSaving}
+                                onClick={handleBrandEditSave}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="slim"
+                                onClick={() => setBrandEditMode(false)}
+                                disabled={brandEditSaving}
+                              >
+                                Cancel
+                              </Button>
+                            </InlineStack>
+                          </BlockStack>
+                        ) : (
+                          <>
+                            {displayBrandSummary.includes("\n") ? (
+                              <List type="bullet">
+                                {displayBrandSummary
+                                  .split("\n")
+                                  .map((line) => line.replace(/^•\s?/, "").trim())
+                                  .filter(Boolean)
+                                  .map((line, idx) => (
+                                    <List.Item key={`${idx}-${line}`}>{line}</List.Item>
+                                  ))}
+                              </List>
+                            ) : (
+                              <Text as="p" variant="bodyMd">
+                                {displayBrandSummary}
+                              </Text>
+                            )}
+                          </>
+                        )}
+                        {displayKeyFacts.length > 0 && (
+                          <BlockStack gap="100">
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              {t("home.keyFacts")}
+                            </Text>
+                            <List type="bullet">
+                              {displayKeyFacts.map((fact: string, idx: number) => (
+                                <List.Item key={`${idx}-${fact}`}>{fact}</List.Item>
+                              ))}
+                            </List>
+                          </BlockStack>
+                        )}
+                        {brandUpdatedState && (
+                          <Text as="span" variant="bodySm" tone="subdued">
+                            {t("home.updated")}{" "}
+                            {new Date(brandUpdatedState).toLocaleDateString(
+                              preferJapaneseBrandSoul ? "ja-JP" : undefined,
+                            )}
+                          </Text>
+                        )}
+
+                        {/* Brand Intelligence dropdown inside Brand Soul */}
+                        {brandIntelligence && (
+                          <BlockStack gap="200">
+                            <Button
+                              variant="plain"
+                              onClick={() => setIntelligenceOpen(!intelligenceOpen)}
+                              textAlign="start"
+                            >
+                              {intelligenceOpen ? t("home.hideBrandIntelligence") : t("home.showBrandIntelligence")}
+                            </Button>
+                            <Collapsible
+                              open={intelligenceOpen}
+                              id="brand-intelligence-collapsible"
+                              transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
+                            >
+                              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                                <BlockStack gap="300">
+                                  {/* Archetype */}
+                                  <BlockStack gap="100">
+                                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                                      {t("home.brandArchetype")}
+                                    </Text>
+                                    <InlineStack gap="200">
+                                      <Text as="span" variant="bodyMd">
+                                        {String(brandIntelligence.archetype || "")
+                                          .split("_")
+                                          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                                          .join(" ")}
+                                      </Text>
+                                      {brandIntelligence.archetype_confidence != null && (
+                                        <Text as="span" variant="bodySm" tone="subdued">
+                                          ({Math.round(brandIntelligence.archetype_confidence * 100)}%)
+                                        </Text>
+                                      )}
+                                    </InlineStack>
+                                    {brandIntelligence.secondary_archetype && (
+                                      <Text as="p" variant="bodySm" tone="subdued">
+                                        {t("home.secondary")} {String(brandIntelligence.secondary_archetype)
+                                          .split("_")
+                                          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                                          .join(" ")}
+                                      </Text>
+                                    )}
+                                  </BlockStack>
+
+                                  {/* Tonal Guardrails */}
+                                  {brandIntelligence.tonal_guardrails && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        {t("home.tonalGuardrails")}
+                                      </Text>
+                                      <List type="bullet">
+                                        <List.Item>Formality: {brandIntelligence.tonal_guardrails.formality_level}</List.Item>
+                                        <List.Item>Energy: {brandIntelligence.tonal_guardrails.energy_level}</List.Item>
+                                        <List.Item>Emotion: {brandIntelligence.tonal_guardrails.emotional_register}</List.Item>
+                                        <List.Item>Technical: {brandIntelligence.tonal_guardrails.technical_depth}</List.Item>
+                                      </List>
+                                    </BlockStack>
+                                  )}
+
+                                  {/* Power Words */}
+                                  {Array.isArray(brandIntelligence.power_words) && brandIntelligence.power_words.length > 0 && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        {t("home.powerWords")}
+                                      </Text>
+                                      <Text as="p" variant="bodySm">
+                                        {brandIntelligence.power_words.slice(0, 10).join(", ")}
+                                      </Text>
+                                    </BlockStack>
+                                  )}
+
+                                  {/* Banned Phrases */}
+                                  {Array.isArray(brandIntelligence.banned_phrases) && brandIntelligence.banned_phrases.length > 0 && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        {t("home.bannedPhrases")}
+                                      </Text>
+                                      <Text as="p" variant="bodySm" tone="critical">
+                                        {brandIntelligence.banned_phrases.slice(0, 10).join(", ")}
+                                      </Text>
+                                    </BlockStack>
+                                  )}
+
+                                  {/* Core Value Props */}
+                                  {Array.isArray(brandIntelligence.core_value_props) && brandIntelligence.core_value_props.length > 0 && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        {t("home.coreValuePropositions")}
+                                      </Text>
+                                      <List type="bullet">
+                                        {brandIntelligence.core_value_props.map((v: string, i: number) => (
+                                          <List.Item key={i}>{v}</List.Item>
+                                        ))}
+                                      </List>
+                                    </BlockStack>
+                                  )}
+
+                                  {/* Cultural Touchpoints */}
+                                  {Array.isArray(brandIntelligence.cultural_touchpoints) && brandIntelligence.cultural_touchpoints.length > 0 && (
+                                    <BlockStack gap="100">
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        {t("home.culturalTouchpoints")}
+                                      </Text>
+                                      <List type="bullet">
+                                        {brandIntelligence.cultural_touchpoints.map((t: string, i: number) => (
+                                          <List.Item key={i}>{t}</List.Item>
+                                        ))}
+                                      </List>
+                                    </BlockStack>
+                                  )}
+
+                                  {brandIntelligenceUpdatedAt && (
+                                    <Text as="span" variant="bodySm" tone="subdued">
+                                      {t("home.intelligenceUpdated")}{" "}
+                                      {new Date(brandIntelligenceUpdatedAt).toLocaleDateString(
+                                        preferJapaneseBrandSoul ? "ja-JP" : undefined,
+                                      )}
+                                    </Text>
+                                  )}
+                                </BlockStack>
+                              </Box>
+                            </Collapsible>
+                          </BlockStack>
+                        )}
+                      </BlockStack>
+                    </Box>
+                  </Collapsible>
+                  <Button
+                    variant="plain"
+                    onClick={() => setBrandSoulCollapsed(!brandSoulCollapsed)}
+                  >
+                    {brandSoulCollapsed ? t("home.show") : t("home.hide")}
+                  </Button>
+                </>
+              )}
+            </BlockStack>
+          </Box>
+        </Card>
+
+        {/* Onboarding Guide (formerly Getting Started) */}
+        <Card>
+          <Box padding="400">
+            <BlockStack gap="400">
+              <BlockStack gap="200">
+                <Text as="h2" variant="headingLg">
+                  {t("home.onboardingGuide")}
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  {t("home.gettingStartedDesc")}
+                </Text>
+              </BlockStack>
+
+              <ProgressBar progress={onboardingProgress} size="medium" />
+
+              <BlockStack gap="200">
+                {onboardingSteps.map((step) => (
+                  <InlineStack key={step.id} align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodyMd">
+                      {step.label}
+                    </Text>
+                    <Text as="p" variant="bodySm" tone={step.completed ? "success" : "subdued"}>
+                      {step.completed ? "\u2713" : "\u25CB"}
+                    </Text>
+                  </InlineStack>
+                ))}
+              </BlockStack>
+
+              <Button
+                variant="secondary"
+                onClick={() => setOnboardingModalOpen(true)}
+              >
+                {t("home.viewFullGuide")}
+              </Button>
+            </BlockStack>
+          </Box>
+        </Card>
+
+      </BlockStack>
 
       {/* Modals */}
       <GetStartedGuide

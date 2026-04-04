@@ -12,6 +12,7 @@ import {
   Text,
 } from "@shopify/polaris";
 import {
+  GlobeIcon,
   StarIcon,
   EditIcon,
   SocialAdIcon,
@@ -62,10 +63,19 @@ export function GetStartedGuide({
     [qs],
   );
 
-  const stepIcons = [StarIcon, EditIcon, SocialAdIcon, ChartVerticalIcon, SearchIcon, AutomationIcon, HomeIcon];
+  const stepIcons = [GlobeIcon, StarIcon, EditIcon, SocialAdIcon, ChartVerticalIcon, SearchIcon, AutomationIcon, HomeIcon];
 
   const steps = useMemo(
     () => [
+      {
+        title: t("components.guideTargetMarketTitle"),
+        subtitle: t("components.guideTargetMarketSubtitle"),
+        body: t("components.guideTargetMarketBody"),
+        imageSrc: "/onboarding/guide-target-market-locale.png",
+        actions: [
+          { label: t("components.openDashboard"), onClick: () => navigate(nav("/app/dashboard")), primary: true },
+        ],
+      },
       {
         title: t("components.guideBrandSoulTitle"),
         subtitle: t("components.guideBrandSoulSubtitle"),
@@ -206,7 +216,7 @@ export function GetStartedGuide({
             <BlockStack gap="100">
               <InlineStack gap="200" blockAlign="center">
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  {activeIndex === 0 ? (
+                  {activeIndex === 1 ? (
                     <img src="/landing%20page/Brand%20soul%20logo.png" alt="Brand Soul" style={{ width: 24, height: 24, objectFit: "contain" }} />
                   ) : (
                     <Icon source={CurrentIcon} tone="base" />

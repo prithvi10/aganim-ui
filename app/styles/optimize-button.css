@@ -420,6 +420,49 @@
   }
 }
 
+/* =============================================================================
+   Quick Product Launch CTA card — subtle sparkle blink
+   ============================================================================= */
+
+@keyframes sparkleGlow {
+  0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 0px #a78bfa); }
+  50%      { opacity: 1;    filter: drop-shadow(0 0 6px #a78bfa); }
+}
+
+.quick-launch-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.quick-launch-card:hover {
+  transform: translateY(-1px);
+}
+
+/* Large but regular weight — Polaris headingLg defaults to semibold */
+.quick-launch-card .quick-launch-cta-text {
+  font-size: 1.375rem;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+@media (min-width: 768px) {
+  .quick-launch-card .quick-launch-cta-text {
+    font-size: 1.5rem;
+  }
+}
+
+.quick-launch-icon {
+  display: inline-block;
+  font-size: 28px;
+  line-height: 1;
+  animation: sparkleGlow 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-launch-icon {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* Blue spinner for brand soul loading state */
 .brand-soul-spinner svg {
   color: #0066cc !important;
