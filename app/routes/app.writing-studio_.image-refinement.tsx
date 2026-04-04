@@ -243,6 +243,7 @@ export default function ImageRefinement() {
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [refinementTheme, setRefinementTheme] = useState("clean");
 
   const saveFetcher = useFetcher<typeof action>();
   const isSaving = saveFetcher.state !== 'idle';
@@ -343,6 +344,7 @@ export default function ImageRefinement() {
           category: selectedProduct.productType || 'General',
           image_url: selectedProduct.featuredImageUrl || '',
           target_locale: defaultTargetLocale || 'en',
+          refinement_theme: refinementTheme,
           workflow_config: [{ agent_name: 'ImageRefinementAgent', has_gate: false }],
         }),
       });
@@ -361,7 +363,7 @@ export default function ImageRefinement() {
     } finally {
       setIsStarting(false);
     }
-  }, [selectedProduct, backendApiUrl, app, shop, defaultTargetLocale]);
+  }, [selectedProduct, backendApiUrl, app, shop, defaultTargetLocale, refinementTheme]);
 
   return (
     <Page
@@ -504,6 +506,54 @@ export default function ImageRefinement() {
                             {t('imageRefinement.noProductImage')}
                           </Text>
                         </Banner>
+                      )}
+
+                      {/* Image Style Selector */}
+                      {!missionId && (
+                        <BlockStack gap="200">
+                          <Text as="h3" variant="headingSm">{t('imageRefinement.imageStyle')}</Text>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                              gap: "10px",
+                            }}
+                          >
+                            {([
+                              { id: "clean", icon: "✨", label: t("imageRefinement.themeClean"), desc: t("imageRefinement.themeCleanDesc") },
+                              { id: "lifestyle", icon: "🏠", label: t("imageRefinement.themeLifestyle"), desc: t("imageRefinement.themeLifestyleDesc") },
+                              { id: "natural", icon: "🌿", label: t("imageRefinement.themeNatural"), desc: t("imageRefinement.themeNaturalDesc") },
+                              { id: "premium", icon: "💎", label: t("imageRefinement.themePremium"), desc: t("imageRefinement.themePremiumDesc") },
+                              { id: "seasonal", icon: "🌸", label: t("imageRefinement.themeSeasonal"), desc: t("imageRefinement.themeSeasonalDesc") },
+                              { id: "minimalist", icon: "◻️", label: t("imageRefinement.themeMinimalist"), desc: t("imageRefinement.themeMinimalistDesc") },
+                            ] as const).map((theme) => (
+                              <div
+                                key={theme.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setRefinementTheme(theme.id)}
+                                onKeyDown={(e) => e.key === "Enter" && setRefinementTheme(theme.id)}
+                                style={{
+                                  padding: "12px 8px",
+                                  borderRadius: "10px",
+                                  border: `2px solid ${refinementTheme === theme.id ? "var(--p-color-border-emphasis)" : "var(--p-color-border)"}`,
+                                  background: refinementTheme === theme.id ? "var(--p-color-bg-surface-secondary)" : "var(--p-color-bg-surface)",
+                                  cursor: "pointer",
+                                  textAlign: "center",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <BlockStack gap="050" inlineAlign="center">
+                                  <Text as="span" variant="headingMd">{theme.icon}</Text>
+                                  <Text as="span" variant="bodySm" fontWeight={refinementTheme === theme.id ? "bold" : "regular"}>
+                                    {theme.label}
+                                  </Text>
+                                  <Text as="span" variant="bodySm" tone="subdued">{theme.desc}</Text>
+                                </BlockStack>
+                              </div>
+                            ))}
+                          </div>
+                        </BlockStack>
                       )}
 
                       {/* Optimize button */}

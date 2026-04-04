@@ -249,6 +249,12 @@
     "productSaved": "Product saved, please refresh to check!",
     "productDescriptionUpdated": "Product Description updated!",
     "productDescriptionUpdatedMulti": "Product Description updated! ({{locales}})",
+    "productFaq": "Product FAQ",
+    "productFaqDesc": "Generate frequently asked questions from your product details.",
+    "generateFaq": "Generate FAQ",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "close": "Close",
     "outOfFreeCredits": "You've used your 10 free lifetime credits. Upgrade to Basic for 50 rewrites every month!",
     "pleaseSelectMarket": "Please select a market.",
     "generationFailed": "Generation succeeded but no content was returned.",
@@ -485,7 +491,22 @@
     "before": "Before",
     "after": "After",
     "originalAlt": "Original product image",
-    "refinedAlt": "Refined product image"
+    "refinedAlt": "Refined product image",
+    "imageStyle": "Image Style",
+    "themeLabel": "Image Style",
+    "themeLabelHelp": "Choose a background theme for your refined image",
+    "themeClean": "Clean Studio",
+    "themeCleanDesc": "White/grey studio, 100% fidelity",
+    "themeLifestyle": "Lifestyle Scene",
+    "themeLifestyleDesc": "Product in a natural living environment",
+    "themeNatural": "Natural & Organic",
+    "themeNaturalDesc": "Raw wood, linen, botanical props",
+    "themePremium": "Premium Luxury",
+    "themePremiumDesc": "Dark marble, dramatic lighting",
+    "themeSeasonal": "Seasonal",
+    "themeSeasonalDesc": "Season-appropriate setting and props",
+    "themeMinimalist": "Minimalist",
+    "themeMinimalistDesc": "Muji-inspired, geometric shadows"
   },
   "compliance": {
     "complianceCheck": "Compliance Check",
@@ -809,16 +830,25 @@
           "Follow the wizard — the AI analyzes your store and generates brand intelligence.",
           "Review the generated profile: archetype, tonal guardrails, power words, banned phrases, value propositions, and cultural touchpoints.",
           "Upload your brand logo for hero banner generation.",
-          "Enable \"Enhance with Brand Soul\" in the Rewriter to apply brand context to product rewrites."
+          "To enable or disable Brand Soul globally, use the toggle on the Dashboard (under Brand Soul). When enabled, brand context is automatically applied to all AI features."
         ],
         "sections": [
           {
             "title": "How Brand Soul powers other features",
             "body": [
-              "Rewriter: When \"Enhance with Brand Soul\" is enabled, your brand story and voice enrich the rewrite for richer storytelling.",
-              "Missions: Brand context is automatically injected when the Rewriter agent runs in a mission pipeline.",
+              "Dashboard Toggle: Enable or disable Brand Soul globally from the Dashboard. When enabled, all AI features automatically use your brand context.",
+              "Rewriter (strongest impact): Your full brand story, pillars, and philosophy are injected into the LLM prompt with strict instructions to weave brand facts into the product description naturally — not as a copy-pasted 'About Us' block.",
+              "Missions: Brand context is automatically injected when agents run in a mission pipeline. Every agent in the chain benefits from your brand profile.",
               "Content Templates: Blog posts, hero sections, and collection descriptions draw on your brand voice.",
               "Hero Banners: Your uploaded logo appears in the \"Informative\" image style for hero sections and collections."
+            ]
+          },
+          {
+            "title": "How Brand Soul affects image generation",
+            "body": [
+              "Image Refinement & Marketing Images: A short brand aesthetic hint (archetype + power words) is added to the image prompt — e.g., 'Heritage House. heritage, master artisans, meticulous, Ichigo Ichie, heirlooms aesthetic.' This gives the image model a subtle style direction.",
+              "Marketing Ads (Ideogram): The brand aesthetic is injected into the ad composition prompt to influence the visual style and tone of generated typography ads.",
+              "Note: Image models respond to brand soul more subtly than the text Rewriter. The visual difference is most noticeable in the Premium and Natural themes, where the aesthetic hint complements the scene styling. For Clean Studio and Minimalist themes, the effect is minimal by design."
             ]
           }
         ],
@@ -829,7 +859,8 @@
         "faqs": [
           { "q": "Can I edit the generated brand profile?", "a": "Yes — click the Edit button on the Brand Soul summary on the Home page to edit the generated text directly. To fully regenerate, re-run the Brand Soul wizard." },
           { "q": "How often should I re-run Brand Soul?", "a": "Re-run whenever you significantly change your brand messaging, add new product categories, or want to refresh the AI's understanding of your store." },
-          { "q": "Where is the logo used?", "a": "Your logo appears in the \"Informative\" image style when generating hero banners for collections, hero sections, and blog posts." }
+          { "q": "Where is the logo used?", "a": "Your logo appears in the \"Informative\" image style when generating hero banners for collections, hero sections, and blog posts." },
+          { "q": "How do I enable or disable Brand Soul?", "a": "Go to the Dashboard and find the Brand Soul card. Use the toggle to enable or disable it globally. When disabled, none of the AI features will use your brand context. The toggle only appears after you've completed the Brand Soul setup wizard." }
         ]
       },
       "rewriter-workspace": {
@@ -843,7 +874,7 @@
         "how": [
           "Open Rewriter and select a product.",
           "Select target market(s)/locale(s). (Basic: 1 locale. Standard/Pro: multi-locale.)",
-          "Set Optimization Preferences (tone, measurements, strip irrelevant content, Brand Soul).",
+          "Set Optimization Preferences (tone, measurements, strip irrelevant content).",
           "Click \"Optimize for Global\" to generate drafts.",
           "Review and edit drafts for the active locale (title, HTML, SEO fields).",
           "Optionally add Japanese Value insights to strengthen proof and differentiation.",

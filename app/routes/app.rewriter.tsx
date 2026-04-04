@@ -1009,6 +1009,10 @@ function RewriterWorkspaceInner({
   const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
   const [seoIntelOpen, setSeoIntelOpen] = useState(false);
   const [jvOpen, setJvOpen] = useState(false);
+  const [faqLoading, setFaqLoading] = useState(false);
+  const [faqResult, setFaqResult] = useState<string | null>(null);
+  const [faqError, setFaqError] = useState<string | null>(null);
+  const [faqOpen, setFaqOpen] = useState(false);
   const [removeIrrelevantContent, setRemoveIrrelevantContent] = useState(true);
   const [brandStatus, setBrandStatus] = useState<string>(brandContextStatus || 'idle');
   const [brandStatusError, setBrandStatusError] = useState<string | null>(brandContextLastError || null);
@@ -2344,6 +2348,85 @@ function RewriterWorkspaceInner({
                     )}
                   </Modal.Section>
                 </Modal>
+
+                {/* Product FAQ Generator */}
+                {selectedProduct && (
+                  <Card>
+                    <Box padding="300">
+                      <BlockStack gap="300">
+                        <InlineStack align="space-between" blockAlign="center">
+                          <BlockStack gap="100">
+                            <Text as="h3" variant="headingMd">
+                              {t("productFaq")}
+                            </Text>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              {t("productFaqDesc")}
+                            </Text>
+                          </BlockStack>
+                          <Button
+                            onClick={async () => {
+                              setFaqLoading(true);
+                              setFaqError(null);
+                              try {
+                                const resp = await fetch(
+                                  `${backendApiUrl}/api/generate/product/faq?shop=${encodeURIComponent(shop)}`,
+                                  {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json", "X-Shopify-Shop-Domain": shop },
+                                    body: JSON.stringify({
+                                      target_locale: effectiveTargetLocale || "en",
+                                      title: selectedProduct.title,
+                                      product_id: selectedProduct.id,
+                                    }),
+                                  },
+                                );
+                                const data = await resp.json();
+                                if (resp.ok && data.status === "success") {
+                                  const raw = typeof data.content === "object" ? JSON.stringify(data.content) : data.content || "";
+                                  setFaqResult(raw);
+                                  setFaqOpen(true);
+                                } else {
+                                  setFaqError(data.detail || data.error || "Generation failed");
+                                }
+                              } catch (e: any) {
+                                setFaqError(e?.message || "Network error");
+                              } finally {
+                                setFaqLoading(false);
+                              }
+                            }}
+                            loading={faqLoading}
+                            variant="primary"
+                          >
+                            {faqResult ? t("regenerate") : t("generateFaq")}
+                          </Button>
+                        </InlineStack>
+                        {faqError && <Banner tone="critical">{faqError}</Banner>}
+                        {faqResult && faqOpen && (
+                          <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                            <BlockStack gap="200">
+                              <div dangerouslySetInnerHTML={{ __html: faqResult }} />
+                              <InlineStack align="end" gap="200">
+                                <Button
+                                  size="slim"
+                                  onClick={async () => {
+                                    try {
+                                      await navigator.clipboard.writeText(faqResult);
+                                    } catch { /* ignore */ }
+                                  }}
+                                >
+                                  {t("copy")}
+                                </Button>
+                                <Button size="slim" onClick={() => setFaqOpen(false)} variant="plain">
+                                  {t("close")}
+                                </Button>
+                              </InlineStack>
+                            </BlockStack>
+                          </Box>
+                        )}
+                      </BlockStack>
+                    </Box>
+                  </Card>
+                )}
 
                 <Box paddingBlockStart="400">
                   <saveFetcher.Form method="post">
