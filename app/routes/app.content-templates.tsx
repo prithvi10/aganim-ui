@@ -605,20 +605,51 @@ function FaqCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [faqHtml, setFaqHtml] = useState<string | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [appending, setAppending] = useState(false);
+  const [appended, setAppended] = useState(false);
   const editableHtmlRef = useRef<string>('');
   const [selectedProductId, setSelectedProductId] = useState(initialProduct?.id || products[0]?.id || '');
 
   const productOptions = useMemo(() => products.map((p) => ({label: p.title, value: p.id})), [products]);
   const selectedTitle = useMemo(() => products.find((p) => p.id === selectedProductId)?.title || '', [products, selectedProductId]);
 
+  const parseFaqToHtml = useCallback((raw: string): string => {
+    let parsed: any = null;
+    try { parsed = JSON.parse(raw); } catch {
+      parsed = parsePythonDict(raw);
+      if (!parsed) {
+        const arr = parsePythonList(raw);
+        if (arr) {
+          const looksLikeFaqs = arr.length > 0 && arr[0]?.question && arr[0]?.answer;
+          parsed = looksLikeFaqs ? { faqs: arr } : null;
+        }
+      }
+    }
+    if (Array.isArray(parsed)) {
+      const looksLikeFaqs = parsed.length > 0 && parsed[0]?.question && parsed[0]?.answer;
+      parsed = looksLikeFaqs ? { faqs: parsed } : null;
+    }
+    const faqs: Array<{question: string; answer: string}> = parsed?.faqs || [];
+    if (!faqs.length) return raw;
+    return faqs.map((f, i) =>
+      `<details style="border:1px solid #e1e3e5;border-radius:8px;padding:14px 18px;margin-bottom:10px">` +
+      `<summary style="font-size:15px;font-weight:600;cursor:pointer">Q${i + 1}: ${f.question}</summary>` +
+      `<p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:#303030">${f.answer}</p>` +
+      `</details>`
+    ).join('\n');
+  }, []);
+
   const handleGenerate = useCallback(async () => {
     if (!selectedProductId) return;
     setLoading(true);
     setError(null);
     setResult(null);
+    setFaqHtml(null);
+    setAppended(false);
     editableHtmlRef.current = '';
 
     try {
@@ -636,6 +667,9 @@ function FaqCard({
       if (resp.ok && data.status === 'success') {
         const raw = typeof data.content === 'object' ? JSON.stringify(data.content) : data.content || '';
         setResult(raw);
+        const html = parseFaqToHtml(raw);
+        setFaqHtml(html);
+        editableHtmlRef.current = html;
         setResultOpen(true);
         onToast(t('contentTemplates.productFaqGenerated'));
       } else {
@@ -646,19 +680,19 @@ function FaqCard({
     } finally {
       setLoading(false);
     }
-  }, [selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast, t]);
+  }, [selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast, t, parseFaqToHtml]);
 
   const handleCopy = useCallback(async () => {
-    const toCopy = editableHtmlRef.current || result || '';
+    const toCopy = editableHtmlRef.current || faqHtml || result || '';
     if (!toCopy) return;
     try { await navigator.clipboard.writeText(toCopy); onToast(t('contentTemplates.copied')); } catch { onToast(t('contentTemplates.copyFailed')); }
-  }, [result, onToast, t]);
+  }, [result, faqHtml, onToast, t]);
 
   const handlePublish = useCallback(async () => {
     if (!result) return;
     setPublishing(true);
     try {
-      const content = editableHtmlRef.current || result;
+      const content = editableHtmlRef.current || faqHtml || result;
       const resp = await fetch(`${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
         body: JSON.stringify({ template_id: template.id, product_id: selectedProductId, content, context: { product_title: selectedTitle } }),
@@ -667,7 +701,37 @@ function FaqCard({
       setPublished(true);
       onToast(t('contentTemplates.publishedFaqToShopify'));
     } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
-  }, [result, selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast, t]);
+  }, [result, faqHtml, selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast, t]);
+
+  const handleAppendToDescription = useCallback(async () => {
+    if (!faqHtml && !editableHtmlRef.current) return;
+    setAppending(true);
+    try {
+      const faqContent = editableHtmlRef.current || faqHtml || '';
+      const faqBlock = `\n\n<hr />\n<div class="product-faq">\n<h3>Frequently Asked Questions</h3>\n${faqContent}\n</div>\n`;
+      const resp = await fetch(`${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
+        body: JSON.stringify({
+          template_id: 'product/faq-append',
+          product_id: selectedProductId,
+          content: faqBlock,
+          append_to_description: true,
+          context: { product_title: selectedTitle },
+        }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || `Append failed: ${resp.status}`);
+      }
+      setAppended(true);
+      onToast(t('contentTemplates.faqAppendedToDescription'));
+    } catch (e: any) {
+      onToast(`Append failed: ${e?.message || e}`);
+    } finally {
+      setAppending(false);
+    }
+  }, [faqHtml, selectedProductId, selectedTitle, shop, backendApiUrl, onToast, t]);
 
   const canPublish = canAccess(entitlements, 'publish');
 
@@ -687,8 +751,39 @@ function FaqCard({
             </Button>
           </InlineStack>
           {error && <Banner tone="critical">{error}</Banner>}
-          {result && (
-            <ResultBlock templateId={template.id} templateName="FAQ" result={result} heroUrl={null} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} publishLabel={t('contentTemplates.addToProductDescription')} />
+          {faqHtml && (
+            <BlockStack gap="200">
+              <InlineStack align="space-between" blockAlign="center">
+                <Button variant="plain" onClick={() => setResultOpen(!resultOpen)} textAlign="start">
+                  {resultOpen ? t('contentTemplates.hideResult') : t('contentTemplates.showResult')}
+                </Button>
+                <InlineStack gap="200">
+                  {canPublish && !appended && (
+                    <Button onClick={handleAppendToDescription} variant="primary" size="slim" loading={appending} disabled={appending}>
+                      {t('contentTemplates.appendFaqToDescription')}
+                    </Button>
+                  )}
+                  {canPublish && appended && (
+                    <Button variant="plain" size="slim" disabled tone="success">
+                      {t('contentTemplates.faqAppended')}
+                    </Button>
+                  )}
+                  {!canPublish && <PlanGateBadge tierName="Pro" />}
+                  <Button onClick={handleCopy} variant="secondary" size="slim">
+                    {t('contentTemplates.copy')}
+                  </Button>
+                </InlineStack>
+              </InlineStack>
+              <Collapsible open={resultOpen} id="result-faq" transition={{duration: '200ms', timingFunction: 'ease-in-out'}}>
+                <RichTextEditor
+                  label={t('contentTemplates.generatedContent')}
+                  value={editableHtmlRef.current || faqHtml}
+                  onChange={(next) => { editableHtmlRef.current = next; }}
+                  height={320}
+                  helpText={t('contentTemplates.editGeneratedContent')}
+                />
+              </Collapsible>
+            </BlockStack>
           )}
         </BlockStack>
       </Box>
