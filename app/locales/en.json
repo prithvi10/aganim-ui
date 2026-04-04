@@ -255,6 +255,9 @@
     "regenerate": "Regenerate",
     "copy": "Copy",
     "close": "Close",
+    "appendFaqToDescription": "Add FAQ to Description",
+    "faqAppended": "FAQ Added",
+    "faqAppendedToDescription": "FAQ appended to product description!",
     "outOfFreeCredits": "You've used your 10 free lifetime credits. Upgrade to Basic for 50 rewrites every month!",
     "pleaseSelectMarket": "Please select a market.",
     "generationFailed": "Generation succeeded but no content was returned.",
@@ -316,7 +319,7 @@
     "imageRefinement": "Image Refinement",
     "imageRefinementDesc": "AI-powered product photo refinement. Clean backgrounds and generate marketing ads from any product image.",
     "contentTemplates": "Content Templates",
-    "contentTemplatesDesc": "Generate product titles, FAQs, collection copy, and landing page content using AI-powered templates with brand voice."
+    "contentTemplatesDesc": "Generate collection copy, hero sections, and blog posts using AI-powered templates with brand voice."
   },
   "marketing": {
     "marketingConsultant": "Marketing Consultant",
@@ -407,7 +410,7 @@
   },
   "contentTemplates": {
     "contentTemplates": "Content Templates",
-    "contentTemplatesSubtitle": "Generate FAQs, collection copy, hero sections, and blog posts using AI-powered templates with brand voice.",
+    "contentTemplatesSubtitle": "Generate collection copy, hero sections, and blog posts using AI-powered templates with brand voice.",
     "writingStudio": "Writing Studio",
     "heroSection": "Hero Section",
     "generatedContent": "Generated Content",

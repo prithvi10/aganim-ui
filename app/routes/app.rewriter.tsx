@@ -1302,77 +1302,53 @@ function RewriterWorkspaceInner({
       .replaceAll("'", '&#39;');
   }, []);
 
-  const faqHeadingForSave = useCallback(
-    (targetLocale: string | undefined) => {
-      const raw = String(targetLocale || 'en').trim().toLowerCase();
-      const rewriterBundleLang = raw === 'ja' || raw.startsWith('ja-') ? 'ja' : 'en';
-      return i18n.getFixedT(rewriterBundleLang, 'rewriter')('productFaq');
-    },
-    [i18n],
-  );
-
   const parseFaqToHtml = useCallback(
     (content: unknown): string => {
+      // Keep parity with the (now-removed) Product FAQ output in `/content-templates`.
+      // That UI expects a JSON/Python-dict/list payload and renders <details>/<summary> blocks.
+
       // If backend already returns HTML, keep it as-is.
-      if (typeof content === 'string' && content.trim().startsWith('<')) {
-        return content;
-      }
+      if (typeof content === 'string' && content.trim().startsWith('<')) return content;
 
       let parsed: any = null;
+      const raw = typeof content === 'string' ? content.trim() : '';
+
       if (content && typeof content === 'object') {
         parsed = content;
-      } else if (typeof content === 'string') {
-        const raw = content.trim();
+      } else if (raw) {
         try {
           parsed = JSON.parse(raw);
         } catch {
           parsed = parsePythonDict(raw);
           if (!parsed) {
             const arr = parsePythonList(raw);
-            if (arr) parsed = arr;
+            if (arr) {
+              const looksLikeFaqs = arr.length > 0 && arr[0]?.question && arr[0]?.answer;
+              parsed = looksLikeFaqs ? {faqs: arr} : null;
+            }
           }
         }
       }
 
-      if (Array.isArray(parsed)) parsed = {faqs: parsed};
-      if (parsed && typeof parsed === 'object' && Array.isArray((parsed as any).faq)) {
-        parsed = {faqs: (parsed as any).faq};
+      if (Array.isArray(parsed)) {
+        const looksLikeFaqs = parsed.length > 0 && parsed[0]?.question && parsed[0]?.answer;
+        parsed = looksLikeFaqs ? {faqs: parsed} : null;
       }
 
-      const faqs: Array<{question: string; answer: string}> = Array.isArray(parsed?.faqs)
-        ? parsed.faqs
-            .map((f: any) => ({
-              question: String(f?.question ?? f?.q ?? '').trim(),
-              answer: String(f?.answer ?? f?.a ?? '').trim(),
-            }))
-            .filter((f: any) => f.question && f.answer)
-        : [];
+      const faqs: Array<{question: string; answer: string}> = parsed?.faqs || [];
+      if (!faqs.length) return raw || '';
 
-      if (faqs.length === 0) {
-        // Last-resort: show something stable rather than blank.
-        if (typeof content === 'string') return content;
-        try {
-          return JSON.stringify(content, null, 2);
-        } catch {
-          return String(content ?? '');
-        }
-      }
-
-      const heading = escapeHtml(faqHeadingForSave(effectiveTargetLocale));
-      const blocks = faqs
+      return faqs
         .map(
-          (f) =>
-            `<details>` +
-            `<summary>${escapeHtml(f.question)}</summary>` +
-            `<p>${escapeHtml(f.answer)}</p>` +
+          (f, i) =>
+            `<details style="border:1px solid #e1e3e5;border-radius:8px;padding:14px 18px;margin-bottom:10px">` +
+            `<summary style="font-size:15px;font-weight:600;cursor:pointer">Q${i + 1}: ${f.question}</summary>` +
+            `<p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:#303030">${f.answer}</p>` +
             `</details>`,
         )
         .join('\n');
-
-      // Exact HTML that will be appended to the product description.
-      return `<hr />\n<h3>${heading}</h3>\n${blocks}`.trim();
     },
-    [effectiveTargetLocale, escapeHtml, faqHeadingForSave],
+    [],
   );
 
   const handleAppendFaqToDescription = useCallback(() => {
