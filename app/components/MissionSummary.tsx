@@ -25,6 +25,10 @@ import { templateOutputToHtml, stripHtml } from "../utils/templateHtmlParser";
 import { ImageCarousel, type CarouselSlide } from "./VisualStepCard";
 import { InstaPreview } from "./InstaPreview";
 
+const LOCALE_CURRENCY: Record<string, string> = {
+  ja: "¥", ko: "₩", "zh-TW": "NT$", "zh-CN": "¥", th: "฿", pt: "R$",
+};
+
 interface MissionState {
   product_id: string;
   shop_id: string;
@@ -43,6 +47,7 @@ interface MissionState {
     price_position?: string;
     confidence?: number;
     reasoning?: string;
+    currency?: string;
     competitors?: Array<{
       name: string;
       price: number;
@@ -60,6 +65,7 @@ interface MissionState {
     overlay?: string;
     copy_text?: string;
   }>;
+  target_locale?: string;
   logs?: string[];
   error_message?: string;
   accumulated_usage?: {
@@ -189,7 +195,7 @@ function getCompletedActions(state: MissionState): Array<{
   // Pricing actions
   if (state.pricing_analysis) {
     const { recommended_price, price_position, confidence, competitors } = state.pricing_analysis;
-    const currency = state.pricing_analysis.currency || "$";
+    const currency = state.pricing_analysis.currency || LOCALE_CURRENCY[state.target_locale || ""] || "$";
     actions.push({
       icon: SearchIcon,
       title: "Price Analysis Complete",
@@ -387,7 +393,7 @@ export function MissionSummary({
                     <InlineStack gap="200" blockAlignment="center">
                       <Text variant="bodyMd" fontWeight="semibold">Suggested Price:</Text>
                       <Badge tone="success" size="large">
-                        {state.pricing_analysis.currency || "$"}{state.pricing_analysis.recommended_price.toFixed(2)}
+                        {state.pricing_analysis.currency || LOCALE_CURRENCY[state.target_locale || ""] || "$"}{state.pricing_analysis.recommended_price.toFixed(2)}
                       </Badge>
                       {state.pricing_analysis.confidence !== undefined && (
                         <Badge tone={state.pricing_analysis.confidence >= 0.7 ? "success" : "warning"}>
