@@ -509,7 +509,11 @@
     "themeSeasonal": "Seasonal",
     "themeSeasonalDesc": "Season-appropriate setting and props",
     "themeMinimalist": "Minimalist",
-    "themeMinimalistDesc": "Muji-inspired, geometric shadows"
+    "themeMinimalistDesc": "Muji-inspired, geometric shadows",
+    "themeInformative": "Informative",
+    "themeInformativeDesc": "Product name + brand name as typography",
+    "themeAiChoice": "Leave it to AI",
+    "themeAiChoiceDesc": "AI picks the best setting for your product"
   },
   "compliance": {
     "complianceCheck": "Compliance Check",
@@ -1143,19 +1147,21 @@
         "title": "Price Scout",
         "short": "Analyze competitor pricing from Google search results and get AI-powered pricing recommendations.",
         "what": [
-          "Pulls competitor pricing data from Google search results (SERP) for your product category.",
+          "Pulls competitor pricing data from Google Shopping for your product name and category.",
+          "The product's \"Product Type\" in Shopify is appended to the search query to find relevant competitors — an incorrect or generic product type (e.g., \"General\") will reduce result quality.",
           "Provides AI-powered pricing recommendations based on competitor analysis.",
           "Pro plan can auto-apply recommended prices directly to Shopify."
         ],
         "how": [
           "Open Price Scout from the navigation menu.",
           "Select a product.",
+          "Ensure the product has an accurate Product Type set in Shopify (e.g., \"Japanese Cider\" not \"General\"). This is used to search for relevant competitors.",
           "Click \"Scout Prices\" to analyze competitor pricing.",
           "Review competitor prices and the AI recommendation.",
           "Optionally apply the recommended price to Shopify (Pro plan)."
         ],
         "troubleshooting": [
-          { "symptom": "No competitor prices found.", "cause": "SERP data may be limited for niche or very specific products.", "fixes": ["Ensure the product title and type are descriptive enough for search.", "Try adjusting the product type or category to broaden the search."] },
+          { "symptom": "No competitor prices found.", "cause": "The product name may be too specific, or the Product Type in Shopify is set to \"General\" or is missing. Price Scout uses the product title + product type to search Google Shopping.", "fixes": ["Set an accurate Product Type for the product in Shopify (e.g., \"Sake Set\", \"Ceramic Bowl\", \"Green Tea\"). Avoid generic values like \"General\".", "If the product name is very long or specific, Price Scout automatically retries with a shorter version.", "For Japanese products targeting overseas markets, first rewrite the product into the target language, then run Price Scout."] },
           { "symptom": "Price recommendation seems too high or too low.", "cause": "The AI recommendation is based on available competitor data which may not cover your exact market segment.", "fixes": ["Use the recommendation as guidance alongside your own market knowledge.", "Adjust the price manually if the recommendation doesn't fit your strategy."] },
           { "symptom": "Competitor results are from the wrong country (e.g. US results for a Japanese product).", "cause": "Price Scout uses your target market setting from the Dashboard to determine which Google locale to search. If the target market doesn't match the product's language, results will be from the wrong region.", "fixes": ["Go to Dashboard and set the target market to match the language of your product (e.g. JP for Japanese products, EN for English products).", "Re-run Price Scout after changing the target market.", "For best results, always match the target market with the primary language of your product descriptions."] }
         ],
