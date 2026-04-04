@@ -71,7 +71,7 @@ export function GetStartedGuide({
         title: t("components.guideTargetMarketTitle"),
         subtitle: t("components.guideTargetMarketSubtitle"),
         body: t("components.guideTargetMarketBody"),
-        imageSrc: "/onboarding/guide-dashboard.png",
+        imageSrc: "/onboarding/guide-target-market-locale.png",
         actions: [
           { label: t("components.openDashboard"), onClick: () => navigate(nav("/app/dashboard")), primary: true },
         ],
