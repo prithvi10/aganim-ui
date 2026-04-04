@@ -426,15 +426,10 @@ export default function LandingPage() {
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(nav("/app/optimize?mission=full_launch")); }}
           >
             <Card>
-              <Box padding="400">
-                <InlineStack align="center" blockAlign="center" gap="300">
+              <Box padding="200">
+                <InlineStack align="center" blockAlign="center" gap="200">
                   <span className="quick-launch-icon" aria-hidden="true">&#10024;</span>
-                  <Text
-                    as="p"
-                    variant="headingLg"
-                    fontWeight="semibold"
-                    className="quick-launch-cta-text"
-                  >
+                  <Text as="p" variant="headingLg" className="quick-launch-cta-text">
                     {t("home.quickLaunchCta")}
                   </Text>
                 </InlineStack>
