@@ -804,18 +804,11 @@
   "support": {
     "helpCenter": "Help Center",
     "pageTitle": "Support",
-    "subtitle": "Feature guides, plan availability, troubleshooting, and FAQs for Aganim AI.",
+    "subtitle": "Feature guides, plan availability, troubleshooting, and FAQs for the Aganim AI Shopify app.",
     "featureDocs": "Feature docs",
     "featureDocsDesc": "Each feature below includes plan availability, step-by-step usage, and common fixes.",
     "planFilter": "Plan filter",
     "planHint": "Tip: Keep \"All\" for public browsing, or filter to a plan to see what's included.",
-    "stillNeedHelp": "Still need help?",
-    "contactInfo": "If you contact us, include: shop domain, plan, feature, locale, screenshots, and steps to reproduce.",
-    "addFormTitle": "Add your Google Form",
-    "addFormText": "Set GOOGLE_FORM_EMBED_URL and GOOGLE_FORM_DIRECT_URL in this file.",
-    "addFormFields": "Suggested fields: shop domain, plan, feature, locale, expected result, actual result, screenshots, steps.",
-    "preferNewTab": "Prefer a new tab?",
-    "openTheForm": "Open the form",
     "backToTop": "Back to top",
     "index": "Index",
     "gifDemo": "GIF demo",
@@ -1305,6 +1298,251 @@
           { "q": "Does Dashboard change store content?", "a": "No — Dashboard is informational and configurational. It helps you monitor, configure, and decide what to do next." },
           { "q": "What happens during grace period?", "a": "Your previous plan features remain active until the end of your current billing cycle. After that, your plan reverts to the new level." },
           { "q": "How do I change the app language?", "a": "In the Dashboard, find the App Language section and click the toggle to switch between English and Japanese." }
+        ]
+      }
+    }
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "support": "Support"
+    },
+    "hero": {
+      "eyebrow": "Brand Soul × Multi-Market AI",
+      "title": "The AI Growth Engine for Global E-commerce.",
+      "subtitle": "Boost sales, visibility, and content quality across world markets—with guardrails and human-in-the-loop control so your brand identity stays intact.",
+      "globalLaunch": "Global Launch",
+      "organicLift": "+42% organic lift",
+      "brandSoul": "Brand Soul",
+      "identityTone": "Identity & Tone",
+      "rewriter": "Rewriter",
+      "localizedCopy": "Localized Copy",
+      "missions": "Missions",
+      "automatedPipelines": "Automated Pipelines"
+    },
+    "shopify": {
+      "builtFor": "Built for Shopify",
+      "getOnAppStore": "Get on Shopify App Store",
+      "heading": "AI-powered product localization for global markets",
+      "description": "Transform product listings with Brand Soul-powered AI. Rewrite titles and descriptions, optimize SEO metadata, and generate marketing content — tailored for each target market.",
+      "feature1": "Brand Soul for consistent tone across locales",
+      "feature2": "AI Rewriter for localized product copy",
+      "feature3": "Multi-market SEO optimization",
+      "liveChannelView": "Live channel view",
+      "localizedTitles": "Localized Titles",
+      "localizedTitlesDesc": "Context-aware, brand-safe rewrites.",
+      "seoMetadata": "SEO Metadata",
+      "seoMetadataDesc": "LSI enrichment + competitor mirroring.",
+      "qaLoop": "QA Loop",
+      "qaLoopDesc": "Multi-agent validation workflow."
+    },
+    "features": {
+      "eyebrow": "Feature stack",
+      "title": "AI systems tuned for global growth.",
+      "subtitle": "Build durable rankings and consistent brand voice, no matter the language or market.",
+      "seeAll": "See All Features",
+      "brandSoul": {
+        "title": "Brand Soul",
+        "desc": "Define your brand identity — archetype, tone, power words, banned phrases, and cultural touchpoints — to power all AI-generated content."
+      },
+      "aiRewriter": {
+        "title": "AI Rewriter",
+        "desc": "Generate localized drafts (title + HTML description + SEO title/meta) per market and save translations back to Shopify."
+      },
+      "missions": {
+        "title": "Missions",
+        "desc": "Run multi-agent AI pipelines that chain Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows."
+      },
+      "seo": {
+        "title": "SEO",
+        "desc": "Edit SEO title/meta with SERP preview, apply CTR best practices, use competitor intel, and follow recommendations."
+      },
+      "priceScout": {
+        "title": "Price Scout",
+        "desc": "Analyze competitor pricing from Google search results and get AI-powered pricing recommendations."
+      },
+      "marketing": {
+        "title": "Marketing",
+        "desc": "Generate social media captions, ad copy, seasonal campaigns, email templates, and hero images — with optional Meta autonomous publishing."
+      }
+    },
+    "pricing": {
+      "eyebrow": "Pricing",
+      "title": "Choose the plan that matches your expansion.",
+      "subtitle": "Start free and scale as you grow. SEO, marketing, and missions included in every tier.",
+      "free": {
+        "name": "Free",
+        "price": "$0",
+        "period": "forever",
+        "description": "Try everything, limited access.",
+        "productLimit": "10 products (1 week trial)",
+        "features": [
+          "AI product rewrite (title + description)",
+          "SEO title + meta description",
+          "Instagram captions + hashtags",
+          "Competitive pricing analysis",
+          "Full product launch mission",
+          "Image refinement"
+        ]
+      },
+      "basic": {
+        "name": "Basic",
+        "price": "$29",
+        "period": "/ month",
+        "description": "For emerging brands testing new regions.",
+        "productLimit": "50 products / month",
+        "features": [
+          "AI rewrite + Key Details auto-detected",
+          "EN unit conversion (metric + US)",
+          "Instagram captions + hashtags",
+          "Seasonal campaign ideas",
+          "Text-only mission (Rewriter + Marketing)"
+        ]
+      },
+      "standard": {
+        "name": "Standard",
+        "price": "$79",
+        "period": "/ month",
+        "description": "",
+        "productLimit": "Unlimited products",
+        "badge": "Best Value",
+        "features": [
+          "Everything in Basic",
+          "12 target markets (single locale per rewrite)",
+          "Brand tones: Luxury / Minimalist / Playful",
+          "SEO editor + SERP preview",
+          "Competitive pricing analysis",
+          "Full text pipeline missions"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$199",
+        "period": "/ month",
+        "description": "",
+        "productLimit": "Unlimited products",
+        "badge": "Most Popular",
+        "features": [
+          "Everything in Standard",
+          "Bulk inventory setup",
+          "Visual Ad generation + Social Post preview",
+          "Auto-apply price to Shopify",
+          "Image refinement across all features",
+          "Agentic workflows + Publish to Shopify",
+          "Meta (Facebook/Instagram) integration"
+        ]
+      }
+    },
+    "footer": {
+      "copyright": "Aganim AI. All rights reserved.",
+      "support": "Support",
+      "privacyPolicy": "Privacy Policy"
+    }
+  },
+  "featuresPage": {
+    "eyebrow": "Feature stack",
+    "title": "Everything you need to sell globally.",
+    "subtitle": "From brand identity to autonomous pipelines — a complete AI toolkit for localizing, optimizing, and marketing your Shopify products across 12 markets.",
+    "featureBundle": "Feature Bundle",
+    "cta": {
+      "title": "Ready to launch everywhere?",
+      "subtitle": "Start free, scale globally. All these features are included out of the box — upgrade for higher limits and advanced automations.",
+      "startJourney": "Start Your Global Journey",
+      "viewPricing": "View Pricing"
+    },
+    "features": {
+      "brand-soul": {
+        "title": "Brand Soul",
+        "short": "Define your brand identity — archetype, tone, power words, banned phrases, and cultural touchpoints — to power all AI-generated content.",
+        "highlights": [
+          "Archetype & tone configuration",
+          "Power words and banned phrases",
+          "Cultural touchpoints per market",
+          "Powers all downstream AI features"
+        ]
+      },
+      "rewriter-workspace": {
+        "title": "AI Rewriter",
+        "short": "Generate localized drafts (title + HTML description + SEO title/meta) per market and save translations back to Shopify.",
+        "highlights": [
+          "AI product rewrite (title + description)",
+          "Key Details auto-detected",
+          "EN unit conversion (metric + US)",
+          "Save directly to Shopify"
+        ]
+      },
+      "marketing": {
+        "title": "Marketing",
+        "short": "Generate social media captions, ad copy, seasonal campaigns, email templates, and hero images — with optional Meta autonomous publishing.",
+        "highlights": [
+          "Instagram/TikTok captions + hashtags",
+          "Ad banners and hero images",
+          "Seasonal retail campaign calendar",
+          "Meta (FB/IG) autonomous publishing (Pro)"
+        ]
+      },
+      "seo": {
+        "title": "SEO",
+        "short": "Edit SEO title/meta with SERP preview, apply CTR best practices, use competitor intel (Standard/Pro), and follow recommendations.",
+        "highlights": [
+          "SEO title + meta description editor",
+          "Live SERP preview",
+          "Competitor intel & CTR best practices",
+          "AI-powered recommendations"
+        ]
+      },
+      "price-scout": {
+        "title": "Price Scout",
+        "short": "Analyze competitor pricing from Google search results and get AI-powered pricing recommendations.",
+        "highlights": [
+          "SERP-based competitor price analysis",
+          "AI-powered pricing recommendations",
+          "Auto-apply price to Shopify (Pro)",
+          "Category and market-aware pricing"
+        ]
+      },
+      "content-studio": {
+        "title": "Content Studio",
+        "short": "Your all-in-one creative workspace — write high-quality blogs, generate cinematic hero sections, create polished collections, and produce Product FAQs with AI-powered templates and your brand voice.",
+        "highlights": [
+          "Write high-quality brand blog posts with AI hero images",
+          "Generate hero sections with cinematic banners",
+          "Create high-quality collection pages with descriptions",
+          "Product FAQ generation from product details",
+          "Image Refinement built-in"
+        ]
+      },
+      "image-refinement": {
+        "title": "Image Refinement",
+        "short": "AI-powered product photo cleanup — remove text, refine backgrounds, and save polished images back to Shopify.",
+        "highlights": [
+          "Remove overlay text and watermarks",
+          "Clean studio background replacement",
+          "100% product fidelity preservation",
+          "Auto-save to Shopify media library"
+        ]
+      },
+      "missions": {
+        "title": "Missions",
+        "short": "Run multi-agent AI pipelines that chain Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows.",
+        "highlights": [
+          "Preset missions for every plan tier",
+          "Custom pipeline builder (any agent combo)",
+          "Auto-flow or step-by-step approval",
+          "Results saved to Shopify automatically"
+        ]
+      },
+      "many-more-features": {
+        "title": "Many More Features",
+        "short": "Beyond core workflows, unlock additional growth tools across localization, compliance, publishing control, and operations.",
+        "highlights": [
+          "Global Locale Hub: edit and publish across 12 markets",
+          "Japanese Value: evidence-backed cultural/craft detail extraction",
+          "Brand Soul memory across rewriter, templates, and campaigns",
+          "Content Templates: FAQ, Hero, Blog, and Collection generation",
+          "Step-by-step or autonomous Missions execution flows",
+          "Usage, credits, and plan controls from Dashboard"
         ]
       }
     }
