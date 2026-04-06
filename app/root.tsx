@@ -21,6 +21,8 @@ export default function App() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <link rel="icon" type="image/png" href="/Icon-final.png" />
+        <link rel="apple-touch-icon" href="/Icon-final.png" />
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         <link
           rel="stylesheet"
@@ -46,6 +48,7 @@ function PortalErrorFallback({ error }: { error: unknown }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <link rel="icon" type="image/png" href="/Icon-final.png" />
       </head>
       <body style={{ fontFamily: "Inter, sans-serif", padding: 40 }}>
         <h1>Something went wrong</h1>
