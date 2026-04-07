@@ -47,6 +47,7 @@ import {
 
 import {authenticate, getOfflineGraphqlClient} from '../shopify.server';
 import {descriptionHash} from '../utils/descriptionHash.server';
+import {parsePythonDict, parsePythonList} from '../utils/templateHtmlParser';
 import { DowngradeScheduledBanner } from '../components/DowngradeScheduledBanner';
 import { LockedFeatureNotice } from '../components/LockedFeatureNotice';
 import { type Entitlements, type FeatureUsageMap } from '../utils/entitlements';
@@ -1009,8 +1010,12 @@ function RewriterWorkspaceInner({
   const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
   const [seoIntelOpen, setSeoIntelOpen] = useState(false);
   const [jvOpen, setJvOpen] = useState(false);
+  const [faqLoading, setFaqLoading] = useState(false);
+  const [faqResult, setFaqResult] = useState<string | null>(null);
+  const [faqError, setFaqError] = useState<string | null>(null);
+  const [faqOpen, setFaqOpen] = useState(false);
+  const [faqAppended, setFaqAppended] = useState(false);
   const [removeIrrelevantContent, setRemoveIrrelevantContent] = useState(true);
-  const [brandSoulEnabled, setBrandSoulEnabled] = useState(false);
   const [brandStatus, setBrandStatus] = useState<string>(brandContextStatus || 'idle');
   const [brandStatusError, setBrandStatusError] = useState<string | null>(brandContextLastError || null);
   const [brandSummary, setBrandSummary] = useState<string>(brandContextSummary || '');
@@ -1123,6 +1128,11 @@ function RewriterWorkspaceInner({
     setDiscoveredValues([]);
     setAddedValueKeys({});
     setCulturalContextSaved(didResetMetaCache ? false : Boolean(selectedProduct?.culturalContext?.value));
+    setFaqLoading(false);
+    setFaqResult(null);
+    setFaqError(null);
+    setFaqOpen(false);
+    setFaqAppended(false);
 
     const baseTitle = selectedProduct?.title ?? '';
     const baseDesc = selectedProduct?.descriptionHtml ?? '';
@@ -1291,6 +1301,78 @@ function RewriterWorkspaceInner({
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
   }, []);
+
+  const parseFaqToHtml = useCallback(
+    (content: unknown): string => {
+      // Keep parity with the (now-removed) Product FAQ output in `/content-templates`.
+      // That UI expects a JSON/Python-dict/list payload and renders <details>/<summary> blocks.
+
+      // If backend already returns HTML, keep it as-is.
+      if (typeof content === 'string' && content.trim().startsWith('<')) return content;
+
+      let parsed: any = null;
+      const raw = typeof content === 'string' ? content.trim() : '';
+
+      if (content && typeof content === 'object') {
+        parsed = content;
+      } else if (raw) {
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = parsePythonDict(raw);
+          if (!parsed) {
+            const arr = parsePythonList(raw);
+            if (arr) {
+              const looksLikeFaqs = arr.length > 0 && arr[0]?.question && arr[0]?.answer;
+              parsed = looksLikeFaqs ? {faqs: arr} : null;
+            }
+          }
+        }
+      }
+
+      if (Array.isArray(parsed)) {
+        const looksLikeFaqs = parsed.length > 0 && parsed[0]?.question && parsed[0]?.answer;
+        parsed = looksLikeFaqs ? {faqs: parsed} : null;
+      }
+
+      const faqs: Array<{question: string; answer: string}> = parsed?.faqs || [];
+      if (!faqs.length) return raw || '';
+
+      return faqs
+        .map(
+          (f, i) =>
+            `<details style="border:1px solid #e1e3e5;border-radius:8px;padding:14px 18px;margin-bottom:10px">` +
+            `<summary style="font-size:15px;font-weight:600;cursor:pointer">Q${i + 1}: ${f.question}</summary>` +
+            `<p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:#303030">${f.answer}</p>` +
+            `</details>`,
+        )
+        .join('\n');
+    },
+    [],
+  );
+
+  const handleAppendFaqToDescription = useCallback(() => {
+    const html = String(faqResult || '').trim();
+    if (!html) return;
+    if (!activeLocale) return;
+
+    setDraftByLocale((prev) => {
+      const cur = prev[activeLocale];
+      if (!cur) return prev;
+      const base = String(cur.description || '');
+      if (base.includes(html)) return prev;
+      const nextDesc = base ? `${base}\n\n${html}` : html;
+      return {
+        ...prev,
+        [activeLocale]: {
+          ...cur,
+          description: nextDesc,
+        },
+      };
+    });
+    setFaqAppended(true);
+    setToastContent(t('faqAppendedToDescription'));
+  }, [activeLocale, faqResult, t]);
 
   const upsertKeyDetailsNuance = useCallback(
     (descHtml: string, bullets: string[]) => {
@@ -1489,7 +1571,7 @@ function RewriterWorkspaceInner({
         auto_convert_units: Boolean(autoConvertUnits),
         tone_profile: effectiveTone,
         remove_irrelevant_content: Boolean(removeIrrelevantContent),
-        brand_soul_enabled: Boolean(brandSoulEnabled),
+
       };
 
       // Call through same-origin proxy to avoid CORS; forward the session token to backend.
@@ -1681,7 +1763,6 @@ function RewriterWorkspaceInner({
     activeLocale,
     app,
     autoConvertUnits,
-    brandSoulEnabled,
     effectiveTone,
     effectiveTargetLocale,
     removeIrrelevantContent,
@@ -2126,19 +2207,6 @@ function RewriterWorkspaceInner({
                       </Box>
 
                       <Box paddingBlockStart="200">
-                        <InlineStack align="space-between" blockAlign="center">
-                          <Checkbox
-                            label={t("enhanceWithBrandSoul")}
-                            checked={brandSoulEnabled}
-                            onChange={setBrandSoulEnabled}
-                          />
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t("brandSoulHelp")}
-                        </Text>
-                      </Box>
-
-                      <Box paddingBlockStart="200">
                         <Checkbox
                           label={t("removeIrrelevantContent")}
                           checked={removeIrrelevantContent}
@@ -2359,6 +2427,99 @@ function RewriterWorkspaceInner({
                     )}
                   </Modal.Section>
                 </Modal>
+
+                {/* Product FAQ Generator */}
+                {selectedProduct && (
+                  <Card>
+                    <Box padding="300">
+                      <BlockStack gap="300">
+                        <InlineStack align="space-between" blockAlign="center">
+                          <BlockStack gap="100">
+                            <Text as="h3" variant="headingMd">
+                              {t("productFaq")}
+                            </Text>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              {t("productFaqDesc")}
+                            </Text>
+                          </BlockStack>
+                          <Button
+                            onClick={async () => {
+                              setFaqLoading(true);
+                              setFaqError(null);
+                              try {
+                                const resp = await fetch(
+                                  `${backendApiUrl}/api/generate/product/faq?shop=${encodeURIComponent(shop)}`,
+                                  {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json", "X-Shopify-Shop-Domain": shop },
+                                    body: JSON.stringify({
+                                      target_locale: effectiveTargetLocale || "en",
+                                      title: selectedProduct.title,
+                                      product_id: selectedProduct.id,
+                                    }),
+                                  },
+                                );
+                                const data = await resp.json();
+                                if (resp.ok && data.status === "success") {
+                                  const html = parseFaqToHtml(data.content);
+                                  setFaqResult(html);
+                                  setFaqOpen(true);
+                                  setFaqAppended(false);
+                                } else {
+                                  setFaqError(data.detail || data.error || "Generation failed");
+                                }
+                              } catch (e: any) {
+                                setFaqError(e?.message || "Network error");
+                              } finally {
+                                setFaqLoading(false);
+                              }
+                            }}
+                            loading={faqLoading}
+                            variant="primary"
+                          >
+                            {faqResult ? t("regenerate") : t("generateFaq")}
+                          </Button>
+                        </InlineStack>
+                        {faqError && <Banner tone="critical">{faqError}</Banner>}
+                        {faqResult && faqOpen && (
+                          <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                            <BlockStack gap="200">
+                              <div dangerouslySetInnerHTML={{ __html: faqResult }} />
+                              <InlineStack align="end" gap="200">
+                                {!faqAppended ? (
+                                  <Button
+                                    size="slim"
+                                    variant="primary"
+                                    onClick={handleAppendFaqToDescription}
+                                  >
+                                    {t('appendFaqToDescription')}
+                                  </Button>
+                                ) : (
+                                  <Button size="slim" variant="plain" disabled tone="success">
+                                    {t('faqAppended')}
+                                  </Button>
+                                )}
+                                <Button
+                                  size="slim"
+                                  onClick={async () => {
+                                    try {
+                                      await navigator.clipboard.writeText(faqResult);
+                                    } catch { /* ignore */ }
+                                  }}
+                                >
+                                  {t("copy")}
+                                </Button>
+                                <Button size="slim" onClick={() => setFaqOpen(false)} variant="plain">
+                                  {t("close")}
+                                </Button>
+                              </InlineStack>
+                            </BlockStack>
+                          </Box>
+                        )}
+                      </BlockStack>
+                    </Box>
+                  </Card>
+                )}
 
                 <Box paddingBlockStart="400">
                   <saveFetcher.Form method="post">

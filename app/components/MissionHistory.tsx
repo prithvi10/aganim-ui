@@ -14,6 +14,10 @@ import {
 } from "@shopify/polaris";
 import type { MissionState } from "./MissionTimeline";
 
+const LOCALE_CURRENCY: Record<string, string> = {
+  ja: "¥", ko: "₩", "zh-TW": "NT$", "zh-CN": "¥", th: "฿", pt: "R$",
+};
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface MissionListItem {
@@ -317,7 +321,7 @@ export function MissionHistory({
                                 <Text as="p" variant="bodySm">
                                   <strong>{t("priceLabel")}</strong>{" "}
                                   {(details.pricing_analysis as Record<string, unknown>).recommended_price
-                                    ? `${(details.pricing_analysis as Record<string, unknown>).currency || "$"}${(details.pricing_analysis as Record<string, unknown>).recommended_price}`
+                                    ? `${(details.pricing_analysis as Record<string, unknown>).currency || LOCALE_CURRENCY[String(details.target_locale || "")] || "$"}${(details.pricing_analysis as Record<string, unknown>).recommended_price}`
                                     : t("na")}{" "}
                                   ({String((details.pricing_analysis as Record<string, unknown>).price_position || "")})
                                 </Text>
