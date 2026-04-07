@@ -15,6 +15,7 @@ import {
   ImportIcon,
 } from "@shopify/polaris-icons";
 import styles from "../styles/support.module.css";
+import { supportMediaUrl } from "../utils/supportMedia";
 
 export const meta: MetaFunction = () => {
   return [
@@ -89,7 +90,8 @@ const CARD_META: Array<{
   { id: "price-scout", demoPath: "/support-gifs/price-scout.mp4", icon: SearchIcon },
   { id: "missions", demoPath: "/support-gifs/missions-overview.mp4", icon: StarIcon },
   { id: "bulk-upload", demoPath: "/support-gifs/bulk-upload.mp4", icon: ImportIcon },
-  { id: "dashboard", demoPath: "/support-gifs/dashboard-overview.mp4", icon: HomeIcon },
+  // Set demoPath when public/support-gifs/dashboard-overview.mp4 is present in the deploy artifact.
+  { id: "dashboard", demoPath: "", icon: HomeIcon },
 ];
 
 function Table({
@@ -256,13 +258,13 @@ export default function SupportPage() {
                   <div className={styles.panel}>
                     {/\.(png|jpe?g|webp|gif|svg)$/i.test(c.demoPath) ? (
                       <img
-                        src={c.demoPath}
+                        src={supportMediaUrl(c.demoPath)}
                         alt={c.title}
                         className={styles.demoVideo}
                       />
                     ) : (
                       <video
-                        src={c.demoPath}
+                        src={supportMediaUrl(c.demoPath)}
                         loop
                         muted
                         playsInline
