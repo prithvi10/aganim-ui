@@ -105,13 +105,8 @@ export default function FeaturesPage() {
                       </div>
                     ) : isImage(f.media) ? (
                       <img
-<<<<<<< HEAD
                         src={supportMediaUrl(f.media)}
-                        alt={f.title}
-=======
-                        src={f.media}
                         alt={title}
->>>>>>> 2ee73e20aebdf02d69f222d3dec9879e5391a45d
                         className="h-full w-full object-cover"
                       />
                     ) : (

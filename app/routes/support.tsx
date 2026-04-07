@@ -15,11 +15,8 @@ import {
   ImportIcon,
 } from "@shopify/polaris-icons";
 import styles from "../styles/support.module.css";
-<<<<<<< HEAD
 import { supportMediaUrl } from "../utils/supportMedia";
-=======
 import { LandingHeader, LandingFooter } from "../components/LandingLayout";
->>>>>>> 2ee73e20aebdf02d69f222d3dec9879e5391a45d
 
 export const meta: MetaFunction = () => {
   return [
