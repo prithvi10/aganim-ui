@@ -15,7 +15,11 @@ import {
   ImportIcon,
 } from "@shopify/polaris-icons";
 import styles from "../styles/support.module.css";
+<<<<<<< HEAD
 import { supportMediaUrl } from "../utils/supportMedia";
+=======
+import { LandingHeader, LandingFooter } from "../components/LandingLayout";
+>>>>>>> 2ee73e20aebdf02d69f222d3dec9879e5391a45d
 
 export const meta: MetaFunction = () => {
   return [
@@ -67,9 +71,6 @@ type SupportCard = {
   faqs: Faq[];
   notes?: string[];
 };
-
-const GOOGLE_FORM_EMBED_URL = "";
-const GOOGLE_FORM_DIRECT_URL = "";
 
 const CARD_META: Array<{
   id: string;
@@ -193,19 +194,17 @@ export default function SupportPage() {
   }, []);
 
   return (
-    <main id="top" className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.brandRow}>
-            <img src="/Icon-final.png" alt="Aganim AI" className={styles.brandLogo} />
+    <div className="min-h-screen bg-slate-950 text-white">
+      <LandingHeader />
+      <main id="top" className={styles.page}>
+        <header className={styles.header}>
+          <div className={styles.headerInner}>
             <div>
-              <div className={styles.kicker}>{t("support.helpCenter")}</div>
               <h1 className={styles.h1}>{t("support.pageTitle")}</h1>
               <p className={styles.subtitle}>{t("support.subtitle")}</p>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
@@ -413,47 +412,8 @@ export default function SupportPage() {
         </div>
       </section>
 
-      <section className={styles.section} id="contact">
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.h2}>{t("support.stillNeedHelp")}</h2>
-          <p className={styles.sectionSub}>{t("support.contactInfo")}</p>
-        </div>
-
-        <div className={styles.panel}>
-          {GOOGLE_FORM_EMBED_URL ? (
-            <iframe
-              title="Support form"
-              src={GOOGLE_FORM_EMBED_URL}
-              className={styles.formFrame}
-              loading="lazy"
-            />
-          ) : (
-            <div className={styles.formPlaceholder}>
-              <div className={styles.formTitle}>{t("support.addFormTitle")}</div>
-              <div className={styles.formText}>{t("support.addFormText")}</div>
-              <div className={styles.formText}>{t("support.addFormFields")}</div>
-            </div>
-          )}
-
-          {GOOGLE_FORM_DIRECT_URL ? (
-            <div className={styles.formFooter}>
-              {t("support.preferNewTab")}{" "}
-              <a className={styles.link} href={GOOGLE_FORM_DIRECT_URL} target="_blank" rel="noreferrer">
-                {t("support.openTheForm")}
-              </a>
-              .
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <div className={styles.footerNote}>
-            © {new Date().getFullYear()} {t("support.copyright")}
-          </div>
-        </div>
-      </footer>
-    </main>
+      </main>
+      <LandingFooter />
+    </div>
   );
 }

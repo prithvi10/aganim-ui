@@ -10,10 +10,10 @@
     "langToggle": "English"
   },
   "home": {
-    "crossBorderAi": "越境 AI",
+    "crossBorderAi": "Aganim AI",
     "tagline": "商品情報を世界クラスのマーケティングコピーに変換します。",
     "gettingStarted": "はじめに",
-    "gettingStartedDesc": "越境 AI の機能を最大限に活用するため、以下のステップを完了してください。",
+    "gettingStartedDesc": "Aganim AI の機能を最大限に活用するため、以下のステップを完了してください。",
     "defineSoul": "ブランドの個性を定義",
     "optimizeFirstProduct": "最初の商品を最適化",
     "configureTheme": "テーマを設定",
@@ -53,6 +53,9 @@
     "readTheGuide": "ガイドを読む",
     "dashboardCard": "ダッシュボード",
     "dashboardCardDesc": "プランの確認、使用状況とクレジットの追跡、連携の管理。",
+    "quickLaunchCta": "かんたん商品ローンチを試す！",
+    "onboardingGuide": "オンボーディングガイド",
+    "stepTargetMarket": "ターゲット市場と言語設定",
     "stepBrandSoul": "ブランドソウルを設定",
     "stepWritingStudio": "ライティングスタジオを試す",
     "stepMarketing": "マーケティングコンテンツを作成",
@@ -99,7 +102,7 @@
     "zh-CN": "簡体中文（中国）"
   },
   "dashboard": {
-    "title": "越境 AI",
+    "title": "Aganim AI",
     "totalOptimized": "最適化済み商品数",
     "activeMarkets": "有効な市場",
     "currentPlan": "現在のプラン",
@@ -189,7 +192,11 @@
     "contentLocaleTitle": "コンテンツターゲット市場",
     "contentLocaleDesc": "AI生成コンテンツのターゲット市場を選択します。言語、文化的トーン、競合分析に影響します。",
     "currentMarket": "現在の市場：",
-    "changeMarket": "変更"
+    "changeMarket": "変更",
+    "brandSoulToggle": "ブランドソウル",
+    "brandSoulToggleHelp": "ブランドのアイデンティティをすべてのAI生成コンテンツ（リライト、画像、SEO、マーケティング）に反映します。",
+    "brandSoulOn": "有効",
+    "brandSoulOff": "無効"
   },
   "rewriter": {
     "rewriter": "リライター",
@@ -249,6 +256,15 @@
     "productSaved": "商品が保存されました。確認するにはページを更新してください！",
     "productDescriptionUpdated": "商品説明が更新されました！",
     "productDescriptionUpdatedMulti": "商品説明が更新されました！（{{locales}}）",
+    "productFaq": "商品FAQ",
+    "productFaqDesc": "商品詳細からよくある質問を自動生成します。",
+    "generateFaq": "FAQ生成",
+    "regenerate": "再生成",
+    "copy": "コピー",
+    "close": "閉じる",
+    "appendFaqToDescription": "FAQを商品説明に追加",
+    "faqAppended": "FAQ追加済み",
+    "faqAppendedToDescription": "FAQを商品説明に追加しました！",
     "outOfFreeCredits": "無料の10クレジットを使い切りました。Basicにアップグレードして毎月50件のリライトを利用しましょう！",
     "pleaseSelectMarket": "市場を選択してください。",
     "generationFailed": "生成は成功しましたが、コンテンツが返されませんでした。",
@@ -308,9 +324,9 @@
     "productRewriterDesc": "Shopify商品を選択して、最適化された説明文、タイトル、SEOコピーを生成します。結果はストアに直接保存されます。",
     "open": "開く",
     "imageRefinement": "画像リファインメント",
-    "imageRefinementDesc": "AI搭載の商品写真リファインメント。背景のクリーンアップ、マーケティング広告の生成、商品画像からのヒーローバナー作成。",
+    "imageRefinementDesc": "AI搭載の商品写真リファインメント。背景のクリーンアップ、商品画像からマーケティング広告を生成。",
     "contentTemplates": "コンテンツテンプレート",
-    "contentTemplatesDesc": "AIテンプレートとブランドボイスを使って、商品タイトル、FAQ、コレクションコピー、ランディングページコンテンツを生成します。"
+    "contentTemplatesDesc": "AIテンプレートとブランドボイスを使って、コレクションコピー、ヒーローセクション、ブログ記事を生成します。"
   },
   "marketing": {
     "marketingConsultant": "マーケティングコンサルタント",
@@ -401,7 +417,7 @@
   },
   "contentTemplates": {
     "contentTemplates": "コンテンツテンプレート",
-    "contentTemplatesSubtitle": "AIテンプレートとブランドボイスを使って、FAQ、コレクションコピー、ヒーローセクション、ブログ記事を生成します。",
+    "contentTemplatesSubtitle": "AIテンプレートとブランドボイスを使って、コレクションコピー、ヒーローセクション、ブログ記事を生成します。",
     "writingStudio": "ライティングスタジオ",
     "heroSection": "ヒーローセクション",
     "generatedContent": "生成されたコンテンツ",
@@ -422,6 +438,9 @@
     "copied": "コピーしました！",
     "copyFailed": "コピーに失敗しました。",
     "publishedFaqToShopify": "FAQをShopifyに公開しました！",
+    "appendFaqToDescription": "FAQを商品説明に追加",
+    "faqAppended": "FAQ追加済み",
+    "faqAppendedToDescription": "FAQを商品説明に追加しました！",
     "collectionDescription": "コレクション説明",
     "collectionDesc": "ヒーローバナー付きのコレクションページコピーを生成します。商品画像をアップロードしてシーンにブレンドするか、空のままでテーマベースの画像を使用します。以下のコレクション内の商品を選択してください。",
     "collectionName": "コレクション名",
@@ -485,7 +504,26 @@
     "before": "変更前",
     "after": "変更後",
     "originalAlt": "元の商品画像",
-    "refinedAlt": "最適化された商品画像"
+    "refinedAlt": "最適化された商品画像",
+    "imageStyle": "画像スタイル",
+    "themeLabel": "画像スタイル",
+    "themeLabelHelp": "最適化画像の背景テーマを選択",
+    "themeClean": "クリーンスタジオ",
+    "themeCleanDesc": "白/グレーのスタジオ、100%忠実再現",
+    "themeLifestyle": "ライフスタイル",
+    "themeLifestyleDesc": "自然な生活空間に商品を配置",
+    "themeNatural": "ナチュラル＆オーガニック",
+    "themeNaturalDesc": "天然木、リネン、ボタニカル小物",
+    "themePremium": "プレミアムラグジュアリー",
+    "themePremiumDesc": "ダークマーブル、ドラマティックなライティング",
+    "themeSeasonal": "シーズナル",
+    "themeSeasonalDesc": "季節に合った演出と小物",
+    "themeMinimalist": "ミニマリスト",
+    "themeMinimalistDesc": "無印インスパイア、幾何学的な影",
+    "themeInformative": "インフォマティブ",
+    "themeInformativeDesc": "商品名＋ブランド名をタイポグラフィで表示",
+    "themeAiChoice": "AIにおまかせ",
+    "themeAiChoiceDesc": "AIが商品に最適な背景・演出を自動選択"
   },
   "compliance": {
     "complianceCheck": "コンプライアンスチェック",
@@ -502,34 +540,37 @@
   },
   "components": {
     "getStartedGuide": "はじめてガイド",
-    "learnHowToUse": "越境 AI の使い方をステップバイステップで学びましょう。",
+    "learnHowToUse": "Aganim AI の使い方をステップバイステップで学びましょう。",
     "openGuide": "ガイドを開く",
-    "getStartedWithCbai": "越境 AI をはじめよう",
-    "guideBrandSoulTitle": "ステップ1: ブランドソウル",
+    "getStartedWithCbai": "Aganim AI をはじめよう",
+    "guideTargetMarketTitle": "ステップ1: ターゲット市場と言語",
+    "guideTargetMarketSubtitle": "コンテンツ市場とUI言語を設定",
+    "guideTargetMarketBody": "AI生成コンテンツのターゲット市場（例: 英語US、日本語、韓国語）を選択し、お好みのUI言語を設定します。これらの設定はトーン、文化的参照、競合分析に影響します。",
+    "guideBrandSoulTitle": "ステップ2: ブランドソウル",
     "guideBrandSoulSubtitle": "ブランドアイデンティティを定義",
     "guideBrandSoulBody": "ブランドソウルはストアを分析し、ブランドプロフィール — アーキタイプ、トーン、パワーワード、文化的タッチポイント — を作成して、すべてのAI生成コンテンツに反映します。",
     "openBrandSoul": "ブランドソウルを設定",
-    "guideWritingStudioTitle": "ステップ2: ライティングスタジオ",
+    "guideWritingStudioTitle": "ステップ3: ライティングスタジオ",
     "guideWritingStudioSubtitle": "リライト、テンプレート、リファインメント",
     "guideWritingStudioBody": "商品を選択して最適化された説明文、タイトル、SEOコピーを生成。コンテンツテンプレートでFAQ、ヒーローセクション、ブログ記事、コレクションページを作成。AIで商品画像をリファインメント。",
     "openWritingStudio": "ライティングスタジオを開く",
-    "guideMarketingTitle": "ステップ3: マーケティング",
+    "guideMarketingTitle": "ステップ4: マーケティング",
     "guideMarketingSubtitle": "ソーシャルフック、広告、キャンペーン",
     "guideMarketingBody": "Instagramキャプション、広告コピー、季節キャンペーン、マーケティングテンプレートを生成。ソーシャルプラットフォーム向けコンテンツのプレビューとMetaへの直接公開。",
     "openMarketing": "マーケティングを開く",
-    "guideSeoTitle": "ステップ4: SEO",
+    "guideSeoTitle": "ステップ5: SEO",
     "guideSeoSubtitle": "タイトル、説明文、競合分析",
     "guideSeoBody": "SEOタイトル、メタディスクリプション、画像Altテキストを最適化。トップランキング競合を分析、CTRスコアをチェックし、変更をShopifyに直接適用。",
     "openSeo": "SEOを開く",
-    "guidePriceScoutTitle": "ステップ5: プライススカウト",
+    "guidePriceScoutTitle": "ステップ6: プライススカウト",
     "guidePriceScoutSubtitle": "競合価格インテリジェンス",
     "guidePriceScoutBody": "競合が類似商品にどのような価格を設定しているかを分析。AI搭載の価格レコメンデーションを取得し、最適化された価格をストアに適用。",
     "openPriceScout": "プライススカウトを開く",
-    "guidePipelinesTitle": "ステップ6: ミッション",
+    "guidePipelinesTitle": "ステップ7: ミッション",
     "guidePipelinesSubtitle": "マルチエージェントミッションを実行",
     "guidePipelinesBody": "複数のAIエージェントを連携させたミッションを構築 — リライター → SEO → マーケティング → 価格設定 — ワンクリックで実行。プリセットミッションから選択するか、ステップごとの承認付きカスタムパイプラインを作成。",
     "openPipelines": "ミッションを開く",
-    "guideDashboardTitle": "ステップ7: ダッシュボード",
+    "guideDashboardTitle": "ステップ8: ダッシュボード",
     "guideDashboardSubtitle": "使用状況、プラン、連携",
     "guideDashboardBody": "プランの確認、使用状況とクレジットの追跡、Meta連携の管理、コンテンツターゲット市場の設定 — すべてを一つの画面で。",
     "openDashboard": "ダッシュボードを開く",
@@ -592,6 +633,24 @@
     "agentImageRefinementDesc": "AI商品写真クリーンアップ＆背景リファインメント（Pro）",
     "agentVisualMarketing": "ビジュアルマーケティング",
     "agentVisualMarketingDesc": "マーケティング広告生成（Pro）",
+    "refinementThemeClean": "クリーンスタジオ",
+    "refinementThemeCleanDesc": "白/グレーのスタジオ、100%忠実再現",
+    "refinementThemeLifestyle": "ライフスタイル",
+    "refinementThemeLifestyleDesc": "自然な生活空間に商品を配置",
+    "refinementThemeNatural": "ナチュラル＆オーガニック",
+    "refinementThemeNaturalDesc": "天然木、リネン、ボタニカル小物",
+    "refinementThemePremium": "プレミアムラグジュアリー",
+    "refinementThemePremiumDesc": "ダークマーブル、ドラマティックなライティング",
+    "refinementThemeSeasonal": "シーズナル",
+    "refinementThemeSeasonalDesc": "季節に合った演出と小物",
+    "refinementThemeMinimalist": "ミニマリスト",
+    "refinementThemeMinimalistDesc": "無印インスパイア、幾何学的な影",
+    "refinementThemeInformative": "インフォマティブ",
+    "refinementThemeInformativeDesc": "商品名＋ブランド名をクリーンなタイポグラフィで表示",
+    "refinementThemeAiChoice": "AIにおまかせ",
+    "refinementThemeAiChoiceDesc": "AIが商品に最適な背景・演出を自動選択",
+    "refinementThemeLabel": "画像スタイル",
+    "refinementThemeLabelHelp": "画像リファインメントの背景テーマを選択",
     "tplProductFaq": "商品FAQ",
     "tplProductFaqDesc": "商品詳細からFAQを生成",
     "tplHeroSection": "ヒーローセクション",
@@ -750,18 +809,11 @@
   "support": {
     "helpCenter": "ヘルプセンター",
     "pageTitle": "サポート",
-    "subtitle": "越境 AI の機能ガイド、プラン対応状況、トラブルシューティング、FAQ。",
+    "subtitle": "Aganim AI Shopifyアプリの機能ガイド、プラン対応状況、トラブルシューティング、FAQ。",
     "featureDocs": "機能ドキュメント",
     "featureDocsDesc": "各機能にはプラン対応、ステップバイステップの使い方、よくある対処法が含まれています。",
     "planFilter": "プランフィルター",
     "planHint": "ヒント: 公開閲覧には「すべて」のままに、またはプランでフィルターして含まれる機能を確認してください。",
-    "stillNeedHelp": "まだお困りですか？",
-    "contactInfo": "お問い合わせの際は、ショップドメイン、プラン、機能、ロケール、スクリーンショット、再現手順をご記載ください。",
-    "addFormTitle": "Google Formを追加",
-    "addFormText": "このファイルで GOOGLE_FORM_EMBED_URL と GOOGLE_FORM_DIRECT_URL を設定してください。",
-    "addFormFields": "推奨フィールド: ショップドメイン、プラン、機能、ロケール、期待結果、実際の結果、スクリーンショット、手順。",
-    "preferNewTab": "新しいタブで開きますか？",
-    "openTheForm": "フォームを開く",
     "backToTop": "トップに戻る",
     "index": "目次",
     "gifDemo": "GIFデモ",
@@ -775,7 +827,7 @@
     "notesLabel": "備考",
     "likelyCause": "想定される原因",
     "fix": "対処法",
-    "copyright": "越境 AI。サポートコンテンツは定期的に更新されます。",
+    "copyright": "Aganim AI。サポートコンテンツは定期的に更新されます。",
     "tableFeature": "機能",
     "tableNotes": "備考",
     "planAll": "すべて",
@@ -796,16 +848,25 @@
           "ウィザードに従う — AIがストアを分析し、ブランドインテリジェンスを生成。",
           "生成されたプロフィールを確認: アーキタイプ、トーンガイドライン、パワーワード、禁止フレーズ、バリュープロポジション、文化的タッチポイント。",
           "ヒーローバナー生成用にブランドロゴをアップロード。",
-          "リライターで「ブランドソウルで説明文を強化」を有効にして、商品リライトにブランドコンテキストを適用。"
+          "ブランドソウルのグローバル有効/無効は、ダッシュボードのBrand Soulカードのトグルで切り替えられます。有効にすると、すべてのAI機能にブランドコンテキストが自動適用されます。"
         ],
         "sections": [
           {
             "title": "Brand Soulが他機能に与える影響",
             "body": [
-              "リライター: 「ブランドソウルで説明文を強化」が有効な場合、ブランドストーリーとボイスがリライトを豊かにします。",
-              "ミッション: ミッションパイプラインでリライターエージェントが実行されると、ブランドコンテキストが自動的に注入されます。",
+              "ダッシュボードトグル: ダッシュボードからBrand Soulのグローバル有効/無効を切り替えられます。有効にすると、すべてのAI機能がブランドコンテキストを自動使用します。",
+              "リライター（最も強い効果）: ブランドストーリー、ピラー、哲学がLLMプロンプトに注入され、ブランドの事実を商品説明に自然に織り込むよう厳密に指示されます。「会社概要」のコピペではなく、商品の特徴の理由を説明する形で反映されます。",
+              "ミッション: ミッションパイプラインでエージェントが実行されると、ブランドコンテキストが自動的に注入されます。チェーン内のすべてのエージェントがブランドプロフィールの恩恵を受けます。",
               "コンテンツテンプレート: ブログ記事、ヒーローセクション、コレクション説明はブランドボイスを反映します。",
               "ヒーローバナー: アップロードしたロゴは、ヒーローセクションとコレクションの「Informative」画像スタイルに表示されます。"
+            ]
+          },
+          {
+            "title": "Brand Soulの画像生成への影響",
+            "body": [
+              "画像リファインメント＆マーケティング画像: 短いブランド美学ヒント（アーキタイプ＋パワーワード）が画像プロンプトに追加されます（例：「Heritage House. heritage, master artisans, meticulous, Ichigo Ichie, heirlooms aesthetic.」）。これにより画像モデルに微妙なスタイルの方向性が与えられます。",
+              "マーケティング広告（Ideogram）: ブランド美学が広告合成プロンプトに注入され、生成されるタイポグラフィ広告のビジュアルスタイルとトーンに影響を与えます。",
+              "注意: 画像モデルはテキストのリライターよりもBrand Soulに対して微妙に反応します。ビジュアルの違いはPremiumやNaturalテーマで最も顕著で、美学ヒントがシーンスタイリングを補完します。Clean StudioやMinimalistテーマでは、デザイン上効果は最小限です。"
             ]
           }
         ],
@@ -816,7 +877,8 @@
         "faqs": [
           { "q": "生成されたブランドプロフィールは編集できますか？", "a": "はい — ホームページのBrand Soulサマリーの「編集」ボタンをクリックして、生成されたテキストを直接編集できます。完全に再生成するには、Brand Soulウィザードを再実行してください。" },
           { "q": "Brand Soulはどのくらいの頻度で再実行すべきですか？", "a": "ブランドメッセージを大幅に変更したとき、新しい商品カテゴリーを追加したとき、AIのストア理解を更新したいときに再実行してください。" },
-          { "q": "ロゴはどこで使われますか？", "a": "ロゴは、コレクション、ヒーローセクション、ブログ記事のヒーローバナー生成時に「Informative」画像スタイルで表示されます。" }
+          { "q": "ロゴはどこで使われますか？", "a": "ロゴは、コレクション、ヒーローセクション、ブログ記事のヒーローバナー生成時に「Informative」画像スタイルで表示されます。" },
+          { "q": "Brand Soulの有効/無効はどこで切り替えますか？", "a": "ダッシュボードのBrand Soulカードにあるトグルで切り替えられます。無効にすると、すべてのAI機能でブランドコンテキストが使用されなくなります。トグルはBrand Soulセットアップウィザード完了後に表示されます。" }
         ]
       },
       "rewriter-workspace": {
@@ -830,7 +892,7 @@
         "how": [
           "リライターを開き、商品を選択。",
           "ターゲット市場/ロケールを選択。（Basic: 1ロケール。Standard/Pro: マルチロケール。）",
-          "最適化設定（トーン、単位、関連性の低いコンテンツ削除、Brand Soul）を設定。",
+          "最適化設定（トーン、単位、関連性の低いコンテンツ削除）を設定。",
           "「グローバル向けに最適化」をクリックして下書きを生成。",
           "アクティブロケールの下書きを確認・編集（タイトル、HTML、SEOフィールド）。",
           "必要に応じて日本の価値インサイトを追加して根拠と差別化を強化。",
@@ -969,7 +1031,8 @@
         ],
         "faqs": [
           { "q": "SEO編集でページの商品タイトルは変わりますか？", "a": "いいえ — SEOタイトル/メタは検索スニペットとシェアプレビュー用の別フィールドです（テーマ/検索の動作は異なる場合あり）。" },
-          { "q": "推奨を採用する必要がありますか？", "a": "いいえ — 推奨は任意のガイダンスです。保存内容はご自身でコントロールできます。" }
+          { "q": "推奨を採用する必要がありますか？", "a": "いいえ — 推奨は任意のガイダンスです。保存内容はご自身でコントロールできます。" },
+          { "q": "日本語の商品を海外市場向けにSEO最適化するには？", "a": "まずリライターで商品をターゲット言語に翻訳し、その後SEO最適化を実行してください。ターゲット言語でのコンテンツがより正確なSERP分析とキーワード提案を生成します。" }
         ]
       },
       "japanese-value": {
@@ -1084,25 +1147,28 @@
         "title": "Price Scout",
         "short": "Google検索結果から競合価格を分析し、AI搭載の価格レコメンデーションを取得。",
         "what": [
-          "商品カテゴリーのGoogle検索結果（SERP）から競合価格データを取得。",
+          "商品名とカテゴリのGoogle Shopping検索結果から競合価格データを取得。",
+          "Shopifyの「商品タイプ」が検索クエリに追加されます — 不正確または汎用的な商品タイプ（例：「General」）は結果の品質を低下させます。",
           "競合分析に基づくAI搭載の価格レコメンデーションを提供。",
           "Proプランは推奨価格をShopifyに自動適用可能。"
         ],
         "how": [
           "ナビゲーションメニューから Price Scout を開く。",
           "商品を選択。",
+          "Shopifyで正確な商品タイプが設定されていることを確認してください（例：「日本酒セット」であって「General」ではなく）。これは競合検索に使用されます。",
           "「価格をスカウト」をクリックして競合価格を分析。",
           "競合価格とAIレコメンデーションを確認。",
           "必要に応じて推奨価格をShopifyに適用（Proプラン）。"
         ],
         "troubleshooting": [
-          { "symptom": "競合価格が見つからない。", "cause": "ニッチや非常に特殊な商品ではSERPデータが限られることがある。", "fixes": ["商品タイトルとタイプが検索に十分な説明であることを確認。", "検索範囲を広げるため商品タイプやカテゴリーを調整してみる。"] },
+          { "symptom": "競合価格が見つからない。", "cause": "商品名が非常に具体的であるか、Shopifyの商品タイプが「General」または未設定の可能性があります。Price Scoutは商品タイトル＋商品タイプでGoogle Shoppingを検索します。", "fixes": ["Shopifyで正確な商品タイプを設定してください（例：「酒器セット」「陶磁器」「抹茶」）。「General」のような汎用的な値は避けてください。", "商品名が非常に長い場合、Price Scoutは自動的に短縮版で再検索します。", "海外市場向けの日本語商品は、まずリライターで翻訳してからPrice Scoutを実行してください。"] },
           { "symptom": "価格レコメンデーションが高すぎる/低すぎる。", "cause": "AIレコメンデーションは利用可能な競合データに基づくため、正確な市場セグメントをカバーしていない場合がある。", "fixes": ["ご自身の市場知識と合わせてレコメンデーションをガイダンスとして使用。", "戦略に合わない場合は手動で価格を調整。"] },
           { "symptom": "競合結果が間違った国のもの（例：日本語商品に対して米国の結果）。", "cause": "Price Scoutはダッシュボードのターゲット市場設定を使用してGoogleの検索ロケールを決定します。ターゲット市場が商品の言語と一致しない場合、間違った地域の結果が表示されます。", "fixes": ["ダッシュボードでターゲット市場を商品の言語に合わせてください（例：日本語商品はJP、英語商品はEN）。", "ターゲット市場を変更後、Price Scoutを再実行してください。", "最適な結果を得るため、ターゲット市場を商品説明の主要言語と常に一致させてください。"] }
         ],
         "faqs": [
           { "q": "価格は自動で変わりますか？", "a": "いいえ — 価格分析は情報提供のみ。Proでは推奨価格を適用するボタンをクリックできますが、自動では変更されません。" },
-          { "q": "どのくらいの頻度で価格をスカウトすべきですか？", "a": "新商品の発売時、価格戦略の調整時、競合価格が大きく変わったと疑うときにスカウトしてください。" }
+          { "q": "どのくらいの頻度で価格をスカウトすべきですか？", "a": "新商品の発売時、価格戦略の調整時、競合価格が大きく変わったと疑うときにスカウトしてください。" },
+          { "q": "日本語の商品を海外市場向けに価格分析するには？", "a": "まずリライターで商品をターゲット言語に翻訳し、その後Price Scoutを実行してください。エージェントは商品テキストを使って関連競合を検索するため、ターゲット言語のコンテンツがより正確な価格結果を生成します。" }
         ]
       },
       "missions": {
@@ -1124,7 +1190,7 @@
           "完了時、結果は自動でShopifyに保存。"
         ],
         "sections": [
-          { "title": "プリセットミッション", "body": ["Basic: Social Hype-Man（リライター → FB/IG広告）、New Arrival Blast（リライター → Launch Email）、Welcome Journey（リライター → Welcome Email）、Artisan Storyteller（リライター → Hero Section）。", "Standard: Competitor Rebuttal（SEO → Product FAQ）、Abandoned Cart Fix（PriceScout → Abandoned Cart Email）、SEO Content Factory（SEO → Blog Post）、Collection Refresher（SEO → Collection）、Google Ads Shield（SEO → Google Ads）、Market Awareness Audit（SEO → PriceScout）。", "Pro: Full Launch（全6エージェント）、Visual Ad Blitz（Marketing → Image Refinement → Visual Marketing）。"] },
+          { "title": "プリセットミッション", "body": ["Basic: Social Hype-Man（リライター → FB/IG広告）、New Arrival Blast（リライター → Launch Email）、Welcome Journey（リライター → Welcome Email）、Artisan Storyteller（リライター → Hero Section）。", "Standard: Competitor Rebuttal（SEO → Product FAQ）、Abandoned Cart Fix（PriceScout → Abandoned Cart Email）、SEO Content Factory（SEO → Blog Post）、Collection Refresher（SEO → Collection）、Google Ads Shield（SEO → Google Ads）、Market Awareness Audit（SEO → PriceScout）。", "Pro: Full Launch（全6エージェント）、Visual Ad Blitz（Marketing → Visual Marketing）。"] },
           { "title": "カスタムミッション", "body": ["任意のエージェント組み合わせを追加: Rewriter、SEO、Marketing、PriceScout、Image Refinement、Visual Marketing。", "パイプライン内でドラッグしてエージェントの順序を変更。", "各ステップの任意テンプレートを選択（例: Product FAQ、Blog Post、Launch Email）。", "一部のエージェントはプラン制限あり（Image RefinementとVisual MarketingはProが必要）。"] },
           { "title": "オートフロー vs ステップバイステップ", "body": ["オートフロー: 全エージェントが自動で順次実行。結果はリアルタイムでストリーム。", "ステップバイステップ: 各エージェントは完了後に一時停止。出力を確認してから続行、再生成、またはスキップ。", "最初の数回のミッションではステップバイステップを推奨し、各エージェントの貢献を理解。"] },
           { "title": "ミッション履歴", "body": ["最近のミッションはミッションビルダーの下に表示。", "各ミッションに表示: ステータス（完了、進行中、エラー、承認待ち）、使用エージェント、商品、時刻。", "進行中または承認待ちのミッションで「再開」をクリックして続行。", "完了したミッションで「全詳細を表示」をクリックして完全な出力を確認。"] }
@@ -1148,7 +1214,8 @@
           { "q": "ミッションは結果をShopifyに自動保存しますか？", "a": "はい — ミッション完了時、結果（翻訳、SEO、メタフィールド、ブログ記事、コレクション）は自動でShopifyに保存されます。" },
           { "q": "中断したミッションを再開できますか？", "a": "はい — ミッション履歴で見つけて「再開」をクリックすると、停止したところから続行できます。" },
           { "q": "エージェントステップをスキップすると？", "a": "ミッションは次のエージェントに進みます。スキップしたエージェントの出力は最終結果に含まれません。" },
-          { "q": "最初にどのプリセットミッションを試すべきですか？", "a": "最初のミッションには「Social Hype-Man」（Basic）または「Full Launch」（Pro）で、ミッションがエージェントをどう連携させるか確認してください。" }
+          { "q": "最初にどのプリセットミッションを試すべきですか？", "a": "最初のミッションには「Social Hype-Man」（Basic）または「Full Launch」（Pro）で、ミッションがエージェントをどう連携させるか確認してください。" },
+          { "q": "商品が日本語の場合、海外市場向けのSEO・価格分析はどうすればよいですか？", "a": "まず商品をターゲット言語にリライトしてから、SEOまたはPriceScoutを実行してください。ターゲット言語のコンテンツを使うと、より正確なSERP・競合価格の結果が得られます。" }
         ]
       },
       "bulk-upload": {
@@ -1219,6 +1286,251 @@
           { "q": "ダッシュボードはストアコンテンツを変更しますか？", "a": "いいえ — ダッシュボードは情報提供と設定用。監視、設定、次のアクションの決定をサポートします。" },
           { "q": "猶予期間中はどうなりますか？", "a": "以前のプランの機能は現在の請求サイクル終了まで有効です。その後、プランは新しいレベルに戻ります。" },
           { "q": "アプリ言語を変更するには？", "a": "ダッシュボードのアプリ言語セクションでトグルをクリックして、英語と日本語を切り替えてください。" }
+        ]
+      }
+    }
+  },
+  "landing": {
+    "nav": {
+      "features": "機能",
+      "pricing": "料金",
+      "support": "サポート"
+    },
+    "hero": {
+      "eyebrow": "Brand Soul × マルチマーケットAI",
+      "title": "グローバルEコマースのためのAI成長エンジン。",
+      "subtitle": "世界市場で売上、認知度、コンテンツ品質を向上—ガードレールとヒューマン・イン・ザ・ループで、ブランドアイデンティティを守りながら。",
+      "globalLaunch": "グローバルローンチ",
+      "organicLift": "+42% オーガニック向上",
+      "brandSoul": "Brand Soul",
+      "identityTone": "アイデンティティ＆トーン",
+      "rewriter": "リライター",
+      "localizedCopy": "ローカライズコピー",
+      "missions": "ミッション",
+      "automatedPipelines": "自動化パイプライン"
+    },
+    "shopify": {
+      "builtFor": "Shopify専用",
+      "getOnAppStore": "Shopifyアプリストアで入手",
+      "heading": "グローバル市場向けAI商品ローカライズ",
+      "description": "Brand Soul搭載AIで商品リスティングを変革。タイトルと説明文の書き換え、SEOメタデータの最適化、マーケティングコンテンツの生成—各ターゲット市場に合わせて。",
+      "feature1": "全ロケールで一貫したトーンを実現するBrand Soul",
+      "feature2": "ローカライズ商品コピーのためのAIリライター",
+      "feature3": "マルチマーケットSEO最適化",
+      "liveChannelView": "ライブチャネルビュー",
+      "localizedTitles": "ローカライズタイトル",
+      "localizedTitlesDesc": "文脈を理解した、ブランドセーフな書き換え。",
+      "seoMetadata": "SEOメタデータ",
+      "seoMetadataDesc": "LSI強化 + 競合ミラーリング。",
+      "qaLoop": "QAループ",
+      "qaLoopDesc": "マルチエージェント検証ワークフロー。"
+    },
+    "features": {
+      "eyebrow": "機能スタック",
+      "title": "グローバル成長に最適化されたAIシステム。",
+      "subtitle": "言語や市場を問わず、持続的なランキングと一貫したブランドボイスを構築。",
+      "seeAll": "すべての機能を見る",
+      "brandSoul": {
+        "title": "Brand Soul",
+        "desc": "ブランドアイデンティティを定義—アーキタイプ、トーン、パワーワード、禁止フレーズ、文化的タッチポイント—すべてのAI生成コンテンツに反映。"
+      },
+      "aiRewriter": {
+        "title": "AIリライター",
+        "desc": "市場ごとにローカライズされた下書き（タイトル + HTML説明文 + SEOタイトル/メタ）を生成し、翻訳をShopifyに保存。"
+      },
+      "missions": {
+        "title": "ミッション",
+        "desc": "リライター、SEO、マーケティング、価格設定、画像改善、ビジュアルマーケティングを連携させたマルチエージェントAIパイプラインを実行。"
+      },
+      "seo": {
+        "title": "SEO",
+        "desc": "SERPプレビューでSEOタイトル/メタを編集、CTRベストプラクティスを適用、競合インテルを活用、推奨事項に従う。"
+      },
+      "priceScout": {
+        "title": "Price Scout",
+        "desc": "Google検索結果から競合価格を分析し、AI駆動の価格推奨を取得。"
+      },
+      "marketing": {
+        "title": "マーケティング",
+        "desc": "SNSキャプション、広告コピー、季節キャンペーン、メールテンプレート、ヒーロー画像を生成—オプションでMeta自律公開も。"
+      }
+    },
+    "pricing": {
+      "eyebrow": "料金",
+      "title": "拡大計画に合ったプランを選択。",
+      "subtitle": "無料で始めて、成長に合わせてスケール。SEO、マーケティング、ミッションはすべてのプランに含まれます。",
+      "free": {
+        "name": "Free",
+        "price": "$0",
+        "period": "永久",
+        "description": "すべてを試せる、限定アクセス。",
+        "productLimit": "10商品（1週間トライアル）",
+        "features": [
+          "AI商品書き換え（タイトル + 説明文）",
+          "SEOタイトル + メタディスクリプション",
+          "Instagramキャプション + ハッシュタグ",
+          "競合価格分析",
+          "フル商品ローンチミッション",
+          "画像改善"
+        ]
+      },
+      "basic": {
+        "name": "Basic",
+        "price": "$29",
+        "period": "/ 月",
+        "description": "新規地域をテストする新興ブランド向け。",
+        "productLimit": "50商品 / 月",
+        "features": [
+          "AI書き換え + キーディテール自動検出",
+          "EN単位変換（メートル法 + US）",
+          "Instagramキャプション + ハッシュタグ",
+          "季節キャンペーンアイデア",
+          "テキストのみミッション（リライター + マーケティング）"
+        ]
+      },
+      "standard": {
+        "name": "Standard",
+        "price": "$79",
+        "period": "/ 月",
+        "description": "",
+        "productLimit": "無制限商品",
+        "badge": "ベストバリュー",
+        "features": [
+          "Basicのすべて",
+          "12ターゲット市場（書き換えごとに単一ロケール）",
+          "ブランドトーン: ラグジュアリー / ミニマリスト / プレイフル",
+          "SEOエディター + SERPプレビュー",
+          "競合価格分析",
+          "フルテキストパイプラインミッション"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$199",
+        "period": "/ 月",
+        "description": "",
+        "productLimit": "無制限商品",
+        "badge": "最も人気",
+        "features": [
+          "Standardのすべて",
+          "一括在庫セットアップ",
+          "ビジュアル広告生成 + SNS投稿プレビュー",
+          "価格をShopifyに自動適用",
+          "全機能で画像改善",
+          "エージェントワークフロー + Shopifyに公開",
+          "Meta（Facebook/Instagram）連携"
+        ]
+      }
+    },
+    "footer": {
+      "copyright": "Aganim AI. All rights reserved.",
+      "support": "サポート",
+      "privacyPolicy": "プライバシーポリシー"
+    }
+  },
+  "featuresPage": {
+    "eyebrow": "機能スタック",
+    "title": "グローバル販売に必要なすべて。",
+    "subtitle": "ブランドアイデンティティから自律パイプラインまで — 12の市場でShopify商品をローカライズ、最適化、マーケティングするための完全なAIツールキット。",
+    "featureBundle": "機能バンドル",
+    "cta": {
+      "title": "世界中でローンチする準備はできましたか？",
+      "subtitle": "無料で始めて、グローバルにスケール。すべての機能がすぐに利用可能 — より高い制限と高度な自動化のためにアップグレード。",
+      "startJourney": "グローバルジャーニーを始める",
+      "viewPricing": "料金を見る"
+    },
+    "features": {
+      "brand-soul": {
+        "title": "Brand Soul",
+        "short": "ブランドアイデンティティを定義 — アーキタイプ、トーン、パワーワード、禁止フレーズ、文化的タッチポイント — すべてのAI生成コンテンツに反映。",
+        "highlights": [
+          "アーキタイプ＆トーン設定",
+          "パワーワードと禁止フレーズ",
+          "市場ごとの文化的タッチポイント",
+          "すべての下流AI機能に反映"
+        ]
+      },
+      "rewriter-workspace": {
+        "title": "AIリライター",
+        "short": "市場ごとにローカライズされた下書き（タイトル + HTML説明文 + SEOタイトル/メタ）を生成し、翻訳をShopifyに保存。",
+        "highlights": [
+          "AI商品書き換え（タイトル + 説明文）",
+          "キーディテール自動検出",
+          "EN単位変換（メートル法 + US）",
+          "Shopifyに直接保存"
+        ]
+      },
+      "marketing": {
+        "title": "マーケティング",
+        "short": "SNSキャプション、広告コピー、季節キャンペーン、メールテンプレート、ヒーロー画像を生成 — オプションでMeta自律公開も。",
+        "highlights": [
+          "Instagram/TikTokキャプション + ハッシュタグ",
+          "広告バナーとヒーロー画像",
+          "季節小売キャンペーンカレンダー",
+          "Meta（FB/IG）自律公開（Pro）"
+        ]
+      },
+      "seo": {
+        "title": "SEO",
+        "short": "SERPプレビューでSEOタイトル/メタを編集、CTRベストプラクティスを適用、競合インテルを活用（Standard/Pro）、推奨事項に従う。",
+        "highlights": [
+          "SEOタイトル + メタディスクリプションエディター",
+          "ライブSERPプレビュー",
+          "競合インテル & CTRベストプラクティス",
+          "AI駆動の推奨事項"
+        ]
+      },
+      "price-scout": {
+        "title": "Price Scout",
+        "short": "Google検索結果から競合価格を分析し、AI駆動の価格推奨を取得。",
+        "highlights": [
+          "SERPベースの競合価格分析",
+          "AI駆動の価格推奨",
+          "価格をShopifyに自動適用（Pro）",
+          "カテゴリーと市場を考慮した価格設定"
+        ]
+      },
+      "content-studio": {
+        "title": "Content Studio",
+        "short": "オールインワンのクリエイティブワークスペース — 高品質なブログを書き、シネマティックなヒーローセクションを生成し、洗練されたコレクションを作成し、AIテンプレートとブランドボイスで商品FAQを制作。",
+        "highlights": [
+          "AIヒーロー画像付きの高品質ブランドブログ記事を執筆",
+          "シネマティックバナー付きヒーローセクションを生成",
+          "説明文付きの高品質コレクションページを作成",
+          "商品詳細からの商品FAQ生成",
+          "画像改善内蔵"
+        ]
+      },
+      "image-refinement": {
+        "title": "画像改善",
+        "short": "AI駆動の商品写真クリーンアップ — テキストを削除、背景を改善、洗練された画像をShopifyに保存。",
+        "highlights": [
+          "オーバーレイテキストとウォーターマークを削除",
+          "クリーンなスタジオ背景置換",
+          "100%商品忠実度の保持",
+          "Shopifyメディアライブラリに自動保存"
+        ]
+      },
+      "missions": {
+        "title": "ミッション",
+        "short": "リライター、SEO、マーケティング、価格設定、画像改善、ビジュアルマーケティングを連携させたマルチエージェントAIパイプラインを実行。",
+        "highlights": [
+          "すべてのプラン層に対応したプリセットミッション",
+          "カスタムパイプラインビルダー（任意のエージェント組み合わせ）",
+          "自動フローまたはステップバイステップ承認",
+          "結果をShopifyに自動保存"
+        ]
+      },
+      "many-more-features": {
+        "title": "さらに多くの機能",
+        "short": "コアワークフローを超えて、ローカライゼーション、コンプライアンス、公開管理、運用にわたる追加の成長ツールをアンロック。",
+        "highlights": [
+          "グローバルロケールハブ: 12の市場で編集・公開",
+          "Japanese Value: エビデンスに基づく文化/職人技の詳細抽出",
+          "リライター、テンプレート、キャンペーン全体でBrand Soulメモリ",
+          "コンテンツテンプレート: FAQ、ヒーロー、ブログ、コレクション生成",
+          "ステップバイステップまたは自律的なミッション実行フロー",
+          "ダッシュボードからの使用状況、クレジット、プラン管理"
         ]
       }
     }

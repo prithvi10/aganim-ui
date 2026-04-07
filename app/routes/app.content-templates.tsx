@@ -580,122 +580,6 @@ function ResultBlock({
   );
 }
 
-// ─── FAQ Card (with inline product selector) ──────────────────────────────────
-
-function FaqCard({
-  template,
-  products,
-  initialProduct,
-  shop,
-  backendApiUrl,
-  onToast,
-  entitlements,
-  defaultTargetLocale,
-}: {
-  template: ContentTemplate;
-  products: ProductListItem[];
-  initialProduct: SelectedProduct | null;
-  shop: string;
-  backendApiUrl: string;
-  onToast: (msg: string) => void;
-  entitlements: Entitlements;
-  defaultTargetLocale?: string;
-}) {
-  const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<string | null>(null);
-  const [resultOpen, setResultOpen] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [published, setPublished] = useState(false);
-  const editableHtmlRef = useRef<string>('');
-  const [selectedProductId, setSelectedProductId] = useState(initialProduct?.id || products[0]?.id || '');
-
-  const productOptions = useMemo(() => products.map((p) => ({label: p.title, value: p.id})), [products]);
-  const selectedTitle = useMemo(() => products.find((p) => p.id === selectedProductId)?.title || '', [products, selectedProductId]);
-
-  const handleGenerate = useCallback(async () => {
-    if (!selectedProductId) return;
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    editableHtmlRef.current = '';
-
-    try {
-      const body: Record<string, string> = {
-        target_locale: defaultTargetLocale || 'en',
-        title: selectedTitle,
-        product_id: selectedProductId,
-      };
-
-      const resp = await fetch(
-        `${backendApiUrl}/api/generate/${template.id}?shop=${encodeURIComponent(shop)}`,
-        { method: 'POST', headers: { 'X-Shopify-Shop-Domain': shop, 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
-      );
-      const data = await resp.json();
-      if (resp.ok && data.status === 'success') {
-        const raw = typeof data.content === 'object' ? JSON.stringify(data.content) : data.content || '';
-        setResult(raw);
-        setResultOpen(true);
-        onToast(t('contentTemplates.productFaqGenerated'));
-      } else {
-        setError(data.detail || data.error || 'Generation failed');
-      }
-    } catch (e: any) {
-      setError(e?.message || 'Network error');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast, t]);
-
-  const handleCopy = useCallback(async () => {
-    const toCopy = editableHtmlRef.current || result || '';
-    if (!toCopy) return;
-    try { await navigator.clipboard.writeText(toCopy); onToast(t('contentTemplates.copied')); } catch { onToast(t('contentTemplates.copyFailed')); }
-  }, [result, onToast, t]);
-
-  const handlePublish = useCallback(async () => {
-    if (!result) return;
-    setPublishing(true);
-    try {
-      const content = editableHtmlRef.current || result;
-      const resp = await fetch(`${backendApiUrl}/api/publish?shop=${encodeURIComponent(shop)}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Shopify-Shop-Domain': shop },
-        body: JSON.stringify({ template_id: template.id, product_id: selectedProductId, content, context: { product_title: selectedTitle } }),
-      });
-      if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Publish failed: ${resp.status}`); }
-      setPublished(true);
-      onToast(t('contentTemplates.publishedFaqToShopify'));
-    } catch (e: any) { onToast(`Publish failed: ${e?.message || e}`); } finally { setPublishing(false); }
-  }, [result, selectedProductId, selectedTitle, template, shop, backendApiUrl, onToast, t]);
-
-  const canPublish = canAccess(entitlements, 'publish');
-
-  return (
-    <Card>
-      <Box padding="400">
-        <BlockStack gap="400">
-          <BlockStack gap="200">
-            <Text as="h2" variant="headingLg">{t('contentTemplates.productFaq')}</Text>
-            <Text as="p" variant="bodyMd" tone="subdued">{t('contentTemplates.productFaqDesc')}</Text>
-          </BlockStack>
-          <Divider />
-          <Select label={t('contentTemplates.selectProduct')} options={productOptions} value={selectedProductId} onChange={setSelectedProductId} />
-          <InlineStack align="end">
-            <Button onClick={handleGenerate} disabled={!selectedProductId || loading} loading={loading}>
-              {loading ? t('contentTemplates.generating') : result ? t('contentTemplates.regenerate') : t('contentTemplates.generate')}
-            </Button>
-          </InlineStack>
-          {error && <Banner tone="critical">{error}</Banner>}
-          {result && (
-            <ResultBlock templateId={template.id} templateName="FAQ" result={result} heroUrl={null} resultOpen={resultOpen} setResultOpen={setResultOpen} canPublish={canPublish} published={published} publishing={publishing} handlePublish={handlePublish} handleCopy={handleCopy} editableHtmlRef={editableHtmlRef} publishLabel={t('contentTemplates.addToProductDescription')} />
-          )}
-        </BlockStack>
-      </Box>
-    </Card>
-  );
-}
-
 // ─── Collection Card (multi-product + name + description) ─────────────────────
 
 function getImageStyleOptions(t: (key: string) => string) {
@@ -1178,7 +1062,6 @@ export default function ContentTemplatesPage() {
 
   const [toastContent, setToastContent] = useState<string | null>(null);
 
-  const faqTemplate = templates.find((t) => t.id === 'product/faq');
   const collectionTemplate = templates.find((t) => t.id === 'product/collection');
   const heroTemplate = templates.find((t) => t.id === 'product/landing-hero');
   const blogTemplate = templates.find((t) => t.id === 'product/blog-post');
@@ -1193,13 +1076,6 @@ export default function ContentTemplatesPage() {
       }}
     >
       <Layout>
-        {/* Product FAQ */}
-        {faqTemplate && (
-          <Layout.Section>
-            <FaqCard template={faqTemplate} products={products} initialProduct={selectedProduct} shop={shop} backendApiUrl={backendApiUrl} onToast={setToastContent} entitlements={entitlements} defaultTargetLocale={defaultTargetLocale} />
-          </Layout.Section>
-        )}
-
         {/* Collection Description */}
         {collectionTemplate && (
           <Layout.Section>

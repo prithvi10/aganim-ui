@@ -108,6 +108,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let metaCredentials = { access_token_present: false, page_id_present: false, page_id: null as string | null };
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let brandSoulEnabled = true;
+  let brandContextStatus = "idle";
   try {
     // 3. FETCH DATA using the Master Key (No 302s)
     
@@ -222,6 +224,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         feature_usage = (data.feature_usage || {}) as FeatureUsageMap;
         if (data?.ui_language === "ja") uiLanguage = "ja";
         if (data?.default_target_locale) defaultTargetLocale = String(data.default_target_locale).trim() || "en";
+        const brandSoulEnabledValue = data?.brand_soul_enabled !== undefined ? Boolean(data.brand_soul_enabled) : true;
+        const brandContextStatusValue = String(data?.brand_context_status || "idle");
         const billingCycleType =
           String(data.billing_cycle_type || "")
             .trim()
@@ -249,7 +253,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           pendingPlanEffectiveAt: data.pending_plan_effective_at ?? null,
           lastPlanChangeType: data.last_plan_change_type ?? null,
         };
-        // Backend effective_plan_name already incorporates grace handling; no UI override needed.
+        brandSoulEnabled = brandSoulEnabledValue;
+        brandContextStatus = brandContextStatusValue;
       }
     } catch (e) {
       console.error("Backend usage fetch failed", e);
@@ -288,6 +293,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       shop,
       uiLanguage,
       defaultTargetLocale,
+      brandSoulEnabled,
+      brandContextStatus,
     };
 
   } catch (e) {
@@ -315,6 +322,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       shop: "",
       uiLanguage: "en",
       defaultTargetLocale: "en",
+      brandSoulEnabled: true,
+      brandContextStatus: "idle",
     };
   }
 };
@@ -340,9 +349,12 @@ export default function Dashboard() {
     shop,
     uiLanguage,
     defaultTargetLocale,
+    brandSoulEnabled: initialBrandSoulEnabled,
+    brandContextStatus,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [currentLang, setCurrentLang] = useState(uiLanguage);
+  const [brandSoulOn, setBrandSoulOn] = useState(initialBrandSoulEnabled);
   const [currentLocale, setCurrentLocale] = useState(defaultTargetLocale || "en");
 
   const LOCALE_OPTIONS = ["ja", "en", "zh-TW", "ko", "de", "fr", "es", "it", "pt", "th", "vi", "zh-CN"] as const;
@@ -378,6 +390,20 @@ export default function Dashboard() {
       // persist failed, UI still updated locally
     }
   }, [currentLang, shop, backendApiUrl]);
+
+  const toggleBrandSoul = useCallback(async () => {
+    const next = !brandSoulOn;
+    setBrandSoulOn(next);
+    try {
+      await fetch(`${backendApiUrl}/api/admin/brand-soul-toggle`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shop, enabled: next }),
+      });
+    } catch {
+      // persist failed, UI still updated locally
+    }
+  }, [brandSoulOn, shop, backendApiUrl]);
   const [searchParams] = useSearchParams();
   const rewriterUrl = useMemo(() => {
     const qs =
@@ -695,6 +721,31 @@ export default function Dashboard() {
               </Box>
             </Card>
           </Layout.Section>
+
+          {/* BRAND SOUL TOGGLE */}
+          {brandContextStatus === "ready" && (
+            <Layout.Section>
+              <Card>
+                <Box padding="400">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">{t("dashboard.brandSoulToggle")}</Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        {t("dashboard.brandSoulToggleHelp")}
+                      </Text>
+                    </BlockStack>
+                    <Button
+                      onClick={toggleBrandSoul}
+                      variant={brandSoulOn ? "primary" : "secondary"}
+                      tone={brandSoulOn ? "success" : undefined}
+                    >
+                      {brandSoulOn ? t("dashboard.brandSoulOn") : t("dashboard.brandSoulOff")}
+                    </Button>
+                  </InlineStack>
+                </Box>
+              </Card>
+            </Layout.Section>
+          )}
 
           {/* USAGE METRICS */}
           <Layout.Section>

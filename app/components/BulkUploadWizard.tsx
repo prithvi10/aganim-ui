@@ -47,7 +47,6 @@ export function BulkUploadWizard({
 
   // Preferences
   const [toneProfile, setToneProfile] = useState("professional");
-  const [brandSoul, setBrandSoul] = useState(false);
   const [usUnits, setUsUnits] = useState(true);
   const [targetMarket, setTargetMarket] = useState(defaultTargetLocale);
 
@@ -171,7 +170,6 @@ export function BulkUploadWizard({
           mission_type: missionType,
           preferences: {
             tone_profile: toneProfile,
-            brand_soul_enabled: brandSoul,
             us_units_conversion: usUnits,
             target_market: targetMarket,
           },
@@ -207,7 +205,6 @@ export function BulkUploadWizard({
     file,
     missionType,
     toneProfile,
-    brandSoul,
     usUnits,
     targetMarket,
     backendApiUrl,
@@ -376,12 +373,6 @@ export function BulkUploadWizard({
               />
 
               <Checkbox
-                label={t("bulkBrandSoul")}
-                checked={brandSoul}
-                onChange={setBrandSoul}
-              />
-
-              <Checkbox
                 label={t("bulkUsUnits")}
                 checked={usUnits}
                 onChange={setUsUnits}
@@ -463,9 +454,6 @@ export function BulkUploadWizard({
                 </Text>
                 <Text as="p" variant="bodySm">
                   <strong>Tone:</strong> {toneProfile}
-                </Text>
-                <Text as="p" variant="bodySm">
-                  <strong>Brand Soul:</strong> {brandSoul ? "Yes" : "No"}
                 </Text>
                 <Text as="p" variant="bodySm">
                   <strong>US Units:</strong> {usUnits ? "Yes" : "No"}
