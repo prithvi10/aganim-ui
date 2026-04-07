@@ -6,6 +6,7 @@ import {
   LandingFooter,
   Reveal,
 } from "../components/LandingLayout";
+import { supportMediaUrl } from "../utils/supportMedia";
 
 /* ------------------------------------------------------------------ */
 /*  Feature data (sourced from en.json support.cards.*)                */
@@ -228,13 +229,13 @@ export default function FeaturesPage() {
                       </div>
                     ) : isImage(f.media) ? (
                       <img
-                        src={f.media}
+                        src={supportMediaUrl(f.media)}
                         alt={f.title}
                         className="h-full w-full object-cover"
                       />
                     ) : (
                       <video
-                        src={f.media}
+                        src={supportMediaUrl(f.media)}
                         autoPlay
                         loop
                         muted
