@@ -744,7 +744,16 @@ function CollectionCard({
 
           <Divider />
           <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
-            <ProductImageUploader productTitle={collectionName || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            {canAccess(entitlements, 'ad_image_generation') ? (
+              <ProductImageUploader productTitle={collectionName || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            ) : (
+              <Box padding="400" borderRadius="200" background="bg-surface-secondary">
+                <BlockStack gap="200" inlineAlign="center">
+                  <PlanGateBadge tierName="Pro" />
+                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Pro</Text>
+                </BlockStack>
+              </Box>
+            )}
             <BlockStack gap="300">
               <Select label={t('contentTemplates.imageStyle')} options={getImageStyleOptions(t)} value={imageStyle} onChange={setImageStyle} />
               <div style={{ flex: 1 }} />
@@ -878,7 +887,16 @@ function HeroSectionCard({
           </BlockStack>
           <Divider />
           <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
-            <ProductImageUploader productTitle={heroSubject || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            {canAccess(entitlements, 'ad_image_generation') ? (
+              <ProductImageUploader productTitle={heroSubject || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            ) : (
+              <Box padding="400" borderRadius="200" background="bg-surface-secondary">
+                <BlockStack gap="200" inlineAlign="center">
+                  <PlanGateBadge tierName="Pro" />
+                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Pro</Text>
+                </BlockStack>
+              </Box>
+            )}
             <BlockStack gap="300">
               <TextField label={t('contentTemplates.subjectTheme')} value={heroSubject} onChange={setHeroSubject} placeholder={t('contentTemplates.subjectPlaceholder')} autoComplete="off" requiredIndicator />
               <TextField label={t('contentTemplates.shortDescription')} value={shortDescription} onChange={setShortDescription} placeholder={t('contentTemplates.shortDescriptionPlaceholder')} autoComplete="off" multiline={2} />
@@ -1017,7 +1035,16 @@ function BlogPostCard({
           </BlockStack>
           <Divider />
           <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px', alignItems: 'start' }}>
-            <ProductImageUploader productTitle={blogTopic || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            {canAccess(entitlements, 'ad_image_generation') ? (
+              <ProductImageUploader productTitle={blogTopic || 'Product'} onCustomImage={setCustomImageFile} disabled={loading} />
+            ) : (
+              <Box padding="400" borderRadius="200" background="bg-surface-secondary">
+                <BlockStack gap="200" inlineAlign="center">
+                  <PlanGateBadge tierName="Pro" />
+                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Pro</Text>
+                </BlockStack>
+              </Box>
+            )}
             <BlockStack gap="300">
               <TextField label={t('contentTemplates.subjectTopic')} value={blogTopic} onChange={setBlogTopic} placeholder={t('contentTemplates.topicPlaceholder')} autoComplete="off" requiredIndicator />
               <TextField label={t('contentTemplates.category')} value={blogCategory} onChange={setBlogCategory} placeholder={t('contentTemplates.categoryPlaceholder')} autoComplete="off" requiredIndicator />

@@ -351,61 +351,18 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     : descriptionHash('');
   let didResetMetaCache = false;
 
-  // If description changed manually in Shopify (not via our app), clear cached context metafields.
+  // Detect manual description changes (read-only check — mutations deferred to save action).
   if (selectedProduct?.id) {
     const prevDescHash = String(selectedProduct?.descHashMeta?.value ?? '');
     const appDescHash = String(selectedProduct?.appDescHashMeta?.value ?? '');
-    // If we don't have a baseline yet, just set it—don't treat it as a manual change.
     if (prevDescHash && prevDescHash !== currentContentHash) {
       const isManualChange = appDescHash !== currentContentHash;
       if (isManualChange) {
-        const ctxId = selectedProduct?.culturalContext?.id;
-        if (ctxId) {
-          try {
-            await graphqlQuery(
-              `mutation DeleteMetafield($input: MetafieldDeleteInput!) {
-                metafieldDelete(input: $input) {
-                  deletedId
-                  userErrors { field message }
-                }
-              }`,
-              {input: {id: ctxId}},
-            );
-          } catch {
-            // best-effort
-          }
-        }
-        // Ensure UI doesn't keep showing stale "saved" status for cultural context.
         selectedProduct = {
           ...selectedProduct,
-          culturalContext: {id: null, value: null},
+          culturalContext: {id: selectedProduct?.culturalContext?.id ?? null, value: null},
         };
         didResetMetaCache = true;
-      }
-
-      // Record latest seen hash so we don't reset repeatedly.
-      try {
-        await graphqlQuery(
-          `mutation SetHash($metafields: [MetafieldsSetInput!]!) {
-            metafieldsSet(metafields: $metafields) {
-              metafields { id }
-              userErrors { field message }
-            }
-          }`,
-          {
-            metafields: [
-              {
-                ownerId: selectedProduct.id,
-                namespace: "crossborderagent",
-                key: "desc_hash",
-                type: "single_line_text_field",
-                value: currentContentHash,
-              },
-            ],
-          },
-        );
-      } catch {
-        // best-effort
       }
     }
 
@@ -687,6 +644,15 @@ export const action = async ({request}: ActionFunctionArgs) => {
       }
     }
     return {ok: true};
+    }
+
+    // Validate the target locale is enabled on the shop
+    const localeIsPublished = shopLocales.some((l) => l.locale === targetLocale);
+    if (!localeIsPublished) {
+      return {
+        ok: false,
+        error: `Locale "${targetLocale}" is not enabled on your Shopify store. Enable it in Settings > Languages, then try again.`,
+      };
     }
 
     // Otherwise, register translation for the target locale (prevents overwriting the primary language)
@@ -2185,17 +2151,6 @@ function RewriterWorkspaceInner({
                       </Box>
 
                       <Box paddingBlockStart="200">
-                        <InlineStack align="start" gap="200" blockAlign="center">
-                          <Text as="p" variant="bodyMd" tone="subdued">
-                            {t("targetMarket")}:
-                          </Text>
-                          <Badge tone="info">
-                            {(effectiveTargetLocale || 'en').toUpperCase()}
-                          </Badge>
-                        </InlineStack>
-                      </Box>
-
-                      <Box paddingBlockStart="200">
                         <Checkbox
                           label={`✨ ${t("autoConvertUnits")}`}
                           checked={autoConvertUnits}
@@ -2453,9 +2408,11 @@ function RewriterWorkspaceInner({
                                     method: "POST",
                                     headers: { "Content-Type": "application/json", "X-Shopify-Shop-Domain": shop },
                                     body: JSON.stringify({
-                                      target_locale: effectiveTargetLocale || "en",
+                                      target_locale: activeLocale || effectiveTargetLocale || "en",
                                       title: selectedProduct.title,
                                       product_id: selectedProduct.id,
+                                      description: selectedProduct.descriptionHtml || selectedProduct.description || "",
+                                      category: selectedProduct.productType || "",
                                     }),
                                   },
                                 );

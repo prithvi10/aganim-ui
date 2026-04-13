@@ -29,9 +29,10 @@ export function DowngradeScheduledBanner({
   const { t } = useTranslation();
   const next = String(pendingPlanName || "").trim();
   const effAt = String(pendingPlanEffectiveAt || "").trim();
-  const isDowngrade = !lastPlanChangeType || String(lastPlanChangeType).trim() === "downgrade";
+  const changeType = String(lastPlanChangeType || "").trim();
+  const isDowngradeOrCancel = !changeType || changeType === "downgrade" || changeType === "cancel";
 
-  if (!next || !effAt || !isDowngrade) return null;
+  if (!next || !effAt || !isDowngradeOrCancel) return null;
 
   return (
     <div

@@ -132,6 +132,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
           title: t("planCatalog.marketingSection"),
           features: [
             { label: t("planCatalog.everythingInBasic"), included: true },
+            { label: t("planCatalog.socialPostPreview"), included: true },
           ],
         },
         {
@@ -144,11 +145,17 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
             { label: t("planCatalog.fullTextPipeline"), included: true },
           ],
         },
+        {
+          title: t("planCatalog.imagesSection"),
+          features: [
+            { label: t("planCatalog.imageCreditsMonthly10"), included: true },
+          ],
+        },
       ],
     },
     {
       name: PLAN_PRO,
-      price: "$199",
+      price: "$149",
       tagline: t("planCatalog.proTagline"),
       productLimit: t("planCatalog.unlimitedProducts"),
       sections: [
