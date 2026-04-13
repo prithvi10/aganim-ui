@@ -368,7 +368,7 @@ export default function ImageRefinement() {
   return (
     <Page
       title={t('imageRefinement.title')}
-      titleMetadata={!canUseImages ? <PlanGateBadge tierName="Pro" /> : undefined}
+      titleMetadata={!canUseImages ? <PlanGateBadge tierName="Standard" /> : undefined}
       backAction={{
         content: t('imageRefinement.backToWritingStudio'),
         onAction: () => navigate(nav('/app/writing-studio')),

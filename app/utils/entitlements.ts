@@ -8,8 +8,8 @@ export type FeatureUsageMap = Record<string, FeatureUsageEntry>;
 const FEATURE_MIN_TIER: Record<string, PlanName> = {
   seo: PLAN_STANDARD,
   price_scout: PLAN_STANDARD,
-  image_refinement_adhoc: PLAN_PRO,
-  ad_image_generation: PLAN_PRO,
+  image_refinement_adhoc: PLAN_STANDARD,
+  ad_image_generation: PLAN_STANDARD,
   social_post_preview: PLAN_PRO,
   autonomous: PLAN_PRO,
   publish: PLAN_PRO,
