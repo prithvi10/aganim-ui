@@ -47,8 +47,8 @@ export default function MerchantDetail() {
     { term: "Onboarding", description: shop.is_onboarding_finished ? "Finished" : `Step ${shop.onboarding_step}` },
     { term: "Monthly Rewrites", description: String(shop.monthly_rewrites_used) },
     { term: "Lifetime Rewrites Left", description: String(shop.lifetime_rewrites_remaining) },
-    { term: "Monthly Missions", description: String(shop.monthly_missions_used) },
-    { term: "Lifetime Missions Left", description: String(shop.lifetime_missions_remaining) },
+    { term: "Monthly Agentic Missions", description: String(shop.monthly_missions_used) },
+    { term: "Lifetime Agentic Missions Left", description: String(shop.lifetime_missions_remaining) },
     { term: "Monthly Image Gens", description: String(shop.monthly_image_generations_used) },
     { term: "Lifetime Image Credits Left", description: String(shop.lifetime_image_credits_remaining) },
     { term: "Monthly Cost", description: `$${Number(shop.monthly_cost_accumulated || 0).toFixed(2)}` },
@@ -163,7 +163,7 @@ export default function MerchantDetail() {
 
         <Card>
           <BlockStack gap="300">
-            <Text as="h2" variant="headingMd">Missions</Text>
+            <Text as="h2" variant="headingMd">Agentic Missions</Text>
             {missionRows.length > 0 ? (
               <DataTable
                 columnContentTypes={["text", "text", "text", "text", "text", "text"]}
@@ -171,7 +171,7 @@ export default function MerchantDetail() {
                 rows={missionRows}
               />
             ) : (
-              <Text as="p" tone="subdued">No missions</Text>
+              <Text as="p" tone="subdued">No agentic missions</Text>
             )}
           </BlockStack>
         </Card>

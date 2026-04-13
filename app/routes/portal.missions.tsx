@@ -98,7 +98,7 @@ export default function PortalMissions() {
 
   return (
     <Page
-      title="Missions"
+      title="Agentic Missions"
       subtitle={`${total} total | ${stuck.count} stuck`}
       primaryAction={
         <Button onClick={() => revalidator.revalidate()} loading={revalidator.state === "loading"}>
@@ -115,7 +115,7 @@ export default function PortalMissions() {
         )}
 
         {stuck.count > 0 && (
-          <Banner title={`${stuck.count} stuck mission(s)`} tone="warning">
+          <Banner title={`${stuck.count} stuck agentic mission(s)`} tone="warning">
             <BlockStack gap="200">
               {stuck.stuck_missions.map((m: any) => (
                 <InlineStack key={m.id} gap="200" align="start" blockAlign="center">
@@ -164,7 +164,7 @@ export default function PortalMissions() {
 
         <Card padding="0">
           <IndexTable
-            resourceName={{ singular: "mission", plural: "missions" }}
+            resourceName={{ singular: "agentic mission", plural: "agentic missions" }}
             itemCount={missions.length}
             headings={[
               { title: "ID" },

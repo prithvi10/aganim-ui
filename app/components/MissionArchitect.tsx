@@ -407,9 +407,10 @@ const PRESETS: Record<string, Preset> = {
 
   // ── Quick launch (Basic tier) ───────────────────────────────────
   quick_launch: {
-    label: "Quick Launch",
-    icon: "⚡",
-    description: "Rewrite your product and generate marketing copy",
+    label: "Spotlight Launch",
+    icon: "📣",
+    description:
+      "Rewriter → Marketing: sharpen product copy, then hooks & campaign lines (no SEO, pricing, or images)",
     steps: [
       { agent_name: "RewriterAgent", has_gate: true },
       { agent_name: "MarketingAgent", has_gate: true },
@@ -615,6 +616,7 @@ export function MissionArchitect({
       collection_refresher: t("collectionRefresher"),
       google_ads_shield: t("googleAdsShield"),
       market_awareness_audit: t("marketAwarenessAudit"),
+      quick_launch: t("quickLaunch"),
       full_launch: t("fullLaunch"),
       visual_ad_blitz: t("visualAdBlitz"),
       bulk_text_only: t("bulkTextOnly"),
@@ -635,6 +637,7 @@ export function MissionArchitect({
       collection_refresher: t("collectionRefresherDesc"),
       google_ads_shield: t("googleAdsShieldDesc"),
       market_awareness_audit: t("marketAwarenessAuditDesc"),
+      quick_launch: t("quickLaunchDesc"),
       full_launch: t("fullLaunchDesc"),
       visual_ad_blitz: t("visualAdBlitzDesc"),
       bulk_text_only: t("bulkTextOnlyDesc"),

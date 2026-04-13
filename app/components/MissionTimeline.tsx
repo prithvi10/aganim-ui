@@ -757,9 +757,9 @@ export function MissionTimeline({
           }
         } else if (statusData?.status === "ERROR") {
           // Mission errored, show error state
-          setError(statusData.error_message || "Mission failed");
+          setError(statusData.error_message || "Agentic Mission failed");
           if (onError) {
-            onError(statusData.error_message || "Mission failed");
+            onError(statusData.error_message || "Agentic Mission failed");
           }
         } else {
           // Mission is in progress or awaiting approval, run the step
@@ -777,7 +777,7 @@ export function MissionTimeline({
             {/* Header */}
             <InlineStack align="space-between" blockAlign="center">
               <Text as="h2" variant={compact ? "headingMd" : "headingLg"}>
-                {isAdhoc ? "Agent Run" : "Mission Timeline"}
+                {isAdhoc ? "Agent Run" : "Agentic Mission Timeline"}
               </Text>
               <InlineStack gap="200">
                 {isConnected && (
@@ -796,7 +796,7 @@ export function MissionTimeline({
 
             {/* Error banner */}
             {error && (
-              <Banner tone="critical" title="Mission Error">
+              <Banner tone="critical" title="Agentic Mission Error">
                 <p>{error}</p>
               </Banner>
             )}

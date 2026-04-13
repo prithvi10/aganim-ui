@@ -335,7 +335,7 @@ export function MissionSummary({
               tone={isError ? "critical" : "success"}
             />
             <Text variant="headingMd" as="h2">
-              {isError ? "Mission Failed" : "Mission Complete"}
+              {isError ? "Agentic Mission Failed" : "Agentic Mission Complete"}
             </Text>
           </InlineStack>
           
@@ -508,7 +508,7 @@ export function MissionSummary({
             <BlockStack gap="300">
               <Text variant="headingSm" as="h3">Generated Content</Text>
               <Text variant="bodySm" tone="subdued">
-                Template outputs from this mission — copy any content below
+                Template outputs from this agentic mission — copy any content below
               </Text>
               <BlockStack gap="300">
                 {templateOutputs.map((t) => (

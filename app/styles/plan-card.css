@@ -40,6 +40,18 @@
   background: linear-gradient(90deg, #7c3aed, #a78bfa, #8b5cf6);
 }
 
+/* Highlighted section left border */
+.plan-section-highlight {
+  border-left: 3px solid transparent;
+  border-radius: var(--p-border-radius-300);
+}
+.plan-section-highlight--standard {
+  border-left-color: #3b82f6;
+}
+.plan-section-highlight--pro {
+  border-left-color: #8b5cf6;
+}
+
 /* Gradient upgrade button wrapper */
 .plan-upgrade-btn {
   display: flex;
