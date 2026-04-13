@@ -136,14 +136,14 @@ export const AVAILABLE_AGENTS: AgentDefinition[] = [
   {
     name: "ImageRefinementAgent",
     displayName: "Image Refinement",
-    description: "AI product photo cleanup and background refinement (Pro)",
+    description: "AI product photo cleanup and background refinement",
     icon: "✨",
     color: "info",
   },
   {
     name: "VisualMarketingAgent",
     displayName: "Visual Marketing",
-    description: "Marketing ad generation (Pro)",
+    description: "Marketing ad generation",
     icon: "📸",
     color: "info",
   },
@@ -446,7 +446,7 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "VisualMarketingAgent", has_gate: true },
     ],
     contextType: "product",
-    minTier: "Pro",
+    minTier: "Standard",
   },
   bulk_text_only: {
     label: "Bulk Text Upload",
@@ -1103,7 +1103,7 @@ export function MissionArchitect({
                   {AVAILABLE_AGENTS
                     .filter((agent) => {
                       if (["ImageRefinementAgent", "VisualMarketingAgent"].includes(agent.name))
-                        return tierMeetsMin(currentTier, "Pro");
+                        return tierMeetsMin(currentTier, "Standard");
                       if (["SEOAgent", "PriceScoutAgent"].includes(agent.name))
                         return tierMeetsMin(currentTier, "Standard");
                       return tierMeetsMin(currentTier, "Basic");
