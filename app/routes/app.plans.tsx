@@ -7,11 +7,8 @@ import {
   MONTHLY_PLAN_BASIC,
   MONTHLY_PLAN_STANDARD,
   MONTHLY_PLAN_PRO,
-  ANNUAL_PLAN_PRO,
   PROMO_PLAN_BASIC_MONTHLY,
-  PROMO_PLAN_BASIC_ANNUAL,
   PROMO_PLAN_STANDARD_MONTHLY,
-  PROMO_PLAN_STANDARD_ANNUAL,
 } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { PlanCard } from "../components/PlanCard";
@@ -178,16 +175,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // This ensures we always send the right plan to billing.request()
   // regardless of client-side rendering anomalies.
   let planKey: string;
-  const isPromo = cycleRaw === "promo-monthly" || cycleRaw === "promo-annual";
+  const isPromo = cycleRaw === "promo-monthly";
   if (requestedTier === PLAN_PRO) {
-    planKey = cycleRaw === "pro-annual" ? ANNUAL_PLAN_PRO : MONTHLY_PLAN_PRO;
+    planKey = MONTHLY_PLAN_PRO;
   } else if (requestedTier === PLAN_STANDARD) {
-    if (cycleRaw === "promo-annual") planKey = PROMO_PLAN_STANDARD_ANNUAL;
-    else if (cycleRaw === "promo-monthly") planKey = PROMO_PLAN_STANDARD_MONTHLY;
+    if (cycleRaw === "promo-monthly") planKey = PROMO_PLAN_STANDARD_MONTHLY;
     else planKey = MONTHLY_PLAN_STANDARD;
   } else if (requestedTier === PLAN_BASIC) {
-    if (cycleRaw === "promo-annual") planKey = PROMO_PLAN_BASIC_ANNUAL;
-    else if (cycleRaw === "promo-monthly") planKey = PROMO_PLAN_BASIC_MONTHLY;
+    if (cycleRaw === "promo-monthly") planKey = PROMO_PLAN_BASIC_MONTHLY;
     else planKey = MONTHLY_PLAN_BASIC;
   } else {
     planKey = planFieldRaw || tierRaw;  // fallback (Free or unknown)
@@ -318,14 +313,14 @@ export default function PlansPage() {
   }, [location.pathname, location.search]);
 
   const billingOptions = useMemo(() => ({
-    [PLAN_BASIC]: { monthly: { price: "$29", key: "Basic Promo Monthly" }, annual: { price: "$290", key: "Basic Promo Annual", perMonth: "$24.17" }, original: "$39", savings: "~26%" },
-    [PLAN_STANDARD]: { monthly: { price: "$79", key: "Standard Promo Monthly" }, annual: { price: "$790", key: "Standard Promo Annual", perMonth: "$65.83" }, original: "$89", savings: "~11%" },
-    [PLAN_PRO]: { monthly: { price: "$199", key: "Pro" }, annual: { price: "$1,990", key: "Pro Annual", perMonth: "$165.83" }, original: null, savings: "~17%" },
+    [PLAN_BASIC]: { monthly: { price: "$29", key: "Basic Promo Monthly" }, original: "$39", savings: "~26%" },
+    [PLAN_STANDARD]: { monthly: { price: "$79", key: "Standard Promo Monthly" }, original: "$89", savings: "~11%" },
+    [PLAN_PRO]: { monthly: { price: "$149", key: "Pro" }, original: null, savings: null },
   } as const), []);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPlan, setModalPlan] = useState<PlanName | null>(null);
-  const [modalCycle, setModalCycle] = useState<"monthly" | "annual">("monthly");
+  const [modalCycle, setModalCycle] = useState<"monthly">("monthly");
   const formRef = useRef<HTMLFormElement>(null);
 
   const openBillingModal = useCallback((planName: PlanName) => {
@@ -345,11 +340,9 @@ export default function PlansPage() {
 
   const modalBillingInfo: any = modalPlan ? (billingOptions as any)[modalPlan] : null;
   const modalPlanKey = modalBillingInfo
-    ? (modalCycle === "annual" ? modalBillingInfo.annual.key : modalBillingInfo.monthly.key)
+    ? modalBillingInfo.monthly.key
     : modalPlan || "";
-  const modalCycleValue = modalCycle === "annual"
-    ? (modalPlan === PLAN_PRO ? "pro-annual" : "promo-annual")
-    : (modalPlan === PLAN_PRO ? "" : "promo-monthly");
+  const modalCycleValue = modalPlan === PLAN_PRO ? "" : "promo-monthly";
 
   return (
     <Page title={t("plans.selectPlan")} fullWidth>
@@ -445,10 +438,8 @@ export default function PlansPage() {
                                 <span style={{ textDecoration: "line-through" }}>
                                   {info.original}{t("plans.perMonth")}
                                 </span>
-                                {" "}—{" "}
                               </>
                             ) : null}
-                            {t("plans.orYear", { price: info.annual.price })}
                           </Text>
                         </BlockStack>
                       ) : undefined
@@ -541,51 +532,6 @@ export default function PlansPage() {
                   {modalBillingInfo.monthly.price}
                   <Text as="span" variant="bodySm" fontWeight="regular">{t("plans.perMo")}</Text>
                 </Text>
-              </div>
-
-              <div
-                onClick={() => setModalCycle("annual")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setModalCycle("annual"); }}
-                style={{
-                  padding: 16,
-                  borderRadius: 12,
-                  border: modalCycle === "annual"
-                    ? "2px solid var(--p-color-border-interactive)"
-                    : "2px solid var(--p-color-border-subdued)",
-                  background: modalCycle === "annual"
-                    ? "var(--p-color-bg-surface-selected)"
-                    : "var(--p-color-bg-surface)",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  display: "grid",
-                  gridTemplateColumns: "auto 1fr auto",
-                  gap: 12,
-                  alignItems: "center",
-                }}
-              >
-                <RadioButton
-                  label=""
-                  checked={modalCycle === "annual"}
-                  onChange={() => setModalCycle("annual")}
-                />
-                <BlockStack gap="050">
-                  <InlineStack gap="200" blockAlign="center">
-                    <Text as="span" variant="headingSm">{t("plans.annual")}</Text>
-                    <Badge tone="success">{t("plans.save")} {modalBillingInfo.savings}</Badge>
-                  </InlineStack>
-                  <Text as="span" variant="bodySm" tone="subdued">{t("plans.billedYearly")}</Text>
-                </BlockStack>
-                <BlockStack gap="050">
-                  <Text as="span" variant="headingMd" fontWeight="bold">
-                    {modalBillingInfo.annual.price}
-                    <Text as="span" variant="bodySm" fontWeight="regular">{t("plans.perYr")}</Text>
-                  </Text>
-                  <Text as="span" variant="bodySm" tone="subdued">
-                    {modalBillingInfo.annual.perMonth}{t("plans.perMo")}
-                  </Text>
-                </BlockStack>
               </div>
 
               {modalBillingInfo.original ? (

@@ -266,6 +266,7 @@ interface Preset {
   steps: WorkflowStep[];
   contextType: ContextType;
   minTier: PlanTier;
+  allowFreeTrial?: boolean;
 }
 
 const REFINEMENT_THEMES = [
@@ -404,7 +405,20 @@ const PRESETS: Record<string, Preset> = {
     minTier: "Standard",
   },
 
-  // ── Full pipeline (Free trial + Pro) ────────────────────────────
+  // ── Quick launch (Basic tier) ───────────────────────────────────
+  quick_launch: {
+    label: "Quick Launch",
+    icon: "⚡",
+    description: "Rewrite your product and generate marketing copy",
+    steps: [
+      { agent_name: "RewriterAgent", has_gate: true },
+      { agent_name: "MarketingAgent", has_gate: true },
+    ],
+    contextType: "product",
+    minTier: "Basic",
+  },
+
+  // ── Full pipeline (Free trial + Standard/Pro — locked for Basic) ─
   full_launch: {
     label: "Full Launch",
     icon: "🚀",
@@ -418,7 +432,8 @@ const PRESETS: Record<string, Preset> = {
       { agent_name: "VisualMarketingAgent", has_gate: true },
     ],
     contextType: "product",
-    minTier: "Free",
+    minTier: "Standard",
+    allowFreeTrial: true,
   },
   visual_ad_blitz: {
     label: "Visual Ad Blitz",
@@ -452,11 +467,16 @@ const PRESETS: Record<string, Preset> = {
   },
 };
 
+function isPresetAvailableForTier(preset: Preset, tier: PlanTier): boolean {
+  if (preset.allowFreeTrial && tier === "Free") return true;
+  return tierMeetsMin(tier, preset.minTier);
+}
+
 function isDeepLinkableMissionKey(key: string, tier: PlanTier): boolean {
   const preset = PRESETS[key];
   if (!preset?.steps?.length) return false;
   if (preset.contextType === "bulk_csv" || preset.contextType === "bulk_zip") return false;
-  return tierMeetsMin(tier, preset.minTier);
+  return isPresetAvailableForTier(preset, tier);
 }
 
 // ─── Mission Card ───────────────────────────────────────────────────────────
@@ -871,22 +891,25 @@ export function MissionArchitect({
             >
               {Object.entries(PRESETS)
                 .sort(([, a], [, b]) => {
-                  const aLocked = !tierMeetsMin(currentTier, a.minTier);
-                  const bLocked = !tierMeetsMin(currentTier, b.minTier);
+                  const aLocked = !isPresetAvailableForTier(a, currentTier);
+                  const bLocked = !isPresetAvailableForTier(b, currentTier);
                   if (aLocked === bLocked) return 0;
                   return aLocked ? 1 : -1;
                 })
-                .map(([key, p]) => (
-                <MissionCard
-                  key={key}
-                  icon={p.icon}
-                  label={presetLabel(key)}
-                  description={presetDesc(key)}
-                  onClick={() => handleMissionSelect(key)}
-                  minTier={p.minTier}
-                  currentTier={currentTier}
-                />
-              ))}
+                .map(([key, p]) => {
+                  const effectiveMinTier = (p.allowFreeTrial && currentTier === "Free") ? "Free" : p.minTier;
+                  return (
+                    <MissionCard
+                      key={key}
+                      icon={p.icon}
+                      label={presetLabel(key)}
+                      description={presetDesc(key)}
+                      onClick={() => handleMissionSelect(key)}
+                      minTier={effectiveMinTier}
+                      currentTier={currentTier}
+                    />
+                  );
+                })}
 
               {/* Custom Mission card */}
               <MissionCard

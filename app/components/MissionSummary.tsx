@@ -345,7 +345,30 @@ export function MissionSummary({
             </Badge>
           )}
         </InlineStack>
-        
+
+        {/* Product link */}
+        {(state.draft_title || state.product_id) && (() => {
+          const shopSubdomain = (state.shop_id || "").replace(".myshopify.com", "");
+          const numericId = (state.product_id || "").replace(/gid:\/\/shopify\/Product\//i, "");
+          const editUrl = shopSubdomain && numericId
+            ? `https://admin.shopify.com/store/${shopSubdomain}/products/${numericId}`
+            : "";
+          return (
+            <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+              <InlineStack gap="200" blockAlign="center">
+                <Text as="span" variant="bodySm" tone="subdued">Product:</Text>
+                {editUrl ? (
+                  <a href={editUrl} target="_top" style={{ color: "var(--p-color-text-interactive)", textDecoration: "none", fontWeight: 600, fontSize: "13px" }}>
+                    {state.draft_title || `Product #${numericId}`}
+                  </a>
+                ) : (
+                  <Text as="span" variant="bodySm" fontWeight="semibold">{state.draft_title || state.product_id}</Text>
+                )}
+              </InlineStack>
+            </Box>
+          );
+        })()}
+
         {/* Error Banner */}
         {isError && state.error_message && (
           <Banner tone="critical" title="An error occurred">

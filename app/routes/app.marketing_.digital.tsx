@@ -447,6 +447,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { ok: true };
   }
 
+  if (intent === 'saveImageToMedia') {
+    const productId = String(formData.get('productId') || '');
+    const imageUrl = String(formData.get('imageUrl') || '');
+    const altText = String(formData.get('altText') || 'Marketing ad');
+    if (!productId || !imageUrl) return { ok: false, error: 'Missing productId or imageUrl' };
+
+    const resp = await admin.graphql(
+      `mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+        productCreateMedia(productId: $productId, media: $media) {
+          media { ... on MediaImage { id } }
+          mediaUserErrors { field message }
+        }
+      }`,
+      {
+        variables: {
+          productId,
+          media: [{ originalSource: imageUrl, alt: altText, mediaContentType: 'IMAGE' }],
+        },
+      },
+    );
+    const body = await resp.json();
+    const errors = body?.data?.productCreateMedia?.mediaUserErrors ?? [];
+    if (errors.length) {
+      return { ok: false, error: errors.map((e: any) => e.message).join('; ') };
+    }
+    return { ok: true, saved: true };
+  }
+
   return { ok: false, error: 'Unknown intent' };
 };
 
@@ -485,6 +513,7 @@ export default function DigitalMarketing() {
   };
 
   const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
+  const [captionLocale, setCaptionLocale] = useState(defaultTargetLocale || 'en');
 
   // Step 1: Caption Generation
   const [hooksLoading, setHooksLoading] = useState(false);
@@ -592,7 +621,7 @@ export default function DigitalMarketing() {
     };
 
     try {
-      const socialResult = await callAgent('social_hook_architect', productData, { focus: 'Instagram Reels', target_locale: defaultTargetLocale || 'en' });
+      const socialResult = await callAgent('social_hook_architect', productData, { focus: 'Instagram Reels', target_locale: captionLocale || defaultTargetLocale || 'en' });
       const nextHooks = (socialResult?.data?.metadata?.hooks ?? []) as any[];
       const overlays = (socialResult?.data?.metadata?.overlay_suggestions ?? []) as any[];
       const safeHooks = Array.isArray(nextHooks) ? nextHooks : [];
@@ -798,6 +827,29 @@ export default function DigitalMarketing() {
               </BlockStack>
             </Card>
 
+            {/* ═══ Target Locale ═══ */}
+            <Card>
+              <BlockStack gap="300">
+                <Text variant="headingMd" as="h2">Target Language</Text>
+                <Select
+                  label="Caption language"
+                  labelHidden
+                  options={[
+                    { label: 'English', value: 'en' },
+                    { label: '日本語', value: 'ja' },
+                    { label: 'Français', value: 'fr' },
+                    { label: 'Deutsch', value: 'de' },
+                    { label: 'Español', value: 'es' },
+                    { label: 'Português', value: 'pt' },
+                    { label: '한국어', value: 'ko' },
+                    { label: '中文', value: 'zh' },
+                  ]}
+                  value={captionLocale}
+                  onChange={setCaptionLocale}
+                />
+              </BlockStack>
+            </Card>
+
             {/* ═══ Step 1: Caption Generation ═══ */}
             <Card>
               <Box padding="400">
@@ -981,12 +1033,32 @@ export default function DigitalMarketing() {
                   <>
 
                   {generatedAdUrl ? (
-                    <InstaPreview
-                      imageUrl={generatedAdUrl}
-                      caption={selectedCaption}
-                      brandName={brandName}
-                      productName={selectedProduct?.title}
-                    />
+                    <>
+                      <InstaPreview
+                        imageUrl={generatedAdUrl}
+                        caption={selectedCaption}
+                        brandName={brandName}
+                        productName={selectedProduct?.title}
+                      />
+                      {selectedProduct?.id && (
+                        <InlineStack align="center" gap="300">
+                          <Button
+                            onClick={() => {
+                              const fd = new FormData();
+                              fd.set('intent', 'saveImageToMedia');
+                              fd.set('productId', selectedProduct.id);
+                              fd.set('imageUrl', generatedAdUrl);
+                              fd.set('altText', `${selectedProduct.title} - marketing ad`);
+                              saveHooksFetcher.submit(fd, { method: 'post' });
+                              setToastContent('Image saved to product media');
+                            }}
+                            variant="primary"
+                          >
+                            Save to Product Media
+                          </Button>
+                        </InlineStack>
+                      )}
+                    </>
                   ) : (
                     <div style={{
                       textAlign: 'center', padding: '32px 16px',
