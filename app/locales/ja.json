@@ -11,7 +11,7 @@
   },
   "home": {
     "crossBorderAi": "Aganim AI",
-    "tagline": "商品情報を世界クラスのマーケティングコピーに変換します。",
+    "tagline": "ストアを高め、収益を倍増",
     "gettingStarted": "はじめに",
     "gettingStartedDesc": "Aganim AI の機能を最大限に活用するため、以下のステップを完了してください。",
     "defineSoul": "ブランドの個性を定義",
@@ -770,8 +770,8 @@
   },
   "planCatalog": {
     "tryEverything": "すべてお試し、アクセス制限あり",
-    "basicTagline": "商品情報をワールドクラスのマーケティングコピーに変換。",
-    "standardTagline": "ストアフロントの品質を高め、収益を倍増。",
+    "basicTagline": "プロフェッショナル・ライティングスタジオ",
+    "standardTagline": "レベニュー・アクセラレーター",
     "proTagline": "コンプリートAIエンジン",
     "imageCreditsMonthly10": "AI画像クレジット 10回/月",
     "products10": "10商品（1週間トライアル）",
@@ -813,7 +813,28 @@
     "metaIntegration": "Meta（Facebook/Instagram）連携",
     "imagesSection": "画像",
     "imageRefinement": "画像リファインメント",
-    "imageRefinementAllFeatures": "全機能で画像リファインメント"
+    "imageRefinementAllFeatures": "全機能で画像リファインメント",
+    "jpValueAutoDetected": "JP価値の自動検出",
+    "autoUnitConversion": "自動単位変換（メトリック + US）",
+    "brandTonesVariety": "ブランドトーン（ラグジュアリー、プロフェッショナル、トレンディなど）",
+    "autoFaqGeneration": "自動FAQ生成",
+    "twelveGlobalMarkets": "12のグローバル市場に対応",
+    "introToAgents": "エージェント入門",
+    "scenarioSpecificPipelines": "シナリオ別パイプライン",
+    "fullLaunchPipelines": "フルローンチパイプライン",
+    "visualAgents": "ビジュアルエージェント",
+    "imageCredits10": "画像クレジット10回",
+    "heroImageGeneration": "ヒーロー画像生成",
+    "blogImageGeneration": "ブログ画像生成",
+    "collectionImageGeneration": "コレクション画像生成",
+    "globalCompetitorRanks": "グローバル競合ランク分析",
+    "perfectSeoGenerator": "パーフェクトSEOジェネレーター",
+    "ctrAnalysis": "クリック率（CTR）分析",
+    "globalCompetitorPrice": "グローバル競合価格分析",
+    "priceRecommendation": "プロダクト・マーケットフィットによる価格レコメンデーション",
+    "unlimitedMissions": "無制限ミッション",
+    "bulkUploadLaunch": "一括アップロード＆ローンチミッション",
+    "imageCredits100": "画像クレジット100回"
   },
   "support": {
     "helpCenter": "ヘルプセンター",
@@ -1387,33 +1408,35 @@
         "name": "Basic",
         "price": "$29",
         "period": "/ 月",
-        "description": "商品情報をワールドクラスのマーケティングコピーに変換。",
+        "description": "プロフェッショナル・ライティングスタジオ",
         "productLimit": "50商品 / 月",
         "features": [
-          "AI書き換え + キーディテール自動検出",
-          "EN単位変換（メートル法 + US）",
-          "Instagramキャプション + ハッシュタグ",
-          "季節キャンペーンアイデア",
-          "テキストのみエージェンティック・ミッション（リライター + マーケティング）"
+          "AI商品リライト（タイトル + 説明文）",
+          "JP価値の自動検出",
+          "自動単位変換（メトリック + US）",
+          "ブランドトーン（ラグジュアリー、プロフェッショナル、トレンディなど）",
+          "自動FAQ生成",
+          "12のグローバル市場に対応"
         ]
       },
       "standard": {
         "name": "Standard",
         "price": "$79",
         "period": "/ 月",
-        "description": "ストアフロントの品質を高め、収益を倍増。",
+        "description": "レベニュー・アクセラレーター",
         "productLimit": "無制限商品",
         "badge": "ベストバリュー",
         "features": [
           "Basicのすべて",
-          "12ターゲット市場（書き換えごとに単一ロケール）",
-          "ブランドトーン: ラグジュアリー / ミニマリスト / プレイフル",
-          "SEOタイトル + メタディスクリプション",
-          "SEOエディター + プレビュー",
-          "ソーシャル投稿プレビュー",
-          "競合価格分析",
-          "フルテキストパイプライン（画像エージェントなし）",
-          "AI画像クレジット 10回/月"
+          "ビジュアル広告生成 + ソーシャル投稿プレビュー",
+          "エージェント入門",
+          "シナリオ別パイプライン",
+          "フルローンチパイプライン",
+          "画像クレジット10回 + 画像リファインメント",
+          "ヒーロー / ブログ / コレクション画像生成",
+          "グローバル競合ランク + SEOジェネレーター",
+          "CTR分析 + SEOエディター",
+          "グローバル競合価格分析"
         ]
       },
       "pro": {
@@ -1426,14 +1449,9 @@
         "features": [
           "Standardのすべて",
           "一括在庫セットアップ",
-          "優先AIモデル",
-          "フルSEO最適化",
-          "ビジュアル広告生成 + ソーシャル投稿プレビュー",
-          "価格分析 + Shopifyに価格を自動適用",
-          "画像エージェント付きフルパイプライン",
-          "エージェントワークフロー + Shopifyに公開",
-          "全機能で画像改善",
-          "Meta（Facebook/Instagram）連携"
+          "無制限エージェンティック・ミッション",
+          "一括アップロード＆ローンチミッション",
+          "画像クレジット100回"
         ]
       }
     },
