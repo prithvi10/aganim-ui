@@ -18,14 +18,27 @@ import styles from "../styles/support.module.css";
 import { supportMediaUrl } from "../utils/supportMedia";
 import { LandingHeader, LandingFooter } from "../components/LandingLayout";
 
+const SITE_URL = "https://aganim-ui.onrender.com";
+const OG_IMAGE = `${SITE_URL}/Icon-final.png`;
+
 export const meta: MetaFunction = () => {
+  const title = "Support & Documentation | Aganim AI";
+  const description =
+    "Aganim AI support center: feature guides, step-by-step tutorials, troubleshooting, FAQs, and contact information for Shopify merchants.";
+
   return [
-    { title: "Support | Aganim AI" },
-    {
-      name: "description",
-      content:
-        "Support docs for Aganim AI: feature guides, troubleshooting, FAQs, and contact.",
-    },
+    { title },
+    { name: "description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:url", content: `${SITE_URL}/support` },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:image", content: OG_IMAGE },
+    { property: "og:site_name", content: "Aganim AI" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+    { name: "twitter:image", content: OG_IMAGE },
   ];
 };
 
@@ -192,6 +205,29 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Support",
+                item: `${SITE_URL}/support`,
+              },
+            ],
+          }),
+        }}
+      />
       <LandingHeader />
       <main id="top" className={styles.page}>
         <header className={styles.header}>

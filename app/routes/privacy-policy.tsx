@@ -1,13 +1,26 @@
 import type { MetaFunction } from "react-router";
 
+const SITE_URL = "https://aganim-ui.onrender.com";
+const OG_IMAGE = `${SITE_URL}/Icon-final.png`;
+
 export const meta: MetaFunction = () => {
+  const title = "Privacy Policy | Aganim AI";
+  const description =
+    "Aganim AI privacy policy for Shopify merchants. Describes what data is accessed, processed, stored, and how deletion requests are handled.";
+
   return [
-    { title: "Privacy Policy | Aganim AI" },
-    {
-      name: "description",
-      content:
-        "Aganim AI privacy policy for Shopify merchants. Describes what data is accessed, processed, stored, and how deletion requests are handled.",
-    },
+    { title },
+    { name: "description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:url", content: `${SITE_URL}/privacy-policy` },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:image", content: OG_IMAGE },
+    { property: "og:site_name", content: "Aganim AI" },
+    { name: "twitter:card", content: "summary" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+    { name: "twitter:image", content: OG_IMAGE },
   ];
 };
 

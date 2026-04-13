@@ -1467,6 +1467,36 @@
         ]
       }
     },
+    "faq": {
+      "eyebrow": "Frequently Asked Questions",
+      "title": "Common questions about Aganim AI",
+      "items": [
+        {
+          "q": "What is Aganim AI?",
+          "a": "Aganim AI is a Shopify app that uses AI to translate and localize your online store for cross-border e-commerce. It rewrites product listings, optimizes SEO metadata, generates marketing content, and analyzes competitor pricing across 12+ global markets — all while preserving your brand identity through its Brand Soul engine."
+        },
+        {
+          "q": "How does Aganim AI translate my Shopify store?",
+          "a": "Aganim AI uses its Brand Soul engine to understand your brand identity (archetype, tone, power words, cultural touchpoints), then generates localized product titles, descriptions, SEO metadata, and marketing content for each target market. Translations are saved directly back to your Shopify store as locale-specific content."
+        },
+        {
+          "q": "What languages does Aganim AI support?",
+          "a": "Aganim AI supports 12 global markets including English (US), Japanese, Traditional Chinese (Taiwan), Korean, German, French, Spanish, Italian, Portuguese (Brazil), Thai, Vietnamese, and Simplified Chinese. Each market gets culturally adapted content, not just direct translation."
+        },
+        {
+          "q": "How much does Aganim AI cost?",
+          "a": "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits and Meta integration)."
+        },
+        {
+          "q": "What are Agentic Missions?",
+          "a": "Agentic Missions are multi-agent AI pipelines that chain together Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows. You can use preset mission templates or build custom pipelines, with results automatically saved to your Shopify store."
+        },
+        {
+          "q": "Does Aganim AI work with the Shopify App Store?",
+          "a": "Yes, Aganim AI is available on the Shopify App Store. It integrates directly with your Shopify admin as an embedded app, reading your product catalog and writing localized content, translations, SEO metadata, and marketing assets back to your store."
+        }
+      ]
+    },
     "footer": {
       "copyright": "Aganim AI. All rights reserved.",
       "support": "Support",

@@ -70,7 +70,7 @@ export const LandingHeader = () => {
         />
         Aganim AI
       </Link>
-      <nav className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
+      <nav aria-label="Main navigation" className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
         <Link to="/features" className="transition hover:text-white">
           {t("landing.nav.features")}
         </Link>

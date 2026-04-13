@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Links,
   Meta,
@@ -12,10 +13,22 @@ import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { useTranslation } from "react-i18next";
 import "./tailwind.css";
 import "./i18n";
 
 export default function App() {
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    document.documentElement.lang = i18n.language;
+    const handler = (lng: string) => {
+      document.documentElement.lang = lng;
+    };
+    i18n.on("languageChanged", handler);
+    return () => { i18n.off("languageChanged", handler); };
+  }, [i18n]);
+
   return (
     <html lang="en">
       <head>
@@ -27,6 +40,23 @@ export default function App() {
         <link
           rel="stylesheet"
           href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Aganim AI",
+              url: "https://aganim-ui.onrender.com",
+              logo: "https://aganim-ui.onrender.com/Icon-final.png",
+              description:
+                "AI-powered cross-border e-commerce translation, localization, and growth engine for Shopify stores.",
+              sameAs: [
+                "https://apps.shopify.com/aganim-ai",
+              ],
+            }),
+          }}
         />
         <Meta />
         <Links />
