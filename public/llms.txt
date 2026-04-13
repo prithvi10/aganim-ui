@@ -1,0 +1,19 @@
+# Aganim AI
+
+> Aganim AI is a Shopify app that provides AI-powered translation, localization, and cross-border e-commerce optimization for online stores. It handles product listings, SEO metadata, pricing intelligence, marketing content generation, image refinement, and brand identity analysis across 12+ global markets.
+
+## Core Pages
+
+- [Home](https://aganim-ui.onrender.com/): Landing page with product overview, features, and pricing for Aganim AI
+- [Features](https://aganim-ui.onrender.com/features): Detailed feature breakdown including Brand Soul, AI Rewriter, SEO optimizer, Price Scout, Marketing, Content Studio, Image Refinement, and Agentic Missions
+- [Support](https://aganim-ui.onrender.com/support): Help center with feature guides, step-by-step tutorials, troubleshooting, and FAQs for Shopify merchants
+- [Privacy Policy](https://aganim-ui.onrender.com/privacy-policy): Data handling practices, Shopify API scopes, GDPR compliance, and fair use policy
+
+## About
+
+- Type: SaaS
+- Category: E-commerce, Translation, AI, Localization
+- Platform: Shopify App Store
+- Languages: English, Japanese (UI); 12 global markets for content generation
+- Pricing: Free, Basic ($29/mo), Standard ($79/mo), Pro ($149/mo)
+- Last Updated: 2026-04-13

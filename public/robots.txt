@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /support
+Allow: /privacy-policy
+Disallow: /app/
+Disallow: /portal/
+Disallow: /auth/
+Disallow: /webhooks/
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+Sitemap: https://aganim-ui.onrender.com/sitemap.xml

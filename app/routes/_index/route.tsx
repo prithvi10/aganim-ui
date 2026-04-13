@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs, MetaFunction } from "react-router";
 import { Link, redirect } from "react-router";
 import React, { useEffect } from "react";
 import {
@@ -17,6 +17,31 @@ import {
   LandingFooter,
   Reveal,
 } from "../../components/LandingLayout";
+import { FAQ } from "../../components/FAQ";
+
+const SITE_URL = "https://aganim-ui.onrender.com";
+const OG_IMAGE = `${SITE_URL}/Icon-final.png`;
+
+export const meta: MetaFunction = () => {
+  const title = "Aganim AI — AI Growth Engine for Global E-commerce | Shopify App";
+  const description =
+    "Aganim AI is a Shopify app that uses AI to translate and localize your online store for cross-border e-commerce. Rewrite product listings, optimize SEO metadata, generate marketing content, and analyze competitor pricing across 12+ global markets.";
+
+  return [
+    { title },
+    { name: "description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:url", content: SITE_URL },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:image", content: OG_IMAGE },
+    { property: "og:site_name", content: "Aganim AI" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+    { name: "twitter:image", content: OG_IMAGE },
+  ];
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
@@ -57,7 +82,7 @@ const Hero = () => {
   const [isFlipped, setIsFlipped] = React.useState(false);
 
   return (
-  <section id="hero" className="relative overflow-hidden pt-28">
+  <section id="hero" aria-label="Hero" className="relative overflow-hidden pt-28">
     <div className="absolute inset-0 -z-10">
       <div className="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-fuchsia-500/20 blur-[140px]" />
       <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-sky-400/20 blur-[120px]" />
@@ -97,7 +122,7 @@ const Hero = () => {
             >
               <motion.img
                 src="/Icon-final.png"
-                alt="Aganim AI"
+                alt="Aganim AI — AI-powered cross-border e-commerce app for Shopify"
                 className="h-40 w-40 sm:h-48 sm:w-48 drop-shadow-2xl"
                 animate={{ 
                   y: [0, -8, 0],
@@ -198,7 +223,7 @@ const ShopifyShowcase = () => {
   ];
 
   return (
-  <section id="solutions" className="scroll-mt-28 py-24">
+  <section id="solutions" aria-label="Shopify integration" className="scroll-mt-28 py-24">
     <div className="mx-auto max-w-6xl px-6">
       <Reveal>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-start">
@@ -224,7 +249,7 @@ const ShopifyShowcase = () => {
               />
             </span>
             <span className="absolute inset-0 rounded-full bg-slate-900" />
-            <svg viewBox="0 0 109.5 124.5" className="relative h-5 w-5" fill="currentColor">
+            <svg viewBox="0 0 109.5 124.5" className="relative h-5 w-5" fill="currentColor" aria-hidden="true">
               <path d="M74.7,14.8c0,0-1.4,0.4-3.7,1.1c-0.4-1.3-1-2.8-1.8-4.4c-2.6-5-6.5-7.7-11.1-7.7c0,0,0,0,0,0 c-0.3,0-0.6,0-1,0.1c-0.1-0.2-0.3-0.3-0.4-0.5c-2-2.2-4.6-3.2-7.7-3.1c-6,0.2-12,4.5-16.8,12.2c-3.4,5.4-6,12.2-6.7,17.5 c-6.9,2.1-11.7,3.6-11.8,3.7c-3.5,1.1-3.6,1.2-4,4.5C9.1,41.2,0,110.7,0,110.7l75.1,13V14.6C74.9,14.6,74.8,14.7,74.7,14.8z M57.2,20.2c-4,1.2-8.4,2.6-12.7,3.9c1.2-4.7,3.6-9.4,6.4-12.5c1.1-1.1,2.6-2.4,4.3-3.2C57,12.5,57.3,17.1,57.2,20.2z M49.1,4.3 c1.4,0,2.6,0.3,3.6,0.9c-1.6,0.8-3.2,2.1-4.7,3.6c-3.8,4.1-6.7,10.5-7.9,16.6c-3.6,1.1-7.2,2.2-10.5,3.2 C31.7,18.8,39.8,4.6,49.1,4.3z M37.4,59.3c0.4,6.4,17.3,7.8,18.3,22.9c0.7,11.9-6.3,20-16.4,20.6c-12.2,0.8-18.9-6.4-18.9-6.4 l2.6-11c0,0,6.7,5.1,12.1,4.7c3.5-0.2,4.8-3.1,4.7-5.1c-0.5-8.4-14.3-7.9-15.2-21.7c-0.7-11.6,6.9-23.4,23.7-24.4 c6.5-0.4,9.8,1.2,9.8,1.2l-3.8,14.4c0,0-4.3-2-9.4-1.6C37.4,53.5,37.3,58.2,37.4,59.3z M61.2,19c0-2.6-0.4-6.3-1.6-9.5 c4.1,0.8,6.1,5.4,6.9,8.1C64.6,18.1,62.8,18.6,61.2,19z"/>
               <path d="M78.1,123.9l31.4-7.8c0,0-13.5-91.3-13.6-91.9c-0.1-0.6-0.6-1-1.1-1c-0.5,0-9.3-0.2-9.3-0.2s-5.4-5.2-7.4-7.2 V123.9z"/>
             </svg>
@@ -238,9 +263,9 @@ const ShopifyShowcase = () => {
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">
               Shopify
             </div>
-            <h3 className="text-2xl font-semibold text-white">
+            <h2 className="text-2xl font-semibold text-white">
               {t("landing.shopify.heading")}
-            </h3>
+            </h2>
             <p className="text-slate-300">
               {t("landing.shopify.description")}
             </p>
@@ -343,7 +368,7 @@ const FeatureGrid = () => {
   ];
 
   return (
-  <section id="features" className="scroll-mt-28 py-24">
+  <section id="features" aria-label="Features" className="scroll-mt-28 py-24">
     <div className="mx-auto max-w-6xl px-6">
       <Reveal>
         <div className="text-center">
@@ -400,7 +425,7 @@ const Pricing = () => {
   const highlightTier = "standard";
 
   return (
-    <section id="pricing" className="scroll-mt-28 py-24">
+    <section id="pricing" aria-label="Pricing" className="scroll-mt-28 py-24">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="flex flex-col items-center text-center">
@@ -466,6 +491,108 @@ const Pricing = () => {
 };
 
 /* ------------------------------------------------------------------ */
+/*  Structured Data (JSON-LD)                                          */
+/* ------------------------------------------------------------------ */
+const softwareAppSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Aganim AI",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: `${SITE_URL}`,
+  image: OG_IMAGE,
+  description:
+    "AI-powered Shopify app for cross-border e-commerce translation, localization, SEO optimization, competitive pricing intelligence, and marketing content generation.",
+  offers: [
+    {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+      name: "Free",
+      description: "10 products, 1-week trial with full feature access",
+    },
+    {
+      "@type": "Offer",
+      price: "29",
+      priceCurrency: "USD",
+      name: "Basic",
+      description: "50 products/month, professional writing studio",
+    },
+    {
+      "@type": "Offer",
+      price: "79",
+      priceCurrency: "USD",
+      name: "Standard",
+      description:
+        "Unlimited products, SEO optimizer, Price Scout, visual ads, agentic missions",
+    },
+    {
+      "@type": "Offer",
+      price: "149",
+      priceCurrency: "USD",
+      name: "Pro",
+      description:
+        "Unlimited products and missions, 100 image credits, bulk upload, Meta integration",
+    },
+  ],
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is Aganim AI?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Aganim AI is a Shopify app that uses AI to translate and localize your online store for cross-border e-commerce. It rewrites product listings, optimizes SEO metadata, generates marketing content, and analyzes competitor pricing across 12+ global markets — all while preserving your brand identity through its Brand Soul engine.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How does Aganim AI translate my Shopify store?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Aganim AI uses its Brand Soul engine to understand your brand identity (archetype, tone, power words, cultural touchpoints), then generates localized product titles, descriptions, SEO metadata, and marketing content for each target market. Translations are saved directly back to your Shopify store as locale-specific content.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What languages does Aganim AI support?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Aganim AI supports 12 global markets including English (US), Japanese, Traditional Chinese (Taiwan), Korean, German, French, Spanish, Italian, Portuguese (Brazil), Thai, Vietnamese, and Simplified Chinese. Each market gets culturally adapted content, not just direct translation.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How much does Aganim AI cost?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits and Meta integration).",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What are Agentic Missions in Aganim AI?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Agentic Missions are multi-agent AI pipelines that chain together Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows. You can use preset mission templates or build custom pipelines, with results automatically saved to your Shopify store.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Aganim AI work with the Shopify App Store?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes, Aganim AI is available on the Shopify App Store. It integrates directly with your Shopify admin as an embedded app, reading your product catalog and writing localized content, translations, SEO metadata, and marketing assets back to your store.",
+      },
+    },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 export default function LandingPage() {
@@ -480,6 +607,15 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       <LandingHeader />
 
       <main className="space-y-10">
@@ -487,6 +623,7 @@ export default function LandingPage() {
         <ShopifyShowcase />
         <FeatureGrid />
         <Pricing />
+        <FAQ />
       </main>
 
       <LandingFooter />

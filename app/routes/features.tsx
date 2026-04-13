@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { MetaFunction } from "react-router";
 import { Grid2x2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -7,6 +8,30 @@ import {
   Reveal,
 } from "../components/LandingLayout";
 import { supportMediaUrl } from "../utils/supportMedia";
+
+const SITE_URL = "https://aganim-ui.onrender.com";
+const OG_IMAGE = `${SITE_URL}/Icon-final.png`;
+
+export const meta: MetaFunction = () => {
+  const title = "Features — AI Translation, SEO, Marketing & Pricing for Shopify | Aganim AI";
+  const description =
+    "Explore Aganim AI features: Brand Soul identity engine, AI Rewriter for localized product copy, SEO optimizer, Price Scout competitor analysis, marketing content generator, image refinement, and agentic mission pipelines.";
+
+  return [
+    { title },
+    { name: "description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:url", content: `${SITE_URL}/features` },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:image", content: OG_IMAGE },
+    { property: "og:site_name", content: "Aganim AI" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+    { name: "twitter:image", content: OG_IMAGE },
+  ];
+};
 
 /* ------------------------------------------------------------------ */
 /*  Feature metadata (media paths only — text comes from i18n)         */
@@ -43,6 +68,29 @@ export default function FeaturesPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Features",
+                item: `${SITE_URL}/features`,
+              },
+            ],
+          }),
+        }}
+      />
       <LandingHeader />
 
       {/* Hero */}
@@ -67,7 +115,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* Feature cards — alternating zigzag */}
-      <section className="py-12">
+      <section aria-label="Feature details" className="py-12">
         <div className="mx-auto max-w-6xl space-y-20 px-6">
           {FEATURE_IDS.map((f, i) => {
             const even = i % 2 === 0;

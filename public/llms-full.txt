@@ -1,0 +1,154 @@
+# Aganim AI
+
+> Aganim AI is a Shopify app that provides AI-powered translation, localization, and cross-border e-commerce optimization for online stores. It handles product listings, SEO metadata, pricing intelligence, marketing content generation, image refinement, and brand identity analysis across 12+ global markets.
+
+## About
+
+- Type: SaaS
+- Category: E-commerce, Translation, AI, Localization
+- Platform: Shopify App Store
+- Languages: English, Japanese (UI); 12 global markets for content generation
+- Pricing: Free, Basic ($29/mo), Standard ($79/mo), Pro ($149/mo)
+- Last Updated: 2026-04-13
+
+## Product Overview
+
+Aganim AI is an AI growth engine for global e-commerce. It helps Shopify merchants boost sales, visibility, and content quality across world markets with guardrails and human-in-the-loop control so brand identity stays intact.
+
+The app is built for Shopify and provides AI-powered product localization for global markets. It transforms product listings with Brand Soul-powered AI — rewriting titles and descriptions, optimizing SEO metadata, and generating marketing content tailored for each target market.
+
+Key capabilities include:
+- Brand Soul for consistent tone across locales
+- AI Rewriter for localized product copy
+- Multi-market SEO optimization
+- Context-aware, brand-safe rewrites
+- LSI enrichment and competitor mirroring for SEO metadata
+- Multi-agent validation workflow (QA Loop)
+
+## Features
+
+### Brand Soul
+Define your brand identity — archetype, tone, power words, banned phrases, and cultural touchpoints — to power all AI-generated content. Brand Soul ensures every piece of content across every market reflects your authentic brand voice.
+
+### AI Rewriter
+Generate localized drafts (title + HTML description + SEO title/meta) per market and save translations back to Shopify. The rewriter auto-detects key product details, handles unit conversion (metric + US), and supports 12 global markets.
+
+### SEO Optimizer
+Edit SEO title/meta with live SERP preview, apply CTR best practices, use competitor intel (Standard/Pro plans), and follow AI-powered recommendations. Includes global competitor ranking analysis and a dedicated SEO editor.
+
+### Price Scout
+Analyze competitor pricing from Google search results and get AI-powered pricing recommendations. Features SERP-based competitor price analysis, category and market-aware pricing, and auto-apply to Shopify (Pro plan).
+
+### Marketing
+Generate social media captions, ad copy, seasonal campaigns, email templates, and hero images — with optional Meta (Facebook/Instagram) autonomous publishing on the Pro plan. Supports Instagram/TikTok captions with hashtags, ad banners, hero images, and seasonal retail campaign calendars.
+
+### Content Studio
+All-in-one creative workspace — write high-quality blogs with AI hero images, generate cinematic hero sections, create polished collections with descriptions, and produce product FAQs. All powered by AI templates and your brand voice through Brand Soul.
+
+### Image Refinement
+AI-powered product photo cleanup — remove overlay text and watermarks, clean studio background replacement with 100% product fidelity preservation, and auto-save refined images to your Shopify media library.
+
+### Agentic Missions
+Run multi-agent AI pipelines that chain Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows. Choose from preset agentic missions for every plan tier or use the custom pipeline builder. Supports auto-flow or step-by-step approval, with results saved to Shopify automatically.
+
+### Additional Features
+- Global Locale Hub: edit and publish across 12 markets
+- Japanese Value: evidence-backed cultural/craft detail extraction
+- Brand Soul memory across rewriter, templates, and campaigns
+- Content Templates: FAQ, Hero, Blog, and Collection generation
+- Multi-locale editor for simultaneous editing across markets
+- Bulk upload and launch missions (Pro plan)
+- Optimization preferences for fine-tuning AI behavior
+
+## Pricing
+
+### Free ($0)
+- 10 products (1-week trial)
+- AI product rewrite (title + description)
+- SEO title + meta description
+- Instagram captions + hashtags
+- Competitive pricing analysis
+- Full agentic launch (including images)
+- Image refinement
+
+### Basic ($29/month)
+- 50 products per month
+- AI product rewrite (title + description)
+- JP value auto-detected
+- Auto unit conversion (metric + US)
+- Brand tones (Luxury, Professional, Trendy, etc.)
+- Auto FAQ generation
+- 12 global markets supported
+
+### Standard ($79/month) — Best Value
+- Unlimited products
+- Everything in Basic
+- Visual Ad generation + Social Post preview
+- Intro to Agents and scenario-specific pipelines
+- Full Launch Pipelines
+- 10 image credits + Image refinement
+- Hero / Blog / Collection image generation
+- Global competitor ranks + SEO generator
+- CTR analysis + SEO editor
+- Global competitor price analysis
+
+### Pro ($149/month) — Most Popular
+- Unlimited products
+- Everything in Standard
+- Bulk inventory setup
+- Unlimited Agentic Missions
+- Bulk Upload and Launch missions
+- 100 image credits
+
+## Supported Markets
+
+Aganim AI supports content generation for 12 global markets:
+1. English (US)
+2. Japanese (日本語)
+3. Traditional Chinese (繁體中文, Taiwan)
+4. Korean (한국어)
+5. German (Deutsch)
+6. French (Français)
+7. Spanish (Español)
+8. Italian (Italiano)
+9. Portuguese (Português, Brazil)
+10. Thai (ไทย)
+11. Vietnamese (Tiếng Việt)
+12. Simplified Chinese (简体中文)
+
+## FAQ
+
+### What is Aganim AI?
+Aganim AI is a Shopify app that uses AI to translate and localize your online store for cross-border e-commerce. It rewrites product listings, optimizes SEO metadata, generates marketing content, and analyzes competitor pricing across 12+ global markets — all while preserving your brand identity through its Brand Soul engine.
+
+### How does Aganim AI translate my Shopify store?
+Aganim AI uses its Brand Soul engine to understand your brand identity (archetype, tone, power words, cultural touchpoints), then generates localized product titles, descriptions, SEO metadata, and marketing content for each target market. Translations are saved directly back to your Shopify store as locale-specific content.
+
+### What languages does Aganim AI support?
+Aganim AI supports 12 global markets including English (US), Japanese, Traditional Chinese (Taiwan), Korean, German, French, Spanish, Italian, Portuguese (Brazil), Thai, Vietnamese, and Simplified Chinese. Each market gets culturally adapted content, not just direct translation.
+
+### How much does Aganim AI cost?
+Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits and Meta integration).
+
+### What are Agentic Missions?
+Agentic Missions are multi-agent AI pipelines that chain together Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows. You can use preset mission templates or build custom pipelines, with results automatically saved to your Shopify store.
+
+### Does Aganim AI work with the Shopify App Store?
+Yes, Aganim AI is available on the Shopify App Store. It integrates directly with your Shopify admin as an embedded app, reading your product catalog and writing localized content, translations, SEO metadata, and marketing assets back to your store.
+
+## Technology
+
+Aganim AI uses:
+- OpenAI (GPT-4o, GPT-4o-mini) for content generation, SEO, marketing, brand intelligence, and pricing recommendations
+- fal.ai (Flux models) for AI image generation and refinement
+- SerpAPI for Google Search and Google Shopping data retrieval
+- Cloudflare R2 for temporary image storage
+- Amazon SES for transactional emails
+
+Data sent to AI processors is used solely to generate outputs you request. Store data is not used to train models.
+
+## Contact
+
+For support, visit: https://aganim-ui.onrender.com/support
+For privacy inquiries: support@aganim.com
+Shopify App Store: https://apps.shopify.com/aganim-ai
