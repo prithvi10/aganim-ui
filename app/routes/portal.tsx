@@ -93,7 +93,7 @@ export default function PortalLayout() {
             onClick: () => navigate("/portal/attrition"),
           },
           {
-            label: "Missions",
+            label: "Agentic Missions",
             icon: FlagIcon,
             url: "/portal/missions",
             selected: location.pathname === "/portal/missions",

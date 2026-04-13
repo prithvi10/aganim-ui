@@ -125,7 +125,7 @@
     "startAiOptimization": "Start AI Optimization",
     "optimizeFirstProduct": "Optimize your first product",
     "usageSummary": "Usage Summary",
-    "missions": "Missions:",
+    "missions": "Agentic Missions:",
     "images": "Images:",
     "lifetimeCredits": "Lifetime Credits",
     "monthlyProductRewrites": "Monthly Product Rewrites",
@@ -306,10 +306,10 @@
   "optimize": {
     "aiPoweredOptimization": "AI-Powered Product Optimization",
     "home": "Home",
-    "missionsUsed": "Missions used:",
+    "missionsUsed": "Agentic Missions used:",
     "optimizationError": "Optimization Error",
-    "missionComplete": "Mission complete! Your product has been updated in Shopify.",
-    "missionFailed": "Mission failed. Please try again.",
+    "missionComplete": "Agentic Mission complete! Your product has been updated in Shopify.",
+    "missionFailed": "Agentic Mission failed. Please try again.",
     "back": "Back",
     "dataAlreadySaved": "This data is already saved in Shopify."
   },
@@ -562,10 +562,10 @@
     "guidePriceScoutSubtitle": "Competitor pricing intelligence",
     "guidePriceScoutBody": "Analyze what competitors charge for similar products. Get AI-powered pricing recommendations and apply optimized prices to your store.",
     "openPriceScout": "Open Price Scout",
-    "guidePipelinesTitle": "Step 7: Missions",
-    "guidePipelinesSubtitle": "Run multi-agent missions",
-    "guidePipelinesBody": "Build multi-step AI missions that chain agents together — Rewriter → SEO → Marketing → Pricing — and run them in one click. Choose from preset missions or build custom pipelines with step-by-step approval.",
-    "openPipelines": "Open Missions",
+    "guidePipelinesTitle": "Step 7: Agentic Missions",
+    "guidePipelinesSubtitle": "Run multi-agent agentic missions",
+    "guidePipelinesBody": "Build multi-step AI agentic missions that chain agents together — Rewriter → SEO → Marketing → Pricing — and run them in one click. Choose from preset agentic missions or build custom pipelines with step-by-step approval.",
+    "openPipelines": "Open Agentic Missions",
     "guideDashboardTitle": "Step 8: Dashboard",
     "guideDashboardSubtitle": "Usage, plan, and integrations",
     "guideDashboardBody": "Monitor your plan, track usage and credits, manage Meta integrations, and configure your content target market — all from a single view.",
@@ -581,9 +581,9 @@
     "dismissDowngradeNotice": "Dismiss downgrade notice"
   },
   "missions": {
-    "chooseYourMission": "Choose Your Mission",
-    "pickReadyMade": "Pick a ready-made mission or build your own custom pipeline.",
-    "customMission": "Custom Mission",
+    "chooseYourMission": "Choose Your Agentic Mission",
+    "pickReadyMade": "Pick a ready-made agentic mission or build your own custom pipeline.",
+    "customMission": "Custom Agentic Mission",
     "customMissionDesc": "Build your own pipeline with any agent combination",
     "upgradeToUnlock": "Upgrade to {{tier}} to unlock this mission",
     "selectProduct": "Select Product",
@@ -614,9 +614,9 @@
     "moveUp": "Move up",
     "moveDown": "Move down",
     "removeStep": "Remove step",
-    "backToMissions": "Back to mission selection",
-    "launchMission": "🚀 Launch Mission ({{count}} step(s))",
-    "mission": "Mission",
+    "backToMissions": "Back to agentic mission selection",
+    "launchMission": "🚀 Launch Agentic Mission ({{count}} step(s))",
+    "mission": "Agentic Mission",
     "agentRewriter": "Rewriter",
     "agentRewriterDesc": "Rewrites product descriptions with brand voice and cultural adaptation",
     "agentSeo": "SEO",
@@ -687,6 +687,8 @@
     "googleAdsShieldDesc": "Use SEO keyword research to feed Google Ads for high-intent traffic",
     "marketAwarenessAudit": "Market Awareness Audit",
     "marketAwarenessAuditDesc": "Analyze if you're Outpriced or Outranked vs competitors",
+    "quickLaunch": "Spotlight Launch",
+    "quickLaunchDesc": "Built for Basic: Rewriter polishes your product story and Brand Soul fit, then Marketing delivers hooks, captions, and campaign angles. Skips SEO, Price Scout, image refinement, and visual ads — upgrade to Full Launch when you need the whole pipeline.",
     "fullLaunch": "Full Launch",
     "fullLaunchDesc": "Full pipeline — rewrite, image refinement, SEO, pricing, marketing, and visual ads",
     "visualAdBlitz": "Visual Ad Blitz",
@@ -707,10 +709,10 @@
     "bulkUsUnits": "Convert to US units",
     "bulkTargetMarket": "Target Market",
     "bulkCreditPreview": "Credit Consumption",
-    "bulkMissionCredits": "{{count}} missions will be used (Pro = unlimited)",
+    "bulkMissionCredits": "{{count}} agentic missions will be used (Pro = unlimited)",
     "bulkImageCredits": "Up to {{count}} image credits will be used. You have {{remaining}}/150 remaining.",
     "bulkImageCreditsWarning": "Low image credits! Only {{remaining}} remaining after this batch.",
-    "bulkLaunchButton": "Launch Bulk Mission",
+    "bulkLaunchButton": "Launch Bulk Agentic Mission",
     "bulkProductsParsed": "{{count}} products parsed",
     "bulkStatusStarted": "Started — preparing your products...",
     "bulkStatusInProgress": "In progress — optimizing content and SEO...",
@@ -728,19 +730,24 @@
     "bulkDropzoneLabel": "Drop your file here or click to upload",
     "bulkDropzoneHint": "Accepts .csv (text only) or .zip (text and images)",
     "bulkProcessing": "Processing...",
-    "recentMissions": "Recent Missions",
+    "recentMissions": "Recent Agentic Missions",
     "completed": "Completed",
     "errorStatus": "Error",
     "inProgress": "In Progress",
     "awaitingApproval": "Awaiting Approval",
     "pending": "Pending",
+    "cancelled": "Cancelled",
+    "cancelMission": "Cancel",
+    "cancelConfirm": "Cancel this mission? This cannot be undone.",
+    "cancelling": "Cancelling...",
+    "failedToCancel": "Failed to cancel mission",
     "justNow": "Just now",
     "minsAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
     "yesterday": "Yesterday",
     "daysAgo": "{{count}}d ago",
     "loadingHistory": "Loading mission history...",
-    "noMissionsYet": "No missions yet. Start your first mission above!",
+    "noMissionsYet": "No agentic missions yet. Start your first agentic mission above!",
     "resume": "Resume",
     "loadingDetails": "Loading details...",
     "agents": "Agents:",
@@ -758,8 +765,10 @@
   },
   "planCatalog": {
     "tryEverything": "Try everything, limited access",
-    "standardTagline": "",
-    "proTagline": "",
+    "basicTagline": "Transform product info into a world-class marketing copy.",
+    "standardTagline": "Elevating your storefront quality and multiplying revenue.",
+    "proTagline": "Complete AI Engine",
+    "imageCreditsMonthly10": "10 AI image credits / month",
     "products10": "10 products (1 week trial)",
     "products50": "50 products / month",
     "unlimitedProducts": "Unlimited products",
@@ -787,11 +796,11 @@
     "competitivePricing": "Competitive pricing analysis",
     "pricingAnalysis": "Pricing analysis",
     "autoApplyPrice": "Auto-apply price to Shopify",
-    "missionsSection": "Missions",
-    "fullProductLaunch": "Full product launch (incl. images)",
-    "textOnlyMission": "Text-only mission (Rewriter + Marketing)",
+    "missionsSection": "Agentic Missions",
+    "fullProductLaunch": "Full agentic launch (incl. images)",
+    "textOnlyMission": "Text-only agentic mission (Rewriter + Marketing)",
     "fullTextPipeline": "Full text pipeline (no image agents)",
-    "missionsAutonomous": "Missions & Autonomous",
+    "missionsAutonomous": "Agentic Missions & Autonomous",
     "fullPipelineWithImages": "Full pipeline with image agents",
     "agenticWorkflows": "Agentic workflows",
     "publishToShopify": "Publish to Shopify",
@@ -1174,33 +1183,33 @@
         ]
       },
       "missions": {
-        "title": "Missions",
+        "title": "Agentic Missions",
         "short": "Run multi-agent AI pipelines that chain Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows.",
         "what": [
-          "Missions are multi-step AI pipelines that process a product end-to-end by chaining multiple agents together.",
-          "Choose from preset missions (ready-made combinations) or build custom pipelines with any agent combination.",
+          "Agentic Missions are multi-step AI pipelines that process a product end-to-end by chaining multiple agents together.",
+          "Choose from preset agentic missions (ready-made combinations) or build custom pipelines with any agent combination.",
           "Run in auto-flow (all agents run sequentially) or step-by-step mode (approve each agent's output before continuing).",
-          "Mission results are saved to Shopify: translations, SEO fields, metafields, blog articles, collections, and media."
+          "Agentic Mission results are saved to Shopify: translations, SEO fields, metafields, blog articles, collections, and media."
         ],
         "how": [
           "Open Optimize from the navigation menu.",
-          "Choose a preset mission or select \"Custom Mission\" to build your own pipeline.",
-          "Select a product for the mission.",
-          "For blog missions: enter a topic and optional category. For collection missions: name the collection and select products.",
-          "Click \"Launch Mission\" to start.",
+          "Choose a preset agentic mission or select \"Custom Agentic Mission\" to build your own pipeline.",
+          "Select a product for the agentic mission.",
+          "For blog agentic missions: enter a topic and optional category. For collection agentic missions: name the collection and select products.",
+          "Click \"Launch Agentic Mission\" to start.",
           "In auto-flow: watch progress as each agent runs. In step-by-step mode: review and approve/regenerate/skip each step.",
           "When complete, results are automatically saved to Shopify."
         ],
         "sections": [
-          { "title": "Preset Missions", "body": ["Basic: Social Hype-Man (Rewriter → FB/IG Ad), New Arrival Blast (Rewriter → Launch Email), Welcome Journey (Rewriter → Welcome Email), Artisan Storyteller (Rewriter → Hero Section).", "Standard: Competitor Rebuttal (SEO → Product FAQ), Abandoned Cart Fix (PriceScout → Abandoned Cart Email), SEO Content Factory (SEO → Blog Post), Collection Refresher (SEO → Collection), Google Ads Shield (SEO → Google Ads), Market Awareness Audit (SEO → PriceScout).", "Pro: Full Launch (all 6 agents), Visual Ad Blitz (Marketing → Visual Marketing)."] },
-          { "title": "Custom Missions", "body": ["Add any combination of agents: Rewriter, SEO, Marketing, PriceScout, Image Refinement, Visual Marketing.", "Reorder agents by dragging them up/down in the pipeline.", "Select optional templates for each step (e.g. Product FAQ, Blog Post, Launch Email).", "Some agents are plan-gated (Image Refinement and Visual Marketing require Pro)."] },
-          { "title": "Auto-flow vs Step-by-step", "body": ["Auto-flow: All agents run in sequence automatically. Results stream in real-time.", "Step-by-step: Each agent pauses after completing. Review the output, then Continue, Regenerate, or Skip.", "Step-by-step is recommended for your first few missions to understand how each agent contributes."] },
-          { "title": "Mission History", "body": ["Recent missions are shown below the mission builder.", "Each mission shows: status (Completed, In Progress, Error, Awaiting Approval), agents used, product, and time.", "Click \"Resume\" on an in-progress or awaiting-approval mission to continue where you left off.", "Click \"View Full Details\" to see the complete output of a completed mission."] }
+          { "title": "Preset Agentic Missions", "body": ["Basic: Social Hype-Man (Rewriter → FB/IG Ad), New Arrival Blast (Rewriter → Launch Email), Welcome Journey (Rewriter → Welcome Email), Artisan Storyteller (Rewriter → Hero Section).", "Standard: Competitor Rebuttal (SEO → Product FAQ), Abandoned Cart Fix (PriceScout → Abandoned Cart Email), SEO Content Factory (SEO → Blog Post), Collection Refresher (SEO → Collection), Google Ads Shield (SEO → Google Ads), Market Awareness Audit (SEO → PriceScout).", "Pro: Full Launch (all 6 agents), Visual Ad Blitz (Marketing → Visual Marketing)."] },
+          { "title": "Custom Agentic Missions", "body": ["Add any combination of agents: Rewriter, SEO, Marketing, PriceScout, Image Refinement, Visual Marketing.", "Reorder agents by dragging them up/down in the pipeline.", "Select optional templates for each step (e.g. Product FAQ, Blog Post, Launch Email).", "Some agents are plan-gated (Image Refinement and Visual Marketing require Pro)."] },
+          { "title": "Auto-flow vs Step-by-step", "body": ["Auto-flow: All agents run in sequence automatically. Results stream in real-time.", "Step-by-step: Each agent pauses after completing. Review the output, then Continue, Regenerate, or Skip.", "Step-by-step is recommended for your first few agentic missions to understand how each agent contributes."] },
+          { "title": "Agentic Mission History", "body": ["Recent agentic missions are shown below the mission builder.", "Each agentic mission shows: status (Completed, In Progress, Error, Awaiting Approval), agents used, product, and time.", "Click \"Resume\" on an in-progress or awaiting-approval agentic mission to continue where you left off.", "Click \"View Full Details\" to see the complete output of a completed agentic mission."] }
         ],
         "planMatrix": {
-          "title": "Missions by Plan",
+          "title": "Agentic Missions by Plan",
           "rows": [
-            { "feature": "Missions per month", "Basic": "1/month", "Standard": "3/month", "Pro": "Unlimited", "notes": "Free plan: 3 lifetime credits." },
+            { "feature": "Agentic Missions per month", "Basic": "1/month", "Standard": "3/month", "Pro": "Unlimited", "notes": "Free plan: 3 lifetime credits." },
             { "feature": "Text agents (Rewriter, SEO, Marketing, PriceScout)", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Available across all paid plans." },
             { "feature": "Image agents (Image Refinement, Visual Marketing)", "Basic": "❌", "Standard": "❌", "Pro": "✅", "notes": "Pro only. Uses image credits (150/month)." },
             { "feature": "Custom pipeline builder", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "Agent availability depends on plan." },
@@ -1208,18 +1217,18 @@
           ]
         },
         "troubleshooting": [
-          { "symptom": "Mission failed or got stuck.", "cause": "A backend agent encountered an error or timed out.", "fixes": ["Check the mission timeline for error details.", "Try launching a new mission with the same configuration.", "If it keeps failing, the product may have insufficient data — add more product details."] },
+          { "symptom": "Agentic Mission failed or got stuck.", "cause": "A backend agent encountered an error or timed out.", "fixes": ["Check the agentic mission timeline for error details.", "Try launching a new agentic mission with the same configuration.", "If it keeps failing, the product may have insufficient data — add more product details."] },
           { "symptom": "An agent was skipped automatically.", "cause": "The agent may not be available on your plan, or a prerequisite agent's output was empty.", "fixes": ["Check plan availability for each agent.", "Ensure the product has enough content for all agents to work with."] },
-          { "symptom": "Mission counter shows 0 remaining.", "cause": "You've used all missions for this billing period.", "fixes": ["Wait for the monthly reset on your billing date.", "Upgrade to a higher plan for more missions (Pro = unlimited)."] },
-          { "symptom": "403 Forbidden when launching a mission.", "cause": "Mission or image credits are exhausted for your plan.", "fixes": ["Check mission and image credit usage on the Dashboard.", "Image-only missions (Image Refinement, Visual Marketing) use image credits, not mission credits.", "Full missions use both mission credits and rewriter credits.", "Upgrade your plan for more credits."] },
+          { "symptom": "Agentic Mission counter shows 0 remaining.", "cause": "You've used all agentic missions for this billing period.", "fixes": ["Wait for the monthly reset on your billing date.", "Upgrade to a higher plan for more agentic missions (Pro = unlimited)."] },
+          { "symptom": "403 Forbidden when launching an agentic mission.", "cause": "Agentic Mission or image credits are exhausted for your plan.", "fixes": ["Check agentic mission and image credit usage on the Dashboard.", "Image-only agentic missions (Image Refinement, Visual Marketing) use image credits, not mission credits.", "Full agentic missions use both mission credits and rewriter credits.", "Upgrade your plan for more credits."] },
           { "symptom": "Visual Marketing / Image Refinement step failed.", "cause": "No product image URL available, or image credits are exhausted.", "fixes": ["Ensure the product has at least one image in Shopify.", "Check image credit usage on the Dashboard.", "Upload a custom image when launching the mission."] },
           { "symptom": "Rewriter output saved but SEO fields are empty.", "cause": "The SEO agent may have failed or produced incomplete output.", "fixes": ["After the mission completes, open the SEO page for the product and run a manual SEO optimization.", "Check if the product has enough description content for SEO generation."] }
         ],
         "faqs": [
-          { "q": "Does the mission save results to Shopify automatically?", "a": "Yes — when a mission completes, results (translations, SEO, metafields, blog articles, collections) are saved to Shopify automatically." },
-          { "q": "Can I resume a mission that was interrupted?", "a": "Yes — find it in Mission History and click \"Resume\" to continue from where it stopped." },
-          { "q": "What happens if I skip an agent step?", "a": "The mission continues to the next agent. The skipped agent's output won't be included in the final results." },
-          { "q": "Which preset mission should I start with?", "a": "For your first mission, try \"Social Hype-Man\" (Basic) or \"Full Launch\" (Pro) to see how missions chain agents together." },
+          { "q": "Does the agentic mission save results to Shopify automatically?", "a": "Yes — when an agentic mission completes, results (translations, SEO, metafields, blog articles, collections) are saved to Shopify automatically." },
+          { "q": "Can I resume an agentic mission that was interrupted?", "a": "Yes — find it in Agentic Mission History and click \"Resume\" to continue from where it stopped." },
+          { "q": "What happens if I skip an agent step?", "a": "The agentic mission continues to the next agent. The skipped agent's output won't be included in the final results." },
+          { "q": "Which preset agentic mission should I start with?", "a": "For your first agentic mission, try \"Social Hype-Man\" (Basic) or \"Full Launch\" (Pro) to see how agentic missions chain agents together." },
           { "q": "My product content is in Japanese — how do I get accurate SEO or pricing analysis for overseas markets?", "a": "First rewrite the product into the target language, then run SEO or PriceScout. Rewritten content in the target language produces more accurate SERP and competitor pricing results." }
         ]
       },
@@ -1318,7 +1327,7 @@
       "identityTone": "Identity & Tone",
       "rewriter": "Rewriter",
       "localizedCopy": "Localized Copy",
-      "missions": "Missions",
+      "missions": "Agentic Missions",
       "automatedPipelines": "Automated Pipelines"
     },
     "shopify": {
@@ -1351,7 +1360,7 @@
         "desc": "Generate localized drafts (title + HTML description + SEO title/meta) per market and save translations back to Shopify."
       },
       "missions": {
-        "title": "Missions",
+        "title": "Agentic Missions",
         "desc": "Run multi-agent AI pipelines that chain Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows."
       },
       "seo": {
@@ -1370,7 +1379,7 @@
     "pricing": {
       "eyebrow": "Pricing",
       "title": "Choose the plan that matches your expansion.",
-      "subtitle": "Start free and scale as you grow. SEO, marketing, and missions included in every tier.",
+      "subtitle": "Start free and scale as you grow. SEO, marketing, and agentic missions included in every tier.",
       "free": {
         "name": "Free",
         "price": "$0",
@@ -1382,7 +1391,7 @@
           "SEO title + meta description",
           "Instagram captions + hashtags",
           "Competitive pricing analysis",
-          "Full product launch mission",
+          "Full agentic launch (incl. images)",
           "Image refinement"
         ]
       },
@@ -1390,46 +1399,52 @@
         "name": "Basic",
         "price": "$29",
         "period": "/ month",
-        "description": "For emerging brands testing new regions.",
+        "description": "Transform product info into a world-class marketing copy.",
         "productLimit": "50 products / month",
         "features": [
           "AI rewrite + Key Details auto-detected",
           "EN unit conversion (metric + US)",
           "Instagram captions + hashtags",
           "Seasonal campaign ideas",
-          "Text-only mission (Rewriter + Marketing)"
+          "Text-only agentic mission (Rewriter + Marketing)"
         ]
       },
       "standard": {
         "name": "Standard",
         "price": "$79",
         "period": "/ month",
-        "description": "",
+        "description": "Elevating your storefront quality and multiplying revenue.",
         "productLimit": "Unlimited products",
         "badge": "Best Value",
         "features": [
           "Everything in Basic",
           "12 target markets (single locale per rewrite)",
           "Brand tones: Luxury / Minimalist / Playful",
-          "SEO editor + SERP preview",
+          "SEO title + meta description",
+          "SEO editor + preview",
+          "Social Post preview",
           "Competitive pricing analysis",
-          "Full text pipeline missions"
+          "Full text pipeline (no image agents)",
+          "10 AI image credits / month"
         ]
       },
       "pro": {
         "name": "Pro",
-        "price": "$199",
+        "price": "$149",
         "period": "/ month",
-        "description": "",
+        "description": "Complete AI Engine",
         "productLimit": "Unlimited products",
         "badge": "Most Popular",
         "features": [
           "Everything in Standard",
           "Bulk inventory setup",
+          "Priority AI model",
+          "Full SEO optimization",
           "Visual Ad generation + Social Post preview",
-          "Auto-apply price to Shopify",
-          "Image refinement across all features",
+          "Pricing analysis + Auto-apply price to Shopify",
+          "Full pipeline with image agents",
           "Agentic workflows + Publish to Shopify",
+          "Image refinement across all features",
           "Meta (Facebook/Instagram) integration"
         ]
       }
@@ -1442,8 +1457,8 @@
   },
   "featuresPage": {
     "eyebrow": "Feature stack",
-    "title": "Everything you need to sell globally.",
-    "subtitle": "From brand identity to autonomous pipelines — a complete AI toolkit for localizing, optimizing, and marketing your Shopify products across 12 markets.",
+    "title": "Your complete AI toolkit for global growth.",
+    "subtitle": "Transform your store into a global powerhouse with a complete AI toolkit for enhancing content, growing revenue, and increasing engagement of your products.",
     "featureBundle": "Feature Bundle",
     "cta": {
       "title": "Ready to launch everywhere?",
@@ -1524,10 +1539,10 @@
         ]
       },
       "missions": {
-        "title": "Missions",
+        "title": "Agentic Missions",
         "short": "Run multi-agent AI pipelines that chain Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows.",
         "highlights": [
-          "Preset missions for every plan tier",
+          "Preset agentic missions for every plan tier",
           "Custom pipeline builder (any agent combo)",
           "Auto-flow or step-by-step approval",
           "Results saved to Shopify automatically"
@@ -1541,7 +1556,7 @@
           "Japanese Value: evidence-backed cultural/craft detail extraction",
           "Brand Soul memory across rewriter, templates, and campaigns",
           "Content Templates: FAQ, Hero, Blog, and Collection generation",
-          "Step-by-step or autonomous Missions execution flows",
+          "Step-by-step or autonomous Agentic Missions execution flows",
           "Usage, credits, and plan controls from Dashboard"
         ]
       }

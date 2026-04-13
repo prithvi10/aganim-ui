@@ -46,6 +46,8 @@ interface MissionHistoryProps {
   limit?: number;
 }
 
+const CANCELLABLE_STATUSES = new Set(["IN_PROGRESS", "AWAITING_APPROVAL", "PENDING"]);
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function MissionHistory({
@@ -64,6 +66,24 @@ export function MissionHistory({
   const [missionDetails, setMissionDetails] = useState<Record<string, Record<string, unknown>>>({});
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [sectionOpen, setSectionOpen] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancel = useCallback(async (missionId: string) => {
+    if (!confirm(t("cancelConfirm"))) return;
+    setCancellingId(missionId);
+    try {
+      const url = `${apiBaseUrl}/api/missions/${missionId}/cancel?shop=${encodeURIComponent(shop)}`;
+      const resp = await fetch(url, { method: "POST" });
+      if (!resp.ok) throw new Error(t("failedToCancel"));
+      setMissions((prev) =>
+        prev.map((m) => (m.id === missionId ? { ...m, status: "CANCELLED" } : m)),
+      );
+    } catch {
+      // Silently fail — mission may already be cancelled or completed
+    } finally {
+      setCancellingId(null);
+    }
+  }, [apiBaseUrl, shop, t]);
 
   function getStatusBadge(status: string) {
     switch (status) {
@@ -77,6 +97,8 @@ export function MissionHistory({
         return <Badge tone="warning">{t("awaitingApproval")}</Badge>;
       case "PENDING":
         return <Badge tone="attention">{t("pending")}</Badge>;
+      case "CANCELLED":
+        return <Badge>{t("cancelled")}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -206,7 +228,7 @@ export function MissionHistory({
                 {sectionOpen ? "▼" : "▶"} {t("recentMissions")}
               </Text>
               <Text as="span" variant="bodySm" tone="subdued">
-                {missions.length} {missions.length === 1 ? "mission" : "missions"}
+                {missions.length} {missions.length === 1 ? "agentic mission" : "agentic missions"}
               </Text>
             </InlineStack>
           </div>
@@ -279,6 +301,16 @@ export function MissionHistory({
                             onClick={() => onResumeMission(mission.id)}
                           >
                             {t("resume")}
+                          </Button>
+                        )}
+                        {!isBulk && CANCELLABLE_STATUSES.has(mission.status) && (
+                          <Button
+                            size="slim"
+                            tone="critical"
+                            loading={cancellingId === mission.id}
+                            onClick={() => handleCancel(mission.id)}
+                          >
+                            {t("cancelMission")}
                           </Button>
                         )}
                       </InlineStack>

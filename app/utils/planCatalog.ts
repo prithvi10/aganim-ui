@@ -20,6 +20,7 @@ export type PlanFeature = {
 export type PlanSection = {
   title: string;
   subtitle?: string;
+  highlight?: boolean;
   features: PlanFeature[];
 };
 
@@ -81,7 +82,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
     {
       name: PLAN_BASIC,
       price: "$29",
-      tagline: "",
+      tagline: t("planCatalog.basicTagline"),
       productLimit: t("planCatalog.products50"),
       sections: [
         {
@@ -122,22 +123,11 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
           ],
         },
         {
-          title: t("planCatalog.seoSection"),
-          features: [
-            { label: t("planCatalog.seoTitleMeta"), included: true },
-            { label: t("planCatalog.seoEditorPreview"), included: true },
-          ],
-        },
-        {
           title: t("planCatalog.marketingSection"),
           features: [
             { label: t("planCatalog.everythingInBasic"), included: true },
             { label: t("planCatalog.socialPostPreview"), included: true },
           ],
-        },
-        {
-          title: t("planCatalog.priceScoutSection"),
-          features: [{ label: t("planCatalog.competitivePricing"), included: true }],
         },
         {
           title: t("planCatalog.missionsSection"),
@@ -150,6 +140,19 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
           features: [
             { label: t("planCatalog.imageCreditsMonthly10"), included: true },
           ],
+        },
+        {
+          title: t("planCatalog.seoSection"),
+          highlight: true,
+          features: [
+            { label: t("planCatalog.seoTitleMeta"), included: true },
+            { label: t("planCatalog.seoEditorPreview"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.priceScoutSection"),
+          highlight: true,
+          features: [{ label: t("planCatalog.competitivePricing"), included: true }],
         },
       ],
     },
@@ -188,6 +191,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
         },
         {
           title: t("planCatalog.missionsAutonomous"),
+          highlight: true,
           features: [
             { label: t("planCatalog.fullPipelineWithImages"), included: true },
             { label: t("planCatalog.agenticWorkflows"), included: true },
@@ -198,6 +202,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
         },
         {
           title: t("planCatalog.imagesSection"),
+          highlight: true,
           features: [
             { label: t("planCatalog.imageRefinementAllFeatures"), included: true },
           ],

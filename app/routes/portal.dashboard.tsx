@@ -136,7 +136,7 @@ export default function PortalDashboard() {
             value={overview.active_merchants_30d}
           />
           <KpiCard
-            title="Total Missions"
+            title="Total Agentic Missions"
             value={overview.total_missions}
           />
           <KpiCard

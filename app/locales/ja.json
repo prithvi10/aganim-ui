@@ -129,7 +129,7 @@
     "startAiOptimization": "AI最適化を開始",
     "optimizeFirstProduct": "最初の商品を最適化",
     "usageSummary": "利用状況の概要",
-    "missions": "ミッション:",
+    "missions": "エージェンティック・ミッション:",
     "images": "画像:",
     "lifetimeCredits": "生涯クレジット",
     "monthlyProductRewrites": "月間商品リライト",
@@ -310,10 +310,10 @@
   "optimize": {
     "aiPoweredOptimization": "AI搭載商品最適化",
     "home": "ホーム",
-    "missionsUsed": "使用済みミッション:",
+    "missionsUsed": "使用済みエージェンティック・ミッション:",
     "optimizationError": "最適化エラー",
-    "missionComplete": "ミッション完了！商品がShopifyに更新されました。",
-    "missionFailed": "ミッションが失敗しました。もう一度お試しください。",
+    "missionComplete": "エージェンティック・ミッション完了！商品がShopifyに更新されました。",
+    "missionFailed": "エージェンティック・ミッションが失敗しました。もう一度お試しください。",
     "back": "戻る",
     "dataAlreadySaved": "このデータは既にShopifyに保存されています。"
   },
@@ -566,10 +566,10 @@
     "guidePriceScoutSubtitle": "競合価格インテリジェンス",
     "guidePriceScoutBody": "競合が類似商品にどのような価格を設定しているかを分析。AI搭載の価格レコメンデーションを取得し、最適化された価格をストアに適用。",
     "openPriceScout": "プライススカウトを開く",
-    "guidePipelinesTitle": "ステップ7: ミッション",
-    "guidePipelinesSubtitle": "マルチエージェントミッションを実行",
-    "guidePipelinesBody": "複数のAIエージェントを連携させたミッションを構築 — リライター → SEO → マーケティング → 価格設定 — ワンクリックで実行。プリセットミッションから選択するか、ステップごとの承認付きカスタムパイプラインを作成。",
-    "openPipelines": "ミッションを開く",
+    "guidePipelinesTitle": "ステップ7: エージェンティック・ミッション",
+    "guidePipelinesSubtitle": "マルチエージェント・エージェンティック・ミッションを実行",
+    "guidePipelinesBody": "複数のAIエージェントを連携させたエージェンティック・ミッションを構築 — リライター → SEO → マーケティング → 価格設定 — ワンクリックで実行。プリセットエージェンティック・ミッションから選択するか、ステップごとの承認付きカスタムパイプラインを作成。",
+    "openPipelines": "エージェンティック・ミッションを開く",
     "guideDashboardTitle": "ステップ8: ダッシュボード",
     "guideDashboardSubtitle": "使用状況、プラン、連携",
     "guideDashboardBody": "プランの確認、使用状況とクレジットの追跡、Meta連携の管理、コンテンツターゲット市場の設定 — すべてを一つの画面で。",
@@ -585,9 +585,9 @@
     "dismissDowngradeNotice": "ダウングレード通知を閉じる"
   },
   "missions": {
-    "chooseYourMission": "ミッションを選択",
-    "pickReadyMade": "既製のミッションを選ぶか、カスタムパイプラインを構築してください。",
-    "customMission": "カスタムミッション",
+    "chooseYourMission": "エージェンティック・ミッションを選択",
+    "pickReadyMade": "既製のエージェンティック・ミッションを選ぶか、カスタムパイプラインを構築してください。",
+    "customMission": "カスタム・エージェンティック・ミッション",
     "customMissionDesc": "任意のエージェントの組み合わせでパイプラインを構築",
     "upgradeToUnlock": "{{tier}}にアップグレードしてこのミッションを解除",
     "selectProduct": "商品を選択",
@@ -618,9 +618,9 @@
     "moveUp": "上に移動",
     "moveDown": "下に移動",
     "removeStep": "ステップを削除",
-    "backToMissions": "ミッション選択に戻る",
-    "launchMission": "🚀 ミッション開始（{{count}} ステップ）",
-    "mission": "ミッション",
+    "backToMissions": "エージェンティック・ミッション選択に戻る",
+    "launchMission": "🚀 エージェンティック・ミッション開始（{{count}} ステップ）",
+    "mission": "エージェンティック・ミッション",
     "agentRewriter": "リライター",
     "agentRewriterDesc": "ブランドボイスと文化適応で商品説明を書き換え",
     "agentSeo": "SEO",
@@ -691,6 +691,8 @@
     "googleAdsShieldDesc": "SEOキーワード調査でGoogle広告に高意図トラフィックを誘導",
     "marketAwarenessAudit": "市場認知度監査",
     "marketAwarenessAuditDesc": "競合と比較して「価格負け」「ランク負け」かを分析",
+    "quickLaunch": "スポットライト・ローンチ",
+    "quickLaunchDesc": "Basic向けの2ステップ：リライターで商品ストーリーとブランドソウル適合を整え、マーケティングでフック・キャプション・キャンペーン訴求を生成。SEO・プライススカウト・画像リファイン・ビジュアル広告は含みません。全体パイプラインはフルローンチで。",
     "fullLaunch": "フルローンチ",
     "fullLaunchDesc": "フルパイプライン — リライト、画像リファインメント、SEO、価格設定、マーケティング、ビジュアル広告",
     "visualAdBlitz": "ビジュアル広告ブリッツ",
@@ -711,10 +713,10 @@
     "bulkUsUnits": "US単位に変換",
     "bulkTargetMarket": "ターゲット市場",
     "bulkCreditPreview": "クレジット消費",
-    "bulkMissionCredits": "{{count}}ミッションが消費されます（Pro = 無制限）",
+    "bulkMissionCredits": "{{count}}エージェンティック・ミッションが消費されます（Pro = 無制限）",
     "bulkImageCredits": "最大{{count}}画像クレジットが消費されます。今月の残り: {{remaining}}/150",
     "bulkImageCreditsWarning": "画像クレジットが少なくなっています！このバッチ後の残り: {{remaining}}",
-    "bulkLaunchButton": "一括ミッションを開始",
+    "bulkLaunchButton": "一括エージェンティック・ミッションを開始",
     "bulkProductsParsed": "{{count}}商品を検出",
     "bulkStatusStarted": "開始 — 商品を準備中...",
     "bulkStatusInProgress": "処理中 — コンテンツとSEOを最適化中...",
@@ -732,12 +734,17 @@
     "bulkDropzoneLabel": "ここにファイルをドロップまたはクリックしてアップロード",
     "bulkDropzoneHint": ".csv（テキストのみ）または.zip（テキストと画像）を受け付けます",
     "bulkProcessing": "処理中...",
-    "recentMissions": "最近のミッション",
+    "recentMissions": "最近のエージェンティック・ミッション",
     "completed": "完了",
     "errorStatus": "エラー",
     "inProgress": "進行中",
     "awaitingApproval": "承認待ち",
     "pending": "保留中",
+    "cancelled": "キャンセル済み",
+    "cancelMission": "キャンセル",
+    "cancelConfirm": "このミッションをキャンセルしますか？この操作は取り消せません。",
+    "cancelling": "キャンセル中...",
+    "failedToCancel": "ミッションのキャンセルに失敗しました",
     "justNow": "たった今",
     "minsAgo": "{{count}}分前",
     "hoursAgo": "{{count}}時間前",
@@ -763,8 +770,10 @@
   },
   "planCatalog": {
     "tryEverything": "すべてお試し、アクセス制限あり",
-    "standardTagline": "",
-    "proTagline": "",
+    "basicTagline": "商品情報をワールドクラスのマーケティングコピーに変換。",
+    "standardTagline": "ストアフロントの品質を高め、収益を倍増。",
+    "proTagline": "コンプリートAIエンジン",
+    "imageCreditsMonthly10": "AI画像クレジット 10回/月",
     "products10": "10商品（1週間トライアル）",
     "products50": "50商品 / 月",
     "unlimitedProducts": "無制限の商品",
@@ -792,11 +801,11 @@
     "competitivePricing": "競合価格分析",
     "pricingAnalysis": "価格分析",
     "autoApplyPrice": "Shopifyに価格を自動適用",
-    "missionsSection": "ミッション",
-    "fullProductLaunch": "フル商品ローンチ（画像含む）",
-    "textOnlyMission": "テキストのみミッション（リライター + マーケティング）",
+    "missionsSection": "エージェンティック・ミッション",
+    "fullProductLaunch": "フルエージェンティック・ローンチ（画像含む）",
+    "textOnlyMission": "テキストのみエージェンティック・ミッション（リライター + マーケティング）",
     "fullTextPipeline": "フルテキストパイプライン（画像エージェントなし）",
-    "missionsAutonomous": "ミッション＆オートノマス",
+    "missionsAutonomous": "エージェンティック・ミッション＆オートノマス",
     "fullPipelineWithImages": "画像エージェント付きフルパイプライン",
     "agenticWorkflows": "エージェントワークフロー",
     "publishToShopify": "Shopifyに公開",
@@ -1172,33 +1181,33 @@
         ]
       },
       "missions": {
-        "title": "Missions",
+        "title": "エージェンティック・ミッション",
         "short": "リライター、SEO、マーケティング、価格設定、画像リファインメント、ビジュアルマーケティングを連携させたマルチエージェントAIパイプラインを実行。",
         "what": [
           "複数エージェントを連携して商品をエンドツーエンドで処理するマルチステップAIパイプライン。",
-          "プリセットミッション（既製の組み合わせ）を選ぶか、任意のエージェント組み合わせでカスタムパイプラインを構築。",
+          "プリセット・エージェンティック・ミッション（既製の組み合わせ）を選ぶか、任意のエージェント組み合わせでカスタムパイプラインを構築。",
           "オートフロー（全エージェントが順次実行）またはステップバイステップモード（各エージェントの出力を承認してから続行）で実行。",
-          "ミッション結果はShopifyに保存: 翻訳、SEOフィールド、メタフィールド、ブログ記事、コレクション、メディア。"
+          "エージェンティック・ミッション結果はShopifyに保存: 翻訳、SEOフィールド、メタフィールド、ブログ記事、コレクション、メディア。"
         ],
         "how": [
           "ナビゲーションメニューから最適化を開く。",
-          "プリセットミッションを選ぶか、「カスタムミッション」で独自パイプラインを構築。",
-          "ミッション用の商品を選択。",
-          "ブログミッション: トピックと任意のカテゴリーを入力。コレクションミッション: コレクション名を付け、商品を選択。",
-          "「ミッション開始」をクリックして開始。",
+          "プリセット・エージェンティック・ミッションを選ぶか、「カスタム・エージェンティック・ミッション」で独自パイプラインを構築。",
+          "エージェンティック・ミッション用の商品を選択。",
+          "ブログ・エージェンティック・ミッション: トピックと任意のカテゴリーを入力。コレクション・エージェンティック・ミッション: コレクション名を付け、商品を選択。",
+          "「エージェンティック・ミッション開始」をクリックして開始。",
           "オートフロー: 各エージェントの進行を確認。ステップバイステップ: 各ステップを確認し、承認/再生成/スキップ。",
           "完了時、結果は自動でShopifyに保存。"
         ],
         "sections": [
-          { "title": "プリセットミッション", "body": ["Basic: Social Hype-Man（リライター → FB/IG広告）、New Arrival Blast（リライター → Launch Email）、Welcome Journey（リライター → Welcome Email）、Artisan Storyteller（リライター → Hero Section）。", "Standard: Competitor Rebuttal（SEO → Product FAQ）、Abandoned Cart Fix（PriceScout → Abandoned Cart Email）、SEO Content Factory（SEO → Blog Post）、Collection Refresher（SEO → Collection）、Google Ads Shield（SEO → Google Ads）、Market Awareness Audit（SEO → PriceScout）。", "Pro: Full Launch（全6エージェント）、Visual Ad Blitz（Marketing → Visual Marketing）。"] },
-          { "title": "カスタムミッション", "body": ["任意のエージェント組み合わせを追加: Rewriter、SEO、Marketing、PriceScout、Image Refinement、Visual Marketing。", "パイプライン内でドラッグしてエージェントの順序を変更。", "各ステップの任意テンプレートを選択（例: Product FAQ、Blog Post、Launch Email）。", "一部のエージェントはプラン制限あり（Image RefinementとVisual MarketingはProが必要）。"] },
-          { "title": "オートフロー vs ステップバイステップ", "body": ["オートフロー: 全エージェントが自動で順次実行。結果はリアルタイムでストリーム。", "ステップバイステップ: 各エージェントは完了後に一時停止。出力を確認してから続行、再生成、またはスキップ。", "最初の数回のミッションではステップバイステップを推奨し、各エージェントの貢献を理解。"] },
-          { "title": "ミッション履歴", "body": ["最近のミッションはミッションビルダーの下に表示。", "各ミッションに表示: ステータス（完了、進行中、エラー、承認待ち）、使用エージェント、商品、時刻。", "進行中または承認待ちのミッションで「再開」をクリックして続行。", "完了したミッションで「全詳細を表示」をクリックして完全な出力を確認。"] }
+          { "title": "プリセット・エージェンティック・ミッション", "body": ["Basic: Social Hype-Man（リライター → FB/IG広告）、New Arrival Blast（リライター → Launch Email）、Welcome Journey（リライター → Welcome Email）、Artisan Storyteller（リライター → Hero Section）。", "Standard: Competitor Rebuttal（SEO → Product FAQ）、Abandoned Cart Fix（PriceScout → Abandoned Cart Email）、SEO Content Factory（SEO → Blog Post）、Collection Refresher（SEO → Collection）、Google Ads Shield（SEO → Google Ads）、Market Awareness Audit（SEO → PriceScout）。", "Pro: Full Launch（全6エージェント）、Visual Ad Blitz（Marketing → Visual Marketing）。"] },
+          { "title": "カスタム・エージェンティック・ミッション", "body": ["任意のエージェント組み合わせを追加: Rewriter、SEO、Marketing、PriceScout、Image Refinement、Visual Marketing。", "パイプライン内でドラッグしてエージェントの順序を変更。", "各ステップの任意テンプレートを選択（例: Product FAQ、Blog Post、Launch Email）。", "一部のエージェントはプラン制限あり（Image RefinementとVisual MarketingはProが必要）。"] },
+          { "title": "オートフロー vs ステップバイステップ", "body": ["オートフロー: 全エージェントが自動で順次実行。結果はリアルタイムでストリーム。", "ステップバイステップ: 各エージェントは完了後に一時停止。出力を確認してから続行、再生成、またはスキップ。", "最初の数回のエージェンティック・ミッションではステップバイステップを推奨し、各エージェントの貢献を理解。"] },
+          { "title": "エージェンティック・ミッション履歴", "body": ["最近のエージェンティック・ミッションはミッションビルダーの下に表示。", "各エージェンティック・ミッションに表示: ステータス（完了、進行中、エラー、承認待ち）、使用エージェント、商品、時刻。", "進行中または承認待ちのエージェンティック・ミッションで「再開」をクリックして続行。", "完了したエージェンティック・ミッションで「全詳細を表示」をクリックして完全な出力を確認。"] }
         ],
         "planMatrix": {
-          "title": "プラン別ミッション",
+          "title": "プラン別エージェンティック・ミッション",
           "rows": [
-            { "feature": "月間ミッション数", "Basic": "1/月", "Standard": "3/月", "Pro": "無制限", "notes": "Freeプラン: 生涯3クレジット。" },
+            { "feature": "月間エージェンティック・ミッション数", "Basic": "1/月", "Standard": "3/月", "Pro": "無制限", "notes": "Freeプラン: 生涯3クレジット。" },
             { "feature": "テキストエージェント（Rewriter、SEO、Marketing、PriceScout）", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "全有料プランで利用可能。" },
             { "feature": "画像エージェント（Image Refinement、Visual Marketing）", "Basic": "❌", "Standard": "❌", "Pro": "✅", "notes": "Proのみ。画像クレジット（150/月）を使用。" },
             { "feature": "カスタムパイプラインビルダー", "Basic": "✅", "Standard": "✅", "Pro": "✅", "notes": "エージェントの利用可否はプランによる。" },
@@ -1206,15 +1215,15 @@
           ]
         },
         "troubleshooting": [
-          { "symptom": "ミッションが失敗または停止。", "cause": "バックエンドエージェントでエラーまたはタイムアウトが発生。", "fixes": ["ミッションタイムラインでエラー詳細を確認。", "同じ設定で新しいミッションを開始してみる。", "失敗が続く場合、商品データが不足している可能性 — 商品詳細を追加。"] },
+          { "symptom": "エージェンティック・ミッションが失敗または停止。", "cause": "バックエンドエージェントでエラーまたはタイムアウトが発生。", "fixes": ["エージェンティック・ミッションタイムラインでエラー詳細を確認。", "同じ設定で新しいエージェンティック・ミッションを開始してみる。", "失敗が続く場合、商品データが不足している可能性 — 商品詳細を追加。"] },
           { "symptom": "エージェントが自動でスキップされた。", "cause": "エージェントがプランで利用できないか、前提エージェントの出力が空だった。", "fixes": ["各エージェントのプラン対応を確認。", "全エージェントが動作する十分な商品コンテンツがあることを確認。"] },
-          { "symptom": "ミッションカウンターが0残りと表示。", "cause": "この請求期間のミッションをすべて使用済み。", "fixes": ["請求日の月次リセットを待つ。", "より多くのミッションには上位プランにアップグレード（Pro = 無制限）。"] }
+          { "symptom": "エージェンティック・ミッションカウンターが0残りと表示。", "cause": "この請求期間のエージェンティック・ミッションをすべて使用済み。", "fixes": ["請求日の月次リセットを待つ。", "より多くのエージェンティック・ミッションには上位プランにアップグレード（Pro = 無制限）。"] }
         ],
         "faqs": [
-          { "q": "ミッションは結果をShopifyに自動保存しますか？", "a": "はい — ミッション完了時、結果（翻訳、SEO、メタフィールド、ブログ記事、コレクション）は自動でShopifyに保存されます。" },
-          { "q": "中断したミッションを再開できますか？", "a": "はい — ミッション履歴で見つけて「再開」をクリックすると、停止したところから続行できます。" },
-          { "q": "エージェントステップをスキップすると？", "a": "ミッションは次のエージェントに進みます。スキップしたエージェントの出力は最終結果に含まれません。" },
-          { "q": "最初にどのプリセットミッションを試すべきですか？", "a": "最初のミッションには「Social Hype-Man」（Basic）または「Full Launch」（Pro）で、ミッションがエージェントをどう連携させるか確認してください。" },
+          { "q": "エージェンティック・ミッションは結果をShopifyに自動保存しますか？", "a": "はい — エージェンティック・ミッション完了時、結果（翻訳、SEO、メタフィールド、ブログ記事、コレクション）は自動でShopifyに保存されます。" },
+          { "q": "中断したエージェンティック・ミッションを再開できますか？", "a": "はい — エージェンティック・ミッション履歴で見つけて「再開」をクリックすると、停止したところから続行できます。" },
+          { "q": "エージェントステップをスキップすると？", "a": "エージェンティック・ミッションは次のエージェントに進みます。スキップしたエージェントの出力は最終結果に含まれません。" },
+          { "q": "最初にどのプリセット・エージェンティック・ミッションを試すべきですか？", "a": "最初のエージェンティック・ミッションには「Social Hype-Man」（Basic）または「Full Launch」（Pro）で、エージェンティック・ミッションがエージェントをどう連携させるか確認してください。" },
           { "q": "商品が日本語の場合、海外市場向けのSEO・価格分析はどうすればよいですか？", "a": "まず商品をターゲット言語にリライトしてから、SEOまたはPriceScoutを実行してください。ターゲット言語のコンテンツを使うと、より正確なSERP・競合価格の結果が得られます。" }
         ]
       },
@@ -1306,7 +1315,7 @@
       "identityTone": "アイデンティティ＆トーン",
       "rewriter": "リライター",
       "localizedCopy": "ローカライズコピー",
-      "missions": "ミッション",
+      "missions": "エージェンティック・ミッション",
       "automatedPipelines": "自動化パイプライン"
     },
     "shopify": {
@@ -1339,7 +1348,7 @@
         "desc": "市場ごとにローカライズされた下書き（タイトル + HTML説明文 + SEOタイトル/メタ）を生成し、翻訳をShopifyに保存。"
       },
       "missions": {
-        "title": "ミッション",
+        "title": "エージェンティック・ミッション",
         "desc": "リライター、SEO、マーケティング、価格設定、画像改善、ビジュアルマーケティングを連携させたマルチエージェントAIパイプラインを実行。"
       },
       "seo": {
@@ -1358,7 +1367,7 @@
     "pricing": {
       "eyebrow": "料金",
       "title": "拡大計画に合ったプランを選択。",
-      "subtitle": "無料で始めて、成長に合わせてスケール。SEO、マーケティング、ミッションはすべてのプランに含まれます。",
+      "subtitle": "無料で始めて、成長に合わせてスケール。SEO、マーケティング、エージェンティック・ミッションはすべてのプランに含まれます。",
       "free": {
         "name": "Free",
         "price": "$0",
@@ -1370,7 +1379,7 @@
           "SEOタイトル + メタディスクリプション",
           "Instagramキャプション + ハッシュタグ",
           "競合価格分析",
-          "フル商品ローンチミッション",
+          "フルエージェンティック・ローンチ（画像含む）",
           "画像改善"
         ]
       },
@@ -1378,46 +1387,52 @@
         "name": "Basic",
         "price": "$29",
         "period": "/ 月",
-        "description": "新規地域をテストする新興ブランド向け。",
+        "description": "商品情報をワールドクラスのマーケティングコピーに変換。",
         "productLimit": "50商品 / 月",
         "features": [
           "AI書き換え + キーディテール自動検出",
           "EN単位変換（メートル法 + US）",
           "Instagramキャプション + ハッシュタグ",
           "季節キャンペーンアイデア",
-          "テキストのみミッション（リライター + マーケティング）"
+          "テキストのみエージェンティック・ミッション（リライター + マーケティング）"
         ]
       },
       "standard": {
         "name": "Standard",
         "price": "$79",
         "period": "/ 月",
-        "description": "",
+        "description": "ストアフロントの品質を高め、収益を倍増。",
         "productLimit": "無制限商品",
         "badge": "ベストバリュー",
         "features": [
           "Basicのすべて",
           "12ターゲット市場（書き換えごとに単一ロケール）",
           "ブランドトーン: ラグジュアリー / ミニマリスト / プレイフル",
-          "SEOエディター + SERPプレビュー",
+          "SEOタイトル + メタディスクリプション",
+          "SEOエディター + プレビュー",
+          "ソーシャル投稿プレビュー",
           "競合価格分析",
-          "フルテキストパイプラインミッション"
+          "フルテキストパイプライン（画像エージェントなし）",
+          "AI画像クレジット 10回/月"
         ]
       },
       "pro": {
         "name": "Pro",
-        "price": "$199",
+        "price": "$149",
         "period": "/ 月",
-        "description": "",
+        "description": "コンプリートAIエンジン",
         "productLimit": "無制限商品",
         "badge": "最も人気",
         "features": [
           "Standardのすべて",
           "一括在庫セットアップ",
-          "ビジュアル広告生成 + SNS投稿プレビュー",
-          "価格をShopifyに自動適用",
-          "全機能で画像改善",
+          "優先AIモデル",
+          "フルSEO最適化",
+          "ビジュアル広告生成 + ソーシャル投稿プレビュー",
+          "価格分析 + Shopifyに価格を自動適用",
+          "画像エージェント付きフルパイプライン",
           "エージェントワークフロー + Shopifyに公開",
+          "全機能で画像改善",
           "Meta（Facebook/Instagram）連携"
         ]
       }
@@ -1430,8 +1445,8 @@
   },
   "featuresPage": {
     "eyebrow": "機能スタック",
-    "title": "グローバル販売に必要なすべて。",
-    "subtitle": "ブランドアイデンティティから自律パイプラインまで — 12の市場でShopify商品をローカライズ、最適化、マーケティングするための完全なAIツールキット。",
+    "title": "グローバル成長のための完全なAIツールキット。",
+    "subtitle": "コンテンツの強化、収益の拡大、商品エンゲージメントの向上を実現する完全なAIツールキットで、あなたのストアをグローバルパワーハウスに変革。",
     "featureBundle": "機能バンドル",
     "cta": {
       "title": "世界中でローンチする準備はできましたか？",
@@ -1512,10 +1527,10 @@
         ]
       },
       "missions": {
-        "title": "ミッション",
+        "title": "エージェンティック・ミッション",
         "short": "リライター、SEO、マーケティング、価格設定、画像改善、ビジュアルマーケティングを連携させたマルチエージェントAIパイプラインを実行。",
         "highlights": [
-          "すべてのプラン層に対応したプリセットミッション",
+          "すべてのプラン層に対応したプリセット・エージェンティック・ミッション",
           "カスタムパイプラインビルダー（任意のエージェント組み合わせ）",
           "自動フローまたはステップバイステップ承認",
           "結果をShopifyに自動保存"
@@ -1529,7 +1544,7 @@
           "Japanese Value: エビデンスに基づく文化/職人技の詳細抽出",
           "リライター、テンプレート、キャンペーン全体でBrand Soulメモリ",
           "コンテンツテンプレート: FAQ、ヒーロー、ブログ、コレクション生成",
-          "ステップバイステップまたは自律的なミッション実行フロー",
+          "ステップバイステップまたは自律的なエージェンティック・ミッション実行フロー",
           "ダッシュボードからの使用状況、クレジット、プラン管理"
         ]
       }

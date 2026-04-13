@@ -46,7 +46,12 @@ function ExpandableSection({ section, planName }: { section: PlanSection; planNa
   const [open, setOpen] = useState(false);
   const toggle = useCallback(() => setOpen((v) => !v), []);
 
+  const highlightClass = section.highlight
+    ? `plan-section-highlight plan-section-highlight--${planName.toLowerCase()}`
+    : "";
+
   return (
+    <div className={highlightClass}>
     <Box padding="400" background="bg-surface-secondary" borderRadius="300">
       <div
         onClick={toggle}
@@ -72,6 +77,7 @@ function ExpandableSection({ section, planName }: { section: PlanSection; planNa
         </div>
       </Collapsible>
     </Box>
+    </div>
   );
 }
 
