@@ -477,9 +477,9 @@
   "imageRefinement": {
     "title": "商品画像リファインメント",
     "backToWritingStudio": "ライティングスタジオ",
-    "proFeature": "Proプラン機能",
-    "proFeatureDesc": "AI画像リファインメントは、洗練された商品写真、マーケティング広告、ヒーローバナーをブランドスタイルに合わせて自動生成します。",
-    "upgradeToPro": "Proにアップグレード",
+    "proFeature": "Standardプラン機能",
+    "proFeatureDesc": "AI画像リファインメントは、洗練された商品写真、マーケティング広告、ヒーローバナーをブランドスタイルに合わせて自動生成します。画像クレジットで制限。",
+    "upgradeToPro": "Standardにアップグレード",
     "selectProduct": "商品を選択",
     "noProducts": "商品が見つかりません。まずShopifyストアに商品を追加してください。",
     "product": "商品",

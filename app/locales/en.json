@@ -473,9 +473,9 @@
   "imageRefinement": {
     "title": "Product Image Refinement",
     "backToWritingStudio": "Writing Studio",
-    "proFeature": "Pro Plan Feature",
-    "proFeatureDesc": "AI image refinement generates polished product photos, marketing ads, and hero banners — automatically styled to match your brand.",
-    "upgradeToPro": "Upgrade to Pro",
+    "proFeature": "Standard Plan Feature",
+    "proFeatureDesc": "AI image refinement generates polished product photos, marketing ads, and hero banners — automatically styled to match your brand. Gated by image credits.",
+    "upgradeToPro": "Upgrade to Standard",
     "selectProduct": "Select a Product",
     "noProducts": "No products found. Add products to your Shopify store first.",
     "product": "Product",
