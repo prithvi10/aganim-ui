@@ -11,7 +11,7 @@
   },
   "home": {
     "crossBorderAi": "Aganim AI",
-    "tagline": "Transform product info into a world-class marketing copy.",
+    "tagline": "Elevate your store, Multiply your revenue",
     "gettingStarted": "Getting Started",
     "gettingStartedDesc": "Complete these steps to unlock the full power of Aganim AI.",
     "stepTargetMarket": "Target market & language settings",
@@ -765,8 +765,8 @@
   },
   "planCatalog": {
     "tryEverything": "Try everything, limited access",
-    "basicTagline": "Transform product info into a world-class marketing copy.",
-    "standardTagline": "Elevating your storefront quality and multiplying revenue.",
+    "basicTagline": "Professional Writing Studio",
+    "standardTagline": "Revenue Accelerator",
     "proTagline": "Complete AI Engine",
     "imageCreditsMonthly10": "10 AI image credits / month",
     "products10": "10 products (1 week trial)",
@@ -808,7 +808,28 @@
     "metaIntegration": "Meta (Facebook/Instagram) integration",
     "imagesSection": "Images",
     "imageRefinement": "Image refinement",
-    "imageRefinementAllFeatures": "Image refinement across all features"
+    "imageRefinementAllFeatures": "Image refinement across all features",
+    "jpValueAutoDetected": "JP value auto-detected",
+    "autoUnitConversion": "Auto unit conversion (metric + US)",
+    "brandTonesVariety": "Brand tones (Luxury, professional, trendy, etc)",
+    "autoFaqGeneration": "Auto FAQ generation",
+    "twelveGlobalMarkets": "12 global markets supported",
+    "introToAgents": "Intro to Agents",
+    "scenarioSpecificPipelines": "Scenario specific pipelines",
+    "fullLaunchPipelines": "Full Launch Pipelines",
+    "visualAgents": "Visual Agents",
+    "imageCredits10": "10 image credits",
+    "heroImageGeneration": "Hero Image generation",
+    "blogImageGeneration": "Blog Image generation",
+    "collectionImageGeneration": "Collection Image generation",
+    "globalCompetitorRanks": "Global competitor ranks analyzer",
+    "perfectSeoGenerator": "Perfect SEO generator",
+    "ctrAnalysis": "Click Through Rate (CTR) analysis",
+    "globalCompetitorPrice": "Global Competitor price analysis",
+    "priceRecommendation": "Price recommendation using product-market fit",
+    "unlimitedMissions": "Unlimited Missions",
+    "bulkUploadLaunch": "Bulk Upload and Launch missions",
+    "imageCredits100": "100 image credits"
   },
   "support": {
     "helpCenter": "Help Center",
@@ -1399,33 +1420,35 @@
         "name": "Basic",
         "price": "$29",
         "period": "/ month",
-        "description": "Transform product info into a world-class marketing copy.",
+        "description": "Professional Writing Studio",
         "productLimit": "50 products / month",
         "features": [
-          "AI rewrite + Key Details auto-detected",
-          "EN unit conversion (metric + US)",
-          "Instagram captions + hashtags",
-          "Seasonal campaign ideas",
-          "Text-only agentic mission (Rewriter + Marketing)"
+          "AI product rewrite (title + description)",
+          "JP value auto-detected",
+          "Auto unit conversion (metric + US)",
+          "Brand tones (Luxury, professional, trendy, etc)",
+          "Auto FAQ generation",
+          "12 global markets supported"
         ]
       },
       "standard": {
         "name": "Standard",
         "price": "$79",
         "period": "/ month",
-        "description": "Elevating your storefront quality and multiplying revenue.",
+        "description": "Revenue Accelerator",
         "productLimit": "Unlimited products",
         "badge": "Best Value",
         "features": [
           "Everything in Basic",
-          "12 target markets (single locale per rewrite)",
-          "Brand tones: Luxury / Minimalist / Playful",
-          "SEO title + meta description",
-          "SEO editor + preview",
-          "Social Post preview",
-          "Competitive pricing analysis",
-          "Full text pipeline (no image agents)",
-          "10 AI image credits / month"
+          "Visual Ad generation + Social Post preview",
+          "Intro to Agents",
+          "Scenario specific pipelines",
+          "Full Launch Pipelines",
+          "10 image credits + Image refinement",
+          "Hero / Blog / Collection image generation",
+          "Global competitor ranks + SEO generator",
+          "CTR analysis + SEO editor",
+          "Global Competitor price analysis"
         ]
       },
       "pro": {
@@ -1438,14 +1461,9 @@
         "features": [
           "Everything in Standard",
           "Bulk inventory setup",
-          "Priority AI model",
-          "Full SEO optimization",
-          "Visual Ad generation + Social Post preview",
-          "Pricing analysis + Auto-apply price to Shopify",
-          "Full pipeline with image agents",
-          "Agentic workflows + Publish to Shopify",
-          "Image refinement across all features",
-          "Meta (Facebook/Instagram) integration"
+          "Unlimited Agentic Missions",
+          "Bulk Upload and Launch missions",
+          "100 image credits"
         ]
       }
     },

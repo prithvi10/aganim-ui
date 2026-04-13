@@ -89,21 +89,11 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
           title: t("planCatalog.rewriter"),
           features: [
             { label: t("planCatalog.aiProductRewrite"), included: true },
-            { label: t("planCatalog.keyDetailsAutoDetected"), included: true },
-            { label: t("planCatalog.enUnitConversion"), included: true },
-          ],
-        },
-        {
-          title: t("planCatalog.marketingSection"),
-          features: [
-            { label: t("planCatalog.instagramCaptions"), included: true },
-            { label: t("planCatalog.seasonalCampaigns"), included: true },
-          ],
-        },
-        {
-          title: t("planCatalog.missionsSection"),
-          features: [
-            { label: t("planCatalog.textOnlyMission"), included: true },
+            { label: t("planCatalog.jpValueAutoDetected"), included: true },
+            { label: t("planCatalog.autoUnitConversion"), included: true },
+            { label: t("planCatalog.brandTonesVariety"), included: true },
+            { label: t("planCatalog.autoFaqGeneration"), included: true },
+            { label: t("planCatalog.twelveGlobalMarkets"), included: true },
           ],
         },
       ],
@@ -118,41 +108,53 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
           title: t("planCatalog.rewriter"),
           features: [
             { label: t("planCatalog.everythingInBasic"), included: true },
-            { label: t("planCatalog.twelveTargetMarkets"), included: true },
-            { label: t("planCatalog.brandTones"), included: true },
           ],
         },
         {
           title: t("planCatalog.marketingSection"),
           features: [
             { label: t("planCatalog.everythingInBasic"), included: true },
+            { label: t("planCatalog.visualAdGeneration"), included: true },
             { label: t("planCatalog.socialPostPreview"), included: true },
           ],
         },
         {
           title: t("planCatalog.missionsSection"),
           features: [
-            { label: t("planCatalog.fullTextPipeline"), included: true },
+            { label: t("planCatalog.introToAgents"), included: true },
+            { label: t("planCatalog.scenarioSpecificPipelines"), included: true },
+            { label: t("planCatalog.fullLaunchPipelines"), included: true },
+            { label: t("planCatalog.visualAgents"), included: true },
           ],
         },
         {
           title: t("planCatalog.imagesSection"),
           features: [
-            { label: t("planCatalog.imageCreditsMonthly10"), included: true },
+            { label: t("planCatalog.imageCredits10"), included: true },
+            { label: t("planCatalog.imageRefinement"), included: true },
+            { label: t("planCatalog.visualAdGeneration"), included: true },
+            { label: t("planCatalog.heroImageGeneration"), included: true },
+            { label: t("planCatalog.blogImageGeneration"), included: true },
+            { label: t("planCatalog.collectionImageGeneration"), included: true },
           ],
         },
         {
           title: t("planCatalog.seoSection"),
           highlight: true,
           features: [
-            { label: t("planCatalog.seoTitleMeta"), included: true },
+            { label: t("planCatalog.globalCompetitorRanks"), included: true },
+            { label: t("planCatalog.perfectSeoGenerator"), included: true },
+            { label: t("planCatalog.ctrAnalysis"), included: true },
             { label: t("planCatalog.seoEditorPreview"), included: true },
           ],
         },
         {
           title: t("planCatalog.priceScoutSection"),
           highlight: true,
-          features: [{ label: t("planCatalog.competitivePricing"), included: true }],
+          features: [
+            { label: t("planCatalog.globalCompetitorPrice"), included: true },
+            { label: t("planCatalog.priceRecommendation"), included: true },
+          ],
         },
       ],
     },
@@ -164,47 +166,44 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
       sections: [
         {
           title: t("planCatalog.rewriter"),
+          highlight: true,
           features: [
             { label: t("planCatalog.everythingInStandard"), included: true },
             { label: t("planCatalog.multiMarketBulk"), included: true, highlight: true },
-            { label: t("planCatalog.priorityAiModel"), included: true },
           ],
         },
         {
           title: t("planCatalog.seoSection"),
-          features: [{ label: t("planCatalog.fullSeoOptimization"), included: true }],
+          features: [
+            { label: t("planCatalog.everythingInStandard"), included: true },
+          ],
         },
         {
           title: t("planCatalog.marketingSection"),
           features: [
             { label: t("planCatalog.everythingInStandard"), included: true },
-            { label: t("planCatalog.visualAdGeneration"), included: true },
-            { label: t("planCatalog.socialPostPreview"), included: true },
           ],
         },
         {
           title: t("planCatalog.priceScoutSection"),
           features: [
-            { label: t("planCatalog.pricingAnalysis"), included: true },
-            { label: t("planCatalog.autoApplyPrice"), included: true },
+            { label: t("planCatalog.everythingInStandard"), included: true },
           ],
         },
         {
           title: t("planCatalog.missionsAutonomous"),
           highlight: true,
           features: [
-            { label: t("planCatalog.fullPipelineWithImages"), included: true },
-            { label: t("planCatalog.agenticWorkflows"), included: true },
-            { label: t("planCatalog.publishToShopify"), included: true },
-            { label: t("planCatalog.applyRecommendedPrice"), included: true },
-            { label: t("planCatalog.metaIntegration"), included: true },
+            { label: t("planCatalog.everythingInStandard"), included: true },
+            { label: t("planCatalog.unlimitedMissions"), included: true },
+            { label: t("planCatalog.bulkUploadLaunch"), included: true },
           ],
         },
         {
           title: t("planCatalog.imagesSection"),
           highlight: true,
           features: [
-            { label: t("planCatalog.imageRefinementAllFeatures"), included: true },
+            { label: t("planCatalog.imageCredits100"), included: true },
           ],
         },
       ],
