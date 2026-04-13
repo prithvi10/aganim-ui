@@ -943,15 +943,15 @@ export default function DigitalMarketing() {
                         fontSize: 14, fontWeight: 700,
                       }}>2</div>
                       <Text as="h2" variant="headingLg">Visual Ad Creation</Text>
-                      {!canAccess(entitlements, 'ad_image_generation') && <PlanGateBadge tierName="Pro" />}
+                      {!canAccess(entitlements, 'ad_image_generation') && <PlanGateBadge tierName="Standard" />}
                     </InlineStack>
                   </InlineStack>
 
                   {!canAccess(entitlements, 'ad_image_generation') ? (
                     <LockedFeatureNotice
-                      title="Pro Plan Feature"
-                      description="Visual ad generation requires the Pro plan. Captions are available on all plans."
-                      ctaLabel="Upgrade to Pro"
+                      title="Standard Plan Feature"
+                      description="Visual ad generation requires the Standard plan. Captions are available on all plans."
+                      ctaLabel="Upgrade to Standard"
                       ctaUrl={nav('/app/plans?from=dashboard')}
                     />
                   ) : (

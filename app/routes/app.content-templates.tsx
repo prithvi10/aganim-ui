@@ -749,8 +749,8 @@ function CollectionCard({
             ) : (
               <Box padding="400" borderRadius="200" background="bg-surface-secondary">
                 <BlockStack gap="200" inlineAlign="center">
-                  <PlanGateBadge tierName="Pro" />
-                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Pro</Text>
+                  <PlanGateBadge tierName="Standard" />
+                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Standard</Text>
                 </BlockStack>
               </Box>
             )}
@@ -892,8 +892,8 @@ function HeroSectionCard({
             ) : (
               <Box padding="400" borderRadius="200" background="bg-surface-secondary">
                 <BlockStack gap="200" inlineAlign="center">
-                  <PlanGateBadge tierName="Pro" />
-                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Pro</Text>
+                  <PlanGateBadge tierName="Standard" />
+                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Standard</Text>
                 </BlockStack>
               </Box>
             )}
@@ -1040,8 +1040,8 @@ function BlogPostCard({
             ) : (
               <Box padding="400" borderRadius="200" background="bg-surface-secondary">
                 <BlockStack gap="200" inlineAlign="center">
-                  <PlanGateBadge tierName="Pro" />
-                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Pro</Text>
+                  <PlanGateBadge tierName="Standard" />
+                  <Text as="p" variant="bodySm" tone="subdued" alignment="center">Custom images require Standard</Text>
                 </BlockStack>
               </Box>
             )}
