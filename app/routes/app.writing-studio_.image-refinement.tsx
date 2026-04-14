@@ -151,6 +151,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     const u = await fetch(
       `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`,
+      { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } },
     );
     if (u.ok) {
       const data: any = await u.json().catch(() => ({}));

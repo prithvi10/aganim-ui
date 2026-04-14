@@ -181,7 +181,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   let feature_usage: FeatureUsageMap = {};
   let defaultTargetLocale: string | undefined = undefined;
   try {
-    const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`);
+    const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
     if (usageResp.ok) {
       const usageData = await usageResp.json();
       planName = String(usageData.effective_plan_name || usageData.plan_name || 'Free').trim() || 'Free';

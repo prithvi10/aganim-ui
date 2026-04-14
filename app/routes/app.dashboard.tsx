@@ -213,7 +213,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     try {
       // Optional: Sync token to backend if needed (omitted for brevity/speed)
       const fetchUrl = `${backendApiUrl}/api/admin/usage?shop=${shop}`;
-      const resp = await fetch(fetchUrl);
+      const resp = await fetch(fetchUrl, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
       
       if (resp.status === 401) {
         // Backend rejected the token

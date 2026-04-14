@@ -1488,7 +1488,8 @@
     "footer": {
       "copyright": "Aganim AI. All rights reserved.",
       "support": "サポート",
-      "privacyPolicy": "プライバシーポリシー"
+      "privacyPolicy": "プライバシーポリシー",
+      "termsOfService": "利用規約"
     }
   },
   "featuresPage": {

@@ -31,6 +31,7 @@
     "@react-router/serve": "^7.13.0",
     "@react-three/drei": "^9.88.17",
     "@react-three/fiber": "^8.15.19",
+    "@sentry/react": "^10.48.0",
     "@shopify/app-bridge-react": "^4.2.4",
     "@shopify/app-bridge-utils": "^3.5.1",
     "@shopify/polaris": "^13.9.5",

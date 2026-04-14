@@ -101,6 +101,9 @@ export const LandingFooter = () => {
         <Link to="/privacy-policy" className="transition hover:text-white">
           {t("landing.footer.privacyPolicy")}
         </Link>
+        <Link to="/terms-of-service" className="transition hover:text-white">
+          {t("landing.footer.termsOfService", "Terms of Service")}
+        </Link>
       </div>
     </div>
   </footer>

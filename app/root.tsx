@@ -14,8 +14,17 @@ import enTranslations from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useTranslation } from "react-i18next";
+import * as Sentry from "@sentry/react";
 import "./tailwind.css";
 import "./i18n";
+
+if (typeof window !== "undefined" && window.ENV?.SENTRY_DSN) {
+  Sentry.init({
+    dsn: window.ENV.SENTRY_DSN,
+    environment: window.ENV.ENVIRONMENT || "development",
+    tracesSampleRate: 0.1,
+  });
+}
 
 export default function App() {
   const { i18n } = useTranslation();

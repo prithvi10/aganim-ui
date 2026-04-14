@@ -56,7 +56,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
   try {
-    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shopParam)}`);
+    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shopParam)}`, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
     if (u.ok) {
       const data: any = await u.json().catch(() => ({}));
       const eff = String(data?.effective_plan_name || data?.plan_name || "").trim();

@@ -151,7 +151,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let feature_usage: FeatureUsageMap = {};
   let defaultTargetLocale: string | undefined = undefined;
   try {
-    const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`);
+    const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
     if (usageResp.ok) {
       const data = await usageResp.json();
       const eff = String(data.effective_plan_name || data.plan_name || "").trim();
