@@ -149,6 +149,6 @@ Data sent to AI processors is used solely to generate outputs you request. Store
 
 ## Contact
 
-For support, visit: https://aganim-ui.onrender.com/support
+For support, visit: https://aganim-ai.com/support
 For privacy inquiries: support@aganim.com
 Shopify App Store: https://apps.shopify.com/aganim-ai

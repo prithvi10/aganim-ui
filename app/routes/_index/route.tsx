@@ -19,8 +19,8 @@ import {
 } from "../../components/LandingLayout";
 import { FAQ } from "../../components/FAQ";
 
-const SITE_URL = "https://aganim-ui.onrender.com";
-const OG_IMAGE = `${SITE_URL}/Icon-final.png`;
+const SITE_URL = "https://aganim-ai.com";
+const OG_IMAGE = `${SITE_URL}/og-banner.png`;
 
 export const meta: MetaFunction = () => {
   const title = "Aganim AI — AI Growth Engine for Global E-commerce | Shopify App";
@@ -35,6 +35,8 @@ export const meta: MetaFunction = () => {
     { property: "og:title", content: title },
     { property: "og:description", content: description },
     { property: "og:image", content: OG_IMAGE },
+    { property: "og:image:width", content: "1200" },
+    { property: "og:image:height", content: "630" },
     { property: "og:site_name", content: "Aganim AI" },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: title },
