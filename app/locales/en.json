@@ -5,13 +5,13 @@
     "writingStudio": "Writing Studio",
     "marketing": "Marketing",
     "seo": "SEO",
-    "pricing": "Pricing",
+    "pricing": "Price Scout",
     "dashboard": "Dashboard",
     "langToggle": "日本語"
   },
   "home": {
     "crossBorderAi": "Aganim AI",
-    "tagline": "Transform product info into a world-class marketing copy.",
+    "tagline": "Elevate your store, Multiply your revenue",
     "gettingStarted": "Getting Started",
     "gettingStartedDesc": "Complete these steps to unlock the full power of Aganim AI.",
     "stepTargetMarket": "Target market & language settings",
@@ -473,9 +473,9 @@
   "imageRefinement": {
     "title": "Product Image Refinement",
     "backToWritingStudio": "Writing Studio",
-    "proFeature": "Pro Plan Feature",
-    "proFeatureDesc": "AI image refinement generates polished product photos, marketing ads, and hero banners — automatically styled to match your brand.",
-    "upgradeToPro": "Upgrade to Pro",
+    "proFeature": "Standard Plan Feature",
+    "proFeatureDesc": "AI image refinement generates polished product photos, marketing ads, and hero banners — automatically styled to match your brand. Gated by image credits.",
+    "upgradeToPro": "Upgrade to Standard",
     "selectProduct": "Select a Product",
     "noProducts": "No products found. Add products to your Shopify store first.",
     "product": "Product",
@@ -626,9 +626,9 @@
     "agentPriceScout": "PriceScout",
     "agentPriceScoutDesc": "Analyzes competitor pricing and suggests optimal price points",
     "agentImageRefinement": "Image Refinement",
-    "agentImageRefinementDesc": "AI product photo cleanup and background refinement (Pro)",
+    "agentImageRefinementDesc": "AI product photo cleanup and background refinement",
     "agentVisualMarketing": "Visual Marketing",
-    "agentVisualMarketingDesc": "Marketing ad generation (Pro)",
+    "agentVisualMarketingDesc": "Marketing ad generation",
     "refinementThemeClean": "Clean Studio",
     "refinementThemeCleanDesc": "White/grey studio, 100% fidelity",
     "refinementThemeLifestyle": "Lifestyle Scene",
@@ -688,7 +688,7 @@
     "marketAwarenessAudit": "Market Awareness Audit",
     "marketAwarenessAuditDesc": "Analyze if you're Outpriced or Outranked vs competitors",
     "quickLaunch": "Spotlight Launch",
-    "quickLaunchDesc": "Built for Basic: Rewriter polishes your product story and Brand Soul fit, then Marketing delivers hooks, captions, and campaign angles. Skips SEO, Price Scout, image refinement, and visual ads — upgrade to Full Launch when you need the whole pipeline.",
+    "quickLaunchDesc": "Rewriter + Marketing — polish your product story and generate campaign content",
     "fullLaunch": "Full Launch",
     "fullLaunchDesc": "Full pipeline — rewrite, image refinement, SEO, pricing, marketing, and visual ads",
     "visualAdBlitz": "Visual Ad Blitz",
@@ -765,8 +765,8 @@
   },
   "planCatalog": {
     "tryEverything": "Try everything, limited access",
-    "basicTagline": "Transform product info into a world-class marketing copy.",
-    "standardTagline": "Elevating your storefront quality and multiplying revenue.",
+    "basicTagline": "Professional Writing Studio",
+    "standardTagline": "Revenue Accelerator",
     "proTagline": "Complete AI Engine",
     "imageCreditsMonthly10": "10 AI image credits / month",
     "products10": "10 products (1 week trial)",
@@ -808,7 +808,28 @@
     "metaIntegration": "Meta (Facebook/Instagram) integration",
     "imagesSection": "Images",
     "imageRefinement": "Image refinement",
-    "imageRefinementAllFeatures": "Image refinement across all features"
+    "imageRefinementAllFeatures": "Image refinement across all features",
+    "jpValueAutoDetected": "JP value auto-detected",
+    "autoUnitConversion": "Auto unit conversion (metric + US)",
+    "brandTonesVariety": "Brand tones (Luxury, professional, trendy, etc)",
+    "autoFaqGeneration": "Auto FAQ generation",
+    "twelveGlobalMarkets": "12 global markets supported",
+    "introToAgents": "Intro to Agents",
+    "scenarioSpecificPipelines": "Scenario specific pipelines",
+    "fullLaunchPipelines": "Full Launch Pipelines",
+    "visualAgents": "Visual Agents",
+    "imageCredits10": "10 image credits",
+    "heroImageGeneration": "Hero Image generation",
+    "blogImageGeneration": "Blog Image generation",
+    "collectionImageGeneration": "Collection Image generation",
+    "globalCompetitorRanks": "Global competitor ranks analyzer",
+    "perfectSeoGenerator": "Perfect SEO generator",
+    "ctrAnalysis": "Click Through Rate (CTR) analysis",
+    "globalCompetitorPrice": "Global Competitor price analysis",
+    "priceRecommendation": "Price recommendation using product-market fit",
+    "unlimitedMissions": "Unlimited Missions",
+    "bulkUploadLaunch": "Bulk Upload and Launch missions",
+    "imageCredits100": "100 image credits"
   },
   "support": {
     "helpCenter": "Help Center",
@@ -1202,7 +1223,7 @@
         ],
         "sections": [
           { "title": "Preset Agentic Missions", "body": ["Basic: Social Hype-Man (Rewriter → FB/IG Ad), New Arrival Blast (Rewriter → Launch Email), Welcome Journey (Rewriter → Welcome Email), Artisan Storyteller (Rewriter → Hero Section).", "Standard: Competitor Rebuttal (SEO → Product FAQ), Abandoned Cart Fix (PriceScout → Abandoned Cart Email), SEO Content Factory (SEO → Blog Post), Collection Refresher (SEO → Collection), Google Ads Shield (SEO → Google Ads), Market Awareness Audit (SEO → PriceScout).", "Pro: Full Launch (all 6 agents), Visual Ad Blitz (Marketing → Visual Marketing)."] },
-          { "title": "Custom Agentic Missions", "body": ["Add any combination of agents: Rewriter, SEO, Marketing, PriceScout, Image Refinement, Visual Marketing.", "Reorder agents by dragging them up/down in the pipeline.", "Select optional templates for each step (e.g. Product FAQ, Blog Post, Launch Email).", "Some agents are plan-gated (Image Refinement and Visual Marketing require Pro)."] },
+          { "title": "Custom Agentic Missions", "body": ["Add any combination of agents: Rewriter, SEO, Marketing, PriceScout, Image Refinement, Visual Marketing.", "Reorder agents by dragging them up/down in the pipeline.", "Select optional templates for each step (e.g. Product FAQ, Blog Post, Launch Email).", "Some agents are plan-gated (Image Refinement and Visual Marketing require Standard+, gated by image credits)."] },
           { "title": "Auto-flow vs Step-by-step", "body": ["Auto-flow: All agents run in sequence automatically. Results stream in real-time.", "Step-by-step: Each agent pauses after completing. Review the output, then Continue, Regenerate, or Skip.", "Step-by-step is recommended for your first few agentic missions to understand how each agent contributes."] },
           { "title": "Agentic Mission History", "body": ["Recent agentic missions are shown below the mission builder.", "Each agentic mission shows: status (Completed, In Progress, Error, Awaiting Approval), agents used, product, and time.", "Click \"Resume\" on an in-progress or awaiting-approval agentic mission to continue where you left off.", "Click \"View Full Details\" to see the complete output of a completed agentic mission."] }
         ],
@@ -1399,33 +1420,35 @@
         "name": "Basic",
         "price": "$29",
         "period": "/ month",
-        "description": "Transform product info into a world-class marketing copy.",
+        "description": "Professional Writing Studio",
         "productLimit": "50 products / month",
         "features": [
-          "AI rewrite + Key Details auto-detected",
-          "EN unit conversion (metric + US)",
-          "Instagram captions + hashtags",
-          "Seasonal campaign ideas",
-          "Text-only agentic mission (Rewriter + Marketing)"
+          "AI product rewrite (title + description)",
+          "JP value auto-detected",
+          "Auto unit conversion (metric + US)",
+          "Brand tones (Luxury, professional, trendy, etc)",
+          "Auto FAQ generation",
+          "12 global markets supported"
         ]
       },
       "standard": {
         "name": "Standard",
         "price": "$79",
         "period": "/ month",
-        "description": "Elevating your storefront quality and multiplying revenue.",
+        "description": "Revenue Accelerator",
         "productLimit": "Unlimited products",
         "badge": "Best Value",
         "features": [
           "Everything in Basic",
-          "12 target markets (single locale per rewrite)",
-          "Brand tones: Luxury / Minimalist / Playful",
-          "SEO title + meta description",
-          "SEO editor + preview",
-          "Social Post preview",
-          "Competitive pricing analysis",
-          "Full text pipeline (no image agents)",
-          "10 AI image credits / month"
+          "Visual Ad generation + Social Post preview",
+          "Intro to Agents",
+          "Scenario specific pipelines",
+          "Full Launch Pipelines",
+          "10 image credits + Image refinement",
+          "Hero / Blog / Collection image generation",
+          "Global competitor ranks + SEO generator",
+          "CTR analysis + SEO editor",
+          "Global Competitor price analysis"
         ]
       },
       "pro": {
@@ -1438,21 +1461,47 @@
         "features": [
           "Everything in Standard",
           "Bulk inventory setup",
-          "Priority AI model",
-          "Full SEO optimization",
-          "Visual Ad generation + Social Post preview",
-          "Pricing analysis + Auto-apply price to Shopify",
-          "Full pipeline with image agents",
-          "Agentic workflows + Publish to Shopify",
-          "Image refinement across all features",
-          "Meta (Facebook/Instagram) integration"
+          "Unlimited Agentic Missions",
+          "Bulk Upload and Launch missions",
+          "100 image credits"
         ]
       }
+    },
+    "faq": {
+      "eyebrow": "Frequently Asked Questions",
+      "title": "Common questions about Aganim AI",
+      "items": [
+        {
+          "q": "What is Aganim AI?",
+          "a": "Aganim AI is a Shopify app that uses AI to translate and localize your online store for cross-border e-commerce. It rewrites product listings, optimizes SEO metadata, generates marketing content, and analyzes competitor pricing across 12+ global markets — all while preserving your brand identity through its Brand Soul engine."
+        },
+        {
+          "q": "How does Aganim AI translate my Shopify store?",
+          "a": "Aganim AI uses its Brand Soul engine to understand your brand identity (archetype, tone, power words, cultural touchpoints), then generates localized product titles, descriptions, SEO metadata, and marketing content for each target market. Translations are saved directly back to your Shopify store as locale-specific content."
+        },
+        {
+          "q": "What languages does Aganim AI support?",
+          "a": "Aganim AI supports 12 global markets including English (US), Japanese, Traditional Chinese (Taiwan), Korean, German, French, Spanish, Italian, Portuguese (Brazil), Thai, Vietnamese, and Simplified Chinese. Each market gets culturally adapted content, not just direct translation."
+        },
+        {
+          "q": "How much does Aganim AI cost?",
+          "a": "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits and Meta integration)."
+        },
+        {
+          "q": "What are Agentic Missions?",
+          "a": "Agentic Missions are multi-agent AI pipelines that chain together Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows. You can use preset mission templates or build custom pipelines, with results automatically saved to your Shopify store."
+        },
+        {
+          "q": "Does Aganim AI work with the Shopify App Store?",
+          "a": "Yes, Aganim AI is available on the Shopify App Store. It integrates directly with your Shopify admin as an embedded app, reading your product catalog and writing localized content, translations, SEO metadata, and marketing assets back to your store."
+        }
+      ]
     },
     "footer": {
       "copyright": "Aganim AI. All rights reserved.",
       "support": "Support",
-      "privacyPolicy": "Privacy Policy"
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service"
     }
   },
   "featuresPage": {
