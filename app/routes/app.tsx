@@ -80,6 +80,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     const resp = await fetch(
       `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`,
+      { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } },
     );
     if (resp.ok) {
       const data = await resp.json();

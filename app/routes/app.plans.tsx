@@ -83,7 +83,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const backendApiUrl =
         process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
       const usageResp = await fetch(
-        `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`
+        `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(session.shop)}`,
+        { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } },
       );
       if (usageResp.ok) {
         const data = await usageResp.json();
@@ -107,34 +108,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       // ignore
     }
 
-    // #region agent log
-    try {
-      await fetch("http://127.0.0.1:7242/ingest/41485e42-2913-45c2-88d6-2416c2f38ce8", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          sessionId: "debug-session",
-          runId: "ui-pre-fix",
-          hypothesisId: "UI-H5",
-          location: "app.plans.tsx:loader",
-          message: "Plans loader resolved",
-          data: {
-            shop: session.shop,
-            activePlan,
-            returningPaid,
-            graceActive,
-            accessExpiresAt,
-            lastPlanName,
-            promoEnabled,
-            shopifyActivePlan,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    } catch {
-      // ignore log failures
-    }
-    // #endregion agent log
 
     return { currentPlans: subs, activePlan, returningPaid, graceActive, accessExpiresAt, lastPlanName, promoEnabled };
   } catch (e) {
@@ -229,7 +202,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const backendApiUrl =
           process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
         const usageResp = await fetch(
-          `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`
+          `${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`,
+          { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } },
         );
         if (usageResp.ok) {
           const data = await usageResp.json();

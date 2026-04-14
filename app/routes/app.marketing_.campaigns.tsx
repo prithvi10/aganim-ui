@@ -58,7 +58,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   let defaultTargetLocale: string | undefined = undefined;
   try {
-    const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`);
+    const usageResp = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(sessionShop)}`, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
     if (usageResp.ok) {
       const usageData = await usageResp.json();
       defaultTargetLocale = usageData.default_target_locale ?? undefined;
