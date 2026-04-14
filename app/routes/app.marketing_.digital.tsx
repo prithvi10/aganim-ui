@@ -513,7 +513,6 @@ export default function DigitalMarketing() {
   };
 
   const [showDowngradeBanner, setShowDowngradeBanner] = useState(true);
-  const [captionLocale, setCaptionLocale] = useState(defaultTargetLocale || 'en');
 
   // Step 1: Caption Generation
   const [hooksLoading, setHooksLoading] = useState(false);
@@ -621,7 +620,7 @@ export default function DigitalMarketing() {
     };
 
     try {
-      const socialResult = await callAgent('social_hook_architect', productData, { focus: 'Instagram Reels', target_locale: captionLocale || defaultTargetLocale || 'en' });
+      const socialResult = await callAgent('social_hook_architect', productData, { focus: 'Instagram Reels', target_locale: defaultTargetLocale || 'en' });
       const nextHooks = (socialResult?.data?.metadata?.hooks ?? []) as any[];
       const overlays = (socialResult?.data?.metadata?.overlay_suggestions ?? []) as any[];
       const safeHooks = Array.isArray(nextHooks) ? nextHooks : [];
@@ -811,7 +810,15 @@ export default function DigitalMarketing() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
-            {/* ═══ Product Selection (AS IS) ═══ */}
+            {/* ═══ Target Market disclaimer ═══ */}
+            <Banner tone="info">
+              <p>
+                Captions target your <strong>target market ({(defaultTargetLocale || 'en').toUpperCase()})</strong>.
+                For more tailored results, adjust the target market from the Dashboard.
+              </p>
+            </Banner>
+
+            {/* ═══ Product Selection ═══ */}
             <Card>
               <BlockStack gap="300">
                 <Text variant="headingMd" as="h2">
@@ -823,29 +830,6 @@ export default function DigitalMarketing() {
                   options={productOptions}
                   value={selectedProduct?.id || ''}
                   onChange={handleProductChange}
-                />
-              </BlockStack>
-            </Card>
-
-            {/* ═══ Target Locale ═══ */}
-            <Card>
-              <BlockStack gap="300">
-                <Text variant="headingMd" as="h2">Target Language</Text>
-                <Select
-                  label="Caption language"
-                  labelHidden
-                  options={[
-                    { label: 'English', value: 'en' },
-                    { label: '日本語', value: 'ja' },
-                    { label: 'Français', value: 'fr' },
-                    { label: 'Deutsch', value: 'de' },
-                    { label: 'Español', value: 'es' },
-                    { label: 'Português', value: 'pt' },
-                    { label: '한국어', value: 'ko' },
-                    { label: '中文', value: 'zh' },
-                  ]}
-                  value={captionLocale}
-                  onChange={setCaptionLocale}
                 />
               </BlockStack>
             </Card>
