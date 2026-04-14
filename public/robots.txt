@@ -23,4 +23,4 @@ Allow: /
 User-agent: Amazonbot
 Allow: /
 
-Sitemap: https://aganim-ui.onrender.com/sitemap.xml
+Sitemap: https://aganim-ai.com/sitemap.xml

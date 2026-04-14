@@ -48,8 +48,8 @@ export default function App() {
               "@context": "https://schema.org",
               "@type": "Organization",
               name: "Aganim AI",
-              url: "https://aganim-ui.onrender.com",
-              logo: "https://aganim-ui.onrender.com/Icon-final.png",
+              url: "https://aganim-ai.com",
+              logo: "https://aganim-ai.com/Icon-final.png",
               description:
                 "AI-powered cross-border e-commerce translation, localization, and growth engine for Shopify stores.",
               sameAs: [
