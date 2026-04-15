@@ -34,6 +34,7 @@ import {
   HomeIcon,
 } from "@shopify/polaris-icons";
 import { useTranslation } from "react-i18next";
+import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
@@ -41,6 +42,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const host = url.searchParams.get("host") || "";
   const backendApiUrl =
     process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
+
+  // Defensive auth: prefer offline client, fallback to authenticate.admin
+  const offlineContext = shopParam ? await getOfflineGraphqlClient(shopParam) : null;
+  let shop: string;
+  if (offlineContext) {
+    shop = offlineContext.session.shop;
+  } else {
+    const { session } = await authenticate.admin(request);
+    shop = session.shop;
+  }
 
   let planName = "Free";
   let brandStatus = "idle";
@@ -56,7 +67,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
   try {
-    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shopParam)}`, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
+    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
     if (u.ok) {
       const data: any = await u.json().catch(() => ({}));
       const eff = String(data?.effective_plan_name || data?.plan_name || "").trim();
@@ -69,7 +80,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   try {
-    const s = await fetch(`${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(shopParam)}`);
+    const s = await fetch(`${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(shop)}`);
     if (s.ok) {
       const data: any = await s.json().catch(() => ({}));
       const ctx = data?.brand_context || {};
@@ -126,7 +137,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let brandIntelligenceUpdatedAt: string | null = null;
   try {
     const intelRes = await fetch(
-      `${backendApiUrl}/api/admin/brand-intelligence?shop=${encodeURIComponent(shopParam)}`,
+      `${backendApiUrl}/api/admin/brand-intelligence?shop=${encodeURIComponent(shop)}`,
     );
     if (intelRes.ok) {
       const intelData: any = await intelRes.json().catch(() => ({}));
@@ -138,7 +149,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   return {
-    shop: shopParam,
+    shop,
     host,
     backendApiUrl,
     planName,

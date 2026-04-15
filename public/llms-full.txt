@@ -40,7 +40,7 @@ Edit SEO title/meta with live SERP preview, apply CTR best practices, use compet
 Analyze competitor pricing from Google search results and get AI-powered pricing recommendations. Features SERP-based competitor price analysis, category and market-aware pricing, and auto-apply to Shopify (Pro plan).
 
 ### Marketing
-Generate social media captions, ad copy, seasonal campaigns, email templates, and hero images — with optional Meta (Facebook/Instagram) autonomous publishing on the Pro plan. Supports Instagram/TikTok captions with hashtags, ad banners, hero images, and seasonal retail campaign calendars.
+Generate social media captions, ad copy, seasonal campaigns, email templates, and hero images. Supports Instagram/TikTok captions with hashtags, ad banners, hero images, and seasonal retail campaign calendars.
 
 ### Content Studio
 All-in-one creative workspace — write high-quality blogs with AI hero images, generate cinematic hero sections, create polished collections with descriptions, and produce product FAQs. All powered by AI templates and your brand voice through Brand Soul.
@@ -128,7 +128,7 @@ Aganim AI uses its Brand Soul engine to understand your brand identity (archetyp
 Aganim AI supports 12 global markets including English (US), Japanese, Traditional Chinese (Taiwan), Korean, German, French, Spanish, Italian, Portuguese (Brazil), Thai, Vietnamese, and Simplified Chinese. Each market gets culturally adapted content, not just direct translation.
 
 ### How much does Aganim AI cost?
-Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits and Meta integration).
+Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits).
 
 ### What are Agentic Missions?
 Agentic Missions are multi-agent AI pipelines that chain together Rewriter, SEO, Marketing, Pricing, Image Refinement, and Visual Marketing into automated workflows. You can use preset mission templates or build custom pipelines, with results automatically saved to your Shopify store.

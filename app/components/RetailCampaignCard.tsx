@@ -125,9 +125,12 @@ export function RetailCampaignCard({
       <Box padding="400">
         <BlockStack gap="400">
           <InlineStack align="space-between" blockAlign="center">
-            <Text as="h2" variant="headingLg">
-              Retail Campaign
-            </Text>
+            <InlineStack gap="200" blockAlign="center">
+              <Text as="h2" variant="headingLg">
+                Retail Campaign
+              </Text>
+              <Badge tone="info">Only US market</Badge>
+            </InlineStack>
             {nextHoliday && (
               <Badge tone="attention">
                 {nextHoliday.days_until} days to {nextHoliday.name}

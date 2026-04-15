@@ -6,6 +6,9 @@ import {
   Layout,
   Page,
   Toast,
+  Badge,
+  InlineStack,
+  Text,
 } from '@shopify/polaris';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import { getSessionToken } from '@shopify/app-bridge/utilities';
@@ -185,12 +188,18 @@ export default function CampaignsPage() {
 
   return (
     <Page
-      title="Retail Campaigns"
+      title=""
       backAction={{
         content: 'Marketing',
         onAction: () => navigate(nav('/app/marketing')),
       }}
     >
+      <BlockStack gap="200">
+        <InlineStack gap="200" blockAlign="center">
+          <Text as="h1" variant="headingXl">Retail Campaigns</Text>
+          <Badge tone="info">Only US market</Badge>
+        </InlineStack>
+      </BlockStack>
       {toastContent ? (
         <Toast content={toastContent} onDismiss={() => setToastContent(null)} />
       ) : null}

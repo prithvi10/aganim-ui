@@ -11,6 +11,7 @@ import {
   Button,
   Box,
   Icon,
+  Badge,
 } from '@shopify/polaris';
 import { CalendarTimeIcon, SocialAdIcon, ThemeTemplateIcon } from '@shopify/polaris-icons';
 import { useCallback, useMemo } from 'react';
@@ -113,6 +114,7 @@ export default function MarketingHub() {
                       <Text as="h2" variant="headingLg">
                         {t("marketing.retailCampaigns")}
                       </Text>
+                      <Badge tone="info">Only US market</Badge>
                     </InlineStack>
                     <Text as="p" tone="subdued" variant="bodyMd">
                       {t("marketing.retailCampaignsDesc")}
