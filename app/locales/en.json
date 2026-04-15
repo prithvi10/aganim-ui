@@ -58,7 +58,9 @@
     "dashboardCard": "Dashboard",
     "dashboardCardDesc": "Monitor your plan, track usage and credits, and manage integrations.",
     "quickLaunchCta": "Try out quick Product Launch!",
-    "onboardingGuide": "Onboarding Guide"
+    "onboardingGuide": "Onboarding Guide",
+    "pending": "Pending",
+    "complete": "Complete"
   },
   "onboarding": {
     "setup": "Setup",

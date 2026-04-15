@@ -12,7 +12,7 @@ const FEATURE_MIN_TIER: Record<string, PlanName> = {
   ad_image_generation: PLAN_STANDARD,
   social_post_preview: PLAN_FREE,
   autonomous: PLAN_PRO,
-  apply_price: PLAN_STANDARD,
+  apply_price: PLAN_FREE,
   multi_locale_bulk: PLAN_PRO,
 };
 

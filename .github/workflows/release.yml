@@ -1,0 +1,30 @@
+name: Release to Production
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+    - run: npm ci
+    - name: Build App
+      run: npm run build
+      env:
+        SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+        SHOPIFY_API_SECRET: ${{ secrets.SHOPIFY_API_SECRET }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy to Render
+      run: curl -X POST "$RENDER_DEPLOY_HOOK_URL"
+      env:
+        RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
