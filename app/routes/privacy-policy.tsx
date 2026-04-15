@@ -11,6 +11,7 @@ export const meta: MetaFunction = () => {
   return [
     { title },
     { name: "description", content: description },
+    { tagName: "link", rel: "canonical", href: `${SITE_URL}/privacy-policy` },
     { property: "og:type", content: "website" },
     { property: "og:url", content: `${SITE_URL}/privacy-policy` },
     { property: "og:title", content: title },
@@ -148,15 +149,6 @@ export default function PrivacyPolicy() {
               </ul>
             </li>
             <li>
-              <strong>Meta integration credentials (stored, Pro plan)</strong>
-              <ul>
-                <li>
-                  Meta (Facebook/Instagram) Page access token and Page ID, if provided
-                  by the merchant for autonomous ad publishing
-                </li>
-              </ul>
-            </li>
-            <li>
               <strong>App session data (stored)</strong>
               <ul>
                 <li>
@@ -264,11 +256,6 @@ export default function PrivacyPolicy() {
             <li>
               <strong>Amazon SES</strong>: transactional emails (welcome, plan upgrades,
               support communications).
-            </li>
-            <li>
-              <strong>Meta Graph API</strong> (Pro plan, optional): if you connect your
-              Meta account, we use the Meta Graph API to publish ad content to your
-              Facebook/Instagram page on your behalf.
             </li>
           </ul>
           <p style={{ marginTop: 8, marginBottom: 0 }}>
@@ -396,10 +383,6 @@ export default function PrivacyPolicy() {
               <strong>Amazon Web Services</strong> (SES for transactional email delivery)
             </li>
             <li>
-              <strong>Meta Platforms</strong> (only if you connect your Meta account for
-              autonomous ad publishing)
-            </li>
-            <li>
               <strong>Infrastructure providers</strong> (Render for hosting, PostgreSQL
               for database)
             </li>
@@ -444,7 +427,7 @@ export default function PrivacyPolicy() {
               <strong>Pro ($199/month)</strong>: Unlimited product rewrites,
               unlimited missions, 150 image credits per month. Full feature access
               including autonomous publishing, bulk upload (up to 10 products per batch),
-              multi-locale generation, and Meta integration.
+              multi-locale generation.
             </li>
           </ul>
 

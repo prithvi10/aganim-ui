@@ -777,7 +777,7 @@ export function MissionTimeline({
             {/* Header */}
             <InlineStack align="space-between" blockAlign="center">
               <Text as="h2" variant={compact ? "headingMd" : "headingLg"}>
-                {isAdhoc ? "Agent Run" : "Agentic Mission Timeline"}
+                {isAdhoc ? "Agent Run" : "Agentic Mission"}
               </Text>
               <InlineStack gap="200">
                 {isConnected && (
@@ -1023,9 +1023,6 @@ export function MissionTimeline({
                 <InlineStack gap="200">
                   <Button variant="primary" onClick={handlePublish} loading={isPublishing}>
                     Apply Changes
-                  </Button>
-                  <Button onClick={handleEdit}>
-                    Edit Before Applying
                   </Button>
                 </InlineStack>
               </Box>

@@ -43,6 +43,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
         {
           title: t("planCatalog.rewriter"),
           features: [
+            { label: t("planCatalog.products10"), included: true },
             { label: t("planCatalog.aiProductRewrite"), included: true },
             { label: t("planCatalog.keyDetailsAutoDetected"), included: true },
           ],
@@ -88,12 +89,39 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
         {
           title: t("planCatalog.rewriter"),
           features: [
+            { label: t("planCatalog.products50"), included: true },
             { label: t("planCatalog.aiProductRewrite"), included: true },
             { label: t("planCatalog.jpValueAutoDetected"), included: true },
             { label: t("planCatalog.autoUnitConversion"), included: true },
             { label: t("planCatalog.brandTonesVariety"), included: true },
             { label: t("planCatalog.autoFaqGeneration"), included: true },
             { label: t("planCatalog.twelveGlobalMarkets"), included: true },
+            { label: t("planCatalog.aiTranslatorInRewriter"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.writingStudio"),
+          features: [
+            { label: t("planCatalog.writingStudioTemplates"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.marketingSection"),
+          features: [
+            { label: t("planCatalog.captionGeneration"), included: true },
+            { label: t("planCatalog.welcomeEmail"), included: true },
+            { label: t("planCatalog.abandonedCartEmail"), included: true },
+            { label: t("planCatalog.googleAds"), included: true },
+            { label: t("planCatalog.fbInstaAds"), included: true },
+            { label: t("planCatalog.blogPosts"), included: true },
+            { label: t("planCatalog.emailTemplates"), included: true },
+            { label: t("planCatalog.retailCampaignInfo"), included: true },
+          ],
+        },
+        {
+          title: t("planCatalog.missionsSection"),
+          features: [
+            { label: t("planCatalog.textOnlyMission"), included: true },
           ],
         },
       ],
@@ -107,6 +135,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
         {
           title: t("planCatalog.rewriter"),
           features: [
+            { label: t("planCatalog.unlimitedProducts"), included: true },
             { label: t("planCatalog.everythingInBasic"), included: true },
           ],
         },
@@ -129,6 +158,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
         },
         {
           title: t("planCatalog.imagesSection"),
+          highlight: true,
           features: [
             { label: t("planCatalog.imageCredits10"), included: true },
             { label: t("planCatalog.imageRefinement"), included: true },
@@ -168,6 +198,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
           title: t("planCatalog.rewriter"),
           highlight: true,
           features: [
+            { label: t("planCatalog.unlimitedProducts"), included: true },
             { label: t("planCatalog.everythingInStandard"), included: true },
             { label: t("planCatalog.multiMarketBulk"), included: true, highlight: true },
           ],
@@ -203,6 +234,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
           title: t("planCatalog.imagesSection"),
           highlight: true,
           features: [
+            { label: t("planCatalog.everythingInStandard"), included: true },
             { label: t("planCatalog.imageCredits100"), included: true },
           ],
         },

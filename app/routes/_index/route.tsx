@@ -30,6 +30,7 @@ export const meta: MetaFunction = () => {
   return [
     { title },
     { name: "description", content: description },
+    { tagName: "link", rel: "canonical", href: SITE_URL + "/" },
     { property: "og:type", content: "website" },
     { property: "og:url", content: SITE_URL },
     { property: "og:title", content: title },
@@ -534,7 +535,7 @@ const softwareAppSchema = {
       priceCurrency: "USD",
       name: "Pro",
       description:
-        "Unlimited products and missions, 100 image credits, bulk upload, Meta integration",
+        "Unlimited products and missions, 100 image credits, bulk upload",
     },
   ],
 };
@@ -572,7 +573,7 @@ const faqSchema = {
       name: "How much does Aganim AI cost?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits and Meta integration).",
+        text: "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits).",
       },
     },
     {

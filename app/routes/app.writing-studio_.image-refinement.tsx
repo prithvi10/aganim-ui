@@ -491,10 +491,6 @@ export default function ImageRefinement() {
                           ) : null;
                         })()}
                       </InlineStack>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {t('imageRefinement.enhancementDesc')}
-                      </Text>
-
                       {error && (
                         <Banner tone="critical" title={t('imageRefinement.refinementError')}>
                           <Text as="p">{error}</Text>

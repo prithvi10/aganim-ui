@@ -137,7 +137,6 @@ export default function PricingPage() {
   const { t } = useTranslation();
   const { shop, backendApiUrl, products, selectedProduct, entitlements, defaultTargetLocale } = useLoaderData<typeof loader>();
   const priceScoutLocked = !canAccess(entitlements, "price_scout");
-  const applyPriceLocked = !canAccess(entitlements, "apply_price");
   const [searchParams, setSearchParams] = useSearchParams();
   const app = useAppBridge() as unknown as Parameters<typeof getSessionToken>[0];
   const navigate = useNavigate();
@@ -266,10 +265,6 @@ export default function PricingPage() {
   const [applyToast, setApplyToast] = useState<string | null>(null);
 
   const handleApplyPrice = useCallback(async (price: number) => {
-    if (applyPriceLocked) {
-      alert(t("pricing.upgradeToProForPrice"));
-      return;
-    }
     if (!selectedProduct?.id) return;
 
     setIsApplying(true);
@@ -304,7 +299,7 @@ export default function PricingPage() {
     } finally {
       setIsApplying(false);
     }
-  }, [applyPriceLocked, selectedProduct, shop, backendApiUrl, t]);
+  }, [selectedProduct, shop, backendApiUrl, t]);
 
   const productOptions = products.map((p) => ({ label: p.title, value: p.id }));
 
@@ -375,7 +370,7 @@ export default function PricingPage() {
                 currency={analysisResult.currency}
                 onApplyPrice={handleApplyPrice}
                 isApplying={isApplying}
-                applyPriceBadge={applyPriceLocked ? <PlanGateBadge tierName="Pro" /> : undefined}
+                applyPriceBadge={undefined}
               />
             )}
 

@@ -6,6 +6,13 @@ import { useTranslation } from "react-i18next";
 import type { PlanCardModel, PlanFeature, PlanSection } from "../utils/planCatalog";
 import "../styles/plan-card.css";
 
+const taglineColors: Record<string, string> = {
+  Free: "#6b7280",
+  Basic: "#16a34a",
+  Standard: "#2563eb",
+  Pro: "#7c3aed",
+};
+
 function FeatureRow({ feature }: { feature: PlanFeature }) {
   if (feature.highlight) {
     return (
@@ -131,13 +138,12 @@ export function PlanCard({
                 </Text>
               )}
               {plan.tagline ? (
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  {plan.tagline}
+                <Text as="p" variant="bodyMd" fontWeight="bold">
+                  <span style={{ color: taglineColors[plan.name] || "inherit" }}>
+                    {plan.tagline}
+                  </span>
                 </Text>
               ) : null}
-              <Text as="p" variant="bodyMd" fontWeight="semibold">
-                {plan.productLimit}
-              </Text>
             </BlockStack>
           </div>
 
