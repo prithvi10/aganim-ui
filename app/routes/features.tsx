@@ -20,6 +20,7 @@ export const meta: MetaFunction = () => {
   return [
     { title },
     { name: "description", content: description },
+    { tagName: "link", rel: "canonical", href: `${SITE_URL}/features` },
     { property: "og:type", content: "website" },
     { property: "og:url", content: `${SITE_URL}/features` },
     { property: "og:title", content: title },

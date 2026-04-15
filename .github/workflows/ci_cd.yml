@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
@@ -27,14 +27,3 @@ jobs:
       env:
         SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
         SHOPIFY_API_SECRET: ${{ secrets.SHOPIFY_API_SECRET }}
-
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-    - name: Trigger Render Deployment
-      run: |
-        curl -X POST "$RENDER_DEPLOY_HOOK_URL"
-      env:
-        RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}

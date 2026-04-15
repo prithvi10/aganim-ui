@@ -565,6 +565,36 @@ export const action = async ({request}: ActionFunctionArgs) => {
     const descriptionHtml = String(formData.get('draftDescription') || '');
     const seoTitle = String(formData.get('draftSeoTitle') || '');
     const seoDescription = String(formData.get('draftSeoDescription') || '');
+    const culturalContext = String(formData.get('culturalContext') || '');
+
+    // Persist cultural context metafield if provided alongside the save
+    if (culturalContext.trim() && productId) {
+      try {
+        await admin.graphql(
+          `mutation SetMetafields($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+              metafields { id }
+              userErrors { field message }
+            }
+          }`,
+          {
+            variables: {
+              metafields: [
+                {
+                  ownerId: productId,
+                  namespace: 'crossborderagent',
+                  key: 'cultural_context',
+                  type: 'multi_line_text_field',
+                  value: culturalContext,
+                },
+              ],
+            },
+          },
+        );
+      } catch {
+        // best-effort
+      }
+    }
 
     // Determine shop primary locale
     const localesResp = await admin.graphql(`query ShopLocales { shopLocales { locale primary } }`);
@@ -965,6 +995,7 @@ function RewriterWorkspaceInner({
   >([]);
   const [addedValueKeys, setAddedValueKeys] = useState<Record<string, boolean>>({});
   const [culturalContextSaved, setCulturalContextSaved] = useState(false);
+  const [pendingCulturalContext, setPendingCulturalContext] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState(() => t("analyzingMaterials"));
   const loadingTimerRef = useRef<number | null>(null);
 
@@ -1420,21 +1451,16 @@ function RewriterWorkspaceInner({
 
       setAddedValueKeys((prev) => ({...prev, [key]: true}));
 
-      // Persist to Shopify as a product metafield (theme/SEO usage).
+      // Store cultural context to be persisted on Save
       if (selectedProduct?.id) {
         const metaValue = `${keyDetailsHeadingForSave(effectiveTargetLocale)}\n\n${footerText}`;
-        const fd = new FormData();
-        fd.set('intent', 'set_cultural_context');
-        fd.set('productId', selectedProduct.id);
-        fd.set('value', metaValue);
-        culturalFetcher.submit(fd, {method: 'post'});
+        setPendingCulturalContext(metaValue);
       }
     },
     [
       activeLocale,
       addedValueKeys,
       culturalContextSaved,
-      culturalFetcher,
       currentDraft.description,
       currentDraft.title,
       selectedProduct?.id,
@@ -1769,15 +1795,16 @@ function RewriterWorkspaceInner({
   const selectedProductId = searchParams.get('productId') || (products[0]?.id ?? '');
 
   const draftTabs = useMemo(() => {
-    // Show all published locales as tabs (EN, FR, KO, zh-TW, etc.)
-    return publishedLocales.map((l) => {
-      const short = String(l.locale).split('-')[0]?.toUpperCase() || String(l.locale).toUpperCase();
-      return {
-        id: l.locale,
-        content: short,
-        accessibilityLabel: l.name,
-      };
-    });
+    return publishedLocales
+      .filter((l) => !l.primary)
+      .map((l) => {
+        const short = String(l.locale).split('-')[0]?.toUpperCase() || String(l.locale).toUpperCase();
+        return {
+          id: l.locale,
+          content: short,
+          accessibilityLabel: l.name,
+        };
+      });
   }, [publishedLocales]);
 
   const selectedTabIndex = useMemo(() => {
@@ -2487,6 +2514,9 @@ function RewriterWorkspaceInner({
                     <input type="hidden" name="draftDescription" value={currentDraft.description} />
                     <input type="hidden" name="draftSeoTitle" value={currentDraft.seoTitle} />
                     <input type="hidden" name="draftSeoDescription" value={currentDraft.seoDescription} />
+                    {pendingCulturalContext && (
+                      <input type="hidden" name="culturalContext" value={pendingCulturalContext} />
+                    )}
                     <Button
                       size="large"
                       variant="primary"

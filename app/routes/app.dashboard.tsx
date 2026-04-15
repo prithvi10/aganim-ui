@@ -105,7 +105,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let backendError401 = false;
   let planName = "Free";
   let trialDays = 0;
-  let metaCredentials = { access_token_present: false, page_id_present: false, page_id: null as string | null };
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
   let brandSoulEnabled = true;
@@ -260,23 +259,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       console.error("Backend usage fetch failed", e);
     }
 
-    // D. Fetch Meta credentials status (Pro users only)
-    if (planName === "Pro") {
-      try {
-        const metaResp = await fetch(`${backendApiUrl}/api/admin/meta-credentials?shop=${shop}`);
-        if (metaResp.ok) {
-          const metaData = await metaResp.json();
-          metaCredentials = {
-            access_token_present: Boolean(metaData.access_token_present),
-            page_id_present: Boolean(metaData.page_id_present),
-            page_id: metaData.page_id ?? null,
-          };
-        }
-      } catch (e) {
-        console.error("Meta credentials fetch failed", e);
-      }
-    }
-
     return {
       activeMarketsCount,
       usage,
@@ -287,7 +269,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       needsReauth: false,
       isSyncing: false,
       backendApiUrl,
-      metaCredentials,
       entitlements,
       feature_usage,
       shop,
@@ -316,7 +297,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       backendError401: false,
       isSyncing: false,
       backendApiUrl: process.env.BACKEND_API_URL || "https://aganim-api.onrender.com",
-      metaCredentials: { access_token_present: false, page_id_present: false, page_id: null },
       entitlements: {},
       feature_usage: {},
       shop: "",
@@ -343,7 +323,6 @@ export default function Dashboard() {
     needsReauth, 
     isSyncing,
     backendApiUrl,
-    metaCredentials: initialMetaCredentials,
     entitlements,
     feature_usage,
     shop,
@@ -432,14 +411,6 @@ export default function Dashboard() {
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   // NOTE: App Bridge instance is not needed on this page right now.
 
-  // Meta credentials state (gated by meta_integration entitlement)
-  const canUseMetaIntegration = canAccess(entitlements, "meta_integration");
-  const [metaAccessToken, setMetaAccessToken] = useState("");
-  const [metaPageId, setMetaPageId] = useState(initialMetaCredentials?.page_id ?? "");
-  const [metaConnected, setMetaConnected] = useState(
-    Boolean(initialMetaCredentials?.access_token_present && initialMetaCredentials?.page_id_present),
-  );
-  const [metaSaving, setMetaSaving] = useState(false);
   
   const planCatalog = useMemo(() => buildPlanCatalog(t), [t]);
 
@@ -456,9 +427,7 @@ export default function Dashboard() {
     { key: "ad_image_generation", label: t("dashboard.featureAdImageGeneration") },
     { key: "social_post_preview", label: t("dashboard.featureSocialPostPreview") },
     { key: "autonomous", label: t("dashboard.featureAutonomousPublishing") },
-    { key: "publish", label: t("dashboard.featurePublishToMeta") },
     { key: "apply_price", label: t("dashboard.featureApplyPriceChanges") },
-    { key: "meta_integration", label: t("dashboard.featureMetaIntegration") },
   ], [t]);
 
   const lockedFeaturesWithTiers = useMemo(() => {
@@ -493,36 +462,6 @@ export default function Dashboard() {
       setShowExpiredModal(true);
     }
   }, [(usage as any)?.accessExpiresAt]);
-  const handleMetaSave = async () => {
-    if (!metaAccessToken.trim() || !metaPageId.trim()) {
-      setToastContent(t("dashboard.pleaseEnterBoth"));
-      return;
-    }
-    setMetaSaving(true);
-    try {
-      const shop = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("shop") || "";
-      const resp = await fetch(
-        `${backendApiUrl}/api/admin/meta-credentials?shop=${shop}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ access_token: metaAccessToken.trim(), page_id: metaPageId.trim() }),
-        },
-      );
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${resp.status}`);
-      }
-      setMetaConnected(true);
-      setMetaAccessToken(""); // clear the token from memory
-      setToastContent(t("dashboard.metaCredentialsSaved"));
-    } catch (e: any) {
-      setToastContent(`${t("dashboard.failedToSaveMeta")} ${e.message || e}`);
-    } finally {
-      setMetaSaving(false);
-    }
-  };
-
   // Concern form state
   const [concernFormOpen, setConcernFormOpen] = useState(false);
   const [concernEmail, setConcernEmail] = useState("");
@@ -859,79 +798,6 @@ export default function Dashboard() {
 
             </BlockStack>
           </Layout.Section>
-
-          {/* META API CREDENTIALS – gated by meta_integration entitlement */}
-          {canUseMetaIntegration && (
-            <Layout.Section>
-              <Card>
-                <Box padding="400">
-                  <BlockStack gap="400">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <BlockStack gap="100">
-                        <Text as="h2" variant="headingMd">{t("dashboard.metaIntegration")}</Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t("dashboard.metaIntegrationDesc")}
-                        </Text>
-                      </BlockStack>
-                      {metaConnected ? (
-                        <Badge tone="success" progress="complete">{t("dashboard.connected")}</Badge>
-                      ) : (
-                        <Badge tone="attention">{t("dashboard.notConnected")}</Badge>
-                      )}
-                    </InlineStack>
-
-                    {metaConnected ? (
-                      <Banner tone="success" title={t("dashboard.metaAccountConnected")}>
-                        <Text as="p" variant="bodyMd">
-                          {t("dashboard.pageId")} <strong>{metaPageId || initialMetaCredentials?.page_id || "—"}</strong>.{" "}
-                          {t("dashboard.autonomousPublishingEnabled")}
-                        </Text>
-                        <div style={{ marginTop: 8 }}>
-                          <Button
-                            variant="plain"
-                            onClick={() => {
-                              setMetaConnected(false);
-                              setMetaAccessToken("");
-                            }}
-                          >
-                            {t("dashboard.updateCredentials")}
-                          </Button>
-                        </div>
-                      </Banner>
-                    ) : (
-                      <FormLayout>
-                        <TextField
-                          label={t("dashboard.metaAccessToken")}
-                          type="password"
-                          value={metaAccessToken}
-                          onChange={setMetaAccessToken}
-                          placeholder="EAAxxxxxxx…"
-                          helpText={t("dashboard.metaAccessTokenHelp")}
-                          autoComplete="off"
-                        />
-                        <TextField
-                          label={t("dashboard.metaPageId")}
-                          value={metaPageId}
-                          onChange={setMetaPageId}
-                          placeholder="123456789012345"
-                          helpText={t("dashboard.metaPageIdHelp")}
-                          autoComplete="off"
-                        />
-                        <Button
-                          variant="primary"
-                          onClick={handleMetaSave}
-                          loading={metaSaving}
-                          disabled={!metaAccessToken.trim() || !metaPageId.trim()}
-                        >
-                          {t("dashboard.saveMetaCredentials")}
-                        </Button>
-                      </FormLayout>
-                    )}
-                  </BlockStack>
-                </Box>
-              </Card>
-            </Layout.Section>
-          )}
 
           {/* SUPPORT */}
           <Layout.Section>

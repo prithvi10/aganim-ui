@@ -83,11 +83,6 @@ export function BrandSoulWizard({
     }
   }, [app]);
 
-  const isStandardPlus = useMemo(() => {
-    const n = String(planName || "").toLowerCase();
-    return n === "standard" || n === "pro";
-  }, [planName]);
-
   const totalSteps = 2;
   const progress = Math.round(((step + 1) / totalSteps) * 100);
 
@@ -208,13 +203,6 @@ export function BrandSoulWizard({
             </Text>
           </InlineStack>
           <ProgressBar progress={progress} size="small" />
-
-          {!isStandardPlus ? (
-            <Banner tone="info" title="Standard+ feature">
-              Build your Brand Soul now. The "Enhance with Brand Soul" toggle is available
-              on Standard and Pro plans.
-            </Banner>
-          ) : null}
 
           {error ? <Banner tone="critical">{error}</Banner> : null}
 

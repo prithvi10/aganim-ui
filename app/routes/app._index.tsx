@@ -9,7 +9,7 @@ import {
   Box,
   InlineGrid,
   Collapsible,
-
+  Badge,
   ProgressBar,
   Icon,
   Spinner,
@@ -34,6 +34,7 @@ import {
   HomeIcon,
 } from "@shopify/polaris-icons";
 import { useTranslation } from "react-i18next";
+import { authenticate, getOfflineGraphqlClient } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
@@ -41,6 +42,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const host = url.searchParams.get("host") || "";
   const backendApiUrl =
     process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
+
+  // Defensive auth: prefer offline client, fallback to authenticate.admin
+  const offlineContext = shopParam ? await getOfflineGraphqlClient(shopParam) : null;
+  let shop: string;
+  if (offlineContext) {
+    shop = offlineContext.session.shop;
+  } else {
+    const { session } = await authenticate.admin(request);
+    shop = session.shop;
+  }
 
   let planName = "Free";
   let brandStatus = "idle";
@@ -55,21 +66,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   let entitlements: Entitlements = {};
   let feature_usage: FeatureUsageMap = {};
+  let isOnboardingFinished = false;
   try {
-    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shopParam)}`, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
+    const u = await fetch(`${backendApiUrl}/api/admin/usage?shop=${encodeURIComponent(shop)}`, { headers: { "X-Token-Sync-Secret": process.env.TOKEN_SYNC_SECRET_UI || process.env.TOKEN_SYNC_SECRET || "" } });
     if (u.ok) {
       const data: any = await u.json().catch(() => ({}));
       const eff = String(data?.effective_plan_name || data?.plan_name || "").trim();
       if (eff) planName = eff;
       entitlements = data.entitlements || {};
       feature_usage = data.feature_usage || {};
+      isOnboardingFinished = Boolean(data.is_onboarding_finished);
     }
   } catch {
     // best-effort
   }
 
   try {
-    const s = await fetch(`${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(shopParam)}`);
+    const s = await fetch(`${backendApiUrl}/api/admin/brand-context/status?shop=${encodeURIComponent(shop)}`);
     if (s.ok) {
       const data: any = await s.json().catch(() => ({}));
       const ctx = data?.brand_context || {};
@@ -126,7 +139,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let brandIntelligenceUpdatedAt: string | null = null;
   try {
     const intelRes = await fetch(
-      `${backendApiUrl}/api/admin/brand-intelligence?shop=${encodeURIComponent(shopParam)}`,
+      `${backendApiUrl}/api/admin/brand-intelligence?shop=${encodeURIComponent(shop)}`,
     );
     if (intelRes.ok) {
       const intelData: any = await intelRes.json().catch(() => ({}));
@@ -138,12 +151,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   return {
-    shop: shopParam,
+    shop,
     host,
     backendApiUrl,
     planName,
     entitlements,
     feature_usage,
+    isOnboardingFinished,
     brandStatus,
     brandSummary,
     brandKeyFacts,
@@ -176,12 +190,14 @@ export default function LandingPage() {
     brandLastError,
     brandIntelligence,
     brandIntelligenceUpdatedAt,
+    feature_usage,
+    isOnboardingFinished,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [brandWizardOpen, setBrandWizardOpen] = useState(false);
   const [brandSoulCollapsed, setBrandSoulCollapsed] = useState(false);
   const [intelligenceOpen, setIntelligenceOpen] = useState(false);
-  const [onboardingModalOpen, setOnboardingModalOpen] = useState(false);
+  const [onboardingModalOpen, setOnboardingModalOpen] = useState(!isOnboardingFinished);
   const [brandEditMode, setBrandEditMode] = useState(false);
   const [brandEditText, setBrandEditText] = useState("");
   const [brandEditSaving, setBrandEditSaving] = useState(false);
@@ -236,17 +252,6 @@ export default function LandingPage() {
       setBrandEditSaving(false);
     }
   }, [backendApiUrl, shop, brandEditText]);
-
-  // Auto-launch onboarding modal if not seen
-  useEffect(() => {
-    const seen = localStorage.getItem("onboarding_seen");
-    if (!seen) {
-      // Trigger the GetStartedGuide modal by simulating a click
-      // We'll use a ref or trigger it via the component's internal state
-      // For now, we'll just set a flag and the guide will handle it
-      setOnboardingModalOpen(true);
-    }
-  }, []);
 
   useEffect(() => {
     setBrandStatusState(brandStatus);
@@ -392,21 +397,26 @@ export default function LandingPage() {
     };
   }, [brandStatusState, backendApiUrl, shop]);
 
+  const _fu = (key: string) => {
+    const v = (feature_usage as any)?.[key];
+    return typeof v === "object" ? (v?.used ?? 0) > 0 : (v ?? 0) > 0;
+  };
+
   const onboardingSteps = [
-    { id: "target-market", label: t("home.stepTargetMarket"), completed: false },
+    { id: "target-market", label: t("home.stepTargetMarket"), completed: _fu("rewriter") || _fu("marketing") },
     { id: "soul", label: t("home.stepBrandSoul"), completed: isBrandSoulActive },
-    { id: "writing", label: t("home.stepWritingStudio"), completed: false },
-    { id: "marketing", label: t("home.stepMarketing"), completed: false },
-    { id: "seo", label: t("home.stepSeo"), completed: false },
-    { id: "pricing", label: t("home.stepPriceScout"), completed: false },
-    { id: "pipelines", label: t("home.stepPipelines"), completed: false },
-    { id: "dashboard", label: t("home.stepDashboard"), completed: false },
+    { id: "writing", label: t("home.stepWritingStudio"), completed: _fu("rewriter") },
+    { id: "marketing", label: t("home.stepMarketing"), completed: _fu("marketing") },
+    { id: "seo", label: t("home.stepSeo"), completed: _fu("seo") },
+    { id: "pricing", label: t("home.stepPriceScout"), completed: _fu("price_scout") },
+    { id: "pipelines", label: t("home.stepPipelines"), completed: _fu("missions") },
+    { id: "dashboard", label: t("home.stepDashboard"), completed: true },
   ];
 
   const onboardingProgress = useMemo(() => {
     const completed = onboardingSteps.filter((s) => s.completed).length;
     return Math.round((completed / onboardingSteps.length) * 100);
-  }, [isBrandSoulActive]);
+  }, [isBrandSoulActive, feature_usage]);
 
 
   return (
@@ -936,9 +946,14 @@ export default function LandingPage() {
           <Box padding="400">
             <BlockStack gap="400">
               <BlockStack gap="200">
-                <Text as="h2" variant="headingLg">
-                  {t("home.onboardingGuide")}
-                </Text>
+                <InlineStack gap="200" blockAlign="center">
+                  <Text as="h2" variant="headingLg">
+                    {t("home.onboardingGuide")}
+                  </Text>
+                  <Badge tone={onboardingProgress === 100 ? "success" : "attention"}>
+                    {onboardingProgress === 100 ? t("home.complete") : t("home.pending")}
+                  </Badge>
+                </InlineStack>
                 <Text as="p" variant="bodyMd" tone="subdued">
                   {t("home.gettingStartedDesc")}
                 </Text>
@@ -978,7 +993,6 @@ export default function LandingPage() {
         open={onboardingModalOpen}
         onClose={() => {
           setOnboardingModalOpen(false);
-          localStorage.setItem("onboarding_seen", "true");
         }}
         onOpenBrandSoul={() => {
           setOnboardingModalOpen(false);
