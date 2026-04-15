@@ -62,7 +62,9 @@
     "stepSeo": "SEOを最適化",
     "stepPriceScout": "競合価格を調査",
     "stepPipelines": "ミッションを実行",
-    "stepDashboard": "ダッシュボードを確認"
+    "stepDashboard": "ダッシュボードを確認",
+    "pending": "未完了",
+    "complete": "完了"
   },
   "onboarding": {
     "setup": "セットアップ",
