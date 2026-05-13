@@ -52,12 +52,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "enroll") {
     const domain = formData.get("domain") as string;
-    const plan = formData.get("plan") as string || "Standard";
+    const plan = formData.get("plan") as string || "Pro";
     const source = formData.get("source") as string || "";
+    const beta_duration_days = parseInt(formData.get("beta_duration_days") as string || "42");
     const resp = await fetch(`${base}/api/superadmin/beta/merchants/${domain}/enroll`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ upgrade_plan: plan, source }),
+      body: JSON.stringify({ upgrade_plan: plan, source, beta_duration_days }),
     });
     return resp.json();
   }
@@ -72,8 +73,9 @@ export default function PortalBetaMerchants() {
 
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
   const [enrollDomain, setEnrollDomain] = useState("");
-  const [enrollPlan, setEnrollPlan] = useState("Standard");
+  const [enrollPlan, setEnrollPlan] = useState("Pro");
   const [enrollSource, setEnrollSource] = useState("");
+  const [enrollDuration, setEnrollDuration] = useState("42");
   const [statusFilter, setStatusFilter] = useState(currentStatus);
 
   const handleFilterChange = useCallback((value: string) => {
@@ -85,12 +87,12 @@ export default function PortalBetaMerchants() {
 
   const handleEnroll = useCallback(() => {
     fetcher.submit(
-      { intent: "enroll", domain: enrollDomain, plan: enrollPlan, source: enrollSource },
+      { intent: "enroll", domain: enrollDomain, plan: enrollPlan, source: enrollSource, beta_duration_days: enrollDuration },
       { method: "post" },
     );
     setEnrollModalOpen(false);
     setEnrollDomain("");
-  }, [fetcher, enrollDomain, enrollPlan, enrollSource]);
+  }, [fetcher, enrollDomain, enrollPlan, enrollSource, enrollDuration]);
 
   const resourceName = { singular: "merchant", plural: "merchants" };
 
@@ -112,6 +114,7 @@ export default function PortalBetaMerchants() {
       <IndexTable.Cell>{m.plan || "—"}</IndexTable.Cell>
       <IndexTable.Cell>{m.enrolled_at?.slice(0, 10) || "—"}</IndexTable.Cell>
       <IndexTable.Cell>{m.last_active?.slice(0, 10) || "Never"}</IndexTable.Cell>
+      <IndexTable.Cell>{m.beta_expires_at?.slice(0, 10) || "—"}</IndexTable.Cell>
       <IndexTable.Cell>{m.rewrites}</IndexTable.Cell>
       <IndexTable.Cell>{m.features_used}</IndexTable.Cell>
       <IndexTable.Cell>{m.feedback_score ? `${m.feedback_score}/5` : "—"}</IndexTable.Cell>
@@ -158,6 +161,7 @@ export default function PortalBetaMerchants() {
               { title: "Plan" },
               { title: "Enrolled" },
               { title: "Last Active" },
+              { title: "Beta Expires" },
               { title: "Rewrites" },
               { title: "Features" },
               { title: "Feedback" },
@@ -206,12 +210,23 @@ export default function PortalBetaMerchants() {
             <Select
               label="Plan to grant"
               options={[
+                { label: "Pro (recommended for beta)", value: "Pro" },
                 { label: "Standard", value: "Standard" },
-                { label: "Pro", value: "Pro" },
                 { label: "Basic", value: "Basic" },
               ]}
               value={enrollPlan}
               onChange={setEnrollPlan}
+            />
+            <Select
+              label="Beta duration"
+              options={[
+                { label: "6 weeks (42 days) — recommended", value: "42" },
+                { label: "4 weeks (28 days)", value: "28" },
+                { label: "8 weeks (56 days)", value: "56" },
+                { label: "3 months (90 days)", value: "90" },
+              ]}
+              value={enrollDuration}
+              onChange={setEnrollDuration}
             />
             <TextField
               label="Source"
