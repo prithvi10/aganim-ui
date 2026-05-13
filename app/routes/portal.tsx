@@ -18,6 +18,7 @@ import {
   SendIcon,
   ExitIcon,
   ArrowDownIcon,
+  TargetIcon,
 } from "@shopify/polaris-icons";
 import { requirePortalAuth, buildClearCookie } from "../utils/portal-auth.server";
 import { useState, useCallback } from "react";
@@ -112,6 +113,13 @@ export default function PortalLayout() {
             url: "/portal/outreach",
             selected: location.pathname === "/portal/outreach",
             onClick: () => navigate("/portal/outreach"),
+          },
+          {
+            label: "Beta Test",
+            icon: TargetIcon,
+            url: "/portal/beta",
+            selected: location.pathname.startsWith("/portal/beta"),
+            onClick: () => navigate("/portal/beta"),
           },
         ]}
       />

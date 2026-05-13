@@ -1,0 +1,229 @@
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
+import { useLoaderData, useFetcher } from "react-router";
+import {
+  Page,
+  Card,
+  Text,
+  BlockStack,
+  InlineStack,
+  FormLayout,
+  Select,
+  TextField,
+  Button,
+  Banner,
+  Badge,
+  Box,
+} from "@shopify/polaris";
+import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
+import { useState, useCallback } from "react";
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const token = requirePortalAuth(request);
+  const base = getBackendBaseUrl();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const [templates, history] = await Promise.all([
+    safeFetchJson(`${base}/api/superadmin/beta/email/templates`, { headers }),
+    safeFetchJson(`${base}/api/superadmin/outreach/history?page=1&page_size=15`, { headers }),
+  ]);
+
+  return { templates: templates?.templates || [], history: history?.history || [] };
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const token = requirePortalAuth(request);
+  const base = getBackendBaseUrl();
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "send_bulk") {
+    const template = formData.get("template") as string;
+    const status_filter = formData.get("status_filter") as string || null;
+    const resp = await fetch(`${base}/api/superadmin/beta/email/send`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ template, status_filter: status_filter || null }),
+    });
+    return resp.json();
+  }
+
+  if (intent === "send_invite") {
+    const domains = (formData.get("domains") as string || "")
+      .split("\n")
+      .map((d) => d.trim())
+      .filter(Boolean);
+    const emails = (formData.get("emails") as string || "")
+      .split("\n")
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    const resp = await fetch(`${base}/api/superadmin/beta/invite`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ shop_domains: domains, raw_emails: emails }),
+    });
+    return resp.json();
+  }
+
+  return null;
+};
+
+export default function PortalBetaOutreach() {
+  const { templates, history } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher();
+
+  const [template, setTemplate] = useState("checkin");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [inviteDomains, setInviteDomains] = useState("");
+  const [inviteEmails, setInviteEmails] = useState("");
+
+  const handleSendBulk = useCallback(() => {
+    fetcher.submit(
+      { intent: "send_bulk", template, status_filter: statusFilter },
+      { method: "post" },
+    );
+  }, [fetcher, template, statusFilter]);
+
+  const handleSendInvite = useCallback(() => {
+    fetcher.submit(
+      { intent: "send_invite", domains: inviteDomains, emails: inviteEmails },
+      { method: "post" },
+    );
+  }, [fetcher, inviteDomains, inviteEmails]);
+
+  const result = fetcher.data as any;
+
+  return (
+    <Page title="Beta Outreach" subtitle="Send emails to beta merchants">
+      <BlockStack gap="600">
+        {result?.message && (
+          <Banner tone="success" onDismiss={() => {}}>
+            {result.message}
+          </Banner>
+        )}
+
+        {/* Invite New Merchants */}
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">Invite New Merchants</Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              Send beta invite emails to shop domains or raw email addresses.
+            </Text>
+            <FormLayout>
+              <TextField
+                label="Shop domains (one per line)"
+                value={inviteDomains}
+                onChange={setInviteDomains}
+                multiline={4}
+                placeholder={"store-one.myshopify.com\nstore-two.myshopify.com"}
+                autoComplete="off"
+              />
+              <TextField
+                label="Raw emails (one per line, for merchants not yet installed)"
+                value={inviteEmails}
+                onChange={setInviteEmails}
+                multiline={3}
+                placeholder={"merchant@example.com"}
+                autoComplete="off"
+              />
+              <Button
+                variant="primary"
+                onClick={handleSendInvite}
+                loading={fetcher.state !== "idle"}
+                disabled={!inviteDomains.trim() && !inviteEmails.trim()}
+              >
+                Send Invites
+              </Button>
+            </FormLayout>
+          </BlockStack>
+        </Card>
+
+        {/* Bulk Send to Beta Cohort */}
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">Send to Beta Cohort</Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              Send a template email to all beta merchants matching a filter.
+            </Text>
+            <FormLayout>
+              <Select
+                label="Email template"
+                options={templates.map((t: any) => ({
+                  label: `${t.name} — ${t.description}`,
+                  value: t.id,
+                }))}
+                value={template}
+                onChange={setTemplate}
+              />
+              <Select
+                label="Filter by status"
+                options={[
+                  { label: "All enrolled", value: "" },
+                  { label: "Active only", value: "active" },
+                  { label: "Invited only", value: "invited" },
+                  { label: "Accepted only", value: "accepted" },
+                  { label: "Completed only", value: "completed" },
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
+              <Button
+                variant="primary"
+                onClick={handleSendBulk}
+                loading={fetcher.state !== "idle"}
+              >
+                Send to Cohort
+              </Button>
+            </FormLayout>
+          </BlockStack>
+        </Card>
+
+        {/* Send History */}
+        <Card>
+          <BlockStack gap="400">
+            <InlineStack align="space-between" blockAlign="center">
+              <Text as="h2" variant="headingMd">Recent Send History</Text>
+              <Badge>{history.length} shown</Badge>
+            </InlineStack>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #e1e3e5" }}>
+                    <th style={{ textAlign: "left", padding: "8px 12px" }}>Recipient</th>
+                    <th style={{ textAlign: "left", padding: "8px 12px" }}>Shop</th>
+                    <th style={{ textAlign: "left", padding: "8px 12px" }}>Subject</th>
+                    <th style={{ textAlign: "left", padding: "8px 12px" }}>Status</th>
+                    <th style={{ textAlign: "left", padding: "8px 12px" }}>Sent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((h: any) => (
+                    <tr key={h.id} style={{ borderBottom: "1px solid #f4f6f8" }}>
+                      <td style={{ padding: "8px 12px" }}>{h.recipient_email}</td>
+                      <td style={{ padding: "8px 12px" }}>{h.recipient_shop || "—"}</td>
+                      <td style={{ padding: "8px 12px" }}>{h.subject?.slice(0, 50)}</td>
+                      <td style={{ padding: "8px 12px" }}>
+                        <Badge tone={h.status === "sent" ? "success" : "critical"}>
+                          {h.status}
+                        </Badge>
+                      </td>
+                      <td style={{ padding: "8px 12px" }}>{h.sent_at?.slice(0, 10) || "—"}</td>
+                    </tr>
+                  ))}
+                  {history.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ padding: "16px 12px", textAlign: "center", color: "#6d7175" }}>
+                        No emails sent yet
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </BlockStack>
+        </Card>
+      </BlockStack>
+    </Page>
+  );
+}
