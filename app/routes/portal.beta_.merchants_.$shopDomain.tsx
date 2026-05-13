@@ -158,6 +158,7 @@ export default function PortalBetaMerchantDetail() {
     ? [
         { term: "Domain", description: shop.domain },
         { term: "Plan", description: shop.plan || "Free" },
+        { term: "Beta Expires", description: shop.access_expires_at?.slice(0, 10) || "—" },
         { term: "Active", description: shop.is_active ? "Yes" : "No" },
         { term: "Installed", description: shop.created_at?.slice(0, 10) || "—" },
         { term: "Monthly Rewrites", description: String(shop.monthly_rewrites_used) },
