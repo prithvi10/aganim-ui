@@ -251,6 +251,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           pendingPlanName: data.pending_plan_name ?? null,
           pendingPlanEffectiveAt: data.pending_plan_effective_at ?? null,
           lastPlanChangeType: data.last_plan_change_type ?? null,
+          isBetaTester: Boolean(data.is_beta_tester),
         };
         brandSoulEnabled = brandSoulEnabledValue;
         brandContextStatus = brandContextStatusValue;
@@ -737,6 +738,15 @@ export default function Dashboard() {
                   pendingPlanEffectiveAt={String((usage as any)?.pendingPlanEffectiveAt || "")}
                   lastPlanChangeType={String((usage as any)?.lastPlanChangeType || "")}
                 />
+              ) : null}
+              {Boolean((usage as any)?.isBetaTester) && (usage as any)?.accessExpiresAt && !Boolean((usage as any)?.graceActive) ? (
+                <Banner tone="info" title="Closed Beta — Pro Access">
+                  <Text as="p" variant="bodyMd">
+                    You're in the Aganim closed beta with full Pro access. Your beta privilege expires on{" "}
+                    {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString()}.
+                    Thank you for being an early tester!
+                  </Text>
+                </Banner>
               ) : null}
 
               <InlineStack gap="400" align="start" wrap>

@@ -152,6 +152,12 @@ export default function PortalBetaMerchantDetail() {
     { term: "Completed", description: enrollment.completed_at?.slice(0, 10) || "—" },
     { term: "Source", description: enrollment.source || "—" },
     { term: "Target Market", description: enrollment.target_market || "—" },
+    { term: "Signup URL", description: enrollment.signup_url ? (
+      <code style={{ fontSize: 11, wordBreak: "break-all" }}>{enrollment.signup_url}</code>
+    ) : "—" },
+    { term: "Store Name", description: enrollment.store_name || "—" },
+    { term: "Contact Email", description: enrollment.contact_email || "—" },
+    { term: "Purpose", description: enrollment.purpose || "—" },
   ];
 
   const shopItems = shop

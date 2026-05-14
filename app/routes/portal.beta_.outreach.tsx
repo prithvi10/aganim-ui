@@ -103,6 +103,41 @@ export default function PortalBetaOutreach() {
           </Banner>
         )}
 
+        {result?.details && result.details.some((d: any) => d.signup_url) && (
+          <Card>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingMd">Generated Signup Links</Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Share these links manually (e.g. via DM) if needed. Each link is unique per merchant.
+              </Text>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #e1e3e5" }}>
+                      <th style={{ textAlign: "left", padding: "8px 12px" }}>Recipient</th>
+                      <th style={{ textAlign: "left", padding: "8px 12px" }}>Status</th>
+                      <th style={{ textAlign: "left", padding: "8px 12px" }}>Signup URL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.details.filter((d: any) => d.signup_url).map((d: any, i: number) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #f4f6f8" }}>
+                        <td style={{ padding: "8px 12px" }}>{d.domain || d.email}</td>
+                        <td style={{ padding: "8px 12px" }}>
+                          <Badge tone={d.status === "sent" ? "success" : "critical"}>{d.status}</Badge>
+                        </td>
+                        <td style={{ padding: "8px 12px" }}>
+                          <code style={{ fontSize: 11, wordBreak: "break-all" }}>{d.signup_url}</code>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </BlockStack>
+          </Card>
+        )}
+
         {/* Invite New Merchants */}
         <Card>
           <BlockStack gap="400">

@@ -118,6 +118,13 @@ export default function PortalBetaMerchants() {
       <IndexTable.Cell>{m.rewrites}</IndexTable.Cell>
       <IndexTable.Cell>{m.features_used}</IndexTable.Cell>
       <IndexTable.Cell>{m.feedback_score ? `${m.feedback_score}/5` : "—"}</IndexTable.Cell>
+      <IndexTable.Cell>
+        {m.signup_url ? (
+          <Button size="slim" onClick={() => navigator.clipboard.writeText(m.signup_url)}>
+            Copy Link
+          </Button>
+        ) : "—"}
+      </IndexTable.Cell>
     </IndexTable.Row>
   ));
 
@@ -165,6 +172,7 @@ export default function PortalBetaMerchants() {
               { title: "Rewrites" },
               { title: "Features" },
               { title: "Feedback" },
+              { title: "Invite Link" },
             ]}
             selectable={false}
           >
