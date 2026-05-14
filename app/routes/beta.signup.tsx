@@ -13,6 +13,7 @@ import {
   Button,
   Banner,
   Box,
+  ChoiceList,
 } from "@shopify/polaris";
 
 const BACKEND_URL = process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
@@ -77,7 +78,8 @@ export default function BetaSignup() {
   const [shopDomain, setShopDomain] = useState(loaderData?.shop_domain || "");
   const [category, setCategory] = useState("");
   const [markets, setMarkets] = useState("");
-  const [purpose, setPurpose] = useState("");
+  const [purposes, setPurposes] = useState<string[]>([]);
+  const [otherPurpose, setOtherPurpose] = useState("");
 
   const result = fetcher.data as any;
   const isSubmitting = fetcher.state !== "idle";
@@ -229,15 +231,34 @@ export default function BetaSignup() {
                   value={markets}
                   onChange={setMarkets}
                 />
-                <TextField
-                  label="Aganimで実現したいこと"
+                <input
+                  type="hidden"
                   name="purpose"
-                  value={purpose}
-                  onChange={setPurpose}
-                  multiline={3}
-                  placeholder="例: 商品ページを英語に翻訳して海外のお客様にアピールしたい..."
-                  autoComplete="off"
+                  value={purposes.map(p => p === "other" ? otherPurpose : p).filter(Boolean).join(", ")}
                 />
+                <ChoiceList
+                  title="Aganimで実現したいこと（複数選択可）"
+                  allowMultiple
+                  choices={[
+                    { label: "商品コンテンツの翻訳", value: "translate" },
+                    { label: "商品画像のリファイン", value: "images" },
+                    { label: "マーケティングコピー生成", value: "marketing" },
+                    { label: "SEO対策・検索順位向上", value: "seo" },
+                    { label: "市場データによる価格分析", value: "pricing" },
+                    { label: "その他", value: "other" },
+                  ]}
+                  selected={purposes}
+                  onChange={setPurposes}
+                />
+                {purposes.includes("other") && (
+                  <TextField
+                    label="その他の詳細"
+                    value={otherPurpose}
+                    onChange={setOtherPurpose}
+                    placeholder="具体的にお聞かせください..."
+                    autoComplete="off"
+                  />
+                )}
                 <Button
                   variant="primary"
                   submit
