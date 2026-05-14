@@ -100,10 +100,10 @@ export default function BetaSignup() {
           <Card>
             <BlockStack gap="400">
               <Banner tone="critical">
-                {loaderData?.error || "This invite link is invalid or has expired."}
+                この招待リンクは無効、または期限切れです。
               </Banner>
               <Text as="p" variant="bodyMd">
-                If you believe this is an error, please contact us at support@aganim-ai.com.
+                問題がある場合は、support@aganim-ai.com までお問い合わせください。
               </Text>
             </BlockStack>
           </Card>
@@ -120,14 +120,14 @@ export default function BetaSignup() {
         <div style={{ maxWidth: 640, margin: "80px auto", padding: "0 20px" }}>
           <Card>
             <BlockStack gap="400">
-              <Banner tone="success" title="Welcome to the Aganim Beta!">
-                Your signup is complete. You'll be redirected to install the app in a few seconds.
+              <Banner tone="success" title="Aganim ベータ版へようこそ！">
+                登録が完了しました。数秒後にアプリのインストール画面へ移動します。
               </Banner>
               <Text as="p" variant="bodyMd">
-                After installing, you'll have full Pro access for 6 weeks — unlimited features, no charge.
+                インストール後、6週間すべてのPro機能を無料でご利用いただけます。
               </Text>
               <Button variant="primary" url={result.install_url}>
-                Install Aganim on Shopify
+                ShopifyにAganimをインストール
               </Button>
             </BlockStack>
           </Card>
@@ -143,10 +143,10 @@ export default function BetaSignup() {
       <div style={{ maxWidth: 640, margin: "60px auto", padding: "0 20px" }}>
         <BlockStack gap="600">
           <BlockStack gap="200">
-            <Text as="h1" variant="headingXl">Join the Aganim AI Beta</Text>
+            <Text as="h1" variant="headingXl">Aganim AI ベータ版に参加する</Text>
             <Text as="p" variant="bodyLg" tone="subdued">
-              Get full Pro access for 6 weeks — unlimited AI rewrites, SEO optimization,
-              marketing copy, image generation, and more. Completely free.
+              6週間、Pro機能をすべて無料でご利用いただけます。AIリライト、SEO最適化、
+              マーケティングコピー、画像生成など、制限なし。
             </Text>
           </BlockStack>
 
@@ -159,16 +159,16 @@ export default function BetaSignup() {
               <input type="hidden" name="token" value={token} />
               <FormLayout>
                 <TextField
-                  label="Store name"
+                  label="ストア名"
                   name="store_name"
                   value={storeName}
                   onChange={setStoreName}
-                  placeholder="Your store or brand name"
+                  placeholder="ストア名またはブランド名"
                   autoComplete="organization"
                   requiredIndicator
                 />
                 <TextField
-                  label="Email address"
+                  label="メールアドレス"
                   name="contact_email"
                   type="email"
                   value={email}
@@ -178,52 +178,52 @@ export default function BetaSignup() {
                   requiredIndicator
                 />
                 <TextField
-                  label="Shopify store domain"
+                  label="Shopifyストアドメイン"
                   name="shop_domain"
                   value={shopDomain}
                   onChange={setShopDomain}
                   placeholder="your-store.myshopify.com"
                   autoComplete="off"
-                  helpText="Your .myshopify.com domain (e.g. my-store.myshopify.com)"
+                  helpText=".myshopify.com ドメイン（例: my-store.myshopify.com）"
                 />
                 <Select
-                  label="Product category"
+                  label="商品カテゴリ"
                   name="product_category"
                   options={[
-                    { label: "Select a category", value: "" },
-                    { label: "Cosmetics & Beauty", value: "cosmetics" },
-                    { label: "Crafts & Artisan", value: "crafts" },
-                    { label: "Food & Beverage", value: "food" },
-                    { label: "Fashion & Apparel", value: "fashion" },
-                    { label: "Home & Living", value: "home" },
-                    { label: "Electronics", value: "electronics" },
-                    { label: "Other", value: "other" },
+                    { label: "カテゴリを選択", value: "" },
+                    { label: "コスメ・美容", value: "cosmetics" },
+                    { label: "ハンドメイド・工芸", value: "crafts" },
+                    { label: "食品・飲料", value: "food" },
+                    { label: "ファッション・アパレル", value: "fashion" },
+                    { label: "ホーム・インテリア", value: "home" },
+                    { label: "家電・電子機器", value: "electronics" },
+                    { label: "その他", value: "other" },
                   ]}
                   value={category}
                   onChange={setCategory}
                 />
                 <Select
-                  label="Target markets"
+                  label="ターゲット市場"
                   name="target_markets"
                   options={[
-                    { label: "Select target market", value: "" },
-                    { label: "United States", value: "us" },
-                    { label: "Europe", value: "eu" },
-                    { label: "Southeast Asia", value: "sea" },
-                    { label: "Korea", value: "kr" },
-                    { label: "China / Taiwan", value: "cn" },
-                    { label: "Global / Multiple", value: "global" },
+                    { label: "ターゲット市場を選択", value: "" },
+                    { label: "アメリカ", value: "us" },
+                    { label: "ヨーロッパ", value: "eu" },
+                    { label: "東南アジア", value: "sea" },
+                    { label: "韓国", value: "kr" },
+                    { label: "中国・台湾", value: "cn" },
+                    { label: "グローバル（複数地域）", value: "global" },
                   ]}
                   value={markets}
                   onChange={setMarkets}
                 />
                 <TextField
-                  label="What do you hope to achieve with Aganim?"
+                  label="Aganimで実現したいこと"
                   name="purpose"
                   value={purpose}
                   onChange={setPurpose}
                   multiline={3}
-                  placeholder="e.g. Translate my product pages to English for US customers..."
+                  placeholder="例: 商品ページを英語に翻訳して海外のお客様にアピールしたい..."
                   autoComplete="off"
                 />
                 <Button
@@ -233,7 +233,7 @@ export default function BetaSignup() {
                   disabled={!storeName || !email}
                   fullWidth
                 >
-                  Sign Up for Beta Access
+                  ベータ版に登録する
                 </Button>
               </FormLayout>
             </fetcher.Form>
@@ -241,8 +241,8 @@ export default function BetaSignup() {
 
           <Box padding="400">
             <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-              By signing up you agree to our terms of service and privacy policy.
-              Your Pro access lasts 6 weeks from installation.
+              登録により、利用規約とプライバシーポリシーに同意したものとみなされます。
+              Proアクセスはインストールから6週間有効です。
             </Text>
           </Box>
         </BlockStack>
