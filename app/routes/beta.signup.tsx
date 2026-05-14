@@ -14,7 +14,6 @@ import {
   Banner,
   Box,
 } from "@shopify/polaris";
-import { LandingHeader, LandingFooter } from "../components/LandingLayout";
 
 const BACKEND_URL = process.env.BACKEND_API_URL || "https://aganim-api.onrender.com";
 
@@ -94,9 +93,14 @@ export default function BetaSignup() {
 
   if (!loaderData?.valid) {
     return (
-      <div>
-        <LandingHeader />
-        <div style={{ maxWidth: 640, margin: "80px auto", padding: "0 20px" }}>
+      <div style={{ minHeight: "100vh", background: "#f6f6f7" }}>
+        <header style={{ background: "#ffffff", borderBottom: "1px solid #e1e3e5", padding: "16px 24px" }}>
+          <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 }}>
+            <img src="/Icon-final.png" alt="Aganim AI" style={{ height: 32, width: 32 }} />
+            <span style={{ fontSize: 18, fontWeight: 700, color: "#202223" }}>Aganim AI</span>
+          </div>
+        </header>
+        <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 20px" }}>
           <Card>
             <BlockStack gap="400">
               <Banner tone="critical">
@@ -108,19 +112,23 @@ export default function BetaSignup() {
             </BlockStack>
           </Card>
         </div>
-        <LandingFooter />
       </div>
     );
   }
 
   if (result?.success) {
     return (
-      <div>
-        <LandingHeader />
-        <div style={{ maxWidth: 640, margin: "80px auto", padding: "0 20px" }}>
+      <div style={{ minHeight: "100vh", background: "#f6f6f7" }}>
+        <header style={{ background: "#ffffff", borderBottom: "1px solid #e1e3e5", padding: "16px 24px" }}>
+          <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 }}>
+            <img src="/Icon-final.png" alt="Aganim AI" style={{ height: 32, width: 32 }} />
+            <span style={{ fontSize: 18, fontWeight: 700, color: "#202223" }}>Aganim AI</span>
+          </div>
+        </header>
+        <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 20px" }}>
           <Card>
             <BlockStack gap="400">
-              <Banner tone="success" title="Aganim ベータ版へようこそ！">
+              <Banner tone="success" title="Aganim AI へようこそ！">
                 登録が完了しました。数秒後にアプリのインストール画面へ移動します。
               </Banner>
               <Text as="p" variant="bodyMd">
@@ -132,21 +140,25 @@ export default function BetaSignup() {
             </BlockStack>
           </Card>
         </div>
-        <LandingFooter />
       </div>
     );
   }
 
   return (
-    <div>
-      <LandingHeader />
-      <div style={{ maxWidth: 640, margin: "60px auto", padding: "0 20px" }}>
+    <div style={{ minHeight: "100vh", background: "#f6f6f7" }}>
+      <header style={{ background: "#ffffff", borderBottom: "1px solid #e1e3e5", padding: "16px 24px" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <img src="/Icon-final.png" alt="Aganim AI" style={{ height: 32, width: 32 }} />
+          <span style={{ fontSize: 18, fontWeight: 700, color: "#202223" }}>Aganim AI</span>
+        </div>
+      </header>
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 20px" }}>
         <BlockStack gap="600">
           <BlockStack gap="200">
-            <Text as="h1" variant="headingXl">Aganim AI ベータ版に参加する</Text>
+            <Text as="h1" variant="headingXl">Aganim AI — 全Pro機能を無料体験</Text>
             <Text as="p" variant="bodyLg" tone="subdued">
-              6週間、Pro機能をすべて無料でご利用いただけます。AIリライト、SEO最適化、
-              マーケティングコピー、画像生成など、制限なし。
+              6週間、すべてのPro機能を無料でご利用いただけます。AIリライト、SEO最適化、
+              マーケティングコピー、画像生成など、あなたのショップの売上アップを全力サポートします。
             </Text>
           </BlockStack>
 
@@ -233,7 +245,7 @@ export default function BetaSignup() {
                   disabled={!storeName || !email}
                   fullWidth
                 >
-                  ベータ版に登録する
+                  無料で始める
                 </Button>
               </FormLayout>
             </fetcher.Form>
@@ -247,7 +259,6 @@ export default function BetaSignup() {
           </Box>
         </BlockStack>
       </div>
-      <LandingFooter />
     </div>
   );
 }
