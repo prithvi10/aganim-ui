@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useRevalidator } from "react-router";
+import { useLoaderData, useRevalidator, useNavigate } from "react-router";
 import {
   Page,
   Layout,
@@ -62,6 +62,7 @@ function KpiCard({ title, value, subtitle }: { title: string; value: string | nu
 export default function PortalBetaDashboard() {
   const { dashboard, funnel, feedback } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
+  const navigate = useNavigate();
 
   const funnelData = Object.entries(funnel?.funnel || {}).map(
     ([status, count]: [string, any]) => ({
@@ -89,6 +90,10 @@ export default function PortalBetaDashboard() {
           Refresh
         </Button>
       }
+      secondaryActions={[
+        { content: "Invite Merchants", onAction: () => navigate("/portal/beta/outreach") },
+        { content: "View Merchants", onAction: () => navigate("/portal/beta/merchants") },
+      ]}
     >
       <BlockStack gap="600">
         {/* KPI Cards */}

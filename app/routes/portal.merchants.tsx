@@ -38,7 +38,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function PortalMerchants() {
-  const { merchants, total, page, total_pages, filters, approachingLimits } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
+  const merchants = data?.merchants || [];
+  const total = data?.total || 0;
+  const page = data?.page || 1;
+  const total_pages = data?.total_pages || 1;
+  const filters = data?.filters || { search: "", plan: "", page: 1 };
+  const approachingLimits = data?.approachingLimits;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchVal, setSearchVal] = useState(filters.search);

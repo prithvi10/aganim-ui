@@ -740,11 +740,11 @@ export default function Dashboard() {
                 />
               ) : null}
               {Boolean((usage as any)?.isBetaTester) && (usage as any)?.accessExpiresAt && !Boolean((usage as any)?.graceActive) ? (
-                <Banner tone="info" title="Closed Beta — Pro Access">
+                <Banner tone="info" title="クローズドベータ — Proアクセス">
                   <Text as="p" variant="bodyMd">
-                    You're in the Aganim closed beta with full Pro access. Your beta privilege expires on{" "}
-                    {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString()}.
-                    Thank you for being an early tester!
+                    Aganimクローズドベータに参加中です。全Pro機能をご利用いただけます。
+                    ベータ特典の有効期限: {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString("ja-JP")}。
+                    早期テスターとしてご参加いただき、ありがとうございます！
                   </Text>
                 </Banner>
               ) : null}

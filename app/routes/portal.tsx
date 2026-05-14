@@ -120,6 +120,26 @@ export default function PortalLayout() {
             url: "/portal/beta",
             selected: location.pathname.startsWith("/portal/beta"),
             onClick: () => navigate("/portal/beta"),
+            subNavigationItems: [
+              {
+                label: "Dashboard",
+                url: "/portal/beta",
+                selected: location.pathname === "/portal/beta",
+                onClick: () => navigate("/portal/beta"),
+              },
+              {
+                label: "Merchants",
+                url: "/portal/beta/merchants",
+                selected: location.pathname.startsWith("/portal/beta/merchants"),
+                onClick: () => navigate("/portal/beta/merchants"),
+              },
+              {
+                label: "Invite & Outreach",
+                url: "/portal/beta/outreach",
+                selected: location.pathname === "/portal/beta/outreach",
+                onClick: () => navigate("/portal/beta/outreach"),
+              },
+            ],
           },
         ]}
       />
