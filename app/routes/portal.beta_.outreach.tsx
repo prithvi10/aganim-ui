@@ -143,24 +143,34 @@ export default function PortalBetaOutreach() {
           <BlockStack gap="400">
             <Text as="h2" variant="headingMd">Invite New Merchants</Text>
             <Text as="p" variant="bodySm" tone="subdued">
-              Send beta invite emails to shop domains or raw email addresses.
+              Send beta invite emails with a unique signup link. Use email addresses for merchants who haven't installed the app yet.
             </Text>
+
+            {result?.details?.some((d: any) => d.reason === "no email") && (
+              <Banner tone="warning">
+                Some shop domains were skipped because no email is on file.
+                Use the "Email addresses" field instead for merchants who haven't installed the app.
+              </Banner>
+            )}
+
             <FormLayout>
               <TextField
-                label="Shop domains (one per line)"
-                value={inviteDomains}
-                onChange={setInviteDomains}
-                multiline={4}
-                placeholder={"store-one.myshopify.com\nstore-two.myshopify.com"}
-                autoComplete="off"
-              />
-              <TextField
-                label="Raw emails (one per line, for merchants not yet installed)"
+                label="Email addresses (one per line)"
                 value={inviteEmails}
                 onChange={setInviteEmails}
-                multiline={3}
-                placeholder={"merchant@example.com"}
+                multiline={4}
+                placeholder={"merchant@example.com\nanother@store.jp"}
                 autoComplete="off"
+                helpText="Recommended: directly enter merchant email addresses to send invite emails"
+              />
+              <TextField
+                label="Shop domains (one per line, only for merchants already in your DB)"
+                value={inviteDomains}
+                onChange={setInviteDomains}
+                multiline={3}
+                placeholder={"store-one.myshopify.com\nstore-two.myshopify.com"}
+                autoComplete="off"
+                helpText="Only works if the merchant already installed and has an email on file"
               />
               <Button
                 variant="primary"
