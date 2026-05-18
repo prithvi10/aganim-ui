@@ -9,8 +9,6 @@ import {
   Box,
   InlineGrid,
   Collapsible,
-  Badge,
-  ProgressBar,
   Icon,
   Spinner,
   List,
@@ -396,27 +394,6 @@ export default function LandingPage() {
       window.clearInterval(id);
     };
   }, [brandStatusState, backendApiUrl, shop]);
-
-  const _fu = (key: string) => {
-    const v = (feature_usage as any)?.[key];
-    return typeof v === "object" ? (v?.used ?? 0) > 0 : (v ?? 0) > 0;
-  };
-
-  const onboardingSteps = [
-    { id: "target-market", label: t("home.stepTargetMarket"), completed: _fu("rewriter") || _fu("marketing") },
-    { id: "soul", label: t("home.stepBrandSoul"), completed: isBrandSoulActive },
-    { id: "writing", label: t("home.stepWritingStudio"), completed: _fu("rewriter") },
-    { id: "marketing", label: t("home.stepMarketing"), completed: _fu("marketing") },
-    { id: "seo", label: t("home.stepSeo"), completed: _fu("seo") },
-    { id: "pricing", label: t("home.stepPriceScout"), completed: _fu("price_scout") },
-    { id: "pipelines", label: t("home.stepPipelines"), completed: _fu("missions") },
-    { id: "dashboard", label: t("home.stepDashboard"), completed: true },
-  ];
-
-  const onboardingProgress = useMemo(() => {
-    const completed = onboardingSteps.filter((s) => s.completed).length;
-    return Math.round((completed / onboardingSteps.length) * 100);
-  }, [isBrandSoulActive, feature_usage]);
 
 
   return (
@@ -941,37 +918,17 @@ export default function LandingPage() {
           </Box>
         </Card>
 
-        {/* Onboarding Guide (formerly Getting Started) */}
+        {/* Onboarding Guide */}
         <Card>
           <Box padding="400">
             <BlockStack gap="400">
               <BlockStack gap="200">
-                <InlineStack gap="200" blockAlign="center">
-                  <Text as="h2" variant="headingLg">
-                    {t("home.onboardingGuide")}
-                  </Text>
-                  <Badge tone={onboardingProgress === 100 ? "success" : "attention"}>
-                    {onboardingProgress === 100 ? t("home.complete") : t("home.pending")}
-                  </Badge>
-                </InlineStack>
+                <Text as="h2" variant="headingLg">
+                  {t("home.onboardingGuide")}
+                </Text>
                 <Text as="p" variant="bodyMd" tone="subdued">
                   {t("home.gettingStartedDesc")}
                 </Text>
-              </BlockStack>
-
-              <ProgressBar progress={onboardingProgress} size="medium" />
-
-              <BlockStack gap="200">
-                {onboardingSteps.map((step) => (
-                  <InlineStack key={step.id} align="space-between" blockAlign="center">
-                    <Text as="p" variant="bodyMd">
-                      {step.label}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone={step.completed ? "success" : "subdued"}>
-                      {step.completed ? "\u2713" : "\u25CB"}
-                    </Text>
-                  </InlineStack>
-                ))}
               </BlockStack>
 
               <Button
