@@ -176,7 +176,7 @@ export default function PortalDashboard() {
             </InlineStack>
             {revenueBarData.length > 0 ? (
               <div style={{ width: "100%", height: 280 }}>
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={revenueBarData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="plan" fontSize={12} />
@@ -206,7 +206,7 @@ export default function PortalDashboard() {
           <BlockStack gap="400">
             <Text as="h2" variant="headingMd">OpenAI Usage Costs (30 days)</Text>
             <div style={{ width: "100%", height: 300 }}>
-              <ResponsiveContainer>
+              <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={usageChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="day" fontSize={11} />
@@ -227,7 +227,7 @@ export default function PortalDashboard() {
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">Plan Distribution</Text>
                 <div style={{ width: "100%", height: 280 }}>
-                  <ResponsiveContainer>
+                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={planPieData}
@@ -256,7 +256,7 @@ export default function PortalDashboard() {
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">Feature Usage</Text>
                 <div style={{ width: "100%", height: 280 }}>
-                  <ResponsiveContainer>
+                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={featureBarData} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" fontSize={11} />
@@ -276,7 +276,7 @@ export default function PortalDashboard() {
           <BlockStack gap="400">
             <Text as="h2" variant="headingMd">OpenAI Token Usage (Top Merchants)</Text>
             <div style={{ width: "100%", height: 300 }}>
-              <ResponsiveContainer>
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={tokenBarData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" fontSize={10} angle={-25} textAnchor="end" height={60} />

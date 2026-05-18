@@ -45,6 +45,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       headers,
       body: JSON.stringify({ template, status_filter: status_filter || null }),
     });
+    if (!resp.ok) {
+      const text = await resp.text();
+      return { error: true, message: `Failed (${resp.status}): ${text.slice(0, 200)}` };
+    }
     return resp.json();
   }
 
@@ -63,6 +67,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       headers,
       body: JSON.stringify({ shop_domains: domains, raw_emails: emails }),
     });
+    if (!resp.ok) {
+      const text = await resp.text();
+      return { error: true, message: `Failed (${resp.status}): ${text.slice(0, 200)}` };
+    }
     return resp.json();
   }
 
@@ -97,7 +105,12 @@ export default function PortalBetaOutreach() {
   return (
     <Page title="Beta Outreach" subtitle="Send emails to beta merchants">
       <BlockStack gap="600">
-        {result?.message && (
+        {result?.error && (
+          <Banner tone="critical" onDismiss={() => {}}>
+            {result.message}
+          </Banner>
+        )}
+        {result?.message && !result?.error && (
           <Banner tone="success" onDismiss={() => {}}>
             {result.message}
           </Banner>
