@@ -950,9 +950,19 @@ export default function LandingPage() {
         open={onboardingModalOpen}
         onClose={() => {
           setOnboardingModalOpen(false);
+          fetch(`${backendApiUrl}/api/onboarding/update_step?shop=${encodeURIComponent(shop)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_onboarding_finished: true }),
+          }).catch(() => {});
         }}
         onOpenBrandSoul={() => {
           setOnboardingModalOpen(false);
+          fetch(`${backendApiUrl}/api/onboarding/update_step?shop=${encodeURIComponent(shop)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_onboarding_finished: true }),
+          }).catch(() => {});
           setBrandWizardOpen(true);
         }}
       />
