@@ -490,6 +490,7 @@ function MissionCard({
   isCustom,
   minTier,
   currentTier,
+  featured,
 }: {
   icon: string;
   label: string;
@@ -498,9 +499,22 @@ function MissionCard({
   isCustom?: boolean;
   minTier?: PlanTier;
   currentTier: PlanTier;
+  featured?: boolean;
 }) {
   const { t } = useTranslation("missions");
   const isLocked = !!minTier && !tierMeetsMin(currentTier, minTier);
+
+  const borderColor = isCustom
+    ? "var(--p-color-border-emphasis)"
+    : isLocked
+      ? "var(--p-color-border-caution)"
+      : featured
+        ? "rgba(99, 102, 241, 0.5)"
+        : "var(--p-color-border)";
+
+  const glowShadow = featured && !isLocked
+    ? "0 0 8px rgba(99, 102, 241, 0.25), inset 0 0 0 1px rgba(99, 102, 241, 0.1)"
+    : "none";
 
   return (
     <div
@@ -511,37 +525,34 @@ function MissionCard({
       style={{
         padding: "20px",
         borderRadius: "12px",
-        border: `2px solid ${
-          isCustom
-            ? "var(--p-color-border-emphasis)"
-            : isLocked
-              ? "var(--p-color-border-caution)"
-              : "var(--p-color-border)"
-        }`,
+        border: `2px solid ${borderColor}`,
         background: isLocked
           ? "var(--p-color-bg-surface-disabled)"
           : isCustom
             ? "var(--p-color-bg-surface-secondary)"
-            : "var(--p-color-bg-surface)",
+            : featured
+              ? "linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%)"
+              : "var(--p-color-bg-surface)",
         cursor: isLocked ? "not-allowed" : "pointer",
         opacity: isLocked ? 0.65 : 1,
-        transition: "all 0.15s ease",
+        transition: "all 0.2s ease",
+        boxShadow: glowShadow,
       }}
       onMouseEnter={(e) => {
         if (isLocked) return;
-        e.currentTarget.style.borderColor = "var(--p-color-border-emphasis)";
+        e.currentTarget.style.borderColor = featured
+          ? "rgba(99, 102, 241, 0.8)"
+          : "var(--p-color-border-emphasis)";
         e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
+        e.currentTarget.style.boxShadow = featured
+          ? "0 4px 16px rgba(99, 102, 241, 0.2), 0 0 12px rgba(99, 102, 241, 0.15)"
+          : "0 4px 12px rgba(0,0,0,0.08)";
       }}
       onMouseLeave={(e) => {
         if (isLocked) return;
-        e.currentTarget.style.borderColor = isCustom
-          ? "var(--p-color-border-emphasis)"
-          : isLocked
-            ? "var(--p-color-border-caution)"
-            : "var(--p-color-border)";
+        e.currentTarget.style.borderColor = borderColor;
         e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.boxShadow = glowShadow;
       }}
     >
       <BlockStack gap="200">
@@ -552,7 +563,6 @@ function MissionCard({
           <Text as="h3" variant="headingSm" fontWeight="bold">
             {label}
           </Text>
-          {/* Badge intentionally removed for cleaner UX */}
         </InlineStack>
         <Text as="p" variant="bodySm" tone="subdued">
           {isLocked
@@ -910,6 +920,7 @@ export function MissionArchitect({
                       onClick={() => handleMissionSelect(key)}
                       minTier={effectiveMinTier}
                       currentTier={currentTier}
+                      featured={key === "bulk_text_only" || key === "bulk_full_launch"}
                     />
                   );
                 })}
