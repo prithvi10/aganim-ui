@@ -131,7 +131,7 @@ export default function PortalBetaDashboard() {
             <Text as="h2" variant="headingMd">Beta Funnel</Text>
             {funnelData.length > 0 ? (
               <div style={{ width: "100%", height: 300 }}>
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={funnelData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="status" fontSize={12} />
@@ -161,7 +161,7 @@ export default function PortalBetaDashboard() {
                 <Text as="h2" variant="headingMd">Willingness to Pay</Text>
                 {wtpData.length > 0 ? (
                   <div style={{ width: "100%", height: 240 }}>
-                    <ResponsiveContainer>
+                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={wtpData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="answer" fontSize={12} />

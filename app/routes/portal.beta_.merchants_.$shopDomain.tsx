@@ -254,7 +254,7 @@ export default function PortalBetaMerchantDetail() {
             <BlockStack gap="400">
               <Text as="h2" variant="headingMd">Daily Activity (30 days)</Text>
               <div style={{ width: "100%", height: 250 }}>
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="day" fontSize={11} />
