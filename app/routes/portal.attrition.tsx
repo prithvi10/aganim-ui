@@ -142,7 +142,7 @@ export default function PortalAttrition() {
                 <Text as="h2" variant="headingMd">Lost Revenue by Plan</Text>
                 {planBarData.length > 0 ? (
                   <div style={{ width: "100%", height: 260 }}>
-                    <ResponsiveContainer>
+                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={planBarData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="plan" fontSize={12} />
@@ -173,7 +173,7 @@ export default function PortalAttrition() {
                 <Text as="h2" variant="headingMd">Churn Type</Text>
                 {typePieData.length > 0 ? (
                   <div style={{ width: "100%", height: 260 }}>
-                    <ResponsiveContainer>
+                    <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={typePieData}

@@ -251,6 +251,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           pendingPlanName: data.pending_plan_name ?? null,
           pendingPlanEffectiveAt: data.pending_plan_effective_at ?? null,
           lastPlanChangeType: data.last_plan_change_type ?? null,
+          isBetaTester: Boolean(data.is_beta_tester),
         };
         brandSoulEnabled = brandSoulEnabledValue;
         brandContextStatus = brandContextStatusValue;
@@ -737,6 +738,15 @@ export default function Dashboard() {
                   pendingPlanEffectiveAt={String((usage as any)?.pendingPlanEffectiveAt || "")}
                   lastPlanChangeType={String((usage as any)?.lastPlanChangeType || "")}
                 />
+              ) : null}
+              {Boolean((usage as any)?.isBetaTester) && (usage as any)?.accessExpiresAt && !Boolean((usage as any)?.graceActive) ? (
+                <Banner tone="info" title="特別プログラム — 全Pro機能が無料">
+                  <Text as="p" variant="bodyMd">
+                    現在、特別プログラムにより全Pro機能を無料でご利用いただけます。
+                    有効期限: {new Date(String((usage as any)?.accessExpiresAt)).toLocaleDateString("ja-JP")}。
+                    この機会にぜひすべての機能をお試しください！
+                  </Text>
+                </Banner>
               ) : null}
 
               <InlineStack gap="400" align="start" wrap>
