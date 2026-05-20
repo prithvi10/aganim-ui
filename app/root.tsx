@@ -62,7 +62,7 @@ export default function App() {
               description:
                 "AI-powered cross-border e-commerce translation, localization, and growth engine for Shopify stores.",
               sameAs: [
-                "https://apps.shopify.com/aganim-ai",
+                "https://apps.shopify.com/aganim",
               ],
             }),
           }}

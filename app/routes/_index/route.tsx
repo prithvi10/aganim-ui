@@ -236,7 +236,7 @@ const ShopifyShowcase = () => {
             </p>
           </div>
           <a
-            href="https://apps.shopify.com/aganim-ai"
+            href="https://apps.shopify.com/aganim"
             target="_blank"
             rel="noopener noreferrer"
             className="group relative inline-flex items-center gap-2.5 rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-500/20"
