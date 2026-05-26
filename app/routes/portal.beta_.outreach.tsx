@@ -13,9 +13,10 @@ import {
   Banner,
   Badge,
   Box,
+  Divider,
 } from "@shopify/polaris";
 import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const token = requirePortalAuth(request);
@@ -37,6 +38,44 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
 
+  if (intent === "showcase_preview") {
+    const merchant_name = formData.get("merchant_name") as string;
+    const store_key = formData.get("store_key") as string;
+    const brand_name = formData.get("brand_name") as string || "";
+    const email = formData.get("email") as string || "";
+
+    const resp = await fetch(`${base}/api/superadmin/beta/showcase/preview`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ merchant_name, store_key, brand_name, email }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      return { intent: "showcase_preview", error: true, message: `Preview failed (${resp.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await resp.json();
+    return { intent: "showcase_preview", ...data };
+  }
+
+  if (intent === "showcase_send") {
+    const merchant_name = formData.get("merchant_name") as string;
+    const store_key = formData.get("store_key") as string;
+    const brand_name = formData.get("brand_name") as string || "";
+    const email = formData.get("email") as string;
+
+    const resp = await fetch(`${base}/api/superadmin/beta/showcase/send`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ merchant_name, store_key, brand_name, email }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      return { intent: "showcase_send", error: true, message: `Send failed (${resp.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await resp.json();
+    return { intent: "showcase_send", ...data };
+  }
+
   if (intent === "send_bulk") {
     const template = formData.get("template") as string;
     const status_filter = formData.get("status_filter") as string || null;
@@ -47,31 +86,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
     if (!resp.ok) {
       const text = await resp.text();
-      return { error: true, message: `Failed (${resp.status}): ${text.slice(0, 200)}` };
+      return { intent: "send_bulk", error: true, message: `Failed (${resp.status}): ${text.slice(0, 200)}` };
     }
-    return resp.json();
-  }
-
-  if (intent === "send_invite") {
-    const domains = (formData.get("domains") as string || "")
-      .split("\n")
-      .map((d) => d.trim())
-      .filter(Boolean);
-    const emails = (formData.get("emails") as string || "")
-      .split("\n")
-      .map((e) => e.trim())
-      .filter(Boolean);
-
-    const resp = await fetch(`${base}/api/superadmin/beta/invite`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ shop_domains: domains, raw_emails: emails }),
-    });
-    if (!resp.ok) {
-      const text = await resp.text();
-      return { error: true, message: `Failed (${resp.status}): ${text.slice(0, 200)}` };
-    }
-    return resp.json();
+    return { intent: "send_bulk", ...(await resp.json()) };
   }
 
   return null;
@@ -81,10 +98,64 @@ export default function PortalBetaOutreach() {
   const { templates, history } = useLoaderData<typeof loader>();
   const fetcher = useFetcher();
 
+  // Showcase Invite state
+  const [merchantName, setMerchantName] = useState("");
+  const [storeKey, setStoreKey] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [email, setEmail] = useState("");
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewSubject, setPreviewSubject] = useState("");
+  const [imageCount, setImageCount] = useState(0);
+  const [hasPreviewed, setHasPreviewed] = useState(false);
+  const [sent, setSent] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Bulk send state
   const [template, setTemplate] = useState("checkin");
   const [statusFilter, setStatusFilter] = useState("");
-  const [inviteDomains, setInviteDomains] = useState("");
-  const [inviteEmails, setInviteEmails] = useState("");
+
+  const result = fetcher.data as any;
+
+  useEffect(() => {
+    if (result?.intent === "showcase_preview" && !result.error && result.html) {
+      setPreviewHtml(result.html);
+      setPreviewSubject(result.subject || "");
+      setImageCount(result.image_count || 0);
+      setHasPreviewed(true);
+      setSent(false);
+    }
+    if (result?.intent === "showcase_send" && !result.error) {
+      setSent(true);
+    }
+  }, [result]);
+
+  useEffect(() => {
+    if (previewHtml && iframeRef.current) {
+      const doc = iframeRef.current.contentDocument;
+      if (doc) {
+        doc.open();
+        doc.write(previewHtml);
+        doc.close();
+      }
+    }
+  }, [previewHtml]);
+
+  const handlePreview = useCallback(() => {
+    setPreviewHtml(null);
+    setHasPreviewed(false);
+    setSent(false);
+    fetcher.submit(
+      { intent: "showcase_preview", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email },
+      { method: "post" },
+    );
+  }, [fetcher, merchantName, storeKey, brandName, email]);
+
+  const handleSend = useCallback(() => {
+    fetcher.submit(
+      { intent: "showcase_send", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email },
+      { method: "post" },
+    );
+  }, [fetcher, merchantName, storeKey, brandName, email]);
 
   const handleSendBulk = useCallback(() => {
     fetcher.submit(
@@ -93,116 +164,146 @@ export default function PortalBetaOutreach() {
     );
   }, [fetcher, template, statusFilter]);
 
-  const handleSendInvite = useCallback(() => {
-    fetcher.submit(
-      { intent: "send_invite", domains: inviteDomains, emails: inviteEmails },
-      { method: "post" },
-    );
-  }, [fetcher, inviteDomains, inviteEmails]);
-
-  const result = fetcher.data as any;
+  const canPreview = merchantName.trim() && storeKey.trim();
+  const canSend = hasPreviewed && email.trim() && !sent;
 
   return (
-    <Page title="Beta Outreach" subtitle="Send emails to beta merchants">
+    <Page title="Beta Outreach" subtitle="Showcase invites & cohort emails">
       <BlockStack gap="600">
+        {/* Global error banner */}
         {result?.error && (
           <Banner tone="critical" onDismiss={() => {}}>
             {result.message}
           </Banner>
         )}
-        {result?.message && !result?.error && (
+        {result?.intent === "showcase_send" && !result?.error && (
+          <Banner tone="success" onDismiss={() => {}}>
+            {result.message || "Email sent successfully"}
+          </Banner>
+        )}
+        {result?.intent === "send_bulk" && !result?.error && (
           <Banner tone="success" onDismiss={() => {}}>
             {result.message}
           </Banner>
         )}
 
-        {result?.details && result.details.some((d: any) => d.signup_url) && (
-          <Card>
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">Generated Signup Links</Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Share these links manually (e.g. via DM) if needed. Each link is unique per merchant.
-              </Text>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid #e1e3e5" }}>
-                      <th style={{ textAlign: "left", padding: "8px 12px" }}>Recipient</th>
-                      <th style={{ textAlign: "left", padding: "8px 12px" }}>Status</th>
-                      <th style={{ textAlign: "left", padding: "8px 12px" }}>Signup URL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.details.filter((d: any) => d.signup_url).map((d: any, i: number) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #f4f6f8" }}>
-                        <td style={{ padding: "8px 12px" }}>{d.domain || d.email}</td>
-                        <td style={{ padding: "8px 12px" }}>
-                          <Badge tone={d.status === "sent" ? "success" : "critical"}>{d.status}</Badge>
-                        </td>
-                        <td style={{ padding: "8px 12px" }}>
-                          <code style={{ fontSize: 11, wordBreak: "break-all" }}>{d.signup_url}</code>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </BlockStack>
-          </Card>
-        )}
-
-        {/* Invite New Merchants */}
+        {/* Showcase Invite - Primary Card */}
         <Card>
           <BlockStack gap="400">
-            <Text as="h2" variant="headingMd">Invite New Merchants</Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              Send beta invite emails with a unique signup link. Use email addresses for merchants who haven't installed the app yet.
-            </Text>
+            <InlineStack align="space-between" blockAlign="center">
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingLg">Showcase Invite</Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Send a personalized beta invite with before/after transformation screenshots from R2.
+                </Text>
+              </BlockStack>
+              <Badge tone="info">Primary</Badge>
+            </InlineStack>
 
-            {result?.details?.some((d: any) => d.reason === "no email") && (
-              <Banner tone="warning">
-                Some shop domains were skipped because no email is on file.
-                Use the "Email addresses" field instead for merchants who haven't installed the app.
-              </Banner>
-            )}
+            <Divider />
 
             <FormLayout>
-              <TextField
-                label="Email addresses (one per line)"
-                value={inviteEmails}
-                onChange={setInviteEmails}
-                multiline={4}
-                placeholder={"merchant@example.com\nanother@store.jp"}
-                autoComplete="off"
-                helpText="Recommended: directly enter merchant email addresses to send invite emails"
-              />
-              <TextField
-                label="Shop domains (one per line, only for merchants already in your DB)"
-                value={inviteDomains}
-                onChange={setInviteDomains}
-                multiline={3}
-                placeholder={"store-one.myshopify.com\nstore-two.myshopify.com"}
-                autoComplete="off"
-                helpText="Only works if the merchant already installed and has an email on file"
-              />
+              <FormLayout.Group>
+                <TextField
+                  label="Business Name (JP)"
+                  value={merchantName}
+                  onChange={setMerchantName}
+                  placeholder="むす美（山田繊維株式会社）"
+                  autoComplete="off"
+                  helpText="Formal Japanese business name shown in the email greeting"
+                />
+                <TextField
+                  label="Brand Name (display)"
+                  value={brandName}
+                  onChange={setBrandName}
+                  placeholder="MUSUBI Furoshiki"
+                  autoComplete="off"
+                  helpText="Optional — brand name used in the email body. Defaults to Business Name if empty."
+                />
+              </FormLayout.Group>
+              <FormLayout.Group>
+                <TextField
+                  label="R2 Store Key"
+                  value={storeKey}
+                  onChange={(val) => { setStoreKey(val); setHasPreviewed(false); setSent(false); }}
+                  placeholder="musubi"
+                  autoComplete="off"
+                  helpText={`Images loaded from: beta_outreach/${storeKey || "<store_key>"}/`}
+                />
+                <TextField
+                  label="Target Email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="merchant@example.com"
+                  autoComplete="email"
+                  type="email"
+                  helpText="Recipient email address"
+                />
+              </FormLayout.Group>
+            </FormLayout>
+
+            <InlineStack gap="300" align="start">
+              <Button
+                variant="secondary"
+                onClick={handlePreview}
+                loading={fetcher.state !== "idle" && !hasPreviewed}
+                disabled={!canPreview}
+              >
+                Preview Email
+              </Button>
               <Button
                 variant="primary"
-                onClick={handleSendInvite}
-                loading={fetcher.state !== "idle"}
-                disabled={!inviteDomains.trim() && !inviteEmails.trim()}
+                onClick={handleSend}
+                loading={fetcher.state !== "idle" && hasPreviewed && !sent}
+                disabled={!canSend}
               >
-                Send Invites
+                Send Invite
               </Button>
-            </FormLayout>
+            </InlineStack>
+
+            {/* Preview Panel */}
+            {previewHtml && (
+              <BlockStack gap="300">
+                <Divider />
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="h3" variant="headingMd">Email Preview</Text>
+                  <InlineStack gap="200">
+                    <Badge>{`${imageCount} image${imageCount !== 1 ? "s" : ""}`}</Badge>
+                    {sent && <Badge tone="success">Sent</Badge>}
+                  </InlineStack>
+                </InlineStack>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Subject: {previewSubject}
+                </Text>
+                <div style={{
+                  border: "1px solid #e1e3e5",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  background: "#ffffff",
+                }}>
+                  <iframe
+                    ref={iframeRef}
+                    title="Email Preview"
+                    sandbox="allow-same-origin"
+                    style={{
+                      width: "100%",
+                      height: "700px",
+                      border: "none",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              </BlockStack>
+            )}
           </BlockStack>
         </Card>
 
-        {/* Bulk Send to Beta Cohort */}
+        {/* Bulk Send to Beta Cohort - Secondary */}
         <Card>
           <BlockStack gap="400">
             <Text as="h2" variant="headingMd">Send to Beta Cohort</Text>
             <Text as="p" variant="bodySm" tone="subdued">
-              Send a template email to all beta merchants matching a filter.
+              Send a template email to all beta merchants matching a status filter.
             </Text>
             <FormLayout>
               <Select
@@ -242,7 +343,7 @@ export default function PortalBetaOutreach() {
           <BlockStack gap="400">
             <InlineStack align="space-between" blockAlign="center">
               <Text as="h2" variant="headingMd">Recent Send History</Text>
-              <Badge>{history.length} shown</Badge>
+              <Badge>{`${history.length} shown`}</Badge>
             </InlineStack>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
