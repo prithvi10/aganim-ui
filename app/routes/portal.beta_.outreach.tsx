@@ -14,6 +14,7 @@ import {
   Badge,
   Box,
   Divider,
+  Checkbox,
 } from "@shopify/polaris";
 import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -43,11 +44,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const store_key = formData.get("store_key") as string;
     const brand_name = formData.get("brand_name") as string || "";
     const email = formData.get("email") as string || "";
+    const is_promotion = formData.get("is_promotion") === "true";
 
     const resp = await fetch(`${base}/api/superadmin/beta/showcase/preview`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ merchant_name, store_key, brand_name, email }),
+      body: JSON.stringify({ merchant_name, store_key, brand_name, email, is_promotion }),
     });
     if (!resp.ok) {
       const text = await resp.text();
@@ -62,11 +64,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const store_key = formData.get("store_key") as string;
     const brand_name = formData.get("brand_name") as string || "";
     const email = formData.get("email") as string;
+    const is_promotion = formData.get("is_promotion") === "true";
 
     const resp = await fetch(`${base}/api/superadmin/beta/showcase/send`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ merchant_name, store_key, brand_name, email }),
+      body: JSON.stringify({ merchant_name, store_key, brand_name, email, is_promotion }),
     });
     if (!resp.ok) {
       const text = await resp.text();
@@ -103,6 +106,7 @@ export default function PortalBetaOutreach() {
   const [storeKey, setStoreKey] = useState("");
   const [brandName, setBrandName] = useState("");
   const [email, setEmail] = useState("");
+  const [isPromotion, setIsPromotion] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewSubject, setPreviewSubject] = useState("");
   const [imageCount, setImageCount] = useState(0);
@@ -145,17 +149,17 @@ export default function PortalBetaOutreach() {
     setHasPreviewed(false);
     setSent(false);
     fetcher.submit(
-      { intent: "showcase_preview", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email },
+      { intent: "showcase_preview", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email, is_promotion: String(isPromotion) },
       { method: "post" },
     );
-  }, [fetcher, merchantName, storeKey, brandName, email]);
+  }, [fetcher, merchantName, storeKey, brandName, email, isPromotion]);
 
   const handleSend = useCallback(() => {
     fetcher.submit(
-      { intent: "showcase_send", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email },
+      { intent: "showcase_send", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email, is_promotion: String(isPromotion) },
       { method: "post" },
     );
-  }, [fetcher, merchantName, storeKey, brandName, email]);
+  }, [fetcher, merchantName, storeKey, brandName, email, isPromotion]);
 
   const handleSendBulk = useCallback(() => {
     fetcher.submit(
@@ -192,15 +196,24 @@ export default function PortalBetaOutreach() {
           <BlockStack gap="400">
             <InlineStack align="space-between" blockAlign="center">
               <BlockStack gap="100">
-                <Text as="h2" variant="headingLg">Showcase Invite</Text>
+                <Text as="h2" variant="headingLg">{isPromotion ? "Agency Promotion" : "Showcase Invite"}</Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Send a personalized beta invite with before/after transformation screenshots from R2.
+                  {isPromotion
+                    ? "Send a promotion email to agencies/partners — promotes app download without beta credits."
+                    : "Send a personalized beta invite with before/after transformation screenshots from R2."
+                  }
                 </Text>
               </BlockStack>
-              <Badge tone="info">Primary</Badge>
+              <Badge tone={isPromotion ? "attention" : "info"}>{isPromotion ? "Promotion" : "Beta Invite"}</Badge>
             </InlineStack>
 
             <Divider />
+
+            <Checkbox
+              label="Promotion mode (no beta credits — promote app download instead)"
+              checked={isPromotion}
+              onChange={(val) => { setIsPromotion(val); setHasPreviewed(false); setSent(false); }}
+            />
 
             <FormLayout>
               <FormLayout.Group>
@@ -257,7 +270,7 @@ export default function PortalBetaOutreach() {
                 loading={fetcher.state !== "idle" && hasPreviewed && !sent}
                 disabled={!canSend}
               >
-                Send Invite
+                {isPromotion ? "Send Promotion" : "Send Invite"}
               </Button>
             </InlineStack>
 
