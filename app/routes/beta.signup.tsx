@@ -139,6 +139,12 @@ export default function BetaSignup() {
               <Button variant="primary" url={result.install_url}>
                 ShopifyにAganimをインストール
               </Button>
+              <Text as="p" variant="bodySm" tone="subdued">
+                うまくいかない場合は、Shopifyアプリストアから直接インストールしてもPro特典は自動適用されます：
+              </Text>
+              <Button url="https://apps.shopify.com/aganim" variant="plain">
+                Shopify App Store で Aganim AI を見る →
+              </Button>
             </BlockStack>
           </Card>
         </div>
@@ -161,6 +167,11 @@ export default function BetaSignup() {
             <Text as="p" variant="bodyLg" tone="subdued">
               6週間、すべてのPro機能を無料でご利用いただけます。AIリライト、SEO最適化、
               マーケティングコピー、画像生成など、あなたのショップの売上アップを全力サポートします。
+            </Text>
+            <Text as="p" variant="bodyMd">
+              <a href="https://apps.shopify.com/aganim" target="_blank" rel="noopener noreferrer" style={{ color: "#2C6ECB", textDecoration: "underline" }}>
+                Shopify App Store でアプリを見る →
+              </a>
             </Text>
           </BlockStack>
 
@@ -273,10 +284,16 @@ export default function BetaSignup() {
           </Card>
 
           <Box padding="400">
-            <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-              登録により、利用規約とプライバシーポリシーに同意したものとみなされます。
-              Proアクセスはインストールから6週間有効です。
-            </Text>
+            <BlockStack gap="200">
+              <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                エラーが発生した場合は、Shopifyアプリストアから直接インストールしてもPro特典は自動適用されます：
+                <a href="https://apps.shopify.com/aganim" style={{ color: "#2C6ECB" }}>Aganim AI - Shopify App Store</a>
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                登録により、利用規約とプライバシーポリシーに同意したものとみなされます。
+                Proアクセスはインストールから6週間有効です。
+              </Text>
+            </BlockStack>
           </Box>
         </BlockStack>
       </div>
