@@ -134,7 +134,7 @@ export default function PortalLayout() {
                 onClick: () => navigate("/portal/beta/merchants"),
               },
               {
-                label: "Invite & Outreach",
+                label: "Invites",
                 url: "/portal/beta/outreach",
                 selected: location.pathname === "/portal/beta/outreach",
                 onClick: () => navigate("/portal/beta/outreach"),
