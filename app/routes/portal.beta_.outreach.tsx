@@ -14,7 +14,6 @@ import {
   Badge,
   Box,
   Divider,
-  Checkbox,
 } from "@shopify/polaris";
 import { requirePortalAuth, getBackendBaseUrl, safeFetchJson } from "../utils/portal-auth.server";
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -44,12 +43,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const store_key = formData.get("store_key") as string;
     const brand_name = formData.get("brand_name") as string || "";
     const email = formData.get("email") as string || "";
-    const is_promotion = formData.get("is_promotion") === "true";
 
     const resp = await fetch(`${base}/api/superadmin/beta/showcase/preview`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ merchant_name, store_key, brand_name, email, is_promotion }),
+      body: JSON.stringify({ merchant_name, store_key, brand_name, email, is_promotion: false }),
     });
     if (!resp.ok) {
       const text = await resp.text();
@@ -64,12 +62,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const store_key = formData.get("store_key") as string;
     const brand_name = formData.get("brand_name") as string || "";
     const email = formData.get("email") as string;
-    const is_promotion = formData.get("is_promotion") === "true";
 
     const resp = await fetch(`${base}/api/superadmin/beta/showcase/send`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ merchant_name, store_key, brand_name, email, is_promotion }),
+      body: JSON.stringify({ merchant_name, store_key, brand_name, email, is_promotion: false }),
     });
     if (!resp.ok) {
       const text = await resp.text();
@@ -101,12 +98,10 @@ export default function PortalBetaOutreach() {
   const { templates, history } = useLoaderData<typeof loader>();
   const fetcher = useFetcher();
 
-  // Showcase Invite state
   const [merchantName, setMerchantName] = useState("");
   const [storeKey, setStoreKey] = useState("");
   const [brandName, setBrandName] = useState("");
   const [email, setEmail] = useState("");
-  const [isPromotion, setIsPromotion] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewSubject, setPreviewSubject] = useState("");
   const [imageCount, setImageCount] = useState(0);
@@ -114,7 +109,6 @@ export default function PortalBetaOutreach() {
   const [sent, setSent] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Bulk send state
   const [template, setTemplate] = useState("checkin");
   const [statusFilter, setStatusFilter] = useState("");
 
@@ -149,17 +143,17 @@ export default function PortalBetaOutreach() {
     setHasPreviewed(false);
     setSent(false);
     fetcher.submit(
-      { intent: "showcase_preview", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email, is_promotion: String(isPromotion) },
+      { intent: "showcase_preview", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email },
       { method: "post" },
     );
-  }, [fetcher, merchantName, storeKey, brandName, email, isPromotion]);
+  }, [fetcher, merchantName, storeKey, brandName, email]);
 
   const handleSend = useCallback(() => {
     fetcher.submit(
-      { intent: "showcase_send", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email, is_promotion: String(isPromotion) },
+      { intent: "showcase_send", merchant_name: merchantName, store_key: storeKey, brand_name: brandName, email },
       { method: "post" },
     );
-  }, [fetcher, merchantName, storeKey, brandName, email, isPromotion]);
+  }, [fetcher, merchantName, storeKey, brandName, email]);
 
   const handleSendBulk = useCallback(() => {
     fetcher.submit(
@@ -172,9 +166,8 @@ export default function PortalBetaOutreach() {
   const canSend = hasPreviewed && email.trim() && !sent;
 
   return (
-    <Page title="Beta Outreach" subtitle="Showcase invites & cohort emails">
+    <Page title="Beta Invites" subtitle="Send personalized beta invites with R2 image showcase">
       <BlockStack gap="600">
-        {/* Global error banner */}
         {result?.error && (
           <Banner tone="critical" onDismiss={() => {}}>
             {result.message}
@@ -191,29 +184,21 @@ export default function PortalBetaOutreach() {
           </Banner>
         )}
 
-        {/* Showcase Invite - Primary Card */}
+        {/* Beta Showcase Invite */}
         <Card>
           <BlockStack gap="400">
             <InlineStack align="space-between" blockAlign="center">
               <BlockStack gap="100">
-                <Text as="h2" variant="headingLg">{isPromotion ? "Agency Promotion" : "Showcase Invite"}</Text>
+                <Text as="h2" variant="headingLg">Showcase Invite</Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  {isPromotion
-                    ? "Send a promotion email to agencies/partners — promotes app download without beta credits."
-                    : "Send a personalized beta invite with before/after transformation screenshots from R2."
-                  }
+                  Send a personalized beta invite with before/after transformation screenshots from R2.
+                  Includes 6-week free Pro tier signup link.
                 </Text>
               </BlockStack>
-              <Badge tone={isPromotion ? "attention" : "info"}>{isPromotion ? "Promotion" : "Beta Invite"}</Badge>
+              <Badge tone="info">Beta Invite</Badge>
             </InlineStack>
 
             <Divider />
-
-            <Checkbox
-              label="Promotion mode (no beta credits — promote app download instead)"
-              checked={isPromotion}
-              onChange={(val) => { setIsPromotion(val); setHasPreviewed(false); setSent(false); }}
-            />
 
             <FormLayout>
               <FormLayout.Group>
@@ -270,7 +255,7 @@ export default function PortalBetaOutreach() {
                 loading={fetcher.state !== "idle" && hasPreviewed && !sent}
                 disabled={!canSend}
               >
-                {isPromotion ? "Send Promotion" : "Send Invite"}
+                Send Invite
               </Button>
             </InlineStack>
 
@@ -311,7 +296,7 @@ export default function PortalBetaOutreach() {
           </BlockStack>
         </Card>
 
-        {/* Bulk Send to Beta Cohort - Secondary */}
+        {/* Send to Beta Cohort */}
         <Card>
           <BlockStack gap="400">
             <Text as="h2" variant="headingMd">Send to Beta Cohort</Text>
@@ -370,26 +355,21 @@ export default function PortalBetaOutreach() {
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((h: any) => (
-                    <tr key={h.id} style={{ borderBottom: "1px solid #f4f6f8" }}>
+                  {history.map((h: any, i: number) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #f1f1f1" }}>
                       <td style={{ padding: "8px 12px" }}>{h.recipient_email}</td>
-                      <td style={{ padding: "8px 12px" }}>{h.recipient_shop || "—"}</td>
-                      <td style={{ padding: "8px 12px" }}>{h.subject?.slice(0, 50)}</td>
+                      <td style={{ padding: "8px 12px" }}>{h.recipient_shop || "-"}</td>
+                      <td style={{ padding: "8px 12px", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {h.subject}
+                      </td>
                       <td style={{ padding: "8px 12px" }}>
-                        <Badge tone={h.status === "sent" ? "success" : "critical"}>
+                        <Badge tone={h.status === "sent" ? "success" : h.status === "failed" ? "critical" : undefined}>
                           {h.status}
                         </Badge>
                       </td>
-                      <td style={{ padding: "8px 12px" }}>{h.sent_at?.slice(0, 10) || "—"}</td>
+                      <td style={{ padding: "8px 12px" }}>{h.sent_at?.slice(0, 16) || "-"}</td>
                     </tr>
                   ))}
-                  {history.length === 0 && (
-                    <tr>
-                      <td colSpan={5} style={{ padding: "16px 12px", textAlign: "center", color: "#6d7175" }}>
-                        No emails sent yet
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
