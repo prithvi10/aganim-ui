@@ -1,8 +1,8 @@
 import { Link } from "react-router";
 import type { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -56,8 +56,47 @@ const LanguageToggle = () => {
   );
 };
 
+const MobileMenuIcon = ({ open }: { open: boolean }) => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="text-slate-200"
+  >
+    {open ? (
+      <>
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </>
+    ) : (
+      <>
+        <line x1="4" y1="7" x2="20" y2="7" />
+        <line x1="4" y1="12" x2="20" y2="12" />
+        <line x1="4" y1="17" x2="20" y2="17" />
+      </>
+    )}
+  </svg>
+);
+
 export const LandingHeader = () => {
   const { t } = useTranslation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onResize = () => {
+      if (window.innerWidth >= 768) setMobileOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [mobileOpen]);
 
   return (
   <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-slate-950/70 backdrop-blur">
@@ -70,6 +109,8 @@ export const LandingHeader = () => {
         />
         Aganim AI
       </Link>
+
+      {/* Desktop nav */}
       <nav aria-label="Main navigation" className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
         <Link to="/features" className="transition hover:text-white">
           {t("landing.nav.features")}
@@ -82,7 +123,46 @@ export const LandingHeader = () => {
         </Link>
         <LanguageToggle />
       </nav>
+
+      {/* Mobile hamburger button */}
+      <button
+        className="flex items-center justify-center md:hidden"
+        onClick={() => setMobileOpen((v) => !v)}
+        aria-label={mobileOpen ? "Close menu" : "Open menu"}
+        aria-expanded={mobileOpen}
+      >
+        <MobileMenuIcon open={mobileOpen} />
+      </button>
     </div>
+
+    {/* Mobile drawer */}
+    <AnimatePresence>
+      {mobileOpen && (
+        <motion.nav
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+          className="overflow-hidden border-t border-white/10 bg-slate-950/95 backdrop-blur md:hidden"
+          aria-label="Mobile navigation"
+        >
+          <div className="flex flex-col gap-4 px-6 py-5">
+            <Link to="/features" className="text-sm text-slate-200 transition hover:text-white" onClick={closeMobile}>
+              {t("landing.nav.features")}
+            </Link>
+            <a href="/#pricing" className="text-sm text-slate-200 transition hover:text-white" onClick={closeMobile}>
+              {t("landing.nav.pricing")}
+            </a>
+            <Link to="/support" className="text-sm text-slate-200 transition hover:text-white" onClick={closeMobile}>
+              {t("landing.nav.support")}
+            </Link>
+            <div className="pt-2">
+              <LanguageToggle />
+            </div>
+          </div>
+        </motion.nav>
+      )}
+    </AnimatePresence>
   </header>
   );
 };

@@ -17,9 +17,19 @@
 }
 
 .header {
-  padding: 56px 16px 28px;
+  padding: 80px 16px 28px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.7), transparent);
+}
+
+@media (max-width: 900px) {
+  .header {
+    padding: 72px 16px 20px;
+  }
+
+  .h1 {
+    font-size: 28px;
+  }
 }
 
 .headerInner {
@@ -137,6 +147,39 @@
 .indexLink:hover {
   border-color: var(--border);
   background: var(--surface2);
+}
+
+@media (max-width: 900px) {
+  .indexNav {
+    position: sticky;
+    top: 56px;
+    z-index: 20;
+    max-height: none;
+    overflow-y: visible;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+
+  .indexTitle {
+    display: none;
+  }
+
+  .indexList {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .indexLink {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
 }
 
 .stack {
