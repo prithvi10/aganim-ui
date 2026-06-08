@@ -15,5 +15,5 @@
 - Category: E-commerce, Translation, AI, Localization
 - Platform: Shopify App Store
 - Languages: English, Japanese (UI); 12 global markets for content generation
-- Pricing: Free, Basic ($29/mo), Standard ($79/mo), Pro ($149/mo)
+- Pricing: Free, Basic ($20/mo), Standard ($33/mo), Pro ($65/mo)
 - Last Updated: 2026-04-13

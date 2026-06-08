@@ -1951,7 +1951,7 @@
             "symptom": "\"This feature requires the Pro plan\" error.",
             "cause": "Bulk upload is exclusively available on the Pro plan.",
             "fixes": [
-              "Upgrade to the Pro plan ($199/month) to unlock bulk upload."
+              "Upgrade to the Pro plan ($65/month) to unlock bulk upload."
             ]
           }
         ],
@@ -1974,7 +1974,7 @@
           },
           {
             "q": "Which plan includes bulk upload?",
-            "a": "Bulk upload is a Pro plan exclusive feature ($199/month). It is not available on Free, Basic, or Standard plans."
+            "a": "Bulk upload is a Pro plan exclusive feature ($65/month). It is not available on Free, Basic, or Standard plans."
           }
         ]
       },
@@ -2158,7 +2158,7 @@
       },
       "basic": {
         "name": "Basic",
-        "price": "$29",
+        "price": "$20",
         "period": "/ month",
         "description": "Professional Writing Studio",
         "productLimit": "50 products / month",
@@ -2173,7 +2173,7 @@
       },
       "standard": {
         "name": "Standard",
-        "price": "$79",
+        "price": "$33",
         "period": "/ month",
         "description": "Revenue Accelerator",
         "productLimit": "Unlimited products",
@@ -2193,7 +2193,7 @@
       },
       "pro": {
         "name": "Pro",
-        "price": "$149",
+        "price": "$65",
         "period": "/ month",
         "description": "Complete AI Engine",
         "productLimit": "Unlimited products",
@@ -2225,7 +2225,7 @@
         },
         {
           "q": "How much does Aganim AI cost?",
-          "a": "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits)."
+          "a": "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($20/month, 50 products), Standard ($33/month, unlimited products with SEO and pricing intelligence), and Pro ($65/month, unlimited everything plus 100 image credits)."
         },
         {
           "q": "What are Agentic Missions?",
