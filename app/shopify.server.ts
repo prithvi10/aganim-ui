@@ -96,20 +96,20 @@ const shopify = shopifyApp({
       lineItems: [{ amount: 0.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_BASIC]: {
-      lineItems: [{ amount: 39.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
+      lineItems: [{ amount: 20.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_STANDARD]: {
-      lineItems: [{ amount: 89.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
+      lineItems: [{ amount: 33.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
     [MONTHLY_PLAN_PRO]: {
-      lineItems: [{ amount: 149.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
+      lineItems: [{ amount: 65.0, currencyCode: 'USD', interval: BillingInterval.Every30Days }],
     },
     // Promo (Basic/Standard only)
     [PROMO_PLAN_BASIC_MONTHLY]: {
-      lineItems: [{ amount: 29.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
+      lineItems: [{ amount: 20.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
     },
     [PROMO_PLAN_STANDARD_MONTHLY]: {
-      lineItems: [{ amount: 79.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
+      lineItems: [{ amount: 33.0, currencyCode: "USD", interval: BillingInterval.Every30Days }],
     },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN

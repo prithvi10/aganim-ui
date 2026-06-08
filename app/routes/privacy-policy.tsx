@@ -416,15 +416,15 @@ export default function PrivacyPolicy() {
               a 7-day trial window.
             </li>
             <li>
-              <strong>Basic ($29/month)</strong>: 50 product rewrites per month,
+              <strong>Basic ($20/month)</strong>: 50 product rewrites per month,
               1 mission per month. No image generation or SEO features.
             </li>
             <li>
-              <strong>Standard ($79/month)</strong>: Unlimited product rewrites,
+              <strong>Standard ($33/month)</strong>: Unlimited product rewrites,
               3 missions per month. Full SEO and pricing intelligence. No image generation.
             </li>
             <li>
-              <strong>Pro ($199/month)</strong>: Unlimited product rewrites,
+              <strong>Pro ($65/month)</strong>: Unlimited product rewrites,
               unlimited missions, 150 image credits per month. Full feature access
               including autonomous publishing, bulk upload (up to 10 products per batch),
               multi-locale generation.

@@ -516,14 +516,14 @@ const softwareAppSchema = {
     },
     {
       "@type": "Offer",
-      price: "29",
+      price: "20",
       priceCurrency: "USD",
       name: "Basic",
       description: "50 products/month, professional writing studio",
     },
     {
       "@type": "Offer",
-      price: "79",
+      price: "33",
       priceCurrency: "USD",
       name: "Standard",
       description:
@@ -531,7 +531,7 @@ const softwareAppSchema = {
     },
     {
       "@type": "Offer",
-      price: "149",
+      price: "65",
       priceCurrency: "USD",
       name: "Pro",
       description:
@@ -573,7 +573,7 @@ const faqSchema = {
       name: "How much does Aganim AI cost?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($29/month, 50 products), Standard ($79/month, unlimited products with SEO and pricing intelligence), and Pro ($149/month, unlimited everything plus 100 image credits).",
+        text: "Aganim AI offers four pricing tiers: Free ($0, 10 products for 1 week), Basic ($20/month, 50 products), Standard ($33/month, unlimited products with SEO and pricing intelligence), and Pro ($65/month, unlimited everything plus 100 image credits).",
       },
     },
     {

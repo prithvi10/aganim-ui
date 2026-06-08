@@ -82,7 +82,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
     },
     {
       name: PLAN_BASIC,
-      price: "$29",
+      price: "$20",
       tagline: t("planCatalog.basicTagline"),
       productLimit: t("planCatalog.products50"),
       sections: [
@@ -128,7 +128,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
     },
     {
       name: PLAN_STANDARD,
-      price: "$79",
+      price: "$33",
       tagline: t("planCatalog.standardTagline"),
       productLimit: t("planCatalog.unlimitedProducts"),
       sections: [
@@ -190,7 +190,7 @@ export function buildPlanCatalog(t: TFunction): PlanCardModel[] {
     },
     {
       name: PLAN_PRO,
-      price: "$149",
+      price: "$65",
       tagline: t("planCatalog.proTagline"),
       productLimit: t("planCatalog.unlimitedProducts"),
       sections: [

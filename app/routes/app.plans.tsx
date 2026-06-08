@@ -287,9 +287,9 @@ export default function PlansPage() {
   }, [location.pathname, location.search]);
 
   const billingOptions = useMemo(() => ({
-    [PLAN_BASIC]: { monthly: { price: "$29", key: "Basic Promo Monthly" }, original: "$39", savings: "~26%" },
-    [PLAN_STANDARD]: { monthly: { price: "$79", key: "Standard Promo Monthly" }, original: "$89", savings: "~11%" },
-    [PLAN_PRO]: { monthly: { price: "$149", key: "Pro" }, original: null, savings: null },
+    [PLAN_BASIC]: { monthly: { price: "$20", key: "Basic Promo Monthly" }, original: null, savings: null },
+    [PLAN_STANDARD]: { monthly: { price: "$33", key: "Standard Promo Monthly" }, original: null, savings: null },
+    [PLAN_PRO]: { monthly: { price: "$65", key: "Pro" }, original: null, savings: null },
   } as const), []);
 
   const [modalOpen, setModalOpen] = useState(false);
