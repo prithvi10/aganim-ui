@@ -21,8 +21,8 @@ i18n.use(initReactI18next).init({
   },
   ns: ["translation", "rewriter", "missions"],
   defaultNS: "translation",
-  lng: "en",
-  fallbackLng: "en",
+  lng: "ja",
+  fallbackLng: "ja",
   interpolation: { escapeValue: false },
 });
 
