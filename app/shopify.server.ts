@@ -70,7 +70,19 @@ console.log(`[Init] SCOPES: ${SCOPES_RAW}`);
 // 1. Force Log to check DB connection
 console.log("[Init] Initializing Shopify App Server...");
 console.log(`[Init] Prisma Client Status: ${prisma ? 'Connected' : 'Missing'}`);
-const storage = new PrismaSessionStorage(prisma);
+const storage = new PrismaSessionStorage(prisma, {
+  tableName: "Session",
+});
+// Prevent session table polling from crashing the process in local dev
+if (process.env.NODE_ENV !== "production") {
+  process.on("unhandledRejection", (reason: any) => {
+    if (reason?.constructor?.name === "MissingSessionTableError" || reason?.message?.includes("session table")) {
+      console.warn("[Dev] Session table unavailable — public routes still work. Ignoring.");
+      return;
+    }
+    console.error("[Unhandled Rejection]", reason);
+  });
+}
 
 
 const shopify = shopifyApp({
