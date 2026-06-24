@@ -2072,9 +2072,30 @@
       }
     }
   },
+  "blog": {
+    "title": "Insights",
+    "subtitle": "Practical guides for Shopify merchants selling globally — AI, SEO, pricing, and localization strategies.",
+    "readMore": "Read article",
+    "readingTime": "{{minutes}} min read",
+    "publishedOn": "Published {{date}}",
+    "categories": {
+      "all": "All",
+      "seo": "SEO",
+      "localization": "Localization",
+      "pricing": "Pricing",
+      "marketing": "Marketing",
+      "ai-tools": "AI Tools"
+    },
+    "relatedArticles": "Related Articles",
+    "faqTitle": "Frequently Asked Questions",
+    "ctaTitle": "Try this yourself",
+    "ctaBody": "Get started with Aganim AI — free tier includes all features.",
+    "ctaButton": "Install Free on Shopify"
+  },
   "landing": {
     "nav": {
       "features": "Features",
+      "blog": "Blog",
       "pricing": "Pricing",
       "support": "Support"
     },

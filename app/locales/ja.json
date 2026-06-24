@@ -1949,9 +1949,30 @@
       }
     }
   },
+  "blog": {
+    "title": "インサイト",
+    "subtitle": "越境ECの実践ガイド — AI活用、SEO、価格戦略、ローカライゼーションの最新情報",
+    "readMore": "記事を読む",
+    "readingTime": "{{minutes}}分で読める",
+    "publishedOn": "{{date}}公開",
+    "categories": {
+      "all": "すべて",
+      "seo": "SEO",
+      "localization": "ローカライズ",
+      "pricing": "価格戦略",
+      "marketing": "マーケティング",
+      "ai-tools": "AIツール"
+    },
+    "relatedArticles": "関連記事",
+    "faqTitle": "よくある質問",
+    "ctaTitle": "今すぐ試してみる",
+    "ctaBody": "Aganim AIの無料プランで全機能をお試しいただけます。",
+    "ctaButton": "Shopifyに無料インストール"
+  },
   "landing": {
     "nav": {
       "features": "機能",
+      "blog": "ブログ",
       "pricing": "料金",
       "support": "サポート"
     },

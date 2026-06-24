@@ -115,6 +115,9 @@ export const LandingHeader = () => {
         <Link to="/features" className="transition hover:text-white">
           {t("landing.nav.features")}
         </Link>
+        <Link to="/blog" className="transition hover:text-white">
+          {t("landing.nav.blog")}
+        </Link>
         <a href="/#pricing" className="transition hover:text-white">
           {t("landing.nav.pricing")}
         </a>
@@ -149,6 +152,9 @@ export const LandingHeader = () => {
           <div className="flex flex-col gap-4 px-6 py-5">
             <Link to="/features" className="text-sm text-slate-200 transition hover:text-white" onClick={closeMobile}>
               {t("landing.nav.features")}
+            </Link>
+            <Link to="/blog" className="text-sm text-slate-200 transition hover:text-white" onClick={closeMobile}>
+              {t("landing.nav.blog")}
             </Link>
             <a href="/#pricing" className="text-sm text-slate-200 transition hover:text-white" onClick={closeMobile}>
               {t("landing.nav.pricing")}
