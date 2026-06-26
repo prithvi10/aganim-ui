@@ -30,7 +30,6 @@ export const meta: MetaFunction = () => {
 
 const CATEGORIES: Array<"all" | BlogCategory> = [
   "all",
-  "ai-tools",
   "localization",
   "seo",
   "pricing",
@@ -84,9 +83,6 @@ export default function BlogIndex() {
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
               {t("blog.title")}
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-slate-300">
-              {t("blog.subtitle")}
-            </p>
           </Reveal>
         </div>
       </section>
