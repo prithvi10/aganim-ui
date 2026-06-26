@@ -325,6 +325,154 @@ export const aiProductDescriptionsCompared: BlogArticle = {
         {
           type: "heading",
           level: 2,
+          content:
+            "The Shopify AI Description App Market: Pricing and Feature Reality",
+        },
+        {
+          type: "text",
+          content:
+            "If you're evaluating AI description tools, you deserve actual numbers — not vague marketing claims. I tracked the top-rated apps on the Shopify App Store as of June 2026. Here's what you're looking at:",
+        },
+        {
+          type: "table",
+          headers: [
+            "App",
+            "Rating / Reviews",
+            "Price",
+            "Bulk Generation",
+            "SEO Meta Tags",
+            "Multilingual",
+            "Brand Voice Memory",
+          ],
+          rows: [
+            [
+              "Shopify Magic (built-in)",
+              "N/A (all stores)",
+              "Free",
+              "No (single product)",
+              "Basic",
+              "No",
+              "No",
+            ],
+            [
+              "ChatGPT AI Product Description",
+              "4.9★ / 441 reviews",
+              "Free plan available",
+              "Yes",
+              "Yes (keywords + meta)",
+              "No (English-focused)",
+              "No",
+            ],
+            [
+              "GoWise",
+              "4.0★ / 70 reviews",
+              "From $39/mo",
+              "Yes (500+ SKU focus)",
+              "Yes",
+              "Limited",
+              "No",
+            ],
+            [
+              "Describely",
+              "4.5★ / 24 reviews",
+              "Free to install",
+              "Yes (enterprise)",
+              "Yes",
+              "Limited",
+              "Yes (brand rules)",
+            ],
+            [
+              "CopyNinja",
+              "—",
+              "$14.95/mo",
+              "Yes",
+              "Yes",
+              "Multi-language listed",
+              "No",
+            ],
+            [
+              "Jasper AI (external)",
+              "N/A (not Shopify-native)",
+              "$49+/mo",
+              "Yes",
+              "Yes (with SEO mode)",
+              "30+ languages",
+              "Yes (style guide training)",
+            ],
+            [
+              "Lyros Smart SEO & Tags",
+              "4.9★ / 4,400 reviews",
+              "Varies",
+              "Yes",
+              "Yes (GPT-5 + Vision AI)",
+              "No",
+              "No",
+            ],
+            [
+              "Aganim AI",
+              "New entrant",
+              "Free tier (10 products)",
+              "Yes (mission-based)",
+              "Yes (SERP-analyzed)",
+              "12 locales native",
+              "Yes (Brand Soul — permanent)",
+            ],
+          ],
+          caption:
+            "Data from Shopify App Store, June 2026. 'Multilingual' means generates content in multiple languages natively, not just translates English output.",
+        },
+        {
+          type: "heading",
+          level: 3,
+          content: "What Merchants Actually Complain About",
+        },
+        {
+          type: "text",
+          content:
+            "After reading through hundreds of app reviews and Reddit threads, the same pain points surface over and over:",
+        },
+        {
+          type: "list",
+          style: "bullet",
+          items: [
+            {
+              label: "Most apps ignore SEO meta tags entirely",
+              body: "A merchant testing 5 apps found that only 2 out of 5 generated meta titles and descriptions alongside body copy. The rest left you to handle SEO separately — which means another app, another subscription, another workflow.",
+            },
+            {
+              label: "No brand voice between sessions",
+              body: "ChatGPT forgets everything about your brand every single time. You paste the same brand guidelines prompt, regenerate, and hope the output matches yesterday's batch. At 200 products, this becomes a full-time prompt engineering job.",
+            },
+            {
+              label: "Getting AI content back into Shopify is painful",
+              body: "Tools like Jasper produce great copy — externally. Then you copy, paste, format, publish. For every product. In every language. The workflow overhead kills the time savings.",
+            },
+            {
+              label: "Generic bulk output triggers Google penalties",
+              body: "Merchants who bulk-generated 500 descriptions without human review saw rankings DROP. Google's helpful content system flags thin, repetitive AI text. Quality matters more than quantity.",
+            },
+          ],
+        },
+        {
+          type: "heading",
+          level: 3,
+          content:
+            "The Gap: Where Every Tool Falls Short for Cross-Border Merchants",
+        },
+        {
+          type: "text",
+          content:
+            "Here's what hit me after testing all of these: every single app assumes you're selling in one language to one market. The moment you need descriptions in English AND Japanese AND Korean — each optimized for local search terms, local buyer psychology, and local competitive positioning — you're cobbling together multiple tools or doing manual work that defeats the purpose of AI.",
+        },
+        {
+          type: "callout",
+          content:
+            "Full disclosure: Aganim AI was built specifically for this gap. Our Brand Soul system remembers your brand voice permanently (not per-session), generates independently for each locale (not translated from English), and publishes directly to Shopify's translation API. Free tier lets you test on 10 products before deciding. But if you sell in one language only, ChatGPT AI Product Description at 4.9 stars with 441 reviews is genuinely hard to beat for the price.",
+          variant: "info",
+        },
+        {
+          type: "heading",
+          level: 2,
           content: "Why We Built Aganim AI for This Exact Problem",
         },
         {
@@ -723,6 +871,154 @@ export const aiProductDescriptionsCompared: BlogArticle = {
               body: "まれ（カタログ安定） → 一回限りのChatGPT一括生成で対応。定期的（毎週/月） → Aganim AIの常時稼働Brand Soulにより、新商品も初回と同じ品質 — 再プロンプト不要、ドリフトなし。",
             },
           ],
+        },
+        {
+          type: "heading",
+          level: 2,
+          content:
+            "Shopify AI商品説明アプリ市場：価格と機能の実態",
+        },
+        {
+          type: "text",
+          content:
+            "AI商品説明ツールを検討しているなら、曖昧なマーケティング文句ではなく実際の数字が必要です。2026年6月時点のShopifyアプリストアで高評価のアプリを調査しました。以下が現実です：",
+        },
+        {
+          type: "table",
+          headers: [
+            "アプリ",
+            "評価 / レビュー数",
+            "価格",
+            "一括生成",
+            "SEOメタタグ",
+            "多言語",
+            "ブランドボイス記憶",
+          ],
+          rows: [
+            [
+              "Shopify Magic（組み込み）",
+              "N/A（全ストア）",
+              "無料",
+              "不可（単品のみ）",
+              "基本的",
+              "不可",
+              "不可",
+            ],
+            [
+              "ChatGPT AI Product Description",
+              "4.9★ / 441件",
+              "無料プランあり",
+              "可",
+              "可（キーワード + メタ）",
+              "不可（英語中心）",
+              "不可",
+            ],
+            [
+              "GoWise",
+              "4.0★ / 70件",
+              "$39/月〜",
+              "可（500+ SKU向け）",
+              "可",
+              "限定的",
+              "不可",
+            ],
+            [
+              "Describely",
+              "4.5★ / 24件",
+              "インストール無料",
+              "可（エンタープライズ）",
+              "可",
+              "限定的",
+              "可（ブランドルール）",
+            ],
+            [
+              "CopyNinja",
+              "—",
+              "$14.95/月",
+              "可",
+              "可",
+              "多言語対応記載あり",
+              "不可",
+            ],
+            [
+              "Jasper AI（外部）",
+              "N/A（Shopify非ネイティブ）",
+              "$49+/月",
+              "可",
+              "可（SEOモード）",
+              "30+言語",
+              "可（スタイルガイド学習）",
+            ],
+            [
+              "Lyros Smart SEO & Tags",
+              "4.9★ / 4,400件",
+              "プランにより異なる",
+              "可",
+              "可（GPT-5 + Vision AI）",
+              "不可",
+              "不可",
+            ],
+            [
+              "Aganim AI",
+              "新規参入",
+              "無料枠（10商品）",
+              "可（ミッションベース）",
+              "可（SERP分析済み）",
+              "12ロケールネイティブ",
+              "可（Brand Soul — 永続）",
+            ],
+          ],
+          caption:
+            "Shopifyアプリストアより、2026年6月時点。「多言語」は英語出力の翻訳ではなく、複数言語でネイティブにコンテンツを生成できることを意味する。",
+        },
+        {
+          type: "heading",
+          level: 3,
+          content: "マーチャントが実際に不満を感じていること",
+        },
+        {
+          type: "text",
+          content:
+            "数百件のアプリレビューとRedditスレッドを読み込んだ結果、同じペインポイントが何度も浮上します：",
+        },
+        {
+          type: "list",
+          style: "bullet",
+          items: [
+            {
+              label: "大半のアプリはSEOメタタグを完全に無視",
+              body: "5つのアプリをテストしたマーチャントによると、メタタイトルとメタディスクリプションを本文と一緒に生成したのは5つ中2つだけ。残りはSEOを別途対応する必要があり — つまり別のアプリ、別のサブスクリプション、別のワークフローが必要。",
+            },
+            {
+              label: "セッション間でブランドボイスが保持されない",
+              body: "ChatGPTは毎回あなたのブランドについてすべてを忘れます。同じブランドガイドラインのプロンプトを貼り付け、再生成し、昨日のバッチと出力が一致することを祈る。200商品になると、これはフルタイムのプロンプトエンジニアリング業務になります。",
+            },
+            {
+              label: "AI生成コンテンツをShopifyに戻すのが苦痛",
+              body: "Jasperのようなツールは優れたコピーを生成します — 外部で。その後、コピー、ペースト、フォーマット、公開。すべての商品で。すべての言語で。ワークフローのオーバーヘッドが時間節約を台無しにします。",
+            },
+            {
+              label: "汎用的な一括出力がGoogleペナルティを招く",
+              body: "人間のレビューなしに500件の説明文を一括生成したマーチャントは、ランキングが下落しました。Googleのヘルプフルコンテンツシステムは、薄く反復的なAIテキストをフラグします。量より質が重要です。",
+            },
+          ],
+        },
+        {
+          type: "heading",
+          level: 3,
+          content:
+            "ギャップ：越境ECマーチャントにとってすべてのツールが不十分な点",
+        },
+        {
+          type: "text",
+          content:
+            "すべてのアプリをテストして気づいたこと：どのアプリも「1つの言語で1つの市場に販売している」前提で設計されています。英語と日本語と韓国語で説明文が必要になった瞬間 — それぞれ現地の検索キーワード、現地のバイヤー心理、現地の競合ポジショニングに最適化されたもの — 複数ツールの寄せ集めか、AIの意味を失う手作業を強いられます。",
+        },
+        {
+          type: "callout",
+          content:
+            "情報開示：Aganim AIはまさにこのギャップのために開発されました。Brand Soulシステムはブランドボイスを永続的に記憶し（セッション単位ではなく）、各ロケールで独立して生成し（英語からの翻訳ではなく）、ShopifyのTranslation APIに直接公開します。無料枠で10商品をテストしてから判断できます。ただし、1言語のみで販売するなら、4.9★・441レビューのChatGPT AI Product Descriptionはその価格で本当に優秀です。",
+          variant: "info",
         },
         {
           type: "heading",
