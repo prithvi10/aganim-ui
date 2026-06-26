@@ -196,14 +196,6 @@ export const crossBorderPricingStrategy: BlogArticle = {
             "Since 2021, Japan requires all B2C prices to include consumption tax (10%). Your \u00a55,500 price already includes \u00a5500 tax. Japanese consumers are trained to treat the displayed price as the final price. This expectation travels — Japanese tourists shopping on your English site will be confused if tax is added at checkout. Consider noting \"tax included\" prominently on all market pages.",
         },
         {
-          type: "image",
-          src: "/blog/pricing-guide/psychological-pricing.png",
-          alt: "Visual comparison of how the same product appears at different psychological price points across US, EU, Korea, and Japan",
-          caption:
-            "The same \u00a55,500 bowl positioned with culturally appropriate price endings. Small formatting differences significantly impact purchase confidence.",
-          width: "wide",
-        },
-        {
           type: "callout",
           content:
             "Cultural pricing summary: US \u2192 .00/.50 for premium, .99 for value | EU \u2192 round numbers, tax-included mandatory | Korea \u2192 always end in ,000, slight premium signals authenticity | Japan \u2192 tax-included, \u00a5X,XX0 endings",
@@ -360,14 +352,6 @@ export const crossBorderPricingStrategy: BlogArticle = {
           ],
           caption:
             "Raw conversion vs. strategically rounded prices. 'Bad rounding' (nearest .99) undermines premium positioning. 'Good rounding' accounts for cultural expectations and competitive landscape.",
-        },
-        {
-          type: "image",
-          src: "/blog/pricing-guide/currency-conversion-example.png",
-          alt: "Visual showing the same Japanese ceramic bowl with price tags in USD, EUR, KRW, GBP, and AUD after strategic rounding",
-          caption:
-            "Strategic rounding transforms raw currency conversions into prices that feel intentional and trustworthy in each market.",
-          width: "full",
         },
         {
           type: "text",
@@ -731,14 +715,6 @@ export const crossBorderPricingStrategy: BlogArticle = {
             "2021年以降、日本ではすべてのB2C価格に消費税（10%）を含めることが義務化されています。¥5,500の価格には¥500の税金がすでに含まれています。日本の消費者は表示価格を最終価格として扱う訓練を受けています。この期待は旅行にも持ち出される — 日本人観光客が英語サイトで買い物する際、チェックアウトで税が加算されると困惑します。すべての市場ページで「税込」を目立つように表記することを検討してください。",
         },
         {
-          type: "image",
-          src: "/blog/pricing-guide/psychological-pricing.png",
-          alt: "同じ商品が米国、EU、韓国、日本で文化に適した心理的価格帯で表示される比較",
-          caption:
-            "同じ¥5,500のボウルを文化的に適切な価格末尾で配置。小さなフォーマットの違いが購入確信度に大きく影響する。",
-          width: "wide",
-        },
-        {
           type: "callout",
           content:
             "文化別価格設定まとめ：米国 → プレミアムは.00/.50、バリューは.99 | EU → ラウンドナンバー、税込義務 | 韓国 → 必ず,000で終了、若干のプレミアムが本物感を示す | 日本 → 税込、¥X,XX0末尾",
@@ -895,14 +871,6 @@ export const crossBorderPricingStrategy: BlogArticle = {
           ],
           caption:
             "生の換算 vs 戦略的に丸めた価格。「悪い端数処理」（最寄りの.99）はプレミアムポジショニングを損なう。「良い端数処理」は文化的期待と競争環境を考慮。",
-        },
-        {
-          type: "image",
-          src: "/blog/pricing-guide/currency-conversion-example.png",
-          alt: "戦略的端数処理後の日本製陶器ボウルにUSD、EUR、KRW、GBP、AUDの価格タグが付いたビジュアル",
-          caption:
-            "戦略的な端数処理が生の通貨換算を、各市場で意図的で信頼感のある価格に変える。",
-          width: "full",
         },
         {
           type: "text",

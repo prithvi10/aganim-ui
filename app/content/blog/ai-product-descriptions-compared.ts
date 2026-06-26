@@ -3,7 +3,7 @@ import type { BlogArticle } from "./types";
 export const aiProductDescriptionsCompared: BlogArticle = {
   slug: "ai-product-descriptions-compared",
   publishedAt: "2026-06-25",
-  category: "ai-tools",
+  category: "localization",
   readingTime: { en: 12, ja: 14 },
   heroImage: "/blog/ai-descriptions-hero.png",
   ogImage: "/blog/og-ai-descriptions.png",

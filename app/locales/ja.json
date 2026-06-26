@@ -1951,7 +1951,7 @@
   },
   "blog": {
     "title": "インサイト",
-    "subtitle": "越境ECの実践ガイド — AI活用、SEO、価格戦略、ローカライゼーションの最新情報",
+    "subtitle": "",
     "readMore": "記事を読む",
     "readingTime": "{{minutes}}分で読める",
     "publishedOn": "{{date}}公開",

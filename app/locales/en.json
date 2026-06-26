@@ -2074,7 +2074,7 @@
   },
   "blog": {
     "title": "Insights",
-    "subtitle": "Practical guides for Shopify merchants selling globally — AI, SEO, pricing, and localization strategies.",
+    "subtitle": "",
     "readMore": "Read article",
     "readingTime": "{{minutes}} min read",
     "publishedOn": "Published {{date}}",
