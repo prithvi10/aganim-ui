@@ -1,4 +1,4 @@
-import { articles } from "~/content/blog";
+import { articles } from "../content/blog";
 
 const SITE = "https://aganim-ai.com";
 
