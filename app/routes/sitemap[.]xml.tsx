@@ -1,8 +1,11 @@
+import { articles } from "~/content/blog";
+
 const SITE = "https://aganim-ai.com";
 
-const pages = [
+const staticPages = [
   { loc: "/", changefreq: "weekly", priority: "1.0" },
   { loc: "/features", changefreq: "weekly", priority: "0.9" },
+  { loc: "/blog", changefreq: "daily", priority: "0.8" },
   { loc: "/support", changefreq: "monthly", priority: "0.7" },
   { loc: "/privacy-policy", changefreq: "yearly", priority: "0.3" },
   { loc: "/terms-of-service", changefreq: "yearly", priority: "0.3" },
@@ -11,20 +14,34 @@ const pages = [
 export function loader() {
   const today = new Date().toISOString().slice(0, 10);
 
-  const urls = pages
-    .map(
-      (p) => `  <url>
+  const blogPages = articles.map((article) => ({
+    loc: `/blog/${article.slug}`,
+    lastmod: article.publishedAt,
+    changefreq: "monthly",
+    priority: "0.8",
+  }));
+
+  const staticUrls = staticPages.map(
+    (p) => `  <url>
     <loc>${SITE}${p.loc}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`,
-    )
-    .join("\n");
+  );
+
+  const blogUrls = blogPages.map(
+    (p) => `  <url>
+    <loc>${SITE}${p.loc}</loc>
+    <lastmod>${p.lastmod}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`,
+  );
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls}
+${[...staticUrls, ...blogUrls].join("\n")}
 </urlset>`;
 
   return new Response(xml, {

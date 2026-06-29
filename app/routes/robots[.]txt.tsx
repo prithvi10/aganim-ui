@@ -1,6 +1,8 @@
 const body = `User-agent: *
 Allow: /
 Allow: /features
+Allow: /blog
+Allow: /blog/
 Allow: /support
 Allow: /privacy-policy
 Allow: /terms-of-service
