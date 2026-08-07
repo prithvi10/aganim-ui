@@ -4,6 +4,9 @@ Allow: /features
 Allow: /blog
 Allow: /blog/
 Allow: /support
+Allow: /profile
+Allow: /profile/
+Allow: /profile/projects/
 Allow: /privacy-policy
 Allow: /terms-of-service
 Disallow: /app/
