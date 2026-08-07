@@ -8,7 +8,9 @@ import {
   useRouteError,
   useLocation,
   type HeadersFunction,
+  type LoaderFunctionArgs,
 } from "react-router";
+import { isProfileSubdomainRequest } from "./utils/profileHost";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
@@ -17,6 +19,12 @@ import { useTranslation } from "react-i18next";
 import * as Sentry from "@sentry/react";
 import "./tailwind.css";
 import "./i18n";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  return {
+    profileSubdomain: isProfileSubdomainRequest(request),
+  };
+}
 
 if (typeof window !== "undefined" && window.ENV?.SENTRY_DSN) {
   Sentry.init({

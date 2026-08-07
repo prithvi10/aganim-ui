@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router";
-import { Link, redirect } from "react-router";
+import { Link, redirect, useLoaderData } from "react-router";
 import React, { useEffect } from "react";
 import {
   ArrowRight,
@@ -18,11 +18,21 @@ import {
   Reveal,
 } from "../../components/LandingLayout";
 import { FAQ } from "../../components/FAQ";
+import { ProfileHomePage } from "../../components/ProfileHomePage";
+import {
+  getProfileSeoContext,
+  isProfileSubdomainRequest,
+} from "../../utils/profileHost";
+import { buildProfileIndexMeta } from "../../utils/profileSeo";
 
 const SITE_URL = "https://aganim-ai.com";
 const OG_IMAGE = `${SITE_URL}/og-banner.png`;
 
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  if (data?.profileHome) {
+    return buildProfileIndexMeta(data.seoContext);
+  }
+
   const title = "Aganim AI — AI Growth Engine for Global E-commerce | Shopify App";
   const description =
     "Aganim AI is a Shopify app that uses AI to translate and localize your online store for cross-border e-commerce. Rewrite product listings, optimize SEO metadata, generate marketing content, and analyze competitor pricing across 12+ global markets.";
@@ -47,6 +57,13 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  if (isProfileSubdomainRequest(request)) {
+    return {
+      profileHome: true as const,
+      seoContext: getProfileSeoContext(request),
+    };
+  }
+
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
 
@@ -598,7 +615,17 @@ const faqSchema = {
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
-export default function LandingPage() {
+export default function IndexRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  if (data?.profileHome) {
+    return <ProfileHomePage seoContext={data.seoContext} />;
+  }
+
+  return <LandingPage />;
+}
+
+function LandingPage() {
   useEffect(() => {
     const root = document.documentElement;
     const previous = root.style.scrollBehavior;

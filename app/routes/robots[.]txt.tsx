@@ -1,12 +1,16 @@
-const body = `User-agent: *
+import type { LoaderFunctionArgs } from "react-router";
+import {
+  AGANIM_SITE_URL,
+  isProfileSubdomainRequest,
+  PROFILE_SUBDOMAIN_URL,
+} from "../utils/profileHost";
+
+const mainSiteBody = `User-agent: *
 Allow: /
 Allow: /features
 Allow: /blog
 Allow: /blog/
 Allow: /support
-Allow: /profile
-Allow: /profile/
-Allow: /profile/projects/
 Allow: /privacy-policy
 Allow: /terms-of-service
 Disallow: /app/
@@ -29,10 +33,36 @@ Allow: /
 User-agent: Amazonbot
 Allow: /
 
-Sitemap: https://aganim-ai.com/sitemap.xml
+Sitemap: ${AGANIM_SITE_URL}/sitemap.xml
 `;
 
-export function loader() {
+const profileSubdomainBody = `User-agent: *
+Allow: /
+Allow: /projects/
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+Sitemap: ${PROFILE_SUBDOMAIN_URL}/sitemap.xml
+`;
+
+export function loader({ request }: LoaderFunctionArgs) {
+  const body = isProfileSubdomainRequest(request)
+    ? profileSubdomainBody
+    : mainSiteBody;
+
   return new Response(body, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",

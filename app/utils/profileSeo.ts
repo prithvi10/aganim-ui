@@ -1,11 +1,14 @@
 import type { MetaDescriptor } from "react-router";
 import type { ProfileData, ProfileProject } from "../content/profile/types";
-
-export const PROFILE_SITE_URL = "https://aganim-ai.com";
-export const PROFILE_OG_IMAGE = `${PROFILE_SITE_URL}/profile/avatar.jpg`;
+import {
+  AGANIM_SITE_URL,
+  type ProfileSeoContext,
+  getProfileSeoContext,
+  profileHomePath,
+  profileProjectPath,
+} from "./profileHost";
 
 const PUBLISHER_NAME = "Aganim AI";
-const PUBLISHER_LOGO = `${PROFILE_SITE_URL}/Icon-final.png`;
 
 export const PROFILE_INDEX_TITLE =
   "Prithviraj Pawar — Engineering Leader | Portfolio & Projects";
@@ -26,12 +29,20 @@ export const PROFILE_INDEX_KEYWORDS = [
   "software engineering",
 ].join(", ");
 
-function profileUrl(path: string) {
-  return `${PROFILE_SITE_URL}${path}`;
+function absoluteUrl(ctx: ProfileSeoContext, path: string) {
+  return `${ctx.origin}${path}`;
 }
 
-function hreflangLinks(path: string): MetaDescriptor[] {
-  const url = profileUrl(path);
+function profileOgImage(ctx: ProfileSeoContext) {
+  return absoluteUrl(ctx, "/profile/avatar.jpg");
+}
+
+function publisherLogo(ctx: ProfileSeoContext) {
+  return `${AGANIM_SITE_URL}/Icon-final.png`;
+}
+
+function hreflangLinks(ctx: ProfileSeoContext, path: string): MetaDescriptor[] {
+  const url = absoluteUrl(ctx, path);
   return [
     { tagName: "link", rel: "alternate", hrefLang: "en", href: url },
     { tagName: "link", rel: "alternate", hrefLang: "x-default", href: url },
@@ -70,9 +81,21 @@ function twitterMeta(options: {
   ];
 }
 
-export function buildProfileIndexMeta(): MetaDescriptor[] {
-  const path = "/profile";
-  const url = profileUrl(path);
+function resolveProfileSeoContext(
+  requestOrContext?: Request | ProfileSeoContext,
+): ProfileSeoContext {
+  if (!requestOrContext) return getProfileSeoContext();
+  if ("isSubdomain" in requestOrContext) return requestOrContext;
+  return getProfileSeoContext(requestOrContext);
+}
+
+export function buildProfileIndexMeta(
+  requestOrContext?: Request | ProfileSeoContext,
+): MetaDescriptor[] {
+  const ctx = resolveProfileSeoContext(requestOrContext);
+  const path = profileHomePath(ctx.isSubdomain);
+  const url = absoluteUrl(ctx, path);
+  const image = profileOgImage(ctx);
 
   return [
     { title: PROFILE_INDEX_TITLE },
@@ -80,28 +103,32 @@ export function buildProfileIndexMeta(): MetaDescriptor[] {
     { name: "keywords", content: PROFILE_INDEX_KEYWORDS },
     { name: "author", content: "Prithviraj Pawar" },
     { tagName: "link", rel: "canonical", href: url },
-    ...hreflangLinks(path),
+    ...hreflangLinks(ctx, path),
     ...openGraphMeta({
       title: PROFILE_INDEX_TITLE,
       description: PROFILE_INDEX_DESCRIPTION,
       url,
-      image: PROFILE_OG_IMAGE,
+      image,
       type: "profile",
     }),
     ...twitterMeta({
       title: PROFILE_INDEX_TITLE,
       description: PROFILE_INDEX_DESCRIPTION,
-      image: PROFILE_OG_IMAGE,
+      image,
     }),
   ];
 }
 
-export function buildProfileProjectMeta(project: ProfileProject): MetaDescriptor[] {
+export function buildProfileProjectMeta(
+  project: ProfileProject,
+  requestOrContext?: Request | ProfileSeoContext,
+): MetaDescriptor[] {
+  const ctx = resolveProfileSeoContext(requestOrContext);
   const title = `${project.title} | Prithviraj Pawar`;
   const description = project.summary;
-  const path = `/profile/projects/${project.slug}`;
-  const url = profileUrl(path);
-  const image = profileUrl(project.featuredImage);
+  const path = profileProjectPath(ctx.isSubdomain, project.slug);
+  const url = absoluteUrl(ctx, path);
+  const image = absoluteUrl(ctx, project.featuredImage);
   const keywords = [project.title, ...project.tags, "Prithviraj Pawar", "project"].join(
     ", ",
   );
@@ -112,7 +139,7 @@ export function buildProfileProjectMeta(project: ProfileProject): MetaDescriptor
     { name: "keywords", content: keywords },
     { name: "author", content: "Prithviraj Pawar" },
     { tagName: "link", rel: "canonical", href: url },
-    ...hreflangLinks(path),
+    ...hreflangLinks(ctx, path),
     ...openGraphMeta({
       title,
       description,
@@ -130,7 +157,8 @@ export function buildProfileProjectMeta(project: ProfileProject): MetaDescriptor
   ];
 }
 
-export function buildProfileBreadcrumbSchema(
+function buildProfileBreadcrumbSchema(
+  ctx: ProfileSeoContext,
   items: Array<{ name: string; path: string }>,
 ) {
   return {
@@ -140,26 +168,27 @@ export function buildProfileBreadcrumbSchema(
       "@type": "ListItem",
       position: index + 1,
       name: item.name,
-      item: profileUrl(item.path),
+      item: absoluteUrl(ctx, item.path),
     })),
   };
 }
 
-export function buildProfilePageSchema(profile: ProfileData) {
+function buildProfilePageSchema(profile: ProfileData, ctx: ProfileSeoContext) {
+  const home = profileHomePath(ctx.isSubdomain);
   return {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
     name: PROFILE_INDEX_TITLE,
     description: PROFILE_INDEX_DESCRIPTION,
-    url: profileUrl("/profile"),
+    url: absoluteUrl(ctx, home),
     inLanguage: "en",
     mainEntity: {
       "@type": "Person",
       name: profile.name,
       jobTitle: profile.role,
       email: profile.email,
-      image: profileUrl(profile.avatar),
-      url: profileUrl("/profile"),
+      image: absoluteUrl(ctx, profile.avatar),
+      url: absoluteUrl(ctx, home),
       sameAs: [profile.social.github, profile.social.linkedin],
       alumniOf: profile.education.map((item) => ({
         "@type": "EducationalOrganization",
@@ -174,23 +203,27 @@ export function buildProfilePageSchema(profile: ProfileData) {
   };
 }
 
-export function buildProfileWebPageSchema() {
+function buildProfileWebPageSchema(ctx: ProfileSeoContext) {
+  const home = profileHomePath(ctx.isSubdomain);
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: PROFILE_INDEX_TITLE,
     description: PROFILE_INDEX_DESCRIPTION,
-    url: profileUrl("/profile"),
+    url: absoluteUrl(ctx, home),
     inLanguage: "en",
     isPartOf: {
       "@type": "WebSite",
-      name: PUBLISHER_NAME,
-      url: PROFILE_SITE_URL,
+      name: ctx.isSubdomain ? "Prithviraj Pawar" : PUBLISHER_NAME,
+      url: ctx.origin,
     },
   };
 }
 
-export function buildProfileProjectsItemListSchema(profile: ProfileData) {
+function buildProfileProjectsItemListSchema(
+  profile: ProfileData,
+  ctx: ProfileSeoContext,
+) {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -199,59 +232,75 @@ export function buildProfileProjectsItemListSchema(profile: ProfileData) {
       "@type": "ListItem",
       position: index + 1,
       name: project.title,
-      url: profileUrl(`/profile/projects/${project.slug}`),
+      url: absoluteUrl(ctx, profileProjectPath(ctx.isSubdomain, project.slug)),
     })),
   };
 }
 
-export function buildProfileProjectArticleSchema(project: ProfileProject) {
+function buildProfileProjectArticleSchema(
+  project: ProfileProject,
+  ctx: ProfileSeoContext,
+) {
+  const home = profileHomePath(ctx.isSubdomain);
+  const projectPath = profileProjectPath(ctx.isSubdomain, project.slug);
   return {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: project.title,
     description: project.summary,
-    image: profileUrl(project.featuredImage),
+    image: absoluteUrl(ctx, project.featuredImage),
     datePublished: project.date,
     dateModified: project.date,
     author: {
       "@type": "Person",
       name: "Prithviraj Pawar",
-      url: profileUrl("/profile"),
+      url: absoluteUrl(ctx, home),
     },
     publisher: {
       "@type": "Organization",
       name: PUBLISHER_NAME,
-      url: PROFILE_SITE_URL,
+      url: AGANIM_SITE_URL,
       logo: {
         "@type": "ImageObject",
-        url: PUBLISHER_LOGO,
+        url: publisherLogo(ctx),
       },
     },
     keywords: project.tags.join(", "),
     inLanguage: "en",
-    mainEntityOfPage: profileUrl(`/profile/projects/${project.slug}`),
+    mainEntityOfPage: absoluteUrl(ctx, projectPath),
   };
 }
 
-export function buildProfileIndexSchemas(profile: ProfileData) {
+export function buildProfileIndexSchemas(
+  profile: ProfileData,
+  requestOrContext?: Request | ProfileSeoContext,
+) {
+  const ctx = resolveProfileSeoContext(requestOrContext);
+  const home = profileHomePath(ctx.isSubdomain);
+
   return [
-    buildProfileBreadcrumbSchema([
-      { name: "Home", path: "/" },
-      { name: "Profile", path: "/profile" },
+    buildProfileBreadcrumbSchema(ctx, [
+      { name: "Home", path: home },
     ]),
-    buildProfilePageSchema(profile),
-    buildProfileWebPageSchema(),
-    buildProfileProjectsItemListSchema(profile),
+    buildProfilePageSchema(profile, ctx),
+    buildProfileWebPageSchema(ctx),
+    buildProfileProjectsItemListSchema(profile, ctx),
   ];
 }
 
-export function buildProfileProjectSchemas(project: ProfileProject) {
+export function buildProfileProjectSchemas(
+  project: ProfileProject,
+  requestOrContext?: Request | ProfileSeoContext,
+) {
+  const ctx = resolveProfileSeoContext(requestOrContext);
+  const home = profileHomePath(ctx.isSubdomain);
+  const projectPath = profileProjectPath(ctx.isSubdomain, project.slug);
+
   return [
-    buildProfileProjectArticleSchema(project),
-    buildProfileBreadcrumbSchema([
-      { name: "Home", path: "/" },
-      { name: "Profile", path: "/profile" },
-      { name: project.title, path: `/profile/projects/${project.slug}` },
+    buildProfileProjectArticleSchema(project, ctx),
+    buildProfileBreadcrumbSchema(ctx, [
+      { name: "Home", path: home },
+      { name: project.title, path: projectPath },
     ]),
   ];
 }

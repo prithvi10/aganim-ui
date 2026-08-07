@@ -1,15 +1,10 @@
 import { Link } from "react-router";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "./LandingLayout";
-
-const navItems = [
-  { label: "Home", href: "/profile#about" },
-  { label: "Experience", href: "/profile#experience" },
-  { label: "Projects", href: "/profile#projects" },
-  { label: "Contact", href: "/profile#contact" },
-];
+import { AGANIM_SITE_URL } from "../utils/profileHost";
+import { useProfilePaths } from "../utils/useProfilePaths";
 
 const MobileMenuIcon = ({ open }: { open: boolean }) => (
   <svg
@@ -39,6 +34,16 @@ const MobileMenuIcon = ({ open }: { open: boolean }) => (
 );
 
 export function ProfileHeader() {
+  const paths = useProfilePaths();
+  const navItems = useMemo(
+    () => [
+      { label: "Home", href: paths.section("about") },
+      { label: "Experience", href: paths.section("experience") },
+      { label: "Projects", href: paths.section("projects") },
+      { label: "Contact", href: paths.section("contact") },
+    ],
+    [paths],
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
@@ -54,7 +59,7 @@ export function ProfileHeader() {
   return (
     <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-slate-950/70 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link to="/profile" className="flex items-center gap-3 text-xl font-bold">
+        <Link to={paths.home} className="flex items-center gap-3 text-xl font-bold">
           <img src="/profile/avatar.jpg" alt="Prithviraj Pawar" className="h-8 w-8 rounded-full object-cover" />
           Prithviraj Pawar
         </Link>
@@ -68,12 +73,21 @@ export function ProfileHeader() {
               {item.label}
             </a>
           ))}
-          <Link
-            to="/"
-            className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/40 hover:text-white"
-          >
-            Aganim AI
-          </Link>
+          {paths.isSubdomain ? (
+            <a
+              href={AGANIM_SITE_URL}
+              className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/40 hover:text-white"
+            >
+              Aganim AI
+            </a>
+          ) : (
+            <Link
+              to="/"
+              className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/40 hover:text-white"
+            >
+              Aganim AI
+            </Link>
+          )}
         </nav>
 
         <button
@@ -107,13 +121,23 @@ export function ProfileHeader() {
                   {item.label}
                 </a>
               ))}
-              <Link
-                to="/"
-                className="text-sm text-slate-200 transition hover:text-white"
-                onClick={closeMobile}
-              >
-                Aganim AI
-              </Link>
+              {paths.isSubdomain ? (
+                <a
+                  href={AGANIM_SITE_URL}
+                  className="text-sm text-slate-200 transition hover:text-white"
+                  onClick={closeMobile}
+                >
+                  Aganim AI
+                </a>
+              ) : (
+                <Link
+                  to="/"
+                  className="text-sm text-slate-200 transition hover:text-white"
+                  onClick={closeMobile}
+                >
+                  Aganim AI
+                </Link>
+              )}
             </div>
           </motion.nav>
         )}
@@ -123,6 +147,8 @@ export function ProfileHeader() {
 }
 
 export function ProfileFooter() {
+  const paths = useProfilePaths();
+
   return (
     <footer className="border-t border-white/10 py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
@@ -138,9 +164,15 @@ export function ProfileFooter() {
           </a>
         </p>
         <div className="flex flex-wrap gap-6">
-          <Link to="/" className="transition hover:text-white">
-            Aganim AI
-          </Link>
+          {paths.isSubdomain ? (
+            <a href={AGANIM_SITE_URL} className="transition hover:text-white">
+              Aganim AI
+            </a>
+          ) : (
+            <Link to="/" className="transition hover:text-white">
+              Aganim AI
+            </Link>
+          )}
           <Link to="/privacy-policy" className="transition hover:text-white">
             Privacy Policy
           </Link>

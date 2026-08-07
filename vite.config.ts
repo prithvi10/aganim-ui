@@ -37,7 +37,11 @@ if (host === "localhost") {
 
 export default defineConfig({
   server: {
-    allowedHosts: [host],
+    allowedHosts: [
+      host,
+      "prithvirajpawar.aganim-ai.com",
+      "prithvirajpawar.localhost",
+    ],
     cors: {
       preflightContinue: true,
     },
