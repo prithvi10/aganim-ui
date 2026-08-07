@@ -15,15 +15,14 @@ export const profileData: ProfileData = {
   education: [
     {
       course: "Georgia Institute of Technology",
-      institution: "Master of Science - MS, Computer Science - 2024",
+      institution: "Master of Science - Computer Science (Machine Learning specialization) - 2024",
     },
     {
       course: "Savitribai Phule Pune University (formerly University of Pune)",
       institution: "Bachelor in Computer Engineering - 2017",
     },
   ],
-  bio: `I am working as an Engineering Manager at PayPay for the payments team. Previously I worked as a Team manager at Rakuten for an E-commerce business where my team developed backend applications using Spring Reactor and provide highly scalable GraphQL and Restful APIs to multiple frontends.
-I am also interested in emerging domains like Machine Learning and Artificial Intelligence and I am pursuing Graduate Education from Georgia Institute of Technology in the same. My research interests include machine learning, AI for Robotics and Deep Learning.`,
+  bio: "Enterprise AI Engineering Leader & Architect based in Tokyo. 9 YOE scaling payments and e-commerce at PayPay & Rakuten. MS CS (Machine Learning) from Georgia Tech. Recently shipped a high-ROI enterprise AI product and currently building Aganim AI & Medstats. I help companies navigate Agentic AI, Model Context Protocol (MCP), and enterprise AI governance.",
   email: "prithviraj10pawar@gmail.com",
   social: {
     github: "https://github.com/prithvi10",
@@ -32,13 +31,13 @@ I am also interested in emerging domains like Machine Learning and Artificial In
   avatar: "/profile/avatar.jpg",
   experiences: [
     {
-      title: "Engineering Manager",
+      title: "Engineering leader - AI and Backend",
       company: "PayPay Corporation",
       location: "Tokyo, Japan",
       dateStart: "2023-01-05",
       dateEnd: "",
       description:
-        "PayPay is Japan's No.1 payments platform with 50 Million active users and continously growing since last 4 years. I am working with the core payments platform in Payment Product Division.",
+        "Managing multiple teams focusing on the payments platform and Agentic AI platforms that improve productivity, growth, and quality of products at PayPay.",
     },
     {
       title: "Software Engineering / Management",
