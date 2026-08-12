@@ -24,6 +24,47 @@ import {
 import type { ProfileSeoContext } from "../utils/profileHost";
 import { useProfilePaths } from "../utils/useProfilePaths";
 
+// Long-form technical blog series, served as self-contained HTML pages from
+// /public/deep-learning. Shown as cards in the Blogs section alongside projects.
+type SeriesBlog = {
+  href: string;
+  title: string;
+  summary: string;
+  tags: string[];
+  featuredImage: string;
+  part: string;
+};
+
+const SERIES_BLOGS: SeriesBlog[] = [
+  {
+    href: "/deep-learning/foundations-of-deep-learning.html",
+    part: "Part 1",
+    title: "Foundations of Deep Learning",
+    summary:
+      "The ideas behind every LLM — from a single neuron to backpropagation, CNNs, RNNs, and the first glimpse of attention.",
+    tags: ["Deep Learning", "Artificial Intelligence", "Machine Learning"],
+    featuredImage: "/deep-learning/cover-foundations.png",
+  },
+  {
+    href: "/deep-learning/the-transformer-deep-dive.html",
+    part: "Part 2",
+    title: "The Transformer, Deep Dive",
+    summary:
+      "Attention, encoders, and decoders — the 2017 architecture rebuilt block by block, with the math and the intuition.",
+    tags: ["Deep Learning", "Artificial Intelligence"],
+    featuredImage: "/deep-learning/cover-transformer.png",
+  },
+  {
+    href: "/deep-learning/modern-frontier-llms.html",
+    part: "Part 3",
+    title: "Modern Frontier LLMs",
+    summary:
+      "From the Transformer to Claude, Gemini, and GPT — RoPE, RMSNorm, SwiGLU, GQA, MoE, alignment, and scaling laws.",
+    tags: ["Deep Learning", "Artificial Intelligence", "Machine Learning"],
+    featuredImage: "/deep-learning/cover-frontier.png",
+  },
+];
+
 export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext }) {
   const paths = useProfilePaths();
   const [activeTag, setActiveTag] = useState<string>("All");
@@ -42,6 +83,11 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
       profileData.projects.filter((project) =>
         tagMatchesFilter(project.tags, activeTag),
       ),
+    [activeTag],
+  );
+
+  const filteredSeries = useMemo(
+    () => SERIES_BLOGS.filter((blog) => tagMatchesFilter(blog.tags, activeTag)),
     [activeTag],
   );
 
@@ -146,7 +192,7 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
         </div>
       </ProfileSection>
 
-      <ProfileSection id="projects" title="Projects">
+      <ProfileSection id="projects" title="Blogs">
         <Reveal>
           <div className="mb-8 flex flex-wrap gap-2">
             {projectTags.map((tag) => (
@@ -167,6 +213,45 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
         </Reveal>
 
         <div className="grid gap-6 md:grid-cols-2">
+          {filteredSeries.map((blog) => (
+            <Reveal key={blog.href}>
+              <a
+                href={blog.href}
+                className="group block overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition hover:border-white/20 hover:bg-white/[0.07]"
+              >
+                <div className="aspect-[16/10] overflow-hidden">
+                  <img
+                    src={blog.featuredImage}
+                    alt={blog.title}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="p-6">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-violet-500/20 px-2.5 py-1 text-xs font-medium text-violet-200">
+                      Series · {blog.part}
+                    </span>
+                    {blog.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-sky-500/10 px-2.5 py-1 text-xs text-sky-200"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <h3 className="text-lg font-semibold text-white transition group-hover:text-sky-200">
+                    {blog.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-400">
+                    {blog.summary}
+                  </p>
+                </div>
+              </a>
+            </Reveal>
+          ))}
+
           {filteredProjects.map((project) => (
             <Reveal key={project.slug}>
               <Link

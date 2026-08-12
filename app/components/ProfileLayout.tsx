@@ -40,7 +40,7 @@ export function ProfileHeader() {
     () => [
       { label: "Home", href: paths.section("about") },
       { label: "Experience", href: paths.section("experience") },
-      { label: "Projects", href: paths.section("projects") },
+      { label: "Blogs", href: paths.section("projects") },
       { label: "Contact", href: paths.section("contact") },
     ],
     [paths],
