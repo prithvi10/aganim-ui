@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Transformer, Deep Dive: Attention, Encoders, and Decoders</title>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],tags:'none'},svg:{fontCache:'global'}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  :root{ color-scheme: light; --bg:#f7f6f3; --panel:#ffffff; --ink:#1c1b1a; --muted:#5f5b55; --line:#e5e1d8; --accent:#b5432a; --accent2:#2a5db5; --code-bg:#1e1d1b; --code-ink:#e8e4dc; --ok:#2f7d4f; --chip:#efe9dd; --purple:#6a3fb5; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;line-height:1.65;font-size:17px}
+  .layout{display:flex;max-width:1220px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;width:290px;padding:24px 16px;border-right:1px solid var(--line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px}
+  nav h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  nav h2:first-child{margin-top:0}
+  nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 8px;border-radius:6px;margin-bottom:1px;line-height:1.35}
+  nav a:hover{background:var(--chip);color:var(--ink)}
+  nav a.sub{padding-left:20px;font-size:12px}
+  nav a.tf{color:var(--purple)}
+  main{flex:1;min-width:0;padding:44px 56px 140px;max-width:840px}
+  header.hero{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:10px}
+  .kicker{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:42px;line-height:1.08;margin:12px 0 10px;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:18px}
+  .meta{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:var(--muted);margin-top:16px;display:flex;gap:18px;flex-wrap:wrap}
+  section{padding-top:40px;margin-top:14px;border-top:1px solid var(--line)}
+  section.module{border-top:3px solid var(--ink)}
+  h2.sec{font-size:14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px;font-weight:700}
+  h2.sec.tf{color:var(--purple)}
+  h3{font-size:30px;margin:2px 0 14px;letter-spacing:-.01em;line-height:1.15}
+  h4{font-size:21px;margin:30px 0 8px}
+  h5{font-size:17px;margin:22px 0 6px;font-family:-apple-system,sans-serif;font-weight:700;color:#333}
+  p{margin:12px 0}
+  .lead{font-size:19px;color:#333}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--chip);padding:1px 5px;border-radius:4px}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.5;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit}
+  .eq{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent2);padding:6px 18px;border-radius:8px;margin:16px 0;overflow-x:auto}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:18px 0}
+  .box.intu{border-left:4px solid var(--accent)}
+  .box.link{border-left:4px solid var(--ok)}
+  .box.math{border-left:4px solid var(--accent2)}
+  .box.real{border-left:4px solid var(--purple)}
+  .box .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .box.link .label{color:var(--ok)} .box.math .label{color:var(--accent2)} .box.real .label{color:var(--purple)}
+  .chip{display:inline-block;font-family:-apple-system,sans-serif;font-size:11px;background:var(--chip);color:var(--muted);padding:3px 9px;border-radius:20px;margin:0 4px 4px 0}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--chip);font-family:-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  .fromfolder{font-family:-apple-system,sans-serif;font-size:11px;color:var(--ok);font-weight:600;letter-spacing:.04em}
+  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px}
+  details summary{cursor:pointer;padding:14px 0;font-family:-apple-system,sans-serif;font-weight:600;font-size:15px}
+  details[open]{padding-bottom:12px}
+  .quiz{background:var(--panel);border:1px dashed var(--accent2);border-radius:10px;padding:14px 18px;margin:16px 0;font-family:-apple-system,sans-serif;font-size:14.5px}
+  .quiz .q{font-weight:600}
+  .progress-wrap{position:fixed;top:0;left:0;height:3px;width:100%;background:transparent;z-index:50}
+  #bar{height:100%;width:0;background:var(--accent)}
+  ul.tight li,ol.tight li{margin:6px 0}
+  .arrowflow{font-family:-apple-system,sans-serif;font-size:14px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:14px 0;line-height:1.7}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  figure.fig{margin:22px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  figure.fig img{max-width:100%;height:auto;border-radius:8px;display:block;margin:0 auto}
+  figure.fig figcaption{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.45;text-align:left}
+  figure.fig .yours{color:var(--ok);font-weight:600}
+  .figrow{display:flex;gap:14px;flex-wrap:wrap;margin:22px 0}
+  .figrow figure.fig{flex:1;min-width:240px;margin:0}
+  /* flow diagram blocks (flowchart blocks) */
+  .flow{max-width:520px;margin:20px auto;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;align-items:stretch;gap:0}
+  .fb{width:100%;box-sizing:border-box;border:2px solid #333;border-radius:8px;padding:12px 16px;margin:0;text-align:center;background:#fff;font-size:14px;flex:0 0 auto}
+  .fb .t{font-weight:700;margin-bottom:4px}
+  .fb.emb{background:#fdf1ee} .fb.attn{background:#fff7cf} .fb.norm{background:#fff9c4} .fb.ffn{background:#c7f0ee} .fb.out{background:#e7f0ff} .fb.dec{background:#efe4ff}
+  .farrow{text-align:center;color:#b5432a;font-size:20px;line-height:1;margin:6px 0;flex:0 0 auto}
+  .fnote{font-size:12px;color:var(--muted);font-style:italic;text-align:center;margin:6px 0;flex:0 0 auto}
+  .fsub{font-size:12px;color:var(--muted);margin-top:4px;font-style:normal}
+  .flow a{color:inherit;text-decoration:none;display:block}
+  .flow a:hover .fb{box-shadow:0 0 0 3px rgba(106,63,181,.25)}
+  @media(max-width:940px){nav{display:none}main{padding:26px 20px 90px}h1{font-size:32px}}
+
+  /* --- PDF-recreation blocks (diagram aesthetic) --- */
+  .pdfblock{border:2px solid #222;border-radius:4px;padding:20px 26px;margin:20px auto;max-width:640px;text-align:center;background:#fdf6ef;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+  .pdfblock.emb{background:#fdf1ee} .pdfblock.pos{background:#fff}
+  .pdfblock.attn{background:#fbeee9} .pdfblock.yellow{background:#fff9c4} .pdfblock.teal{background:#c7f0ee} .pdfblock.plain{background:#fff}
+  .pdfblock .bt{font-weight:800;font-size:17px;margin-bottom:10px;letter-spacing:.01em}
+  .pdfblock .formula{font-family:"SF Mono",ui-monospace,Menlo,monospace;background:#1e1d1b;color:#e8e4dc;display:inline-block;padding:8px 16px;border-radius:6px;margin:10px 0;font-size:14px}
+  .pdfblock p{margin:8px 0;font-size:14.5px}
+  .pdfblock .u{text-decoration:underline}
+  .bubble{position:relative;background:#fff;border:2px solid #222;border-radius:16px;padding:14px 20px;margin:22px auto;max-width:560px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.55}
+  .bubble .bq{font-weight:800;display:block;margin-bottom:6px;text-align:center}
+  .bubble:after{content:"";position:absolute;bottom:-14px;left:60px;border-width:14px 14px 0 0;border-style:solid;border-color:#222 transparent transparent transparent}
+  .bubble:before{content:"";position:absolute;bottom:-10px;left:63px;border-width:11px 11px 0 0;border-style:solid;border-color:#fff transparent transparent transparent;z-index:1}
+  .bubble.r:after{left:auto;right:60px;border-width:14px 0 0 14px} .bubble.r:before{left:auto;right:63px;border-width:11px 0 0 11px}
+  .bubble a{color:var(--accent2)}
+  .pdfarrow{text-align:center;color:#333;font-size:22px;line-height:1;margin:4px 0}
+  .pdflabel{text-align:center;font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);font-weight:700;margin:8px 0}
+  .matgrid{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:16px 0;overflow-x:auto;white-space:pre;line-height:1.5}
+  .worked{background:#fbfaf7;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:8px 20px 16px;margin:20px 0}
+  .worked .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--purple);margin:12px 0 2px}
+  .twocol{display:flex;gap:18px;flex-wrap:wrap} .twocol>div{flex:1;min-width:240px}
+
+  /* top-to-bottom PDF recreation flow */
+  .vflow{max-width:820px;margin:18px auto;font-family:-apple-system,sans-serif}
+  .vrow{display:flex;align-items:flex-start;justify-content:center;gap:18px;flex-wrap:wrap}
+  .vrow.pair .pdfblock{flex:1 1 320px;max-width:400px;margin:0}
+  .vrow.pair .bubble{flex:1 1 300px;max-width:380px;margin:0}
+  .vdown{text-align:center;color:#b5432a;font-size:22px;line-height:1;margin:8px 0}
+  @media(max-width:820px){.vrow{flex-direction:column;align-items:stretch}}
+</style>
+
+<style>
+  /* references section */
+  section#references{border-top:3px solid var(--ink)}
+  .refgroup{margin:18px 0}
+  .refgroup h4{font-size:15px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em;color:var(--ink);margin:22px 0 8px;text-transform:none}
+  ol.reflist{list-style:none;counter-reset:ref;padding:0;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+  ol.reflist li{counter-increment:ref;position:relative;padding:9px 0 9px 40px;border-bottom:1px solid var(--line);line-height:1.5}
+  ol.reflist li:before{content:counter(ref);position:absolute;left:0;top:9px;width:26px;height:26px;background:var(--chip);color:var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  ol.reflist li .authors{color:var(--muted)}
+  ol.reflist li .rtitle{font-weight:600;color:var(--ink)}
+  ol.reflist a{color:var(--accent2);text-decoration:none}
+  ol.reflist a:hover{text-decoration:underline}
+  .refnote{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:16px;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div class="progress-wrap"><div id="bar"></div></div>
+<div class="layout">
+<nav>
+  <h2>This Post</h2>
+  <a href="#intro">Introduction</a>
+  <a href="#tf-input">A · Input → Tokenize → One-hot</a>
+  <a href="#tf-embed">B · Word & positional embeddings</a>
+  <a href="#tf-attn">C · Scaled dot-product attention</a>
+  <a href="#tf-mha">D · Multi-head & self-attention</a>
+  <a href="#tf-block">E · Add & Norm + FFN</a>
+  <a href="#tf-decoder">F · The decoder</a>
+  <a href="#tf-full">G · Full architecture & families</a>
+
+  <a href="#references">References &amp; reading</a>
+  <h2>The Series</h2>
+  <a href="foundations-of-deep-learning.html">1 · Foundations of Deep Learning</a>
+  <a href="the-transformer-deep-dive.html">2 · The Transformer, Deep Dive</a>
+  <a href="modern-frontier-llms.html">3 · Modern Frontier LLMs</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="kicker">Deep Learning, In Depth · Part 2 of 3</div>
+  <h1>The Transformer, Deep Dive</h1>
+  <p class="sub">Vaswani's 2017 architecture, block by block — with the math inside and the intuition beside.</p>
+  <div class="meta"><span>By Prithviraj</span><span>Part 2 of 3</span><span>~35 min read</span></div>
+</header>
+<section id="intro">
+  <p class="lead">In 2017, a single paper — <i>Attention Is All You Need</i> — replaced the recurrent networks that had dominated sequence modeling with an architecture built entirely on attention. Every large language model today is a descendant of the design in that paper.</p>
+  <p>This is Part 2 of the series. Part 1 built the foundations, ending on the attention mechanism itself. Here we assemble the full <b>Transformer</b> exactly as Vaswani et al. drew it: input embeddings and positional encoding, scaled dot-product attention, multi-head and self-attention, Add &amp; Norm with a position-wise feed-forward network to form an encoder block, and then the decoder — masked self-attention plus cross-attention — that most treatments skip over.</p>
+  <p>We walk it stage by stage, top to bottom, with the math inside each block and a plain-language "why" beside it. By the end you'll be able to trace a sentence from raw text to output probabilities and explain every box on the way.</p>
+  <div class="box intu"><div class="label">The whole architecture in one breath</div>
+  A Transformer is a stack of identical <b>encoder</b> blocks (each = self-attention + feed-forward, both wrapped in residual + normalization) that turn input tokens into context-rich vectors, and a stack of identical <b>decoder</b> blocks (each = masked self-attention + cross-attention + feed-forward) that generate the output one token at a time. GPT keeps only the decoder; BERT keeps only the encoder; the original translator uses both.</div>
+</section>
+<section id="tf-intro" class="module">
+  <h2 class="sec tf">★ Deep-Dive Submodule</h2>
+  <h3>The Transformer, completed — from a architecture</h3>
+
+  <p>"</i></p>
+  <p><b></b> This deep dive walks through the architecture in order, adding the heavy math and intuition, then <b>completes the decoder</b> in the same visual style so you have the full encoder–decoder Transformer end to end.</p>
+
+  <div class="box intu"><div class="label">The whole architecture in one breath</div>
+  A Transformer is a stack of identical <b>encoder</b> blocks (each = self-attention + FFN, both wrapped in residual + LayerNorm) that turn input tokens into context-rich vectors, and a stack of identical <b>decoder</b> blocks (each = masked self-attention + cross-attention + FFN) that generate the output one token at a time. GPT keeps only the decoder; BERT keeps only the encoder; the original translator uses both.</div>
+
+  
+</section>
+
+
+<section id="tf-input">
+  <h2 class="sec tf">★ Stage A</h2>
+  <h3>Input → Tokenize → One-hot</h3>
+  
+
+  <div class="vflow">
+    <div class="vrow"><div class="pdfblock plain" style="max-width:300px;margin:0 auto"><b>"Hello world !"</b><br><span style="font-size:12px;color:#888">raw input sentence</span></div></div>
+    <div class="vdown">▼</div>
+    <div class="vrow pair">
+      <div class="pdfblock plain"><div class="bt">Tokenize</div>
+        <p>sentence = ('Hello', 'world', '!', &lt;pad&gt;, …, &lt;pad&gt;)</p>
+        <p>$$\text{sentence}=(8667,\ 1362,\ 106,\ 0,\ 0,\ \dots,\ 0)$$</p>
+      </div>
+      <div class="bubble r"><span class="bq">Why Tokenize?</span>
+        • maximum length of our sentence is 200. Hence we add trailing padding to the smaller sentences.<br>
+        • Tokenizer assigns a number to every word based on its index in a vocabulary set.
+      </div>
+    </div>
+    <div class="vdown">▼</div>
+    <div class="vrow pair">
+      <div class="pdfblock plain"><div class="bt">One hot Encoding</div>
+        <p>every word would be encoded in binary as follows:</p>
+        <p>$$\mathbf{w}_j=\begin{bmatrix}0 & 0 & \cdots & 1 & \cdots & 0\end{bmatrix}^\top$$</p>
+        <p>Hence a sentence would be a matrix of size <b><i>vocab_size × vocab_size</i></b>.</p>
+      </div>
+      <div class="bubble r"><span class="bq">Why we need One hot encoding?</span>
+        Naturally every word would have been represented using a one hot vector with the size of the vocabulary set.
+      </div>
+    </div>
+  </div>
+
+  <h4>The math &amp; the why (added depth)</h4>
+  <p>A <b>one-hot</b> vector \(\mathbf{w}_j\in\{0,1\}^{V}\) has a single 1 at the word's vocabulary index. Two problems these notes implicitly set up: it's <b>enormous</b> (length \(V\), tens of thousands) and it's <b>semantically blind</b> — every pair of words is equidistant, so "cat" is no closer to "dog" than to "car". That is exactly why the next stage (embeddings) exists. Modern LLMs additionally use <b>subword</b> tokenization (BPE), splitting rare words into reusable pieces so a fixed ~50K–100K vocabulary covers any string.</p>
+  <div class="box real"><div class="label">Real-world implication</div>
+  Tokenization silently governs everything downstream: context length, per-token pricing, and multilingual/code quality all depend on how efficiently the tokenizer encodes text. "Why does the model miscount letters in a word?" — because it sees tokens, not characters.</div>
+</section>
+
+<section id="tf-embed">
+  <h2 class="sec tf">★ Stage B</h2>
+  <h3>Word embeddings + positional embeddings</h3>
+  
+
+  <div class="vflow">
+    <div class="vrow pair">
+      <div class="pdfblock emb"><div class="bt">word Embeddings</div>
+        <p>Define a matrix \(W_e\) that multiplies each one-hot word \(\mathbf{w}_j\) to generate a smaller vector \(\mathbf{e}_j\):</p>
+        <p>$$\mathbf{e}_j = W_e\,\mathbf{w}_j$$</p>
+        <p style="font-size:13px">This is a purely linear operation (no bias, no activation). So we can fold it into the network and back-propagate errors to update the embedding weights.</p>
+      </div>
+      <div class="bubble r"><span class="bq">Why we need a word embedding in NLP?</span>
+        To reduce the dimension of a single one hot vector, we define a 2D embedding matrix of size num_embedding for each word. Hence there would be <b><i>vocab_size × num_embedding</i></b> matrices.<br>
+        <a href="https://kikaben.com/word-embedding-lookup/">kikaben.com/word-embedding-lookup</a>
+      </div>
+    </div>
+    <div class="vdown">▼</div>
+    <div class="vrow pair">
+      <div class="pdfblock emb"><div class="bt">Positional Embeddings</div>
+        <p style="font-size:13px;text-align:left">Added to the word embeddings. To find a word's positional information we use: (1) its position <b>pos</b> in the sentence, (2) the embedding dimension index \(i\), (3) an angle \(\theta\) in radians, (4) sine and cosine:</p>
+        $$\theta(pos,i)=\frac{pos}{10000^{\,2i/d_{\text{model}}}}$$
+        $$PE_{(pos,\,2i)}=\sin\theta,\qquad PE_{(pos,\,2i+1)}=\cos\theta$$
+      </div>
+      <div class="bubble r"><span class="bq">Why we need positional embeddings?</span>
+        Transformers have no recurrence and no convolution, so to use word order we must inject each token's position.<br>
+        Without it, an attention-only model might read these as identical: <i>Tom bit a dog</i> / <i>A dog bit Tom.</i><br>
+        Ref: <a href="https://kikaben.com/transformers-positional-encoding/">kikaben.com/transformers-positional-encoding</a>
+      </div>
+    </div>
+    <div class="vrow"><div class="bubble" style="max-width:640px;margin:6px auto 0"><span class="bq">if word-embedding and positional vectors have similar magnitudes, how does the model distinguish them?</span>
+      The word embedding layer has learnable parameters, so optimization can adjust their magnitudes if necessary. Amazingly, the model learns to use word embeddings and positional encodings without mixing them up.
+    </div></div>
+  </div>
+
+  <div class="box math"><div class="label">Math track — the embedding lookup</div>
+  <p>With \(W_e\in\mathbb{R}^{d_{\text{model}}\times V}\) and \(\mathbf{w}_j\) one-hot, the product simply <b>selects the \(j\)-th column of \(W_e\)</b> — a fast lookup:</p>
+  $$W_e\,\mathbf{w}_j = \sum_{v} (W_e)_{:,v}\,(\mathbf{w}_j)_v = (W_e)_{:,j}.$$
+  It compresses the huge sparse one-hot into a dense vector where similar words land nearby; the famous geometry \(\ \text{king}-\text{man}+\text{woman}\approx\text{queen}\ \) emerges purely from training.</div>
+  <div class="box math"><div class="label">Math track — why sinusoids work</div>
+  For any fixed offset \(k\), \(PE_{pos+k}\) is a <b>linear function</b> of \(PE_{pos}\) (a rotation), so the model can learn to attend by <i>relative</i> distance. These vectors are simply <b>added</b> to the word embeddings: \(\ \mathbf{h}_j=\mathbf{e}_j+PE_{pos(j)}\). Frontier models later replaced this with <b>RoPE</b> (Part 6).</div>
+</section>
+
+<section id="tf-attn">
+  <h2 class="sec tf">★ Stage C</h2>
+  <h3>Scaled dot-product attention — your derivation, top to bottom</h3>
+  
+
+  <div class="pdfblock attn" style="max-width:760px;text-align:left">
+    <div class="bt" style="text-align:center">Scaled Dot Product attention</div>
+    <p>A dot product between two vectors is \(\ \mathbf{a}\cdot\mathbf{b}=\|\mathbf{a}\|\,\|\mathbf{b}\|\cos\theta\ \), where \(\theta\) is the angle between them — maximum at \(\theta=0^\circ\), minimum at \(\theta=180^\circ\).</p>
+    <p>For a translation problem the output must contain word vectors. Call the first output word vector \(\mathbf{y}_1\). We project it with a matrix \(W^Q\) to get a <b>query</b>:</p>
+    $$\mathbf{q}_1 = \mathbf{y}_1 W^Q$$
+    <p>We project each input word \(\mathbf{x}_1\) with \(W^K\) to get a <b>key</b>:</p>
+    $$\mathbf{k}_1 = \mathbf{x}_1 W^K$$
+    <p>Keep in mind \(\mathbf{q}_1\) and \(\mathbf{k}_1\) have the same dimension. Their dot product gives a <b>score</b> — how strongly the query matches the key:</p>
+    $$s_{11} = \mathbf{q}_1\cdot \mathbf{k}_1$$
+    <p>Generalize over all input words \(X=[\mathbf{x}_1,\dots,\mathbf{x}_n]\): extract keys \(K\) with the same \(W^K\) and dot \(\mathbf{q}_1\) against all of them:</p>
+    $$\mathbf{q}_1 K^\top = \begin{bmatrix} s_{11} & s_{12} & \cdots & s_{1n}\end{bmatrix}$$
+    <p>Apply <b>softmax</b> to turn scores into <b>attention weights</b>:</p>
+    $$\text{softmax}(\mathbf{q}_1 K^\top)=\begin{bmatrix} w_{11} & w_{12} & \cdots & w_{1n}\end{bmatrix}$$
+    <p>Extract values \(V\) with \(W^V\) and take the weighted sum:</p>
+    $$\text{softmax}(\mathbf{q}_1 K^\top)\,V=\sum_{i} w_{1i}\,\mathbf{v}_i$$
+    <p>Stacking all output queries into \(Q\) gives the matrix form:</p>
+    $$\text{Attention}(Q,K,V)=\text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V,\qquad Q=YW^Q,\ K=XW^K,\ V=XW^V$$
+    <p>Here \(d_k\) is the dimension of the query/key vectors. When \(d_k\) is large the dot products grow large in magnitude — problematic because softmax's exponential then saturates. Ref: <a href="https://kikaben.com/transformers-self-attention/">kikaben.com/transformers-self-attention</a></p>
+  </div>
+  <p>This is a complete, correct derivation — from a single query–key dot product \(s_{11}\), to a row of scores \(\mathbf{q}_1K^\top\), to softmax weights, to the weighted value sum, to the matrix form. It matches the by-hand example above.</p>
+</section>
+
+<section id="tf-mha">
+  <h2 class="sec tf">★ Stage D</h2>
+  <h3>Multi-head &amp; self-attention</h3>
+  
+
+  <div class="vflow">
+    <div class="vrow"><div class="pdfblock attn" style="text-align:left;max-width:660px;margin:0 auto"><div class="bt" style="text-align:center">Multi-headed attention</div>
+      <p>A word can have a different meaning or function depending on context, so we use multiple queries per word rather than one. Vaswani uses \(h=8\) parallel attention calculations — each is a <b>head</b>:</p>
+      $$\text{head}_i=\text{Attention}(Q_i,K_i,V_i),\quad i=1\dots h$$
+      $$Q_i=YW_i^Q,\quad K_i=XW_i^K,\quad V_i=XW_i^V$$
+      <p>Concatenate all heads and apply one more matrix \(W^O\):</p>
+      $$\text{MultiHead}(Y,X)=\text{Concat}(\text{head}_1,\dots,\text{head}_h)\,W^O$$
+    </div></div>
+    <div class="vdown">▼</div>
+    <div class="vrow"><div class="pdfblock attn" style="text-align:left;max-width:660px;margin:0 auto"><div class="bt" style="text-align:center">Self attention</div>
+      <p>A word's meaning depends on the word itself and its neighbours. For example, "second":</p>
+      <p style="text-align:center"><i>Give me a <b>second</b>, please.</i> &nbsp;&nbsp; <i>I came <b>second</b> in the exam.</i></p>
+      <p>But there is only one embedding for "second". So we must treat the word <i>with</i> its context — extract word <b>contexts</b> and <b>relationships</b> within a sentence.</p>
+      <p>In self-attention, \(Q,K,V\) all originate from the same sentence, so we use \(\text{MultiHead}(X,X)\) to extract each word's context.</p>
+    </div></div>
+  </div>
+
+  <div class="box math"><div class="label">Math track — why heads, sized</div>
+  With \(h\) heads each of dimension \(d_{\text{model}}/h\) (e.g. \(512/8=64\)), total compute equals one full-width attention, but each head can specialize — one tracks syntax, another coreference, another position. <b>Self-attention</b> means \(Q,K,V\) all come from the same sequence.</div>
+  <div class="box real"><div class="label">Real-world implication</div>
+  Interpretability researchers read these heads directly — "induction heads" that copy earlier patterns are believed to underlie in-context learning. Multi-head structure is also what Grouped-Query Attention (Part 6) trims to make inference cheaper.</div>
+</section>
+
+<section id="tf-block">
+  <h2 class="sec tf">★ Stage E</h2>
+  <h3>Add &amp; Norm + position-wise FFN = one encoder block</h3>
+  
+
+  <div class="vflow">
+    <div class="vrow pair">
+      <div class="pdfblock yellow"><div class="bt">Add and Norm</div>
+        <p>A residual connection adds the sublayer's input back to its output, then normalizes:</p>
+        $$\text{AddNorm}(x)=\text{LayerNorm}\big(x+\text{Sublayer}(x)\big)$$
+        <p style="font-size:13px">The residual preserves position/identity information; layer-norm keeps the mean and standard deviation of the vector elements stable, so training stays fast and stable.</p>
+      </div>
+      <div class="bubble r"><span class="bq">Why we need Layer Normalization</span>
+        it prevents the mean and standard deviation of embedding-vector elements from moving around, which makes training unstable and slow. Unlike batch normalization, layer normalization works at each embedding vector (not at the batch level). Hinton's team introduced it because applying batch norm to recurrent networks was impractical.
+      </div>
+    </div>
+    <div class="vdown">▼</div>
+    <div class="vrow"><div class="pdfblock teal" style="max-width:680px;margin:0 auto"><div class="bt">Position wise Feed Forward Network</div>
+      $$\text{FFN}(x)=\text{ReLU}(xW_1+b_1)\,W_2+b_2$$
+      <p style="font-size:13.5px">The dimension of \(x\) increases from 512 to 2048 by \(W_1\) and reduces from 2048 back to 512 by \(W_2\). Weights are shared across all positions in the layer. ReLU discards negatives, so information is lost — but expanding the dimensionality <i>before</i> ReLU makes it more likely to preserve information. So we add non-linearity without losing much, thanks to the intermediate expansion.</p>
+    </div></div>
+    <div class="vdown">▼</div>
+    <div class="vrow"><div class="pdfblock plain" style="max-width:680px;margin:0 auto;border-style:dashed">
+      The transformer uses <b>six stacked encoder blocks</b>. The outputs from the last encoder block become the input features for the <b>decoder</b>.
+    </div></div>
+  </div>
+
+  <div class="box math"><div class="label">Math track — the encoder block, assembled</div>
+  $$\begin{aligned}
+  \mathbf{z}&=\text{LayerNorm}\big(\mathbf{x}+\text{MultiHead}(\mathbf{x},\mathbf{x})\big)\\[4pt]
+  \mathbf{h}&=\text{LayerNorm}\big(\mathbf{z}+\text{FFN}(\mathbf{z})\big)
+  \end{aligned}$$
+  Two sublayers, each wrapped in residual + LayerNorm. The <b>residual</b> gives gradients an identity path (Part 2.3) so deep stacks train; <b>LayerNorm</b> stabilizes per-token scale. The <b>FFN</b> holds most of the parameters and (per recent interpretability work) much of the model's stored factual knowledge.</div>
+
+  <p>That completes the encoder. The next stage builds the decoder.</p>
+</section>
+
+
+<section id="tf-decoder">
+  <h2 class="sec tf">★ Stage F — completing the picture</h2>
+  <h3>The Decoder, built step by step</h3>
+
+  <p>" Here is the decoder, drawn <b>top-to-bottom</b> in a consistent flowchart language — colored blocks, formulas inside, a "why?" reasoning bubble alongside. The decoder's job: <b>generate the output sequence one token at a time, attending both to what it has produced so far and to the encoder's understanding of the input.</b></p>
+
+  <p>A decoder block has <b>three</b> sublayers (the encoder had two). Reading top-down:</p>
+
+  <div class="flow">
+    <div class="fnote">↓ decoder input (previously generated tokens)</div>
+    <div class="fb emb"><div class="t">① Output embeddings + positional encoding</div>the tokens generated so far (shifted right)</div>
+    <div class="farrow">▼</div>
+    <div class="fb attn"><div class="t">② Masked Multi-Head Self-Attention</div>\(Q,K,V\) from decoder; future positions masked to \(-\infty\)</div>
+    <div class="farrow">▼</div>
+    <div class="fb norm"><div class="t">Add &amp; Norm</div>residual + LayerNorm</div>
+    <div class="farrow">▼</div>
+    <div class="fb dec"><div class="t">③ Cross-Attention (Encoder–Decoder)</div>\(Q\) from decoder, \(K,V\) from <b>encoder output</b><br>this is where the input sentence is consulted</div>
+    <div class="farrow">▼</div>
+    <div class="fb norm"><div class="t">Add &amp; Norm</div>residual + LayerNorm</div>
+    <div class="farrow">▼</div>
+    <div class="fb ffn"><div class="t">Position-wise Feed-Forward</div>\(\text{ReLU}(xW_1+b_1)W_2+b_2\) — same as encoder</div>
+    <div class="farrow">▼</div>
+    <div class="fb norm"><div class="t">Add &amp; Norm</div>\(\text{LayerNorm}(x+\text{FFN}(x))\)</div>
+    <div class="farrow">▼</div>
+    <div class="fb out"><div class="t">Linear + Softmax</div>project to vocab size \(V\), softmax → \(P(\text{next token})\)</div>
+    <div class="fnote">↓ final output probabilities</div>
+  </div>
+  <p class="cap" style="text-align:center">Recreated decoder block in a clean visual grammar. Stack ×6, and the encoder feeds every block's cross-attention (the K,V arrows).</p>
+
+  <h4>① Output embeddings, "shifted right"</h4>
+  <p>During training the decoder is fed the target sequence shifted right by one (prepended with a start token), so at each position it must predict the <i>next</i> token from only the previous ones. Same embedding + positional-encoding machinery as the encoder (Stage B).</p>
+
+  <h4>② Masked self-attention — the one new idea</h4>
+  <div class="box math"><div class="label">Math track — causal mask</div>
+  To predict token \(t\) honestly, the decoder must not peek at tokens \(&gt;t\). We add a mask \(M\) before softmax, with \(M_{ij}=0\) for \(j\le i\) and \(-\infty\) for \(j&gt;i\):
+  $$\text{MaskedAttn}(Q,K,V)=\text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}+M\right)V$$
+  The \(-\infty\) entries become 0 after softmax, so each position attends only to itself and the past. This is the exact trick used in a from-scratch GPT:</div>
+<pre><code>tril = torch.tril(torch.ones(T, T))
+attention_mat = attention_mat.masked_fill(tril == 0, float('-inf'))  # block the future
+attention_mat = F.softmax(attention_mat, dim=-1)                     # future → weight 0</code></pre>
+
+  <h4>③ Cross-attention — where encoder meets decoder</h4>
+  <p>This sublayer is the bridge these notes pointed at. It's ordinary attention, but with a twist in where Q, K, V come from:</p>
+  <div class="eq">$$\text{CrossAttn}=\text{softmax}\!\left(\frac{Q_{\text{dec}}\,K_{\text{enc}}^\top}{\sqrt{d_k}}\right)V_{\text{enc}}$$</div>
+  <p>The <b>Query comes from the decoder</b> (what am I trying to generate now?), while <b>Keys and Values come from the encoder's final output</b> (the fully-understood input sentence). So when translating, each output word looks back at the most relevant input words — this is where "chat" aligns to "cat"↔"chat". <b>This single sublayer is the entire reason the architecture is called encoder–decoder.</b></p>
+
+  <h4>Linear + Softmax head</h4>
+  <p>The top decoder block's output vector per position is projected by a linear layer to vocabulary size \(V\), then softmaxed into \(P(\text{next token}\mid\text{context})\). Training minimizes cross-entropy against the true next token — the same softmax+CE from Part 1, now over the whole vocabulary.</p>
+
+  <div class="box link"><div class="label">Encoder block vs. decoder block — the exact difference</div>
+  <b>Encoder block</b> = [self-attention] → [FFN], each with Add&amp;Norm (2 sublayers).<br>
+  <b>Decoder block</b> = [<i>masked</i> self-attention] → [<i>cross</i>-attention to encoder] → [FFN], each with Add&amp;Norm (3 sublayers).<br>
+  The two new ingredients are the <b>causal mask</b> and <b>cross-attention</b>. That's the whole decoder.</div>
+</section>
+
+<section id="tf-full">
+  <h2 class="sec tf">★ Stage G</h2>
+  <h3>The full architecture, training, and the three families</h3>
+
+  <p>Putting both halves together — the complete Transformer as Vaswani et al. (2017) drew it, now as a flow, each tower reading top-to-bottom:</p>
+
+  <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin:20px 0">
+    <div class="flow" style="max-width:300px">
+      <div class="fnote">ENCODER ×6 &nbsp;↓ source sentence</div>
+      <div class="fb emb"><div class="t">Input embed + positional</div></div>
+      <div class="farrow">▼</div>
+      <div class="fb attn"><div class="t">Multi-Head Self-Attention</div>(unmasked — sees whole input)</div>
+      <div class="farrow">▼</div>
+      <div class="fb norm"><div class="t">Add &amp; Norm</div>FFN</div>
+      <div class="fnote">↓ encoder output → feeds decoder K,V</div>
+    </div>
+    <div class="flow" style="max-width:320px">
+      <div class="fnote">DECODER ×6 &nbsp;↓ output (shifted right)</div>
+      <div class="fb emb"><div class="t">Output embed + positional</div></div>
+      <div class="farrow">▼</div>
+      <div class="fb attn"><div class="t">Masked Self-Attention</div></div>
+      <div class="farrow">▼</div>
+      <div class="fb dec"><div class="t">Cross-Attention</div>K,V ⟵ encoder output</div>
+      <div class="farrow">▼</div>
+      <div class="fb norm"><div class="t">Add &amp; Norm</div>FFN</div>
+      <div class="farrow">▼</div>
+      <div class="fb out"><div class="t">Linear + Softmax</div></div>
+      <div class="fnote">↓ output probabilities</div>
+    </div>
+  </div>
+  <p class="cap" style="text-align:center">The encoder's final output feeds the K,V of every decoder cross-attention (the ⟵ arrow). Both towers are 6 identical blocks in the original paper.</p>
+
+  <h4>Training: teacher forcing &amp; parallelism</h4>
+  <p>The encoder runs once over the whole source. The decoder is trained with <b>teacher forcing</b>: feed the true (shifted) target and, thanks to the causal mask, predict all positions <i>in parallel</i> in a single pass — a massive speedup over an RNN's step-by-step training. At inference it's <b>autoregressive</b>: generate one token, append, feed back, repeat.</p>
+
+  <h4>The three architectural families (this is the payoff)</h4>
+  <table>
+    <tr><th>Family</th><th>Which half</th><th>Attention</th><th>Best at</th><th>Examples</th></tr>
+    <tr><td><b>Encoder-only</b></td><td>Encoder</td><td>Bidirectional (unmasked)</td><td>Understanding: classification, embeddings, retrieval</td><td>BERT, embedding models</td></tr>
+    <tr><td><b>Decoder-only</b></td><td>Decoder</td><td>Causal (masked)</td><td>Generation: text, chat, code</td><td><b>GPT, Claude, Gemini, LLaMA</b></td></tr>
+    <tr><td><b>Encoder–Decoder</b></td><td>Both</td><td>Both + cross-attn</td><td>Sequence-to-sequence: translation, summarization</td><td>T5, original Transformer, an encoder–decoder translator</td></tr>
+  </table>
+  <div class="box real"><div class="label">Real-world implication — why frontier LLMs are decoder-only</div>
+  Almost every frontier chat model (GPT-4, Claude, Gemini, LLaMA) is <b>decoder-only</b>. Reasons: a single stack is simpler and scales cleanly; the causal LM objective provides a training signal at <i>every</i> position over unlimited raw text; and cross-attention's separate encoder is unnecessary when you can just concatenate everything (instructions, documents, history) into one context and let masked self-attention handle it. frontier LLMs keep only the decoder tower.</div>
+
+  <div class="quiz"><span class="q">Check:</span> What two sublayers does a decoder block have that an encoder block doesn't (or that differ)? <i>(1) self-attention is masked/causal; (2) an extra cross-attention sublayer taking K,V from the encoder.)</i></div>
+</section>
+
+<section id="references">
+  <h2 class="sec">Appendix</h2>
+  <h3>References &amp; further reading</h3>
+  <p>The explanations here synthesize the primary research literature with a few exceptional public explainers. Grouped below by type; everything is freely available online.</p>
+  <div class="refgroup"><h4>Research papers & primary sources</h4>
+  <ol class="reflist">
+    <li><span class="authors">Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser &amp; Polosukhin (2017). </span><span class="rtitle">Attention Is All You Need</span>. The original Transformer; the architecture recreated block by block here. <a href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a></li>
+    <li><span class="authors">Bahdanau, Cho &amp; Bengio (2014). </span><span class="rtitle">Neural Machine Translation by Jointly Learning to Align and Translate</span>. The attention mechanism that predated the Transformer. <a href="https://arxiv.org/abs/1409.0473">https://arxiv.org/abs/1409.0473</a></li>
+    <li><span class="authors">Ba, Kiros &amp; Hinton (2016). </span><span class="rtitle">Layer Normalization</span>. The Add &amp; Norm sublayer. <a href="https://arxiv.org/abs/1607.06450">https://arxiv.org/abs/1607.06450</a></li>
+    <li><span class="authors">He, Zhang, Ren &amp; Sun (2015). </span><span class="rtitle">Deep Residual Learning for Image Recognition</span>. Residual connections used around each sublayer. <a href="https://arxiv.org/abs/1512.03385">https://arxiv.org/abs/1512.03385</a></li>
+    <li><span class="authors">Devlin, Chang, Lee &amp; Toutanova (2018). </span><span class="rtitle">BERT: Pre-training of Deep Bidirectional Transformers</span>. The encoder-only family. <a href="https://arxiv.org/abs/1810.04805">https://arxiv.org/abs/1810.04805</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Visualizations & explainers</h4>
+  <ol class="reflist">
+    <li><span class="authors">Jay Alammar. </span><span class="rtitle">The Illustrated Transformer</span>. Colored vector-boxes and step-by-step attention arithmetic. <a href="https://jalammar.github.io/illustrated-transformer/">https://jalammar.github.io/illustrated-transformer/</a></li>
+    <li><span class="authors">3Blue1Brown (Grant Sanderson). </span><span class="rtitle">Attention in transformers, step by step</span>. Attention as a weighted-lookup grid. <a href="https://www.3blue1brown.com/lessons/attention">https://www.3blue1brown.com/lessons/attention</a></li>
+    <li><span class="authors">Wang et al., Georgia Tech Polo Club. </span><span class="rtitle">Transformer Explainer</span>. Live in-browser GPT-2; the Q/K/V search-engine analogy. <a href="https://poloclub.github.io/transformer-explainer/">https://poloclub.github.io/transformer-explainer/</a></li>
+    <li><span class="authors">KiKaBeN. </span><span class="rtitle">Transformer Positional Encoding / Self-Attention</span>. Worked walkthroughs of positional encoding and self-attention. <a href="https://kikaben.com/transformers-positional-encoding/">https://kikaben.com/transformers-positional-encoding/</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Further reading</h4>
+  <ol class="reflist">
+    <li><span class="authors">Harvard NLP (Rush et al.). </span><span class="rtitle">The Annotated Transformer</span>. The paper reimplemented line-by-line in PyTorch. <a href="https://nlp.seas.harvard.edu/annotated-transformer/">https://nlp.seas.harvard.edu/annotated-transformer/</a></li>
+    <li><span class="authors">Andrej Karpathy. </span><span class="rtitle">Let's build GPT: from scratch, in code</span>. Implements a decoder Transformer end to end. <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY">https://www.youtube.com/watch?v=kCc8FmEb1nY</a></li>
+  </ol></div>
+  <p class="refnote">Frontier-model details reflect publicly discussed methods; the exact architectures of proprietary systems (Claude, Gemini, GPT-4) are not officially disclosed and are described at the level of well-established public understanding.</p>
+</section>
+</main>
+</div>
+<script>
+window.addEventListener('scroll',function(){
+  var h=document.documentElement, b=document.body;
+  var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+  document.getElementById('bar').style.width=(sh>0?(st/sh*100):0)+'%';
+});
+</script>
+</body>
+</html>

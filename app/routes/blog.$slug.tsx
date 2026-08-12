@@ -89,7 +89,7 @@ export default function BlogArticlePage() {
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="theme-scope min-h-screen bg-slate-950 text-white">
       {/* Article Schema */}
       <script
         type="application/ld+json"

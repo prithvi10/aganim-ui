@@ -1,0 +1,123 @@
+/* =========================================================================
+   Light / Dark theme layer for the public site (profile + blog + landing).
+   The site was authored with hard-coded dark Tailwind utilities
+   (bg-slate-950, text-white, text-slate-3xx, border-white/xx, bg-white/xx).
+   Rather than rewrite every className, we remap those exact utilities to a
+   bright palette whenever <html> carries the `light` class. Dark stays the
+   default (no class / `dark`), so nothing changes unless light is chosen.
+   Scoped under `.theme-scope` on the page shells so the Shopify admin
+   (Polaris) and portal are never affected.
+   ========================================================================= */
+
+:root {
+  /* fonts */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+.theme-scope {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  letter-spacing: -0.005em;
+}
+
+/* Headings get slightly tighter tracking + display weight for polish */
+.theme-scope h1,
+.theme-scope h2,
+.theme-scope h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* Smooth the flip between themes */
+html.light .theme-scope,
+html.light .theme-scope * {
+  transition: background-color 0.25s ease, border-color 0.25s ease,
+    color 0.2s ease;
+}
+
+/* =========================================================================
+   LIGHT THEME OVERRIDES
+   Only apply inside `.theme-scope` under `html.light`.
+   ========================================================================= */
+
+/* ---- Surfaces / backgrounds ---- */
+html.light .theme-scope.bg-slate-950,
+html.light .theme-scope .bg-slate-950 { background-color: #f8fafc !important; }
+html.light .theme-scope .bg-slate-900 { background-color: #eef2f7 !important; }
+html.light .theme-scope .bg-slate-950\/70 { background-color: rgba(248,250,252,0.82) !important; }
+html.light .theme-scope .bg-slate-950\/95 { background-color: rgba(248,250,252,0.95) !important; }
+html.light .theme-scope .bg-slate-950\/40 { background-color: rgba(248,250,252,0.6) !important; }
+html.light .theme-scope .bg-slate-900\/80 { background-color: rgba(238,242,247,0.85) !important; }
+
+/* subtle "glass" tints: white-on-dark becomes ink-on-light */
+html.light .theme-scope .bg-white\/5 { background-color: rgba(15,23,42,0.035) !important; }
+html.light .theme-scope .bg-white\/10 { background-color: rgba(15,23,42,0.06) !important; }
+html.light .theme-scope .bg-white\/\[0\.03\] { background-color: rgba(15,23,42,0.025) !important; }
+html.light .theme-scope .bg-white\/\[0\.05\] { background-color: rgba(15,23,42,0.04) !important; }
+html.light .theme-scope .bg-white\/\[0\.07\] { background-color: rgba(15,23,42,0.05) !important; }
+
+/* ---- Text ---- */
+html.light .theme-scope.text-white,
+html.light .theme-scope .text-white { color: #0f172a !important; }
+html.light .theme-scope .text-slate-200 { color: #1e293b !important; }
+html.light .theme-scope .text-slate-300 { color: #334155 !important; }
+html.light .theme-scope .text-slate-400 { color: #52617a !important; }
+html.light .theme-scope .text-slate-500 { color: #64748b !important; }
+
+/* keep hover:text-white readable on light */
+html.light .theme-scope .hover\:text-white:hover { color: #0f172a !important; }
+
+/* ---- Borders ---- */
+html.light .theme-scope .border-white\/5 { border-color: rgba(15,23,42,0.06) !important; }
+html.light .theme-scope .border-white\/10 { border-color: rgba(15,23,42,0.10) !important; }
+html.light .theme-scope .border-white\/15 { border-color: rgba(15,23,42,0.12) !important; }
+html.light .theme-scope .border-white\/20 { border-color: rgba(15,23,42,0.16) !important; }
+html.light .theme-scope .border-white\/25 { border-color: rgba(15,23,42,0.20) !important; }
+html.light .theme-scope .border-white\/30 { border-color: rgba(15,23,42,0.24) !important; }
+html.light .theme-scope .border-white\/40 { border-color: rgba(15,23,42,0.32) !important; }
+html.light .theme-scope .border-white\/60 { border-color: rgba(15,23,42,0.45) !important; }
+html.light .theme-scope .hover\:border-white\/20:hover { border-color: rgba(15,23,42,0.20) !important; }
+html.light .theme-scope .hover\:border-white\/25:hover { border-color: rgba(15,23,42,0.28) !important; }
+html.light .theme-scope .hover\:border-white\/40:hover { border-color: rgba(15,23,42,0.38) !important; }
+
+/* dividers */
+html.light .theme-scope .divide-white\/10 > * + * { border-color: rgba(15,23,42,0.10) !important; }
+
+/* ---- Shadows (soften the heavy black glows) ---- */
+html.light .theme-scope .shadow-black\/40 { --tw-shadow-color: rgba(15,23,42,0.12) !important; box-shadow: 0 20px 40px -20px rgba(15,23,42,0.18) !important; }
+html.light .theme-scope .shadow-black\/50 { box-shadow: 0 24px 48px -24px rgba(15,23,42,0.22) !important; }
+
+/* ---- Gradients: slate-950/900 stops and white stops flip ---- */
+html.light .theme-scope .from-slate-900\/90 { --tw-gradient-from: rgba(238,242,247,0.9) var(--tw-gradient-from-position) !important; }
+html.light .theme-scope .from-slate-900\/70 { --tw-gradient-from: rgba(238,242,247,0.7) var(--tw-gradient-from-position) !important; }
+html.light .theme-scope .via-slate-900 { --tw-gradient-to: rgba(238,242,247,0) var(--tw-gradient-to-position) !important; --tw-gradient-stops: var(--tw-gradient-from), #eef2f7 var(--tw-gradient-via-position), var(--tw-gradient-to) !important; }
+html.light .theme-scope .via-slate-900\/50 { --tw-gradient-stops: var(--tw-gradient-from), rgba(238,242,247,0.5) var(--tw-gradient-via-position), var(--tw-gradient-to) !important; }
+html.light .theme-scope .via-slate-950 { --tw-gradient-stops: var(--tw-gradient-from), #f8fafc var(--tw-gradient-via-position), var(--tw-gradient-to) !important; }
+html.light .theme-scope .to-slate-950 { --tw-gradient-to: #f8fafc var(--tw-gradient-to-position) !important; }
+html.light .theme-scope .via-white\/5 { --tw-gradient-stops: var(--tw-gradient-from), rgba(15,23,42,0.05) var(--tw-gradient-via-position), var(--tw-gradient-to) !important; }
+html.light .theme-scope .from-white\/10 { --tw-gradient-from: rgba(15,23,42,0.06) var(--tw-gradient-from-position) !important; }
+html.light .theme-scope .from-white\/5 { --tw-gradient-from: rgba(15,23,42,0.04) var(--tw-gradient-from-position) !important; }
+html.light .theme-scope .from-white { --tw-gradient-from: #ffffff var(--tw-gradient-from-position) !important; }
+html.light .theme-scope .to-white { --tw-gradient-to: #ffffff var(--tw-gradient-to-position) !important; }
+
+/* ---- Decorative colored blur blobs: dial down so they don't muddy light bg ---- */
+html.light .theme-scope .bg-fuchsia-500\/20,
+html.light .theme-scope .bg-fuchsia-500\/15 { background-color: rgba(217,70,239,0.10) !important; }
+html.light .theme-scope .bg-sky-400\/20,
+html.light .theme-scope .bg-sky-400\/15 { background-color: rgba(56,189,248,0.10) !important; }
+
+/* category chips keep their hue but need readable text on light */
+html.light .theme-scope .text-sky-300 { color: #0369a1 !important; }
+html.light .theme-scope .text-emerald-300 { color: #047857 !important; }
+html.light .theme-scope .text-amber-300 { color: #b45309 !important; }
+html.light .theme-scope .text-fuchsia-300 { color: #a21caf !important; }
+html.light .theme-scope .text-violet-300 { color: #6d28d9 !important; }
+html.light .theme-scope .text-fuchsia-200 { color: #86198f !important; }
+
+/* body background follows theme so there's no dark gutter around the shell */
+html.light body { background-color: #f8fafc; }

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modern Frontier LLMs: From the Transformer to Claude, Gemini, and GPT</title>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],tags:'none'},svg:{fontCache:'global'}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  :root{ color-scheme: light; --bg:#f7f6f3; --panel:#ffffff; --ink:#1c1b1a; --muted:#5f5b55; --line:#e5e1d8; --accent:#b5432a; --accent2:#2a5db5; --code-bg:#1e1d1b; --code-ink:#e8e4dc; --ok:#2f7d4f; --chip:#efe9dd; --purple:#6a3fb5; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;line-height:1.65;font-size:17px}
+  .layout{display:flex;max-width:1220px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;width:290px;padding:24px 16px;border-right:1px solid var(--line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px}
+  nav h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  nav h2:first-child{margin-top:0}
+  nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 8px;border-radius:6px;margin-bottom:1px;line-height:1.35}
+  nav a:hover{background:var(--chip);color:var(--ink)}
+  nav a.sub{padding-left:20px;font-size:12px}
+  nav a.tf{color:var(--purple)}
+  main{flex:1;min-width:0;padding:44px 56px 140px;max-width:840px}
+  header.hero{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:10px}
+  .kicker{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:42px;line-height:1.08;margin:12px 0 10px;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:18px}
+  .meta{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:var(--muted);margin-top:16px;display:flex;gap:18px;flex-wrap:wrap}
+  section{padding-top:40px;margin-top:14px;border-top:1px solid var(--line)}
+  section.module{border-top:3px solid var(--ink)}
+  h2.sec{font-size:14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px;font-weight:700}
+  h2.sec.tf{color:var(--purple)}
+  h3{font-size:30px;margin:2px 0 14px;letter-spacing:-.01em;line-height:1.15}
+  h4{font-size:21px;margin:30px 0 8px}
+  h5{font-size:17px;margin:22px 0 6px;font-family:-apple-system,sans-serif;font-weight:700;color:#333}
+  p{margin:12px 0}
+  .lead{font-size:19px;color:#333}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--chip);padding:1px 5px;border-radius:4px}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.5;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit}
+  .eq{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent2);padding:6px 18px;border-radius:8px;margin:16px 0;overflow-x:auto}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:18px 0}
+  .box.intu{border-left:4px solid var(--accent)}
+  .box.link{border-left:4px solid var(--ok)}
+  .box.math{border-left:4px solid var(--accent2)}
+  .box.real{border-left:4px solid var(--purple)}
+  .box .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .box.link .label{color:var(--ok)} .box.math .label{color:var(--accent2)} .box.real .label{color:var(--purple)}
+  .chip{display:inline-block;font-family:-apple-system,sans-serif;font-size:11px;background:var(--chip);color:var(--muted);padding:3px 9px;border-radius:20px;margin:0 4px 4px 0}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--chip);font-family:-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  .fromfolder{font-family:-apple-system,sans-serif;font-size:11px;color:var(--ok);font-weight:600;letter-spacing:.04em}
+  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px}
+  details summary{cursor:pointer;padding:14px 0;font-family:-apple-system,sans-serif;font-weight:600;font-size:15px}
+  details[open]{padding-bottom:12px}
+  .quiz{background:var(--panel);border:1px dashed var(--accent2);border-radius:10px;padding:14px 18px;margin:16px 0;font-family:-apple-system,sans-serif;font-size:14.5px}
+  .quiz .q{font-weight:600}
+  .progress-wrap{position:fixed;top:0;left:0;height:3px;width:100%;background:transparent;z-index:50}
+  #bar{height:100%;width:0;background:var(--accent)}
+  ul.tight li,ol.tight li{margin:6px 0}
+  .arrowflow{font-family:-apple-system,sans-serif;font-size:14px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:14px 0;line-height:1.7}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  figure.fig{margin:22px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  figure.fig img{max-width:100%;height:auto;border-radius:8px;display:block;margin:0 auto}
+  figure.fig figcaption{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.45;text-align:left}
+  figure.fig .yours{color:var(--ok);font-weight:600}
+  .figrow{display:flex;gap:14px;flex-wrap:wrap;margin:22px 0}
+  .figrow figure.fig{flex:1;min-width:240px;margin:0}
+  /* flow diagram blocks (flowchart blocks) */
+  .flow{max-width:520px;margin:20px auto;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;align-items:stretch;gap:0}
+  .fb{width:100%;box-sizing:border-box;border:2px solid #333;border-radius:8px;padding:12px 16px;margin:0;text-align:center;background:#fff;font-size:14px;flex:0 0 auto}
+  .fb .t{font-weight:700;margin-bottom:4px}
+  .fb.emb{background:#fdf1ee} .fb.attn{background:#fff7cf} .fb.norm{background:#fff9c4} .fb.ffn{background:#c7f0ee} .fb.out{background:#e7f0ff} .fb.dec{background:#efe4ff}
+  .farrow{text-align:center;color:#b5432a;font-size:20px;line-height:1;margin:6px 0;flex:0 0 auto}
+  .fnote{font-size:12px;color:var(--muted);font-style:italic;text-align:center;margin:6px 0;flex:0 0 auto}
+  .fsub{font-size:12px;color:var(--muted);margin-top:4px;font-style:normal}
+  .flow a{color:inherit;text-decoration:none;display:block}
+  .flow a:hover .fb{box-shadow:0 0 0 3px rgba(106,63,181,.25)}
+  @media(max-width:940px){nav{display:none}main{padding:26px 20px 90px}h1{font-size:32px}}
+
+  /* --- PDF-recreation blocks (diagram aesthetic) --- */
+  .pdfblock{border:2px solid #222;border-radius:4px;padding:20px 26px;margin:20px auto;max-width:640px;text-align:center;background:#fdf6ef;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+  .pdfblock.emb{background:#fdf1ee} .pdfblock.pos{background:#fff}
+  .pdfblock.attn{background:#fbeee9} .pdfblock.yellow{background:#fff9c4} .pdfblock.teal{background:#c7f0ee} .pdfblock.plain{background:#fff}
+  .pdfblock .bt{font-weight:800;font-size:17px;margin-bottom:10px;letter-spacing:.01em}
+  .pdfblock .formula{font-family:"SF Mono",ui-monospace,Menlo,monospace;background:#1e1d1b;color:#e8e4dc;display:inline-block;padding:8px 16px;border-radius:6px;margin:10px 0;font-size:14px}
+  .pdfblock p{margin:8px 0;font-size:14.5px}
+  .pdfblock .u{text-decoration:underline}
+  .bubble{position:relative;background:#fff;border:2px solid #222;border-radius:16px;padding:14px 20px;margin:22px auto;max-width:560px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.55}
+  .bubble .bq{font-weight:800;display:block;margin-bottom:6px;text-align:center}
+  .bubble:after{content:"";position:absolute;bottom:-14px;left:60px;border-width:14px 14px 0 0;border-style:solid;border-color:#222 transparent transparent transparent}
+  .bubble:before{content:"";position:absolute;bottom:-10px;left:63px;border-width:11px 11px 0 0;border-style:solid;border-color:#fff transparent transparent transparent;z-index:1}
+  .bubble.r:after{left:auto;right:60px;border-width:14px 0 0 14px} .bubble.r:before{left:auto;right:63px;border-width:11px 0 0 11px}
+  .bubble a{color:var(--accent2)}
+  .pdfarrow{text-align:center;color:#333;font-size:22px;line-height:1;margin:4px 0}
+  .pdflabel{text-align:center;font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);font-weight:700;margin:8px 0}
+  .matgrid{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:16px 0;overflow-x:auto;white-space:pre;line-height:1.5}
+  .worked{background:#fbfaf7;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:8px 20px 16px;margin:20px 0}
+  .worked .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--purple);margin:12px 0 2px}
+  .twocol{display:flex;gap:18px;flex-wrap:wrap} .twocol>div{flex:1;min-width:240px}
+
+  /* top-to-bottom PDF recreation flow */
+  .vflow{max-width:820px;margin:18px auto;font-family:-apple-system,sans-serif}
+  .vrow{display:flex;align-items:flex-start;justify-content:center;gap:18px;flex-wrap:wrap}
+  .vrow.pair .pdfblock{flex:1 1 320px;max-width:400px;margin:0}
+  .vrow.pair .bubble{flex:1 1 300px;max-width:380px;margin:0}
+  .vdown{text-align:center;color:#b5432a;font-size:22px;line-height:1;margin:8px 0}
+  @media(max-width:820px){.vrow{flex-direction:column;align-items:stretch}}
+</style>
+
+<style>
+/* ===== GPT visualization system (self-contained, static) ===== */
+:root{ --v-tok:#2a5db5; --v-q:#c8860a; --v-k:#1f8a80; --v-v:#b5432a; --v-out:#6a3fb5; }
+.viz{margin:26px 0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.viz-cap{font-size:12.5px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5;font-style:italic}
+.viz-legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;color:var(--muted);margin:6px 0 16px}
+.viz-legend span{display:inline-flex;align-items:center;gap:5px}
+.viz-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+/* ---- Diagram 1: token-flow pipeline ---- */
+.pipe{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.pipe .stage{display:flex;flex-direction:column;align-items:center;gap:6px}
+.pipe .scard{border:2px solid #333;border-radius:10px;background:#fff;padding:10px 12px;min-width:74px;text-align:center}
+.pipe .stitle{font-weight:700;font-size:12px;margin-bottom:2px}
+.pipe .sdim{font-size:10.5px;color:var(--muted)}
+.pipe .arw{color:var(--accent);font-size:22px;line-height:1}
+.chiprow{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.wchip{background:#eef2fb;border:1px solid var(--v-tok);color:var(--v-tok);border-radius:6px;padding:3px 7px;font-size:12px;font-weight:600}
+.vec{display:inline-flex;flex-direction:column;gap:2px}
+.vec i{width:20px;height:7px;border-radius:2px;display:block;background:var(--v-tok);opacity:.85}
+.vec i:nth-child(2){opacity:.6}.vec i:nth-child(3){opacity:1}.vec i:nth-child(4){opacity:.45}.vec i:nth-child(5){opacity:.75}
+.vecrow{display:flex;gap:6px;justify-content:center}
+.stack{position:relative}
+.stack .scard{position:relative;z-index:3}
+.stack:before,.stack:after{content:"";position:absolute;inset:0;border:2px solid #333;border-radius:10px;background:#fff}
+.stack:before{transform:translate(5px,5px);z-index:1;opacity:.5}
+.stack:after{transform:translate(3px,3px);z-index:2;opacity:.75}
+
+/* ---- shared probability bars ---- */
+.pbars{max-width:340px;margin:0 auto}
+.pbar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}
+.pbar .tk{width:58px;text-align:right;font-family:"SF Mono",ui-monospace,Menlo,monospace}
+.pbar .track{flex:1;background:#efe9dd;border-radius:5px;height:16px;overflow:hidden}
+.pbar .fill{height:100%;background:var(--v-out);border-radius:5px}
+.pbar .pv{width:38px;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+.pbar.top .fill{background:var(--v-out)}
+.pbar.dim .fill{background:#b9a9d6}
+
+/* ---- Diagram 2: attention ---- */
+.attn-sent{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:8px 0 4px}
+.attn-sent .w{font-size:15px;padding:4px 8px;border-radius:6px;background:#faf8f4;border:1px solid var(--line)}
+.attn-sent .w.focus{background:#f3ecff;border-color:var(--v-out);font-weight:700}
+.agrid{display:grid;gap:3px;justify-content:center;margin:14px auto}
+.agrid .cell{width:40px;height:30px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#111;border:1px solid #e3ddd2}
+.agrid .hd{background:none;border:none;font-size:11px;color:var(--muted);font-weight:600;width:40px;height:22px;display:flex;align-items:center;justify-content:center}
+.agrid .masked{background:repeating-linear-gradient(45deg,#eee,#eee 4px,#e3e3e3 4px,#e3e3e3 8px);color:#bbb}
+.qkv-key{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:14px 0;font-size:13px}
+.qkv-key .kk{border:1px solid var(--line);border-radius:8px;padding:8px 12px;max-width:210px;background:#fff}
+.qkv-key .kk b{display:block;margin-bottom:2px}
+.kq{border-left:3px solid var(--v-q)} .kk2{border-left:3px solid var(--v-k)} .kv{border-left:3px solid var(--v-v)}
+
+/* ---- Diagram 3: autoregressive loop ---- */
+.loop{max-width:520px;margin:0 auto}
+.looprow{display:flex;align-items:center;gap:12px;margin:10px 0;flex-wrap:wrap}
+.looprow .ctx{flex:1;min-width:150px;font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;background:#faf8f4;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.looprow .ctx .new{background:#ece3fb;color:var(--v-out);border-radius:4px;padding:1px 4px;font-weight:700}
+.loop .mini{min-width:150px}
+.loopnote{text-align:center;color:var(--v-out);font-size:13px;font-weight:600;margin:4px 0}
+@media(max-width:620px){.agrid .cell,.agrid .hd{width:30px}.agrid .cell{height:26px}}
+</style>
+
+<style>
+  /* references section */
+  section#references{border-top:3px solid var(--ink)}
+  .refgroup{margin:18px 0}
+  .refgroup h4{font-size:15px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em;color:var(--ink);margin:22px 0 8px;text-transform:none}
+  ol.reflist{list-style:none;counter-reset:ref;padding:0;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+  ol.reflist li{counter-increment:ref;position:relative;padding:9px 0 9px 40px;border-bottom:1px solid var(--line);line-height:1.5}
+  ol.reflist li:before{content:counter(ref);position:absolute;left:0;top:9px;width:26px;height:26px;background:var(--chip);color:var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  ol.reflist li .authors{color:var(--muted)}
+  ol.reflist li .rtitle{font-weight:600;color:var(--ink)}
+  ol.reflist a{color:var(--accent2);text-decoration:none}
+  ol.reflist a:hover{text-decoration:underline}
+  .refnote{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:16px;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div class="progress-wrap"><div id="bar"></div></div>
+<div class="layout">
+<nav>
+  <h2>This Post</h2>
+  <a href="#intro">Introduction</a>
+  <a href="#gpt">1 · Building a GPT at scale</a>
+  <a href="#upgrades">2 · The architectural upgrades</a>
+  <a href="#alignment">3 · From predictor to assistant</a>
+  <a href="#capabilities">4 · Capabilities on top</a>
+  <a href="#synthesis">Synthesis & leadership</a>
+
+  <a href="#references">References &amp; reading</a>
+  <h2>The Series</h2>
+  <a href="foundations-of-deep-learning.html">1 · Foundations of Deep Learning</a>
+  <a href="the-transformer-deep-dive.html">2 · The Transformer, Deep Dive</a>
+  <a href="modern-frontier-llms.html">3 · Modern Frontier LLMs</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="kicker">Deep Learning, In Depth · Part 3 of 3</div>
+  <h1>Modern Frontier LLMs</h1>
+  <p class="sub">From the Transformer to Claude, Gemini, and GPT — the upgrades, the intuition, and the strategy.</p>
+  <div class="meta"><span>By Prithviraj</span><span>Part 3 of 3</span><span>~30 min read</span></div>
+</header>
+<section id="intro">
+  <p class="lead">You now understand the 2017 Transformer completely — attention, encoders, decoders, the whole flow. So here is the question this final post answers: <b>what actually separates that textbook Transformer from the frontier models — Claude, Gemini, GPT-4-class systems — that people build companies on today?</b></p>
+  <p>The reassuring answer, and the thesis of this post, is that the gap is smaller than the hype suggests. Frontier models are not a different paradigm. They are the decoder you already know, made <b>wider, deeper, cheaper to run, better aligned, and multimodal</b> — through a series of individually understandable upgrades. Once you can name each upgrade and say what it replaces and why, the frontier stops looking like magic and starts looking like engineering.</p>
+  <p>I've written this post in a deliberately dual register. Each section has the <b>technical core</b> — the mechanism, the math, the reason it works — and a <b>strategic lens</b>: what this choice costs, what it buys, and what it means for anyone deciding how to build with or invest in these systems. That second lens is the one that matters if your interest in AI is eventually about leading the work, not only doing it.</p>
+  <div class="box intu"><div class="label">The one-sentence map of a frontier model</div>
+  A modern LLM is a deep stack of <b>masked multi-head attention + feed-forward blocks</b> (each wrapped in residual connections and normalization), trained by gradient descent to <b>predict the next token</b>, then <b>aligned</b> into a helpful assistant — and every frontier upgrade is an optimization of that single skeleton.</div>
+</section>
+
+<section id="gpt">
+  <h2 class="sec">Part 1 · The base object</h2>
+  <h3>Building a GPT — a decoder-only Transformer at scale</h3>
+
+  <p>Before the upgrades, we need the object they upgrade. A GPT is the <b>decoder tower</b> from Part 2 of this series, with one simplification: there is no separate encoder, so the cross-attention sublayer is removed. What remains is a stack of blocks, each doing masked self-attention followed by a feed-forward network, trained on exactly one objective — <b>predict the next token</b>.</p>
+
+  <div class="box intu"><div class="label">Why "just predict the next token" is deceptively powerful</div>
+  It sounds almost trivial. But to predict the next token well across all of human text, a model is quietly forced to learn grammar, facts, arithmetic, translation, code structure, reasoning patterns, and the rhythms of dialogue — because all of those are needed <i>somewhere</i> to reduce prediction error. The objective is simple; the competence it demands is not. This is the central surprise of the last decade: a single, dumb-sounding objective, scaled far enough, produces general capability.</div>
+
+
+  <div class="viz">
+    <div class="viz-legend">
+      <span><i style="background:var(--v-tok)"></i>token / embedding</span>
+      <span><i style="background:var(--v-out)"></i>output probabilities</span>
+    </div>
+    <div class="pipe">
+      <div class="stage">
+        <div class="scard"><div class="stitle">Prompt</div><div class="chiprow" style="margin-top:4px"><span class="wchip" style="background:#faf8f4;border-color:var(--line);color:#333">"The cat sat"</span></div></div>
+        <div class="sdim">raw text</div>
+      </div>
+      <div class="arw">&#8594;</div>
+      <div class="stage">
+        <div class="scard"><div class="stitle">Tokenize</div><div class="chiprow" style="margin-top:4px"><span class="wchip">The</span><span class="wchip">cat</span><span class="wchip">sat</span></div></div>
+        <div class="sdim">subword IDs</div>
+      </div>
+      <div class="arw">&#8594;</div>
+      <div class="stage">
+        <div class="scard"><div class="stitle">Embed</div><div class="vecrow" style="margin-top:6px"><span class="vec"><i></i><i></i><i></i><i></i><i></i></span><span class="vec"><i></i><i></i><i></i><i></i><i></i></span><span class="vec"><i></i><i></i><i></i><i></i><i></i></span></div></div>
+        <div class="sdim">one vector / token</div>
+      </div>
+      <div class="arw">&#8594;</div>
+      <div class="stage">
+        <div class="stack"><div class="scard"><div class="stitle">Transformer<br>block &times;N</div><div class="sdim" style="margin-top:3px">attention + FFN</div></div></div>
+        <div class="sdim">context mixing</div>
+      </div>
+      <div class="arw">&#8594;</div>
+      <div class="stage">
+        <div class="scard"><div class="stitle">Unembed<br>+ softmax</div><div class="sdim" style="margin-top:3px">&#8594; vocabulary</div></div>
+        <div class="sdim">scores &#8594; probabilities</div>
+      </div>
+      <div class="arw">&#8594;</div>
+      <div class="stage">
+        <div class="scard" style="padding:10px 10px"><div class="stitle">Next token</div>
+          <div class="pbars" style="max-width:150px;margin-top:6px">
+            <div class="pbar top"><span class="tk">on</span><span class="track"><span class="fill" style="width:88%"></span></span></div>
+            <div class="pbar dim"><span class="tk">down</span><span class="track"><span class="fill" style="width:40%"></span></span></div>
+            <div class="pbar dim"><span class="tk">there</span><span class="track"><span class="fill" style="width:18%"></span></span></div>
+          </div>
+        </div>
+        <div class="sdim">pick &amp; append</div>
+      </div>
+    </div>
+    <div class="viz-cap">How a GPT processes a prompt: text becomes tokens, each token becomes a vector, the block stack mixes context across positions, and a final projection turns the last position into a probability distribution over the whole vocabulary. Vectors are drawn as stacks of colored cells &mdash; the same motif recurs below.</div>
+  </div>
+
+  <h4>1.1 The objective, formally</h4>
+  <div class="box math"><div class="label">Math track — causal language modeling</div>
+  Factor the probability of a sequence by the chain rule of probability:
+  $$P(x_1,\dots,x_n)=\prod_{t=1}^{n}P(x_t\mid x_{\lt t})$$
+  The model maximizes \(\sum_t \log P_\theta(x_t\mid x_{\lt t})\) — equivalently, it minimizes cross-entropy per position. The causal mask is what makes \(P_\theta(x_t\mid x_{\lt t})\) depend only on the past, so the model can never "cheat" by looking at the answer. This is the entire training loss of a GPT.</div>
+
+  <h4>1.1b Attention, the engine inside each block</h4>
+  <p>Every block mixes information across positions with <b>attention</b> &mdash; the mechanism built from scratch in Part 1 of this series. The one-line intuition: each word looks at the other words and rebuilds itself as a weighted blend of the ones that matter. It works like a search engine.</p>
+
+  <div class="viz">
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:0 0 4px">Which earlier word does <b>"it"</b> refer to? Attention lets "it" look back and weight every prior word by relevance.</p>
+    <div class="attn-sent">
+      <span class="w">The</span><span class="w">animal</span><span class="w">crossed</span><span class="w">the</span><span class="w">road</span><span class="w">because</span><span class="w focus">it</span><span class="w">was</span><span class="w">tired</span>
+    </div>
+    <svg viewBox="0 0 560 70" width="100%" height="70" style="max-width:560px;display:block;margin:0 auto" aria-hidden="true">
+      <defs><marker id="ah" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#6a3fb5"/></marker></defs>
+      <!-- from "it" (~x=360) back to words -->
+      <path d="M360,8 C300,60 120,60 70,8" fill="none" stroke="#6a3fb5" stroke-width="4.5" opacity="0.9" marker-end="url(#ah)"/>
+      <path d="M360,8 C330,50 200,50 175,8" fill="none" stroke="#6a3fb5" stroke-width="1.4" opacity="0.4" marker-end="url(#ah)"/>
+      <path d="M360,8 C350,45 300,45 285,8" fill="none" stroke="#6a3fb5" stroke-width="1" opacity="0.3" marker-end="url(#ah)"/>
+      <text x="70" y="70" font-size="10" fill="#6a3fb5" text-anchor="middle">strong &rarr; "animal"</text>
+    </svg>
+    <div class="qkv-key">
+      <div class="kk kq"><b style="color:var(--v-q)">Query &mdash; what I'm looking for</b>like the text you type into a search box</div>
+      <div class="kk kk2"><b style="color:var(--v-k)">Key &mdash; what each word advertises</b>like the titles of pages in the results</div>
+      <div class="kk kv"><b style="color:var(--v-v)">Value &mdash; what gets pulled back</b>like the page contents you actually read</div>
+    </div>
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:6px 0">Each query is matched against every key (dot product), softmax turns matches into weights, and the output is those weights times the values. Below: the full weight grid for a 4-word sentence, with the causal mask hiding the future.</p>
+    <div class="agrid" style="grid-template-columns:repeat(5,40px)">
+      <div class="hd"></div><div class="hd">The</div><div class="hd">cat</div><div class="hd">sat</div><div class="hd">down</div>
+      <div class="hd">The</div><div class="cell" style="background:rgba(106,63,181,.95)">1.0</div><div class="cell masked"></div><div class="cell masked"></div><div class="cell masked"></div>
+      <div class="hd">cat</div><div class="cell" style="background:rgba(106,63,181,.35)">.4</div><div class="cell" style="background:rgba(106,63,181,.6)">.6</div><div class="cell masked"></div><div class="cell masked"></div>
+      <div class="hd">sat</div><div class="cell" style="background:rgba(106,63,181,.2)">.2</div><div class="cell" style="background:rgba(106,63,181,.5)">.5</div><div class="cell" style="background:rgba(106,63,181,.3)">.3</div><div class="cell masked"></div>
+      <div class="hd">down</div><div class="cell" style="background:rgba(106,63,181,.15)">.1</div><div class="cell" style="background:rgba(106,63,181,.3)">.3</div><div class="cell" style="background:rgba(106,63,181,.25)">.2</div><div class="cell" style="background:rgba(106,63,181,.5)">.4</div>
+    </div>
+    <div class="viz-cap">Rows are query words ("what am I?"), columns are key words ("who's available to attend to"). Darker = more attention. The hatched upper triangle is the <b>causal mask</b>: a token can only look at itself and the past, never the future &mdash; which is exactly what makes next-token prediction honest. Each row sums to 1.</div>
+  </div>
+
+  <h4>1.2 The generation loop</h4>
+  <p>Once trained, generation is a short loop: get the probability distribution for the next token, pick one, append it, and repeat.</p>
+<pre><code>logits, loss = self(idx)                 # scores for next token, shape (B, T, vocab)
+logits = logits[:, -1, :] / temperature  # take the last position; temperature sharpens/flattens
+probs  = F.softmax(logits, dim=-1)        # -> a distribution over the vocabulary
+idx_next = torch.multinomial(probs, 1)    # sample one token
+idx = torch.cat((idx, idx_next), dim=1)   # append it, then repeat</code></pre>
+  <div class="box intu"><div class="label">Decoding strategies — the knobs behind "creativity"</div>
+  <b>Temperature</b> \(T\) rescales the logits (\(z/T\)) before softmax: as \(T\!\to\!0\) generation becomes greedy and deterministic; higher \(T\) makes it more random. <b>Top-k</b> and <b>top-p (nucleus)</b> sampling restrict the choice to the most probable tokens so the model doesn't wander into gibberish. Crucially these are <i>inference-time</i> choices — the weights never change — yet they are what make a model feel focused or wild. A product decision as much as a technical one.</div>
+
+
+  <div class="viz">
+    <div class="loop">
+      <div class="looprow">
+        <div class="ctx">The cat sat&#9611;</div>
+        <div class="pbars mini">
+          <div class="pbar top"><span class="tk">on</span><span class="track"><span class="fill" style="width:84%"></span></span><span class="pv">.42</span></div>
+          <div class="pbar dim"><span class="tk">down</span><span class="track"><span class="fill" style="width:38%"></span></span><span class="pv">.19</span></div>
+          <div class="pbar dim"><span class="tk">there</span><span class="track"><span class="fill" style="width:16%"></span></span><span class="pv">.08</span></div>
+        </div>
+      </div>
+      <div class="loopnote">&#8595; sample "on", append, run again</div>
+      <div class="looprow">
+        <div class="ctx">The cat sat <span class="new">on</span>&#9611;</div>
+        <div class="pbars mini">
+          <div class="pbar top"><span class="tk">the</span><span class="track"><span class="fill" style="width:80%"></span></span><span class="pv">.51</span></div>
+          <div class="pbar dim"><span class="tk">a</span><span class="track"><span class="fill" style="width:34%"></span></span><span class="pv">.17</span></div>
+          <div class="pbar dim"><span class="tk">my</span><span class="track"><span class="fill" style="width:14%"></span></span><span class="pv">.06</span></div>
+        </div>
+      </div>
+      <div class="loopnote">&#8595; sample "the", append, run again</div>
+      <div class="looprow">
+        <div class="ctx">The cat sat on <span class="new">the</span>&#9611;</div>
+        <div class="pbars mini">
+          <div class="pbar top"><span class="tk">mat</span><span class="track"><span class="fill" style="width:76%"></span></span><span class="pv">.39</span></div>
+          <div class="pbar dim"><span class="tk">floor</span><span class="track"><span class="fill" style="width:40%"></span></span><span class="pv">.21</span></div>
+          <div class="pbar dim"><span class="tk">roof</span><span class="track"><span class="fill" style="width:18%"></span></span><span class="pv">.07</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="viz-cap">Generation is a loop, not a single shot. The model outputs a distribution over the next token; one token is sampled (temperature and top-p decide how adventurously), appended to the context, and the whole thing is fed back in. "The cat sat" &rarr; "on" &rarr; "the" &rarr; "mat", one token at a time. This is what <b>autoregressive</b> means.</div>
+  </div>
+
+  <h4>1.3 Scaling laws — why bigger got dramatically better</h4>
+  <p>One of the most important discoveries about these models is that they get better in a <b>predictable</b> way as you make them bigger. "Better" here means a lower <b>test loss</b> — the model's average surprise at the next token on text it hasn't seen. Lower loss = a sharper predictor. What researchers found is that this loss drops as a smooth <b>power law</b> as you scale up three things:</p>
+
+  <div class="box math"><div class="label">What each symbol means</div>
+  <table style="margin:6px 0">
+    <tr><th>Symbol</th><th>Reads as</th><th>In plain words</th></tr>
+    <tr><td>\(\mathcal{L}\)</td><td>the loss</td><td>how wrong the model is on average (lower is better)</td></tr>
+    <tr><td>\(N\)</td><td>parameters</td><td>the model's size — the number of weights it has to learn with</td></tr>
+    <tr><td>\(D\)</td><td>data</td><td>how many training tokens it reads (its "reading volume")</td></tr>
+    <tr><td>\(C\)</td><td>compute</td><td>total arithmetic spent training — roughly \(C \approx 6\,N\,D\)</td></tr>
+    <tr><td>\(\alpha\)</td><td>the exponent</td><td>how fast loss falls as you scale (the slope on a log-log plot)</td></tr>
+    <tr><td>\(N_c\)</td><td>a constant</td><td>a fitted scale factor; sets where the curve sits</td></tr>
+  </table>
+  <p style="margin-top:8px">Holding data and compute plentiful, loss versus model size follows:</p>
+  $$\mathcal{L}(N)\;\approx\;\left(\frac{N_c}{N}\right)^{\alpha}\;+\;\mathcal{L}_\infty$$
+  <p style="font-size:13.5px;margin-top:6px">Read it as: <b>bigger \(N\) ⇒ the fraction shrinks ⇒ loss falls</b> — but only down to an <b>irreducible floor</b> \(\mathcal{L}_\infty\) (the noise inherent in language that no model can predict away).</p>
+  </div>
+
+  <div class="viz">
+    <p style="text-align:center;font-size:13px;color:var(--muted);margin:0 0 6px">Test loss vs. model size. Each 10&times; in size buys a <i>steady</i> drop in loss — a straight line on a log scale — flattening toward a floor.</p>
+    <svg viewBox="0 0 520 290" width="100%" height="290" style="max-width:520px;display:block;margin:0 auto" font-family="-apple-system,BlinkMacSystemFont,sans-serif">
+      <!-- axes -->
+      <line x1="70" y1="40" x2="70" y2="250" stroke="#333" stroke-width="1.5"/>
+      <line x1="70" y1="250" x2="480" y2="250" stroke="#333" stroke-width="1.5"/>
+      <!-- floor line -->
+      <line x1="70" y1="250" x2="480" y2="250" stroke="none"/>
+      <line x1="70" y1="248" x2="480" y2="248" stroke="#b5432a" stroke-width="1" stroke-dasharray="5 4" opacity="0.7"/>
+      <text x="476" y="243" font-size="11" fill="#b5432a" text-anchor="end">irreducible floor (L&#8734;)</text>
+      <!-- curve -->
+      <path d="M70.0,40.0 L80.0,56.3 L90.0,71.3 L100.0,85.1 L110.0,97.9 L120.0,109.6 L130.0,120.5 L140.0,130.5 L150.0,139.8 L160.0,148.3 L170.0,156.2 L180.0,163.5 L190.0,170.2 L200.0,176.3 L210.0,182.0 L220.0,187.3 L230.0,192.2 L240.0,196.6 L250.0,200.8 L260.0,204.6 L270.0,208.1 L280.0,211.3 L290.0,214.3 L300.0,217.1 L310.0,219.6 L320.0,222.0 L330.0,224.2 L340.0,226.2 L350.0,228.0 L360.0,229.7 L370.0,231.3 L380.0,232.7 L390.0,234.1 L400.0,235.3 L410.0,236.4 L420.0,237.5 L430.0,238.5 L440.0,239.4 L450.0,240.2 L460.0,240.9 L470.0,241.6" fill="none" stroke="#2a5db5" stroke-width="3"/>
+      <!-- reference dots -->
+      <circle cx="170" cy="156" r="4" fill="#2a5db5"/><text x="170" y="150" font-size="10" fill="#555" text-anchor="middle">small</text>
+      <circle cx="270" cy="208" r="4" fill="#2a5db5"/>
+      <circle cx="370" cy="231" r="4" fill="#2a5db5"/><text x="392" y="228" font-size="10" fill="#555">frontier</text>
+      <!-- axis labels -->
+      <text x="275" y="278" font-size="12" fill="#333" text-anchor="middle">model size N  (log scale: 10&#8308; &#8594; 10&#8309; &#8594; 10&#8310; &hellip;)</text>
+      <text x="24" y="150" font-size="12" fill="#333" text-anchor="middle" transform="rotate(-90 24 150)">test loss L  (lower = better)</text>
+    </svg>
+    <div class="viz-cap">The magic is the <b>smoothness</b>: the curve has no cliffs or surprises, so a lab can train a few small models, fit the line, and <b>predict</b> the loss of a model 100&times; bigger before spending a dollar on it. That predictability is what turned scaling into an engineering plan rather than a gamble.</div>
+  </div>
+
+  <h5>The Chinchilla correction — balance size and data</h5>
+  <p>A power law in size alone tempts you to just build a giant model. But compute is finite, and compute is split between size and data (\(C \approx 6ND\)). <b>Chinchilla</b> asked: for a <i>fixed</i> compute budget, what split of size vs. data gives the lowest loss? The answer — scale them <b>together</b>, at roughly <b>20 training tokens per parameter</b>. Many famous early models were far too big for how little they were trained on.</p>
+
+  <div class="viz">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+      <div style="flex:1;min-width:200px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff">
+        <div style="font-weight:700;font-size:13px;color:var(--accent);margin-bottom:8px">&#10007; Over-sized, under-fed</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">huge model, too little data</div>
+        <div style="display:flex;align-items:flex-end;gap:10px;height:70px">
+          <div style="text-align:center"><div style="width:34px;height:64px;background:#2a5db5;border-radius:4px"></div><div style="font-size:10px;margin-top:3px">size \(N\)</div></div>
+          <div style="text-align:center"><div style="width:34px;height:20px;background:#1f8a80;border-radius:4px"></div><div style="font-size:10px;margin-top:3px">data \(D\)</div></div>
+        </div>
+        <div style="font-size:12px;margin-top:8px">Wastes parameters it never taught. <span style="color:var(--accent)">Higher loss for the cost.</span></div>
+      </div>
+      <div style="flex:1;min-width:200px;border:1px solid var(--ok);border-radius:10px;padding:12px 14px;background:#f5faf6">
+        <div style="font-weight:700;font-size:13px;color:var(--ok);margin-bottom:8px">&#10003; Chinchilla-balanced</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">size and data scaled together (&asymp;20 tokens / param)</div>
+        <div style="display:flex;align-items:flex-end;gap:10px;height:70px">
+          <div style="text-align:center"><div style="width:34px;height:42px;background:#2a5db5;border-radius:4px"></div><div style="font-size:10px;margin-top:3px">size \(N\)</div></div>
+          <div style="text-align:center"><div style="width:34px;height:52px;background:#1f8a80;border-radius:4px"></div><div style="font-size:10px;margin-top:3px">data \(D\)</div></div>
+        </div>
+        <div style="font-size:12px;margin-top:8px">Same compute, better balance. <span style="color:var(--ok)">Lower loss.</span></div>
+      </div>
+    </div>
+    <div class="viz-cap">For a fixed compute budget you're spending the same total either way &mdash; the only question is how to divide it between a bigger model and more reading. Chinchilla showed the field had been over-spending on size and starving models of data.</div>
+  </div>
+
+  <div class="box intu"><div class="label">Emergent abilities — the surprising part</div>
+  Loss falls smoothly, but some <i>capabilities</i> don't appear gradually — they switch on past a certain scale. In-context learning (picking up a task from examples in the prompt), multi-step arithmetic, and chain-of-thought reasoning are largely absent in small models and then <b>emerge</b> in larger ones, even though no one trained for them specifically. Smooth curve, lumpy skills.</div>
+
+
+  <div class="box real"><div class="label">Strategic lens — scaling laws turned research into planning</div>
+  Scaling laws are the single most consequential idea for anyone <i>funding</i> AI. They convert model-building from alchemy into a forecastable engineering discipline: a lab can predict a model's loss <i>before</i> committing tens of millions of dollars to the run. This is why the field pursued ever-larger training runs with such confidence — the return was projectable. The strategic corollary, post-Chinchilla, is that <b>data quality and quantity — not raw parameter count — now gate progress</b>. If you are evaluating an AI strategy and it emphasizes parameter count over data and evaluation quality, that is a red flag.</div>
+</section>
+
+<section id="upgrades">
+  <h2 class="sec">Part 2 · The architectural upgrades</h2>
+  <h3>What changed since 2017 — and the intuition behind each change</h3>
+
+  <p>Here is the layer stack of a modern decoder-only LLM. Read it top to bottom, the way a token flows through it. Every label in bold is an upgrade over the vanilla Transformer — and the rest of this section explains each one in plain language before the math.</p>
+
+  <div class="flow" style="max-width:600px">
+    <div class="fnote">&#8595; your prompt (text / image patches / audio)</div>
+    <div class="fb emb" style="background:#fff"><div class="t">Subword tokenizer (BPE)</div></div>
+    <div class="farrow">&#9660;</div>
+    <div class="fb emb"><div class="t">Token embeddings</div>positions handled inside attention via RoPE</div>
+    <div class="farrow">&#9660;</div>
+    <div class="fb dec"><div class="t">Transformer block &times;N &nbsp;(N = 32&ndash;120+)</div>
+      <div style="font-size:12px;margin-top:6px;text-align:left">
+      &nbsp;&bull; RMSNorm &rarr; <b>Masked Multi-Head Attention</b> (with RoPE, GQA, KV-cache)<br>
+      &nbsp;&bull; + residual<br>
+      &nbsp;&bull; RMSNorm &rarr; <b>Feed-Forward or Mixture-of-Experts</b> (SwiGLU)<br>
+      &nbsp;&bull; + residual</div>
+    </div>
+    <div class="farrow">&#9660;</div>
+    <div class="fb norm"><div class="t">Final RMSNorm</div></div>
+    <div class="farrow">&#9660;</div>
+    <div class="fb out"><div class="t">Unembedding (Linear) + Softmax</div>project \(d_{\text{model}}\!\to\!V\), often tied to the input embedding</div>
+    <div class="fnote">&#8595; sampled token &rarr; append &rarr; repeat (autoregressive)</div>
+  </div>
+
+  <h4>2.1 RoPE — teaching attention about <i>relative</i> position</h4>
+  <div class="box intu"><div class="label">The intuition first</div>
+  The original Transformer <i>added</i> a fixed sinusoidal "position vector" to each token's embedding — a decent hack, but it bolts position on from outside and struggles to generalize to sequences longer than those seen in training. <b>Rotary Position Embedding (RoPE)</b> takes a more elegant route: instead of adding position, it <i>rotates</i> each query and key vector by an angle proportional to its position. When two rotated vectors are then compared with a dot product, the result depends only on <b>how far apart</b> the two tokens are — their relative distance — not their absolute indices. Position becomes a property of the comparison, not a tag glued onto the input.</div>
+  <div class="box math"><div class="label">Math track</div>
+  For a token at position \(m\), RoPE applies a rotation matrix \(R_m\) to its query/key: \(\tilde{\mathbf q}_m = R_m \mathbf q_m\). Because rotations compose, the attention score between positions \(m\) and \(n\) becomes \(\mathbf q_m^\top R_{n-m}\,\mathbf k_n\) — a function of the offset \(n-m\) alone. That relative structure is exactly what lets RoPE-based models be <b>stretched</b> to longer contexts after training (via interpolation of the rotation frequencies).</div>
+  <div class="box real"><div class="label">Strategic lens</div>
+  RoPE is the quiet enabler behind the "100K / 200K / 1M token context window" race. Long context is not a single trick — it is RoPE (position that extrapolates) plus FlashAttention (memory that fits) plus GQA (a cache that stays small). When a vendor advertises a giant context window, the real questions to ask are about <i>effective</i> use of that context (does accuracy hold in the middle?) and the per-token cost of filling it — not the headline number.</div>
+
+  <h4>2.2 RMSNorm &amp; pre-norm — cheaper, more stable depth</h4>
+  <div class="box intu"><div class="label">The intuition</div>
+  Normalization keeps the numbers flowing through a deep network from drifting to extreme scales. The original used <b>LayerNorm</b> (re-center to mean zero, then re-scale) placed <i>after</i> each sublayer. Frontier models use <b>RMSNorm</b> (skip the re-centering; just divide by the root-mean-square) placed <i>before</i> each sublayer. Dropping the mean subtraction is cheaper and, empirically, loses nothing. Moving the norm <i>before</i> the sublayer ("pre-norm") gives gradients a cleaner path and is what lets stacks of 100+ layers train without blowing up.</div>
+  <div class="box math"><div class="label">Math track</div>
+  $$\text{RMSNorm}(x)=\frac{x}{\sqrt{\tfrac{1}{d}\sum_i x_i^2 + \epsilon}}\;\odot\;\gamma$$
+  Compare LayerNorm, which also subtracts the mean \(\mu\) and divides by the standard deviation. RMSNorm keeps only the scale term. Pre-norm means we compute \(x + \text{Sublayer}(\text{Norm}(x))\) rather than \(\text{Norm}(x + \text{Sublayer}(x))\), preserving a clean residual identity path from input to output.</div>
+
+  <h4>2.3 SwiGLU — a smarter feed-forward network</h4>
+  <div class="box intu"><div class="label">The intuition</div>
+  The feed-forward network inside each block is where a large share of a model's parameters — and, per interpretability research, much of its stored factual knowledge — lives. The 2017 version was a plain expand-ReLU-contract sandwich. <b>SwiGLU</b> replaces it with a <b>gated</b> version: one linear branch produces candidate values, a second branch produces a smooth gate that decides how much of each value passes through. The network can now modulate information rather than just hard-clipping negatives to zero. For the same parameter budget, it reliably gives better quality.</div>
+  <div class="box math"><div class="label">Math track</div>
+  $$\text{SwiGLU}(x) = \big(\text{Swish}(xW_1)\;\otimes\;xV\big)\,W_2,\qquad \text{Swish}(z)=z\cdot\sigma(z)$$
+  The elementwise product \(\otimes\) is the gate: \(\text{Swish}(xW_1)\) softly opens or closes each channel of \(xV\). It is the same "gating" idea that made LSTMs work, ported into the feed-forward block.</div>
+
+  <h4>2.4 Grouped-Query Attention — shrinking the memory bill at inference</h4>
+  <div class="box intu"><div class="label">The intuition</div>
+  When a model generates text, it caches the Keys and Values of every previous token so it doesn't recompute them each step (the "KV-cache"). With standard multi-head attention, every head keeps its own K and V — and for long contexts that cache becomes the dominant memory cost. <b>Grouped-Query Attention (GQA)</b> keeps many separate <i>query</i> heads (for expressiveness) but lets them <b>share</b> a much smaller number of Key/Value heads. The model gives up very little quality and shrinks the KV-cache dramatically.</div>
+  <div class="box real"><div class="label">Strategic lens</div>
+  GQA is a pure <b>economics</b> upgrade. It barely moves benchmark quality; what it moves is the cost and speed of serving long-context requests at scale. This is a recurring pattern worth internalizing as a leader: a large fraction of "frontier progress" is not about making the model smarter, but about making a given level of intelligence <b>cheaper to deliver</b>. The unit economics of inference — tokens per dollar, tokens per second — are frequently what decides whether an AI product is viable, and GQA, KV-caching, and quantization are where those battles are fought.</div>
+
+  <h4>2.5 FlashAttention — same math, hardware-aware</h4>
+  <div class="box intu"><div class="label">The intuition</div>
+  Recall from Part 1 that attention builds an \(n\times n\) score matrix for \(n\) tokens — quadratic, and the memory blows up fast. <b>FlashAttention</b> changes <i>none</i> of the math. It reorganizes the computation so the giant score matrix is never fully written to slow memory; instead it is computed in tiles that stay in the GPU's fast on-chip memory, combining partial softmax results as it goes. Identical output, a fraction of the memory traffic, and much faster.</div>
+  <div class="box real"><div class="label">Strategic lens</div>
+  FlashAttention is the clearest example of a theme that decides who wins in AI: <b>the algorithm and the hardware are not separable</b>. The breakthrough was not a new idea about attention — it was writing attention in a way that respects the memory hierarchy of the specific chips it runs on. Organizations that treat systems/hardware expertise as a first-class discipline (not an afterthought to modeling) capture outsized efficiency gains. This is why frontier labs employ kernel and systems engineers alongside researchers.</div>
+
+  <h4>2.6 Mixture-of-Experts — decoupling knowledge from compute</h4>
+  <div class="box intu"><div class="label">The intuition</div>
+  In a dense model, every token passes through every parameter — so making the model "know more" (more parameters) makes every token more expensive. <b>Mixture-of-Experts (MoE)</b> breaks that link. It replaces the single feed-forward block with many parallel expert blocks and a small <b>router</b> that sends each token to just a few of them. The model can hold an enormous total number of parameters (vast capacity) while each token only activates a small slice (modest per-token compute). You get the knowledge of a huge model at the running cost of a much smaller one.</div>
+  <div class="box math"><div class="label">Math track</div>
+  A router produces scores over \(E\) experts; the top-\(k\) (often \(k=2\)) are selected and their outputs combined, weighted by the (softmaxed) router scores:
+  $$\text{MoE}(x)=\sum_{i\in\text{TopK}} g_i(x)\,\text{Expert}_i(x),\qquad g(x)=\text{softmax}(x W_{\text{router}})$$
+  The practical challenge is <b>load balancing</b> — keeping the router from overusing a few favorite experts — which is handled with auxiliary balancing losses.</div>
+  <div class="box real"><div class="label">Strategic lens</div>
+  MoE is why "how many parameters does it have?" has become a nearly meaningless question. A trillion-parameter MoE model may activate only tens of billions per token, so its serving cost resembles a much smaller dense model — but its infrastructure complexity (routing, expert placement across GPUs, balancing) is far higher. For a leader, MoE reframes the trade: it buys capability-per-dollar-of-inference at the price of <b>engineering and operational complexity</b>. Gemini and GPT-4-class systems are widely believed to use it precisely because at their scale the inference savings justify that complexity.</div>
+
+  <h4>2.7 Multimodality — one embedding space for many senses</h4>
+  <div class="box intu"><div class="label">The intuition</div>
+  The Transformer never cared that its inputs were words — it operates on vectors. So to make a model "see," you encode an image into patches, turn each patch into a vector in the <i>same</i> embedding space as text tokens, and feed them into the same stack. The model attends across words and image-patches indiscriminately. The same trick extends to audio. Nothing about the core architecture changes; you have simply taught more kinds of input to speak the model's vector language.</div>
+  <div class="box real"><div class="label">Strategic lens</div>
+  Multimodality is where a lot of near-term <i>product</i> value sits — reading documents, screenshots, charts, and diagrams is what turns a chat toy into a workflow tool. The strategic point is that multimodality is largely a <b>data and encoder</b> investment layered onto an architecture you already have, not a from-scratch rebuild. That lowers the barrier to entry for capable multimodal products and raises the premium on proprietary, high-quality multimodal data.</div>
+
+  <div class="box intu"><div class="label">The key reassurance — read this twice</div>
+  Every upgrade in this section is an <i>optimization or extension</i> of the mechanism you already understand — not a new paradigm. Masked self-attention, residual connections, normalization, a feed-forward network, softmax over a vocabulary: that skeleton is unchanged from 2017. A frontier model is the same GPT you can build from scratch, made wide, deep, efficient, and multimodal. If you hold onto one idea from this series, hold onto that one — it is what lets you reason about new models as they appear instead of being surprised by each one.</div>
+</section>
+
+<section id="alignment">
+  <h2 class="sec">Part 3 · From predictor to assistant</h2>
+  <h3>Alignment — the training pipeline that makes a model helpful</h3>
+
+  <p>A freshly pretrained model is a spectacularly knowledgeable <b>next-token predictor</b> — and a poor assistant. Ask it a question and it might continue with three more questions, because that is a plausible continuation of text. Turning raw capability into a helpful, honest, harmless assistant takes three further stages.</p>
+
+  <div class="flow" style="max-width:620px">
+    <div class="fb emb"><div class="t">1 &middot; Pretraining</div>next-token prediction on trillions of tokens &rarr; raw capability &amp; world knowledge</div>
+    <div class="farrow">&#9660;</div>
+    <div class="fb attn"><div class="t">2 &middot; Supervised Fine-Tuning (SFT)</div>train on curated (instruction &rarr; good answer) pairs &rarr; learns to <i>respond</i>, not just continue</div>
+    <div class="farrow">&#9660;</div>
+    <div class="fb dec"><div class="t">3 &middot; Alignment: RLHF / DPO / Constitutional AI</div>optimize toward human or AI preferences for helpful, honest, harmless behavior</div>
+  </div>
+
+  <div class="box math"><div class="label">Math track — RLHF and the modern shortcut (DPO)</div>
+  <b>RLHF</b> trains a <b>reward model</b> \(r_\phi\) on human preference pairs using the Bradley&ndash;Terry model \(P(a\succ b)=\sigma\big(r(a)-r(b)\big)\), then optimizes the LLM (with PPO) to score highly under \(r_\phi\), penalized by a KL-divergence term that keeps it from drifting away from the base model into gibberish. <b>DPO (Direct Preference Optimization)</b> shows you can skip the separate reward model and reinforcement-learning loop entirely, optimizing a closed-form classification loss directly on the preference pairs — simpler, more stable, and now widely used. <b>Constitutional AI</b> (the approach behind Claude) replaces much of the human labeling with a written set of principles the model uses to critique and revise its own answers (RLAIF).</div>
+
+  <div class="box real"><div class="label">Strategic lens — knowledge vs. behavior is the whole game</div>
+  This is the most important distinction in the post for anyone thinking about AI strategy: <b>pretraining decides what the model knows; alignment decides how it behaves.</b> Claude, Gemini, and GPT differ far less in raw architecture than in their <b>data mixture, alignment philosophy, and product engineering</b> (tools, safety, latency, refusal behavior). The "personality," trustworthiness, and safety posture of an assistant are shaped <i>after</i> the intelligence is pretrained — which means they are where a company's values and judgment actually get encoded into the product. If you are building an AI organization, alignment and evaluation are not compliance overhead bolted on at the end; they are where your differentiation and your risk both live.</div>
+</section>
+
+<section id="capabilities">
+  <h2 class="sec">Part 4 · Capabilities on top</h2>
+  <h3>What emerges once the machine is built</h3>
+
+  <p>The architecture and training pipeline produce a base of capability; several further behaviors are layered on through prompting, light training, or system design rather than new architecture.</p>
+
+  <p><b>In-context learning</b> lets a model learn a task purely from examples in the prompt, with no weight change — an emergent property of scale, believed to rest on "induction heads" that copy and extend patterns. <b>Chain-of-thought and reasoning models</b> produce intermediate steps before answering; the newest systems spend more <i>inference-time</i> compute on hard problems, effectively "thinking longer." <b>Tool use and agents</b> let the model emit structured calls to search the web, run code, or hit APIs — the loop that turns a text predictor into something that acts. <b>Retrieval-augmented generation (RAG)</b> pulls relevant documents into the context window so answers are grounded in fresh or private data, fighting hallucination and staleness. And <b>long context</b> — RoPE scaling plus FlashAttention plus GQA — pushes windows to hundreds of thousands or millions of tokens, letting whole codebases or books sit in a single prompt.</p>
+
+  <div class="box real"><div class="label">Strategic lens — where value moves next</div>
+  Notice that this entire layer is built <i>around</i> the model, not inside it. Tool use, RAG, agent loops, and evaluation harnesses are software engineering and product problems. As base models commoditize, a growing share of durable value shifts to this layer: proprietary data pipelines, retrieval quality, agent orchestration, and rigorous evaluation. An AI organization that owns only prompts is fragile; one that owns data, retrieval, tooling, and evaluation is defensible.</div>
+
+  <div class="box link"><div class="label">Trace a single response all the way back</div>
+  Your text is <b>tokenized</b> (BPE) &rarr; <b>embedded</b> &rarr; passed through dozens of blocks of <b>RoPE-positioned, masked, grouped-query multi-head attention + SwiGLU (or MoE) feed-forward</b>, each with a residual connection and RMSNorm &rarr; a <b>final norm and unembedding</b> &rarr; <b>softmax</b> over a 100K+ token vocabulary &rarr; a token is <b>sampled</b> with temperature and top-p &rarr; appended, and the loop repeats. The weights themselves were set by <b>AdamW gradient descent</b> over trillions of tokens, then shaped by <b>RLHF / Constitutional AI</b>. Every single stage is something you can now explain from first principles.</div>
+</section>
+
+<section id="synthesis">
+  <h2 class="sec">Synthesis</h2>
+  <h3>The whole picture, and what it means to lead here</h3>
+
+  <p>Here is the complete arc of this series in one line:</p>
+  <div class="arrowflow">neuron &amp; matmul &rarr; nonlinearity &rarr; softmax/cross-entropy &rarr; backprop &rarr; SGD/Adam, norm, init &rarr; CNN (space) / RNN&middot;LSTM (time) &rarr; <b>attention (Q,K,V, &radic;d, softmax)</b> &rarr; multi-head + residual + norm &rarr; <b>encoder block</b> &rarr; <b>decoder block (masked + cross-attention)</b> &rarr; GPT (causal LM) &rarr; scaling laws &rarr; RoPE, RMSNorm, SwiGLU, GQA, FlashAttention, MoE &rarr; SFT &rarr; RLHF/DPO/Constitutional AI &rarr; tools, RAG, multimodality</div>
+
+  <p>If you can explain each arrow in a sentence, you understand modern AI at the level that lets you reason about it independently — evaluate a new model, question a vendor's claims, or set technical direction — rather than react to headlines. That is the difference between someone who <i>uses</i> AI and someone equipped to <i>lead</i> its development.</p>
+
+  <div class="box real"><div class="label">The three ideas a technical leader should carry out of this</div>
+  <b>1. Frontier progress is mostly efficiency, not new paradigms.</b> GQA, FlashAttention, MoE, and quantization make a given level of intelligence cheaper to deliver — and inference economics often decide whether a product lives or dies.<br><br>
+  <b>2. Behavior is engineered separately from knowledge.</b> Pretraining sets what a model knows; alignment and product design set how it behaves. Your organization's judgment lives in the second half.<br><br>
+  <b>3. Durable value is migrating up the stack.</b> As base models commoditize, defensibility comes from data, retrieval, tooling, evaluation, and the agent systems built around the model.</div>
+
+  <h4>A path to go deeper</h4>
+  <p>If you want to move from understanding to fluency, the highest-leverage practice is to build the pieces yourself and read the primary sources behind each section above: <i>Attention Is All You Need</i> (the architecture); the GPT and scaling-laws papers and Chinchilla (why scale works and how to allocate it); RoPE (position); FlashAttention (systems-aware attention); DPO and Anthropic's Constitutional AI (alignment). Implement a small GPT, then modernize it one upgrade at a time — swap additive positional encoding for RoPE, LayerNorm for RMSNorm, the ReLU feed-forward for SwiGLU — and measure what each change does. Nothing builds intuition like watching the loss curve respond to an idea you understand.</p>
+
+  <p style="color:var(--muted);font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;margin-top:30px">Frontier details (RoPE, GQA, MoE, RLHF/DPO, Constitutional AI) reflect publicly discussed approaches. The exact architectures of proprietary models (Claude, Gemini, GPT-4) are not officially disclosed and are described here at the level of well-established public understanding.</p>
+</section>
+
+<section id="references">
+  <h2 class="sec">Appendix</h2>
+  <h3>References &amp; further reading</h3>
+  <p>The explanations here synthesize the primary research literature with a few exceptional public explainers. Grouped below by type; everything is freely available online.</p>
+  <div class="refgroup"><h4>Research papers & primary sources</h4>
+  <ol class="reflist">
+    <li><span class="authors">Vaswani et al. (2017). </span><span class="rtitle">Attention Is All You Need</span>. The base architecture these models extend. <a href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a></li>
+    <li><span class="authors">Brown et al. (2020). </span><span class="rtitle">Language Models are Few-Shot Learners (GPT-3)</span>. Scale and in-context learning. <a href="https://arxiv.org/abs/2005.14165">https://arxiv.org/abs/2005.14165</a></li>
+    <li><span class="authors">Kaplan et al. (2020). </span><span class="rtitle">Scaling Laws for Neural Language Models</span>. The power-law loss curves in section 1.3. <a href="https://arxiv.org/abs/2001.08361">https://arxiv.org/abs/2001.08361</a></li>
+    <li><span class="authors">Hoffmann et al. (2022). </span><span class="rtitle">Training Compute-Optimal Large Language Models (Chinchilla)</span>. The ~20 tokens-per-parameter balance. <a href="https://arxiv.org/abs/2203.15556">https://arxiv.org/abs/2203.15556</a></li>
+    <li><span class="authors">Su et al. (2021). </span><span class="rtitle">RoFormer: Enhanced Transformer with Rotary Position Embedding</span>. RoPE. <a href="https://arxiv.org/abs/2104.09864">https://arxiv.org/abs/2104.09864</a></li>
+    <li><span class="authors">Zhang &amp; Sennrich (2019). </span><span class="rtitle">Root Mean Square Layer Normalization</span>. RMSNorm. <a href="https://arxiv.org/abs/1910.07467">https://arxiv.org/abs/1910.07467</a></li>
+    <li><span class="authors">Shazeer (2020). </span><span class="rtitle">GLU Variants Improve Transformer</span>. SwiGLU. <a href="https://arxiv.org/abs/2002.05202">https://arxiv.org/abs/2002.05202</a></li>
+    <li><span class="authors">Ainslie et al. (2023). </span><span class="rtitle">GQA: Training Generalized Multi-Query Transformer Models</span>. Grouped-Query Attention. <a href="https://arxiv.org/abs/2305.13245">https://arxiv.org/abs/2305.13245</a></li>
+    <li><span class="authors">Dao et al. (2022). </span><span class="rtitle">FlashAttention: Fast and Memory-Efficient Exact Attention</span>. <a href="https://arxiv.org/abs/2205.14135">https://arxiv.org/abs/2205.14135</a></li>
+    <li><span class="authors">Shazeer et al. (2017). </span><span class="rtitle">Outrageously Large Neural Networks (Sparsely-Gated MoE)</span>. Mixture-of-Experts. <a href="https://arxiv.org/abs/1701.06538">https://arxiv.org/abs/1701.06538</a></li>
+    <li><span class="authors">Ouyang et al. (2022). </span><span class="rtitle">Training language models to follow instructions with human feedback (InstructGPT)</span>. RLHF / SFT pipeline. <a href="https://arxiv.org/abs/2203.02155">https://arxiv.org/abs/2203.02155</a></li>
+    <li><span class="authors">Rafailov et al. (2023). </span><span class="rtitle">Direct Preference Optimization</span>. DPO. <a href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a></li>
+    <li><span class="authors">Bai et al., Anthropic (2022). </span><span class="rtitle">Constitutional AI: Harmlessness from AI Feedback</span>. <a href="https://arxiv.org/abs/2212.08073">https://arxiv.org/abs/2212.08073</a></li>
+    <li><span class="authors">Touvron et al. (2023). </span><span class="rtitle">LLaMA: Open and Efficient Foundation Language Models</span>. A concrete decoder-only stack using RoPE, RMSNorm, SwiGLU. <a href="https://arxiv.org/abs/2302.13971">https://arxiv.org/abs/2302.13971</a></li>
+    <li><span class="authors">Wei et al. (2022). </span><span class="rtitle">Chain-of-Thought Prompting Elicits Reasoning in LLMs</span>. <a href="https://arxiv.org/abs/2201.11903">https://arxiv.org/abs/2201.11903</a></li>
+    <li><span class="authors">Wei et al. (2022). </span><span class="rtitle">Emergent Abilities of Large Language Models</span>. <a href="https://arxiv.org/abs/2206.07682">https://arxiv.org/abs/2206.07682</a></li>
+    <li><span class="authors">Lewis et al. (2020). </span><span class="rtitle">Retrieval-Augmented Generation for Knowledge-Intensive NLP</span>. RAG. <a href="https://arxiv.org/abs/2005.11401">https://arxiv.org/abs/2005.11401</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Visualizations & explainers</h4>
+  <ol class="reflist">
+    <li><span class="authors">Jay Alammar. </span><span class="rtitle">The Illustrated GPT-2</span>. Vector-box motif adapted for the token-flow diagram. <a href="https://jalammar.github.io/illustrated-gpt2/">https://jalammar.github.io/illustrated-gpt2/</a></li>
+    <li><span class="authors">Wang et al., Georgia Tech Polo Club. </span><span class="rtitle">Transformer Explainer</span>. The search-engine Q/K/V analogy and probability-bar output. <a href="https://poloclub.github.io/transformer-explainer/">https://poloclub.github.io/transformer-explainer/</a></li>
+    <li><span class="authors">3Blue1Brown. </span><span class="rtitle">Attention in transformers, step by step</span>. The causal-masked attention grid. <a href="https://www.3blue1brown.com/lessons/attention">https://www.3blue1brown.com/lessons/attention</a></li>
+    <li><span class="authors">Brendan Bycroft. </span><span class="rtitle">LLM Visualization</span>. 3D walkthrough of nanoGPT; inspiration for the vertical token flow. <a href="https://bbycroft.net/llm">https://bbycroft.net/llm</a></li>
+    <li><span class="authors">Financial Times (2023). </span><span class="rtitle">Generative AI exists because of the transformer</span>. Editorial scrollytelling of tokenization and next-token prediction. <a href="https://ig.ft.com/generative-ai/">https://ig.ft.com/generative-ai/</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Further reading</h4>
+  <ol class="reflist">
+    <li><span class="authors">Andrej Karpathy. </span><span class="rtitle">nanoGPT</span>. Minimal, readable GPT training/inference code. <a href="https://github.com/karpathy/nanoGPT">https://github.com/karpathy/nanoGPT</a></li>
+    <li><span class="authors">Kipply Chen. </span><span class="rtitle">Transformer Inference Arithmetic</span>. The economics of serving LLMs (KV-cache, GQA, throughput). <a href="https://kipp.ly/transformer-inference-arithmetic/">https://kipp.ly/transformer-inference-arithmetic/</a></li>
+  </ol></div>
+  <p class="refnote">Frontier-model details reflect publicly discussed methods; the exact architectures of proprietary systems (Claude, Gemini, GPT-4) are not officially disclosed and are described at the level of well-established public understanding.</p>
+</section>
+</main>
+</div>
+<script>
+window.addEventListener('scroll',function(){
+  var h=document.documentElement, b=document.body;
+  var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+  document.getElementById('bar').style.width=(sh>0?(st/sh*100):0)+'%';
+});
+</script>
+</body>
+</html>

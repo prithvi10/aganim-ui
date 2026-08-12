@@ -70,7 +70,7 @@ export default function FeaturesPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="theme-scope min-h-screen bg-slate-950 text-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

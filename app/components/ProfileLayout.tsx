@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "./LandingLayout";
 import { AGANIM_SITE_URL } from "../utils/profileHost";
 import { useProfilePaths } from "../utils/useProfilePaths";
+import { ThemeToggle } from "../utils/theme";
 
 const MobileMenuIcon = ({ open }: { open: boolean }) => (
   <svg
@@ -88,16 +89,20 @@ export function ProfileHeader() {
               Aganim AI
             </Link>
           )}
+          <ThemeToggle />
         </nav>
 
-        <button
-          className="flex items-center justify-center md:hidden"
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle />
+          <button
+          className="flex items-center justify-center"
           onClick={() => setMobileOpen((value) => !value)}
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
           aria-expanded={mobileOpen}
         >
           <MobileMenuIcon open={mobileOpen} />
         </button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -208,7 +213,7 @@ export function ProfileSection({
 
 export function ProfilePageShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="theme-scope min-h-screen bg-slate-950 text-white">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-32 top-20 h-72 w-72 rounded-full bg-fuchsia-500/20 blur-3xl" />
         <div className="absolute -right-32 top-40 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl" />

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foundations of Deep Learning: The Ideas Behind Every LLM</title>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],tags:'none'},svg:{fontCache:'global'}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  :root{ color-scheme: light; --bg:#f7f6f3; --panel:#ffffff; --ink:#1c1b1a; --muted:#5f5b55; --line:#e5e1d8; --accent:#b5432a; --accent2:#2a5db5; --code-bg:#1e1d1b; --code-ink:#e8e4dc; --ok:#2f7d4f; --chip:#efe9dd; --purple:#6a3fb5; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;line-height:1.65;font-size:17px}
+  .layout{display:flex;max-width:1220px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;width:290px;padding:24px 16px;border-right:1px solid var(--line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px}
+  nav h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  nav h2:first-child{margin-top:0}
+  nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 8px;border-radius:6px;margin-bottom:1px;line-height:1.35}
+  nav a:hover{background:var(--chip);color:var(--ink)}
+  nav a.sub{padding-left:20px;font-size:12px}
+  nav a.tf{color:var(--purple)}
+  main{flex:1;min-width:0;padding:44px 56px 140px;max-width:840px}
+  header.hero{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:10px}
+  .kicker{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:42px;line-height:1.08;margin:12px 0 10px;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:18px}
+  .meta{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:var(--muted);margin-top:16px;display:flex;gap:18px;flex-wrap:wrap}
+  section{padding-top:40px;margin-top:14px;border-top:1px solid var(--line)}
+  section.module{border-top:3px solid var(--ink)}
+  h2.sec{font-size:14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px;font-weight:700}
+  h2.sec.tf{color:var(--purple)}
+  h3{font-size:30px;margin:2px 0 14px;letter-spacing:-.01em;line-height:1.15}
+  h4{font-size:21px;margin:30px 0 8px}
+  h5{font-size:17px;margin:22px 0 6px;font-family:-apple-system,sans-serif;font-weight:700;color:#333}
+  p{margin:12px 0}
+  .lead{font-size:19px;color:#333}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--chip);padding:1px 5px;border-radius:4px}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.5;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit}
+  .eq{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent2);padding:6px 18px;border-radius:8px;margin:16px 0;overflow-x:auto}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:18px 0}
+  .box.intu{border-left:4px solid var(--accent)}
+  .box.link{border-left:4px solid var(--ok)}
+  .box.math{border-left:4px solid var(--accent2)}
+  .box.real{border-left:4px solid var(--purple)}
+  .box .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .box.link .label{color:var(--ok)} .box.math .label{color:var(--accent2)} .box.real .label{color:var(--purple)}
+  .chip{display:inline-block;font-family:-apple-system,sans-serif;font-size:11px;background:var(--chip);color:var(--muted);padding:3px 9px;border-radius:20px;margin:0 4px 4px 0}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--chip);font-family:-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  .fromfolder{font-family:-apple-system,sans-serif;font-size:11px;color:var(--ok);font-weight:600;letter-spacing:.04em}
+  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px}
+  details summary{cursor:pointer;padding:14px 0;font-family:-apple-system,sans-serif;font-weight:600;font-size:15px}
+  details[open]{padding-bottom:12px}
+  .quiz{background:var(--panel);border:1px dashed var(--accent2);border-radius:10px;padding:14px 18px;margin:16px 0;font-family:-apple-system,sans-serif;font-size:14.5px}
+  .quiz .q{font-weight:600}
+  .progress-wrap{position:fixed;top:0;left:0;height:3px;width:100%;background:transparent;z-index:50}
+  #bar{height:100%;width:0;background:var(--accent)}
+  ul.tight li,ol.tight li{margin:6px 0}
+  .arrowflow{font-family:-apple-system,sans-serif;font-size:14px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:14px 0;line-height:1.7}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  figure.fig{margin:22px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  figure.fig img{max-width:100%;height:auto;border-radius:8px;display:block;margin:0 auto}
+  figure.fig figcaption{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.45;text-align:left}
+  figure.fig .yours{color:var(--ok);font-weight:600}
+  .figrow{display:flex;gap:14px;flex-wrap:wrap;margin:22px 0}
+  .figrow figure.fig{flex:1;min-width:240px;margin:0}
+  /* flow diagram blocks (flowchart blocks) */
+  .flow{max-width:520px;margin:20px auto;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;align-items:stretch;gap:0}
+  .fb{width:100%;box-sizing:border-box;border:2px solid #333;border-radius:8px;padding:12px 16px;margin:0;text-align:center;background:#fff;font-size:14px;flex:0 0 auto}
+  .fb .t{font-weight:700;margin-bottom:4px}
+  .fb.emb{background:#fdf1ee} .fb.attn{background:#fff7cf} .fb.norm{background:#fff9c4} .fb.ffn{background:#c7f0ee} .fb.out{background:#e7f0ff} .fb.dec{background:#efe4ff}
+  .farrow{text-align:center;color:#b5432a;font-size:20px;line-height:1;margin:6px 0;flex:0 0 auto}
+  .fnote{font-size:12px;color:var(--muted);font-style:italic;text-align:center;margin:6px 0;flex:0 0 auto}
+  .fsub{font-size:12px;color:var(--muted);margin-top:4px;font-style:normal}
+  .flow a{color:inherit;text-decoration:none;display:block}
+  .flow a:hover .fb{box-shadow:0 0 0 3px rgba(106,63,181,.25)}
+  @media(max-width:940px){nav{display:none}main{padding:26px 20px 90px}h1{font-size:32px}}
+
+  /* --- PDF-recreation blocks (diagram aesthetic) --- */
+  .pdfblock{border:2px solid #222;border-radius:4px;padding:20px 26px;margin:20px auto;max-width:640px;text-align:center;background:#fdf6ef;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+  .pdfblock.emb{background:#fdf1ee} .pdfblock.pos{background:#fff}
+  .pdfblock.attn{background:#fbeee9} .pdfblock.yellow{background:#fff9c4} .pdfblock.teal{background:#c7f0ee} .pdfblock.plain{background:#fff}
+  .pdfblock .bt{font-weight:800;font-size:17px;margin-bottom:10px;letter-spacing:.01em}
+  .pdfblock .formula{font-family:"SF Mono",ui-monospace,Menlo,monospace;background:#1e1d1b;color:#e8e4dc;display:inline-block;padding:8px 16px;border-radius:6px;margin:10px 0;font-size:14px}
+  .pdfblock p{margin:8px 0;font-size:14.5px}
+  .pdfblock .u{text-decoration:underline}
+  .bubble{position:relative;background:#fff;border:2px solid #222;border-radius:16px;padding:14px 20px;margin:22px auto;max-width:560px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.55}
+  .bubble .bq{font-weight:800;display:block;margin-bottom:6px;text-align:center}
+  .bubble:after{content:"";position:absolute;bottom:-14px;left:60px;border-width:14px 14px 0 0;border-style:solid;border-color:#222 transparent transparent transparent}
+  .bubble:before{content:"";position:absolute;bottom:-10px;left:63px;border-width:11px 11px 0 0;border-style:solid;border-color:#fff transparent transparent transparent;z-index:1}
+  .bubble.r:after{left:auto;right:60px;border-width:14px 0 0 14px} .bubble.r:before{left:auto;right:63px;border-width:11px 0 0 11px}
+  .bubble a{color:var(--accent2)}
+  .pdfarrow{text-align:center;color:#333;font-size:22px;line-height:1;margin:4px 0}
+  .pdflabel{text-align:center;font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);font-weight:700;margin:8px 0}
+  .matgrid{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:16px 0;overflow-x:auto;white-space:pre;line-height:1.5}
+  .worked{background:#fbfaf7;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:8px 20px 16px;margin:20px 0}
+  .worked .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--purple);margin:12px 0 2px}
+  .twocol{display:flex;gap:18px;flex-wrap:wrap} .twocol>div{flex:1;min-width:240px}
+
+  /* top-to-bottom PDF recreation flow */
+  .vflow{max-width:820px;margin:18px auto;font-family:-apple-system,sans-serif}
+  .vrow{display:flex;align-items:flex-start;justify-content:center;gap:18px;flex-wrap:wrap}
+  .vrow.pair .pdfblock{flex:1 1 320px;max-width:400px;margin:0}
+  .vrow.pair .bubble{flex:1 1 300px;max-width:380px;margin:0}
+  .vdown{text-align:center;color:#b5432a;font-size:22px;line-height:1;margin:8px 0}
+  @media(max-width:820px){.vrow{flex-direction:column;align-items:stretch}}
+</style>
+
+<style>
+  /* references section */
+  section#references{border-top:3px solid var(--ink)}
+  .refgroup{margin:18px 0}
+  .refgroup h4{font-size:15px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em;color:var(--ink);margin:22px 0 8px;text-transform:none}
+  ol.reflist{list-style:none;counter-reset:ref;padding:0;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+  ol.reflist li{counter-increment:ref;position:relative;padding:9px 0 9px 40px;border-bottom:1px solid var(--line);line-height:1.5}
+  ol.reflist li:before{content:counter(ref);position:absolute;left:0;top:9px;width:26px;height:26px;background:var(--chip);color:var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  ol.reflist li .authors{color:var(--muted)}
+  ol.reflist li .rtitle{font-weight:600;color:var(--ink)}
+  ol.reflist a{color:var(--accent2);text-decoration:none}
+  ol.reflist a:hover{text-decoration:underline}
+  .refnote{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:16px;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div class="progress-wrap"><div id="bar"></div></div>
+<div class="layout">
+<nav>
+  <h2>This Post</h2>
+  <a href="#intro">Introduction</a>
+  <a href="#part1">1 · The neuron & why depth works</a>
+  <a href="#part2">2 · Backprop & optimization</a>
+  <a href="#part3">3 · CNNs, RNNs, LSTMs</a>
+  <a href="#part4">4 · Attention, from scratch</a>
+
+  <a href="#references">References &amp; reading</a>
+  <h2>The Series</h2>
+  <a href="foundations-of-deep-learning.html">1 · Foundations of Deep Learning</a>
+  <a href="the-transformer-deep-dive.html">2 · The Transformer, Deep Dive</a>
+  <a href="modern-frontier-llms.html">3 · Modern Frontier LLMs</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="kicker">Deep Learning, In Depth · Part 1 of 3</div>
+  <h1>Foundations of Deep Learning</h1>
+  <p class="sub">The ideas behind every LLM — from a single neuron to attention.</p>
+  <div class="meta"><span>By Prithviraj</span><span>Part 1 of 3</span><span>~30 min read</span></div>
+</header>
+<section id="intro">
+  <p class="lead">Modern AI can feel like an impenetrable stack of jargon — attention, transformers, RLHF, mixture-of-experts. But almost all of it is built from one humble operation repeated at scale: <b>multiply by a matrix, bend the result with a nonlinearity, and adjust the numbers so the output gets a little less wrong.</b></p>
+  <p>This is the first post in a three-part series that rebuilds deep learning from the ground up — not as a list of buzzwords, but as a small number of ideas you can hold in your head and reason from. In this post we cover the foundations: the neuron, why depth works, how networks learn, and the two classic architectures (CNNs and RNN/LSTMs) that set the stage for everything that came after. Part 2 dissects the Transformer in full. Part 3 shows how today's frontier models are built on exactly these bones.</p>
+  <p>Everything here is derived, not asserted. Where it helps, there are worked numerical examples you can check with a calculator, and short code snippets that map one-to-one onto the math.</p>
+  <div class="box intu"><div class="label">How to read this series</div>
+  Each idea appears three ways: the <b>intuition</b> (a picture or analogy), the <b>math track</b> (the precise statement), and a <b>real-world implication</b> (why it matters for models you actually use). Skim the intuitions on a first pass; come back for the math when you want the full picture.</div>
+</section>
+<section id="part1">
+  <h2 class="sec">Part 1 · Foundations</h2>
+  <h3>The neuron, linear algebra, and why depth works</h3>
+
+  <p>Everything in deep learning is built from one operation repeated at scale: an <b>affine transform followed by a nonlinearity</b>. Master this one line and its calculus, and every later architecture is a rearrangement of it.</p>
+
+  <h4>1.1 A single neuron</h4>
+  <p>A neuron takes an input vector \(\mathbf{x}\in\mathbb{R}^d\), weights \(\mathbf{w}\in\mathbb{R}^d\), a bias \(b\), and produces a scalar activation:</p>
+  <div class="eq">$$a=\varphi\!\left(\sum_{i=1}^{d} w_i x_i + b\right)=\varphi(\mathbf{w}^\top\mathbf{x}+b)$$</div>
+  <p>The dot product \(\mathbf{w}^\top\mathbf{x}=\|\mathbf{w}\|\,\|\mathbf{x}\|\cos\theta\) measures alignment between input and weights. A neuron is a <b>learned template matcher</b>: it fires strongly when the input points in the direction of \(\mathbf{w}\). Keep this geometric reading — it returns in attention as the query–key dot product.</p>
+
+  <h4>1.2 A layer is a matrix multiply</h4>
+  <p>Stack \(m\) neurons and their weight vectors become the rows of a matrix \(W\in\mathbb{R}^{m\times d}\). A whole layer is then one matrix–vector product plus a broadcast bias:</p>
+  <div class="eq">$$\mathbf{z}=W\mathbf{x}+\mathbf{b},\qquad \mathbf{a}=\varphi(\mathbf{z})$$</div>
+  <p>Process a batch of \(N\) inputs at once by stacking them into \(X\in\mathbb{R}^{N\times d}\): \(Z=XW^\top+\mathbf{b}\). This is why GPUs matter — the entire forward pass of a layer is a single dense matmul, the operation GPUs are built to do. <b>Deep learning is, computationally, a pipeline of matrix multiplications separated by cheap nonlinearities.</b></p>
+  <div class="box real"><div class="label">Real-world implication</div>
+  A frontier model's cost is dominated by these matmuls. "175B parameters" essentially counts the entries of all the \(W\) matrices; each token's forward pass multiplies through every one of them. This is why inference is expensive and why hardware (H100s, TPUs) and low-precision arithmetic (fp16/bf16/fp8) are strategic.</div>
+
+  <h4>1.3 Activation functions — and why they're non-negotiable</h4>
+  <p>Compose two linear layers with no nonlinearity: \(W_2(W_1\mathbf{x})=(W_2W_1)\mathbf{x}=W'\mathbf{x}\). Still linear. <b>Depth collapses to a single matrix.</b> The nonlinearity \(\varphi\) is what breaks this collapse and gives the network its expressive power. The common choices:</p>
+  <table>
+    <tr><th>Activation</th><th>Formula</th><th>Why / when</th></tr>
+    <tr><td>Sigmoid</td><td>\(\sigma(z)=\frac{1}{1+e^{-z}}\)</td><td>Squashes to (0,1). Saturates → vanishing gradients. It is used in the MNIST net.</td></tr>
+    <tr><td>Tanh</td><td>\(\tanh(z)\)</td><td>Zero-centered (−1,1). Used inside LSTM gates.</td></tr>
+    <tr><td>ReLU</td><td>\(\max(0,z)\)</td><td>Cheap, non-saturating for \(z>0\). The workhorse of CNNs. Gradient is 0 or 1.</td></tr>
+    <tr><td>GELU</td><td>\(z\,\Phi(z)\)</td><td>Smooth ReLU; the default inside Transformers/GPT.</td></tr>
+    <tr><td>SwiGLU</td><td>\((xW)\otimes\text{Swish}(xV)\)</td><td>Gated variant used in LLaMA/PaLM-class LLMs — Part 6.</td></tr>
+  </table>
+  <div class="box math"><div class="label">Math track — derivative of sigmoid</div>
+  A fact you'll reuse: \(\sigma'(z)=\sigma(z)\,(1-\sigma(z))\). Notice it's maximal (0.25) at \(z=0\) and →0 as \(|z|\) grows. Chain many of these together and gradients shrink geometrically — the <b>vanishing gradient problem</b> that motivated ReLU, LSTMs, and residual connections.</div>
+
+  <h4>1.4 Why depth: the Universal Approximation Theorem, honestly stated</h4>
+  <p>A network with a single hidden layer of sufficient width can approximate any continuous function on a compact set to arbitrary accuracy. That sounds like depth is unnecessary — but the catch is <i>width</i>: shallow networks may need exponentially many neurons to represent functions that a deep network captures with polynomially many. <b>Depth buys parameter efficiency and hierarchical features</b> — edges → shapes → objects, or characters → words → meaning. This hierarchy is the entire reason "deep" beats "wide".</p>
+
+  <h4>1.5 From scores to probabilities: softmax + cross-entropy</h4>
+  
+  <p>Classifiers output raw logits \(\mathbf{z}\); softmax turns them into a probability distribution, and cross-entropy scores it:</p>
+  <div class="eq">$$p_i=\frac{e^{z_i}}{\sum_j e^{z_j}},\qquad \mathcal{L}_{\text{CE}}=-\sum_i y_i\log p_i$$</div>
+  <p>Softmax is a smooth, differentiable <code>argmax</code>: it exponentiates (making big scores dominate) then normalizes (so the outputs sum to 1). Cross-entropy is the negative log-likelihood of the true class — minimizing it maximizes the probability the model assigns to the right answer.</p>
+  <div class="box intu"><div class="label">Intuition — the same trio, four times</div>
+  Softmax + cross-entropy is not just a classifier tail. It reappears as the <b>attention weighting</b> (softmax over similarity scores), the <b>LLM output head</b> (softmax over the vocabulary), and the <b>sampling</b> step in generation. If you deeply understand this one page, you understand a surprising fraction of an LLM.</div>
+</section>
+
+<!-- ============================ PART 2 ============================ -->
+
+<section id="part2">
+  <h2 class="sec">Part 2 · Foundations</h2>
+  <h3>Loss surfaces, backpropagation, and optimization</h3>
+
+  <p>Training = searching a very high-dimensional <b>loss surface</b> \(\mathcal{L}(\theta)\) for a low point. We can't see the surface, but at any point we can compute the <b>gradient</b> \(\nabla_\theta \mathcal{L}\) — the direction of steepest ascent — and step the opposite way. The engine that computes that gradient efficiently is backpropagation.</p>
+
+  <h4>2.1 Gradient descent, precisely</h4>
+  <div class="eq">$$\theta \leftarrow \theta - \eta\,\nabla_\theta \mathcal{L}(\theta)$$</div>
+  <p>with learning rate \(\eta\). In practice we don't use the full dataset per step (too slow) — we estimate the gradient on a <b>mini-batch</b>. That noisy estimate is <b>Stochastic Gradient Descent (SGD)</b>. The noise is a feature: it helps escape sharp minima and saddle points.</p>
+  
+<pre><code>for k in gradients.keys():
+    weights[k] = weights[k] - self.learning_rate * gradients[k]</code></pre>
+
+  <h4>2.2 Backpropagation = the chain rule, organized</h4>
+  <p>Consider your two-layer MNIST network. The forward pass is a chain of functions:</p>
+  <div class="eq">$$\mathbf{x}\xrightarrow{W_1,b_1}\mathbf{z}_1\xrightarrow{\sigma}\mathbf{s}\xrightarrow{W_2,b_2}\mathbf{z}_2\xrightarrow{\text{softmax}}\mathbf{p}\xrightarrow{\text{CE}}\mathcal{L}$$</div>
+  <p>To update \(W_1\) we need \(\partial\mathcal{L}/\partial W_1\). The chain rule multiplies the local derivatives back along this path. Backprop computes them in one backward sweep, reusing intermediate results (this reuse is why it's \(O(\text{network size})\), not exponential).</p>
+
+  <div class="box math"><div class="label">Math track — the beautiful softmax+CE gradient (your derivation)</div>
+  The single most important gradient in classification. Here is the derivation: with \(p=\text{softmax}(z_2)\) and one-hot target \(y\),
+  $$\frac{\partial \mathcal{L}_{\text{CE}}}{\partial \mathbf{z}_2}=\mathbf{p}-\mathbf{y}.$$
+  The messy \(-y/p\) from the CE derivative and the softmax Jacobian cancel exactly, leaving "prediction minus target". Then by the chain rule \(\dfrac{\partial\mathcal{L}}{\partial W_2}=(\mathbf{p}-\mathbf{y})\,\mathbf{s}^\top\). This clean form is why softmax and cross-entropy are always paired.</div>
+
+  <h4>2.3 Vanishing &amp; exploding gradients</h4>
+  <p>Backprop multiplies many Jacobians. If their singular values are consistently &lt;1, the gradient shrinks toward zero over depth (vanishing); if &gt;1, it blows up (exploding). This single fact motivates a huge amount of modern design: ReLU/GELU (gradient 1 for active units), careful initialization, normalization layers, and <b>residual connections</b> (which give gradients a direct \(+1\) path — the reason 100+ layer Transformers train at all).</p>
+
+  <h4>2.4 Optimizers beyond vanilla SGD</h4>
+  <table>
+    <tr><th>Optimizer</th><th>Update idea</th><th>Why it helps</th></tr>
+    <tr><td>SGD + Momentum</td><td>\(v\leftarrow\beta v+\nabla\mathcal{L};\ \theta\leftarrow\theta-\eta v\)</td><td>Accumulates velocity → smooths noise, accelerates down ravines.</td></tr>
+    <tr><td>RMSProp</td><td>Scale step by running RMS of gradients</td><td>Per-parameter adaptive rate; handles different curvatures.</td></tr>
+    <tr><td>Adam / AdamW</td><td>Momentum + RMSProp + bias correction</td><td>The default for Transformers. AdamW decouples weight decay for cleaner regularization.</td></tr>
+  </table>
+  <div class="box math"><div class="label">Math track — Adam</div>
+  $$m_t=\beta_1 m_{t-1}+(1-\beta_1)g_t,\quad v_t=\beta_2 v_{t-1}+(1-\beta_2)g_t^2$$
+  $$\hat m_t=\tfrac{m_t}{1-\beta_1^t},\ \hat v_t=\tfrac{v_t}{1-\beta_2^t},\qquad \theta\leftarrow\theta-\eta\,\tfrac{\hat m_t}{\sqrt{\hat v_t}+\epsilon}$$
+  \(m_t\) is a smoothed gradient (momentum); \(v_t\) tracks its variance so each parameter gets its own effective step size. Nearly every LLM is trained with AdamW.</div>
+
+  <h4>2.5 Regularization, normalization, initialization</h4>
+  <ul class="tight">
+    <li><b>Weight decay / L2</b> (\(+\tfrac{\lambda}{2}\|\theta\|^2\)) and <b>dropout</b> (randomly zero activations) fight overfitting. You experimented with the reg strength in A1's <code>reg changes</code>.</li>
+    <li><b>Normalization</b> keeps activations well-scaled. <b>BatchNorm</b> normalizes across the batch (CNNs); <b>LayerNorm</b> normalizes across features per token (Transformers): \(\text{LN}(x)=\gamma\,\frac{x-\mu}{\sqrt{\sigma^2+\epsilon}}+\beta\). Your Transformer notes correctly flag LayerNorm as the choice because it's batch-size independent — critical for variable-length text.</li>
+    <li><b>Initialization</b> (Xavier/He) sets the initial weight variance so signal neither vanishes nor explodes at layer 1. </li>
+  </ul>
+
+  <div class="box link"><div class="label">The full training loop — the heartbeat of everything</div>
+  <b>forward → loss → backward (autodiff) → optimizer step → zero grads → repeat.</b> Every model here and every LLM on Earth runs this loop. What scales is size, data, and engineering — not the principle.</div></section>
+
+<!-- ============================ PART 3 ============================ -->
+
+<section id="part3">
+  <h2 class="sec">Part 3 · Foundations</h2>
+  <h3>Structured architectures: CNNs, RNNs, LSTMs</h3>
+
+  <p>A fully-connected layer ignores structure in the input. Two structures dominate real data — <b>space</b> (images) and <b>sequence</b> (text, audio, time series) — and each gets a specialized layer that bakes in the right inductive bias.</p>
+
+  <h4>3.1 Convolutions — weight sharing over space</h4>
+  
+  <p>A convolution slides a small learnable kernel \(K\) across the image, computing at each location a dot product:</p>
+  <div class="eq">$$(I*K)_{ij}=\sum_{m}\sum_{n} I_{i+m,\,j+n}\,K_{m,n}$$</div>
+  <p>Two inductive biases make this powerful: <b>parameter sharing</b> (the same kernel is reused at every location → drastically fewer weights than a dense layer) and <b>translation equivariance</b> (shift the input, the feature map shifts the same way). Stacking convolutions builds a hierarchy: early filters detect edges, deeper ones detect textures, parts, then whole objects. Pooling downsamples for translation invariance and a growing receptive field.</p>
+  <div class="box real"><div class="label">Real-world implication</div>
+  The same "share weights across positions" idea is exactly what attention does across sequence positions. And Vision Transformers now cut images into patches and feed them to a Transformer — so the CNN's spatial prior and the Transformer's global attention have partly merged in frontier multimodal models.</div>
+
+  <h4>3.2 Recurrent networks — sharing weights over time</h4>
+  
+  <p>An RNN reads a sequence one step at a time, carrying a hidden state that summarizes the past:</p>
+  <div class="eq">$$\mathbf{h}_t=\tanh\!\big(W_{hh}\mathbf{h}_{t-1}+W_{xh}\mathbf{x}_t+\mathbf{b}\big),\qquad \mathbf{y}_t=W_{hy}\mathbf{h}_t$$</div>
+  <p>The same weights \(W\) are reused at every timestep — weight sharing over time. Elegant, but training uses <b>backpropagation through time</b>, which unrolls the loop and multiplies the same Jacobian \(t\) times. If its largest eigenvalue is &lt;1 the gradient vanishes; &gt;1 it explodes. In practice a vanilla RNN forgets context beyond ~10–20 steps.</p>
+
+  <h4>3.3 LSTMs — a protected memory highway</h4>
+  
+  <p>The LSTM adds a <b>cell state</b> \(\mathbf{c}_t\) — a conveyor belt gradients can traverse with minimal decay — controlled by three learned gates:</p>
+  <div class="eq">$$\begin{aligned}\mathbf{f}_t&=\sigma(W_f[\mathbf{h}_{t-1},\mathbf{x}_t]+b_f)\quad(\text{forget})\\ \mathbf{i}_t&=\sigma(W_i[\cdots]+b_i)\quad(\text{input})\\ \mathbf{o}_t&=\sigma(W_o[\cdots]+b_o)\quad(\text{output})\\ \tilde{\mathbf{c}}_t&=\tanh(W_c[\cdots]+b_c)\\ \mathbf{c}_t&=\mathbf{f}_t\odot\mathbf{c}_{t-1}+\mathbf{i}_t\odot\tilde{\mathbf{c}}_t\\ \mathbf{h}_t&=\mathbf{o}_t\odot\tanh(\mathbf{c}_t)\end{aligned}$$</div>
+  <p>The key line is \(\mathbf{c}_t=\mathbf{f}_t\odot\mathbf{c}_{t-1}+\dots\): when the forget gate is ≈1, the cell state passes through nearly unchanged, so the gradient \(\partial\mathbf{c}_t/\partial\mathbf{c}_{t-1}\approx\mathbf{f}_t\) doesn't vanish. Gates decide what to erase, write, and read. This is why LSTMs powered translation, speech, and time-series forecasters for years.</p><div class="box link"><div class="label">The bridge to Transformers</div>
+  RNNs/LSTMs have one stubborn limit: they are <b>inherently sequential</b> — token \(t\) can't be computed until \(t-1\) is done, so training can't parallelize across time, and very long dependencies still strain the single hidden-state bottleneck. In 2017 the question became: <i>what if every token could look at every other token directly, in parallel, weighted by relevance?</i> That is attention — and it's the doorway to the Transformer Deep Dive next.</p></div>
+
+  <div class="quiz"><span class="q">Check:</span> Why does the LSTM cell-state update use addition (\(c_{t-1}+\dots\)) rather than a matrix multiply like the RNN? <i>(Addition gives gradients a near-identity path backward → no vanishing. The multiplicative RNN recurrence is exactly what kills long-range gradients.)</i></div>
+</section>
+
+<!-- ============================ PART 4 ============================ -->
+
+<section id="part4">
+  <h2 class="sec">Part 4 · Foundations</h2>
+  <h3>Attention, derived from scratch — with worked examples</h3>
+
+  <p>Attention is the single most important mechanism in modern AI, so we'll build it slowly and <b>with actual numbers</b>. The one-sentence goal: <b>rewrite each word's vector as a mix of the words most relevant to it.</b> Let's make that concrete before any formula.</p>
+
+  <div class="box intu"><div class="label">The intuition, with a sentence</div>
+  Take <b>"The animal didn't cross the street because <u>it</u> was tired."</b> What does "it" refer to — the animal or the street? You resolve this by letting "it" <i>look at</i> the other words and decide "animal" is most relevant. Attention does exactly this: for every word, it computes a relevance score to every other word, then builds a new representation of that word by <b>averaging the others, weighted by relevance.</b> "it" ends up as mostly-"animal", a little "tired". That re-mixing is the whole idea.</div>
+
+  <h4>4.1 The dot product = a relevance meter</h4>
+  <p>How do we measure "relevance" between two word vectors? The <b>dot product</b>. Recall \(\mathbf{a}\cdot\mathbf{b}=\|\mathbf{a}\|\,\|\mathbf{b}\|\cos\theta\): it's large and positive when two vectors point the same way, zero when perpendicular, negative when opposed. So a dot product is a similarity score we get for free.</p>
+  <div class="worked"><div class="label">Worked example — dot product as similarity</div>
+  <p>Say three toy 2-D word vectors:</p>
+  $$\mathbf{cat}=\begin{bmatrix}2\\[2pt]1\end{bmatrix},\quad \mathbf{dog}=\begin{bmatrix}2\\[2pt]0.8\end{bmatrix},\quad \mathbf{car}=\begin{bmatrix}-1\\[2pt]2\end{bmatrix}$$
+  $$\begin{aligned}
+  \mathbf{cat}\cdot\mathbf{dog} &= (2)(2)+(1)(0.8) = 4.8 &&\text{high (both animals)}\\
+  \mathbf{cat}\cdot\mathbf{car} &= (2)(-1)+(1)(2) = 0.0 &&\text{unrelated}\\
+  \mathbf{dog}\cdot\mathbf{car} &= (2)(-1)+(0.8)(2) = -0.4 &&\text{unrelated}
+  \end{aligned}$$
+  <p>The number literally ranks how related the words are. Attention is built on this meter.</p></div>
+
+  <h4>4.2 Query, Key, Value — with a search-engine analogy</h4>
+  <p>We don't compare raw word vectors directly. Instead each word produces <b>three different views</b> of itself through three learned matrices — like a search engine:</p>
+  <table>
+    <tr><th>Vector</th><th>Made by</th><th>Search-engine analogy</th></tr>
+    <tr><td><b>Query</b> \(\mathbf q=W^Q\mathbf x\)</td><td>\(W^Q\)</td><td>the <i>search box text</i> — what this word is looking for</td></tr>
+    <tr><td><b>Key</b> \(\mathbf k=W^K\mathbf x\)</td><td>\(W^K\)</td><td>the <i>page title/tags</i> — what each word advertises about itself</td></tr>
+    <tr><td><b>Value</b> \(\mathbf v=W^V\mathbf x\)</td><td>\(W^V\)</td><td>the <i>page content</i> — what you actually get back if matched</td></tr>
+  </table>
+  <p>A word's Query is matched against every word's Key (dot products). The matches become weights. You then retrieve a weighted blend of everyone's Values. Why three separate matrices? Because "what I'm looking for" (query), "what I offer" (key), and "what I contribute" (value) are genuinely different roles — letting the model learn them independently is far more expressive than comparing raw vectors.</p>
+
+  <h4>4.3 A fully worked self-attention pass (3 words, by hand)</h4>
+  <p>Let's push real numbers all the way through for the sentence fragment <b>"cat sat mat"</b>. We use 2-dimensional vectors so you can verify every step with a calculator.</p>
+
+  <div class="worked"><div class="label">Step 0 — the word embeddings (input \(X\))</div>
+  $$X=\begin{bmatrix} 1 & 0\\ 0 & 1\\ 1 & 1\end{bmatrix}\ \begin{matrix}\leftarrow\ \text{cat}\\ \leftarrow\ \text{sat}\\ \leftarrow\ \text{mat}\end{matrix}\qquad(3\times2)$$
+
+  <div class="label">Step 1 — project to \(Q,K,V\)</div>
+  <p>For simplicity take \(W^Q=W^K=W^V=I\) (identity), so here \(Q=K=V=X\). In a real model these are learned and different; identity just lets us see the mechanics.</p>
+
+  <div class="label">Step 2 — scores \(=QK^\top\) (every query \(\cdot\) every key)</div>
+  $$QK^\top=\begin{bmatrix} 1 & 0\\ 0 & 1\\ 1 & 1\end{bmatrix}\!\begin{bmatrix} 1 & 0 & 1\\ 0 & 1 & 1\end{bmatrix}=
+  \begin{array}{c}
+  \begin{matrix}\ \ \scriptstyle k=\text{cat} & \scriptstyle k=\text{sat} & \scriptstyle k=\text{mat}\end{matrix}\\
+  \begin{bmatrix} 1 & 0 & 1\\ 0 & 1 & 1\\ 1 & 1 & 2\end{bmatrix}
+  \end{array}
+  \begin{matrix}\scriptstyle q=\text{cat}\\ \scriptstyle q=\text{sat}\\ \scriptstyle q=\text{mat}\end{matrix}$$
+  <p>Each <b>row</b> is how much that word attends to every word. For example
+  \(\ \text{score}(\text{cat},\text{mat})=\begin{bmatrix}1&0\end{bmatrix}\!\cdot\!\begin{bmatrix}1&1\end{bmatrix}=1\) and
+  \(\ \text{score}(\text{mat},\text{mat})=\begin{bmatrix}1&1\end{bmatrix}\!\cdot\!\begin{bmatrix}1&1\end{bmatrix}=2.\)</p>
+
+  <div class="label">Step 3 — scale by \(\sqrt{d_k}\) (here \(d_k=2\))</div>
+  <p>Divide every entry by \(\sqrt{2}\approx1.414\). The "mat" row becomes:</p>
+  $$\begin{bmatrix}1 & 1 & 2\end{bmatrix}\ \xrightarrow{\ \div\sqrt2\ }\ \begin{bmatrix}0.707 & 0.707 & 1.414\end{bmatrix}$$
+
+  <div class="label">Step 4 — softmax each row \(\rightarrow\) attention weights (rows sum to 1)</div>
+  <p>Take the scaled "mat" row \(\begin{bmatrix}0.707 & 0.707 & 1.414\end{bmatrix}\):</p>
+  $$\text{softmax}(z)_i=\frac{e^{z_i}}{\sum_j e^{z_j}},\qquad
+  \frac{\begin{bmatrix}e^{0.707} & e^{0.707} & e^{1.414}\end{bmatrix}}{e^{0.707}+e^{0.707}+e^{1.414}}
+  =\frac{\begin{bmatrix}2.028 & 2.028 & 4.113\end{bmatrix}}{8.169}$$
+  $$=\begin{bmatrix}0.248 & 0.248 & 0.503\end{bmatrix}$$
+  <p>So "mat" pays \(\approx25\%\) attention to cat, \(25\%\) to sat, and \(50\%\) to itself.</p>
+
+  <div class="label">Step 5 — output \(=\) weights \(\cdot\,V\) (weighted blend of value vectors)</div>
+  $$\text{new }\mathbf{mat}=0.248\begin{bmatrix}1\\0\end{bmatrix}+0.248\begin{bmatrix}0\\1\end{bmatrix}+0.503\begin{bmatrix}1\\1\end{bmatrix}
+  =\begin{bmatrix}0.248+0.503\\ 0.248+0.503\end{bmatrix}=\begin{bmatrix}0.751\\ 0.751\end{bmatrix}$$
+  <p>The new "mat" vector is a context-aware blend — pulled toward cat and sat, but still mostly itself. Every word gets rewritten this way, <b>in parallel</b>, by the single matrix formula below.</p></div>
+
+  <div class="eq">$$\text{Attention}(Q,K,V)=\text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V$$</div>
+  <p>Read it left to right exactly as we computed: \(QK^\top\) = all-pairs scores → divide by \(\sqrt{d_k}\) → softmax into weights → multiply by \(V\) to blend the values. That's the entire step you just did by hand, now as one line the GPU runs on the whole sentence at once.</p>
+
+  <h4>4.4 Why the \(\sqrt{d_k}\) scaling? (the problem, then the fix)</h4>
+  <div class="box intu"><div class="label">The problem — with numbers</div>
+  <p>Scores are sums of \(d_k\) products. With small \(d_k\) they stay modest; but real models use \(d_k=64\) or more, so scores get <b>large</b>. Watch what large scores do to softmax:</p>
+  $$\begin{bmatrix}1 & 2 & 3\end{bmatrix}\ \xrightarrow{\text{softmax}}\ \begin{bmatrix}0.09 & 0.24 & 0.67\end{bmatrix}\quad(\text{soft, informative})$$
+  $$\begin{bmatrix}10 & 20 & 30\end{bmatrix}\ \xrightarrow{\text{softmax}}\ \begin{bmatrix}0.000 & 0.000 & 1.000\end{bmatrix}\quad(\text{razor-sharp, saturated})$$
+  <p>Once softmax saturates to nearly one-hot, its <b>gradient is almost zero</b> — the model can't learn to adjust the weights. Training stalls.</p></div>
+  <div class="box math"><div class="label">The fix — variance argument</div>
+  <p>If each \(q_i,k_i\) has mean 0 and variance 1, then</p>
+  $$\operatorname{Var}\!\left(\mathbf q\cdot\mathbf k\right)=\operatorname{Var}\!\left(\sum_{i=1}^{d_k}q_i k_i\right)=d_k
+  \quad\Longrightarrow\quad \text{std}=\sqrt{d_k}.$$
+  <p>Dividing by \(\sqrt{d_k}\) rescales the scores back to variance 1 <b>regardless of dimension</b>, keeping softmax in its responsive, gradient-rich range. That single \(\tfrac{1}{\sqrt{d_k}}\) is why attention trains stably at large \(d_k\). This is a foundational point about scaled attention.</p></div>
+
+  <h4>4.5 The same idea, in code</h4>
+  
+<pre><code>def attention(self, q, k, v):
+    hidden_dim = self.dim_k
+    head = torch.matmul(q, k.transpose(-2, -1))   # Step 2: QKᵀ, all-pairs scores
+    head = head / math.sqrt(hidden_dim)           # Step 3: scale by √d_k
+    attn = self.softmax(head)                      # Step 4: softmax → weights
+    v_matrix = torch.matmul(attn, v)               # Step 5: weighted sum of Values
+    return v_matrix, attn</code></pre>
+  <p>The five hand-computed steps map one-to-one onto these four lines. This is exactly what we just did with pen and paper.</p>
+
+  <div class="box real"><div class="label">Real-world implication — the O(n²) wall</div>
+  \(QK^\top\) is an \(n\times n\) score matrix for \(n\) tokens. Double the context and you quadruple this matrix. That quadratic cost is <i>the</i> central constraint of modern LLMs — the reason 100K–1M-token context windows are hard and expensive, and the reason FlashAttention, sparse/linear attention, and KV-caching (Part 6) exist. Every "longer context" milestone is a fight against this \(n^2\).</div>
+
+  <div class="quiz"><span class="q">Check:</span> In Step 5, why do we multiply weights by \(V\) rather than by the original embeddings \(X\)? <i>(Because Values are a learned "what I contribute if selected" view — separating retrieval content from the key used for matching lets the model optimize each role independently.)</i></div>
+</section>
+
+<!-- ############################ TRANSFORMER DEEP DIVE ############################ -->
+
+<section id="references">
+  <h2 class="sec">Appendix</h2>
+  <h3>References &amp; further reading</h3>
+  <p>The explanations here synthesize the primary research literature with a few exceptional public explainers. Grouped below by type; everything is freely available online.</p>
+  <div class="refgroup"><h4>Research papers & primary sources</h4>
+  <ol class="reflist">
+    <li><span class="authors">Rumelhart, Hinton &amp; Williams (1986). </span><span class="rtitle">Learning representations by back-propagating errors</span>. The backpropagation algorithm. <a href="https://www.nature.com/articles/323533a0">https://www.nature.com/articles/323533a0</a></li>
+    <li><span class="authors">LeCun, Bottou, Bengio &amp; Haffner (1998). </span><span class="rtitle">Gradient-based learning applied to document recognition</span>. Convolutional networks (LeNet). <a href="https://ieeexplore.ieee.org/document/726791">https://ieeexplore.ieee.org/document/726791</a></li>
+    <li><span class="authors">Hochreiter &amp; Schmidhuber (1997). </span><span class="rtitle">Long Short-Term Memory</span>. The LSTM and its gated cell state. <a href="https://www.bioinf.jku.at/publications/older/2604.pdf">https://www.bioinf.jku.at/publications/older/2604.pdf</a></li>
+    <li><span class="authors">He, Zhang, Ren &amp; Sun (2015). </span><span class="rtitle">Deep Residual Learning for Image Recognition</span>. Residual connections. <a href="https://arxiv.org/abs/1512.03385">https://arxiv.org/abs/1512.03385</a></li>
+    <li><span class="authors">Kingma &amp; Ba (2014). </span><span class="rtitle">Adam: A Method for Stochastic Optimization</span>. <a href="https://arxiv.org/abs/1412.6980">https://arxiv.org/abs/1412.6980</a></li>
+    <li><span class="authors">Vaswani et al. (2017). </span><span class="rtitle">Attention Is All You Need</span>. Introduces scaled dot-product attention (covered in depth in Part 2). <a href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a></li>
+    <li><span class="authors">Hornik, Stinchcombe &amp; White (1989). </span><span class="rtitle">Multilayer feedforward networks are universal approximators</span>. The Universal Approximation Theorem. <a href="https://www.sciencedirect.com/science/article/abs/pii/0893608089900208">https://www.sciencedirect.com/science/article/abs/pii/0893608089900208</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Visualizations & explainers</h4>
+  <ol class="reflist">
+    <li><span class="authors">Jay Alammar. </span><span class="rtitle">The Illustrated Transformer</span>. The vector-as-boxes visual vocabulary. <a href="https://jalammar.github.io/illustrated-transformer/">https://jalammar.github.io/illustrated-transformer/</a></li>
+    <li><span class="authors">3Blue1Brown (Grant Sanderson). </span><span class="rtitle">Neural Networks (chapters 1–4)</span>. Geometric intuition for networks, gradient descent, and backprop. <a href="https://www.3blue1brown.com/topics/neural-networks">https://www.3blue1brown.com/topics/neural-networks</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Further reading</h4>
+  <ol class="reflist">
+    <li><span class="authors">Zhang, Lipton, Li &amp; Smola. </span><span class="rtitle">Dive into Deep Learning (d2l.ai)</span>. Free interactive textbook with runnable code. <a href="https://d2l.ai/">https://d2l.ai/</a></li>
+    <li><span class="authors">Andrej Karpathy. </span><span class="rtitle">Neural Networks: Zero to Hero</span>. Builds micrograd, makemore, and a GPT from scratch. <a href="https://karpathy.ai/zero-to-hero.html">https://karpathy.ai/zero-to-hero.html</a></li>
+    <li><span class="authors">Goodfellow, Bengio &amp; Courville (2016). </span><span class="rtitle">Deep Learning</span>. The standard graduate textbook. <a href="https://www.deeplearningbook.org/">https://www.deeplearningbook.org/</a></li>
+  </ol></div>
+  <p class="refnote">Frontier-model details reflect publicly discussed methods; the exact architectures of proprietary systems (Claude, Gemini, GPT-4) are not officially disclosed and are described at the level of well-established public understanding.</p>
+</section>
+</main>
+</div>
+<script>
+window.addEventListener('scroll',function(){
+  var h=document.documentElement, b=document.body;
+  var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+  document.getElementById('bar').style.width=(sh>0?(st/sh*100):0)+'%';
+});
+</script>
+</body>
+</html>

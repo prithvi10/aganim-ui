@@ -18,7 +18,9 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useTranslation } from "react-i18next";
 import * as Sentry from "@sentry/react";
 import "./tailwind.css";
+import "./theme.css";
 import "./i18n";
+import { ThemeProvider, themeInitScript } from "./utils/theme";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   return {
@@ -51,6 +53,7 @@ export default function App() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="icon" type="image/png" href="/Icon-final.png" />
         <link rel="apple-touch-icon" href="/Icon-final.png" />
         <link rel="preconnect" href="https://cdn.shopify.com/" />
@@ -80,7 +83,9 @@ export default function App() {
       </head>
       <body>
         <PolarisAppProvider i18n={enTranslations}>
-        <Outlet />
+        <ThemeProvider>
+          <Outlet />
+        </ThemeProvider>
         </PolarisAppProvider>
         <ScrollRestoration />
         <Scripts />

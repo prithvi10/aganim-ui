@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState, useCallback } from "react";
+import { ThemeToggle } from "../utils/theme";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -125,17 +126,21 @@ export const LandingHeader = () => {
           {t("landing.nav.support")}
         </Link>
         <LanguageToggle />
+        <ThemeToggle />
       </nav>
 
       {/* Mobile hamburger button */}
+      <div className="flex items-center gap-2 md:hidden">
+      <ThemeToggle />
       <button
-        className="flex items-center justify-center md:hidden"
+        className="flex items-center justify-center"
         onClick={() => setMobileOpen((v) => !v)}
         aria-label={mobileOpen ? "Close menu" : "Open menu"}
         aria-expanded={mobileOpen}
       >
         <MobileMenuIcon open={mobileOpen} />
       </button>
+      </div>
     </div>
 
     {/* Mobile drawer */}
