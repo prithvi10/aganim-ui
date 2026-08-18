@@ -106,7 +106,9 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
               />
               <div className="mt-4 space-y-2">
                 <h1 className="text-xl font-semibold text-white">{profileData.name}</h1>
-                <p className="text-sm text-slate-300">{profileData.role}</p>
+                <p className="text-base font-semibold leading-snug text-white">
+                  {profileData.role}
+                </p>
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
                 <a

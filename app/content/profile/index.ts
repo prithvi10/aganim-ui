@@ -7,7 +7,7 @@ import manualStrategyMd from "./projects/manual-strategy.md?raw";
 
 export const profileData: ProfileData = {
   name: "Prithviraj Pawar",
-  role: "Engineering leader",
+  role: "Engineering Leader",
   organizations: [
     { name: "PayPay Corporation", url: "https://paypay.ne.jp/" },
     { name: "Georgia Institute of Technology", url: "https://www.gatech.edu/" },
@@ -22,7 +22,7 @@ export const profileData: ProfileData = {
       institution: "Bachelor in Computer Engineering - 2017",
     },
   ],
-  bio: "Enterprise AI Engineering Leader & Architect based in Tokyo. 9 YOE scaling payments and e-commerce at PayPay & Rakuten. MS CS (Machine Learning) from Georgia Tech. Recently shipped a high-ROI enterprise AI product and currently building Aganim AI & Medstats. I help companies navigate Agentic AI, Model Context Protocol (MCP), and enterprise AI governance.",
+  bio: "Engineering leader specializing in Agentic AI who has shipped multiple AI systems to production, from organization's enterprise platforms to my own deployed products. I help companies design, build, and govern AI that actually works at scale.",
   email: "prithviraj10pawar@gmail.com",
   social: {
     github: "https://github.com/prithvi10",
@@ -37,10 +37,10 @@ export const profileData: ProfileData = {
       dateStart: "2023-01-05",
       dateEnd: "",
       description:
-        "Managing multiple teams focusing on the payments platform and Agentic AI platforms that improve productivity, growth, and quality of products at PayPay.",
+        "Managing multiple teams focusing on the core payments platform and Agentic AI platforms that improve productivity, growth, and quality of products at PayPay.",
     },
     {
-      title: "Software Engineering / Management",
+      title: "Software Engineering / Leadership",
       company: "Rakuten Inc.",
       location: "Tokyo, Japan",
       dateStart: "2017-10-01",

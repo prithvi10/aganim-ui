@@ -11,22 +11,23 @@ import {
 const PUBLISHER_NAME = "Aganim AI";
 
 export const PROFILE_INDEX_TITLE =
-  "Prithviraj Pawar — Engineering Leader | Portfolio & Projects";
+  "Prithviraj Pawar — Enterprise AI Engineering Leader";
 
 export const PROFILE_INDEX_DESCRIPTION =
-  "Professional profile of Prithviraj Pawar, an engineering leader with experience at PayPay and Rakuten. Explore projects in artificial intelligence, machine learning, robotics, and quantitative technical analysis.";
+  "Multiple production AI systems shipped. Enterprise AI engineering leader specializing in Agentic AI and MCP — helping companies turn AI from experiments into reliable, governed systems that create real business value.";
 
 export const PROFILE_INDEX_KEYWORDS = [
   "Prithviraj Pawar",
+  "enterprise AI",
   "engineering leader",
+  "Agentic AI",
+  "Model Context Protocol",
+  "MCP",
   "PayPay",
   "Rakuten",
   "artificial intelligence",
   "machine learning",
-  "robotics",
-  "technical analysis",
   "Georgia Tech",
-  "software engineering",
 ].join(", ");
 
 function absoluteUrl(ctx: ProfileSeoContext, path: string) {
