@@ -44,7 +44,7 @@ export const profileData: ProfileData = {
       title: "Founder & Builder",
       company: "Aganim AI",
       location: "Remote · Tokyo, Japan",
-      dateStart: "2024-01-01",
+      dateStart: "2026-01-01",
       dateEnd: "",
       description:
         "Building Aganim, an AI growth engine for cross-border Shopify commerce — designed, built, and shipped end-to-end, from the AI content and localization features to billing, compliance, and deployment.",

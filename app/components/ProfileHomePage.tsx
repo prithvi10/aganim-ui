@@ -17,7 +17,7 @@ import {
   profileData,
   blogProjectTags,
 } from "../content/profile";
-import { profileSeriesBlogs, studySeriesTags } from "../content/profile/series";
+import { profileStudySeries, studySeriesTags } from "../content/profile/series";
 import { ProfileJsonLd } from "./ProfileJsonLd";
 import {
   buildProfileIndexSchemas,
@@ -49,7 +49,9 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
 
   const filteredSeries = useMemo(
     () =>
-      profileSeriesBlogs.filter((blog) => seriesMatchesFilter(blog.seriesName, activeSeriesTag)),
+      profileStudySeries.filter((series) =>
+        seriesMatchesFilter(series.name, activeSeriesTag),
+      ),
     [activeSeriesTag],
   );
 
@@ -190,26 +192,23 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
         </Reveal>
 
         <div className="grid gap-6 md:grid-cols-2">
-          {filteredSeries.map((blog) => (
-            <Reveal key={blog.href}>
-              <a
-                href={blog.href}
-                className="group block overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition hover:border-white/20 hover:bg-white/[0.07]"
-              >
+          {filteredSeries.map((series) => (
+            <Reveal key={series.name}>
+              <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
                 <div className="aspect-[16/10] overflow-hidden">
                   <img
-                    src={blog.featuredImage}
-                    alt={blog.title}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                    src={series.featuredImage}
+                    alt={series.name}
+                    className="h-full w-full object-cover"
                     loading="lazy"
                   />
                 </div>
                 <div className="p-6">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-violet-500/20 px-2.5 py-1 text-xs font-medium text-violet-200">
-                      {blog.seriesName} · {blog.part}
+                      {series.parts.length} parts
                     </span>
-                    {blog.tags.map((tag) => (
+                    {series.tags.map((tag) => (
                       <span
                         key={tag}
                         className="rounded-full bg-sky-500/10 px-2.5 py-1 text-xs text-sky-200"
@@ -218,14 +217,27 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
                       </span>
                     ))}
                   </div>
-                  <h3 className="text-lg font-semibold text-white transition group-hover:text-sky-200">
-                    {blog.title}
-                  </h3>
+                  <h3 className="text-lg font-semibold text-white">{series.name}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-slate-400">
-                    {blog.summary}
+                    {series.summary}
                   </p>
+                  <ul className="mt-5 space-y-2 border-t border-white/10 pt-5">
+                    {series.parts.map((part) => (
+                      <li key={part.href}>
+                        <a
+                          href={part.href}
+                          className="group flex items-baseline gap-2 text-sm text-slate-300 transition hover:text-sky-200"
+                        >
+                          <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-violet-300/80">
+                            {part.part}
+                          </span>
+                          <span className="group-hover:underline">{part.title}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </a>
+              </article>
             </Reveal>
           ))}
         </div>
