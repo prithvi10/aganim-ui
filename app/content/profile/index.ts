@@ -28,6 +28,7 @@ export const profileData: ProfileData = {
     github: "https://github.com/prithvi10",
     linkedin: "https://www.linkedin.com/in/prithviraj-pawar-69058ab5/",
   },
+  hashnodeUrl: "https://aganim-ai.hashnode.dev/",
   avatar: "/profile/avatar.jpg",
   experiences: [
     {
@@ -38,6 +39,15 @@ export const profileData: ProfileData = {
       dateEnd: "",
       description:
         "Managing multiple teams focusing on the core payments platform and Agentic AI platforms that improve productivity, growth, and quality of products at PayPay.",
+    },
+    {
+      title: "Founder & Builder",
+      company: "Aganim AI",
+      location: "Remote · Tokyo, Japan",
+      dateStart: "2024-01-01",
+      dateEnd: "",
+      description:
+        "Building Aganim, an AI growth engine for cross-border Shopify commerce — designed, built, and shipped end-to-end, from the AI content and localization features to billing, compliance, and deployment.",
     },
     {
       title: "Software Engineering / Leadership",
@@ -119,6 +129,8 @@ export const projectTags = [
   "Robotics",
   "Artificial Intelligence",
 ] as const;
+
+export const blogProjectTags = projectTags;
 
 export function getProjectBySlug(slug: string): ProfileProject | undefined {
   return profileData.projects.find((project) => project.slug === slug);

@@ -30,6 +30,7 @@ export type ProfileData = {
     github: string;
     linkedin: string;
   };
+  hashnodeUrl: string;
   avatar: string;
   experiences: ProfileExperience[];
   projects: ProfileProject[];

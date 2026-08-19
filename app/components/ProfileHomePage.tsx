@@ -15,8 +15,9 @@ import { Reveal } from "./LandingLayout";
 import {
   formatExperienceDate,
   profileData,
-  projectTags,
+  blogProjectTags,
 } from "../content/profile";
+import { profileSeriesBlogs, studySeriesTags } from "../content/profile/series";
 import { ProfileJsonLd } from "./ProfileJsonLd";
 import {
   buildProfileIndexSchemas,
@@ -24,50 +25,10 @@ import {
 import type { ProfileSeoContext } from "../utils/profileHost";
 import { useProfilePaths } from "../utils/useProfilePaths";
 
-// Long-form technical blog series, served as self-contained HTML pages from
-// /public/deep-learning. Shown as cards in the Blogs section alongside projects.
-type SeriesBlog = {
-  href: string;
-  title: string;
-  summary: string;
-  tags: string[];
-  featuredImage: string;
-  part: string;
-};
-
-const SERIES_BLOGS: SeriesBlog[] = [
-  {
-    href: "/deep-learning/foundations-of-deep-learning.html",
-    part: "Part 1",
-    title: "Foundations of Deep Learning",
-    summary:
-      "The ideas behind every LLM — from a single neuron to backpropagation, CNNs, RNNs, and the first glimpse of attention.",
-    tags: ["Deep Learning", "Artificial Intelligence", "Machine Learning"],
-    featuredImage: "/deep-learning/cover-foundations.png",
-  },
-  {
-    href: "/deep-learning/the-transformer-deep-dive.html",
-    part: "Part 2",
-    title: "The Transformer, Deep Dive",
-    summary:
-      "Attention, encoders, and decoders — the 2017 architecture rebuilt block by block, with the math and the intuition.",
-    tags: ["Deep Learning", "Artificial Intelligence"],
-    featuredImage: "/deep-learning/cover-transformer.png",
-  },
-  {
-    href: "/deep-learning/modern-frontier-llms.html",
-    part: "Part 3",
-    title: "Modern Frontier LLMs",
-    summary:
-      "From the Transformer to Claude, Gemini, and GPT — RoPE, RMSNorm, SwiGLU, GQA, MoE, alignment, and scaling laws.",
-    tags: ["Deep Learning", "Artificial Intelligence", "Machine Learning"],
-    featuredImage: "/deep-learning/cover-frontier.png",
-  },
-];
-
 export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext }) {
   const paths = useProfilePaths();
-  const [activeTag, setActiveTag] = useState<string>("All");
+  const [activeSeriesTag, setActiveSeriesTag] = useState<string>("All");
+  const [activeBlogTag, setActiveBlogTag] = useState<string>("All");
 
   useEffect(() => {
     const root = document.documentElement;
@@ -81,14 +42,15 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
   const filteredProjects = useMemo(
     () =>
       profileData.projects.filter((project) =>
-        tagMatchesFilter(project.tags, activeTag),
+        tagMatchesFilter(project.tags, activeBlogTag),
       ),
-    [activeTag],
+    [activeBlogTag],
   );
 
   const filteredSeries = useMemo(
-    () => SERIES_BLOGS.filter((blog) => tagMatchesFilter(blog.tags, activeTag)),
-    [activeTag],
+    () =>
+      profileSeriesBlogs.filter((blog) => seriesMatchesFilter(blog.seriesName, activeSeriesTag)),
+    [activeSeriesTag],
   );
 
   return (
@@ -120,6 +82,16 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
                   <Github className="h-3.5 w-3.5" />
                   GitHub
                 </a>
+                {profileData.hashnodeUrl ? (
+                  <a
+                    href={profileData.hashnodeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/30 hover:text-white"
+                  >
+                    Hashnode
+                  </a>
+                ) : null}
                 <a
                   href={profileData.social.linkedin}
                   target="_blank"
@@ -194,16 +166,19 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
         </div>
       </ProfileSection>
 
-      <ProfileSection id="projects" title="Blogs">
+      <ProfileSection id="study-series" title="Study Series">
         <Reveal>
+          <p className="mb-8 max-w-3xl text-base leading-relaxed text-slate-400">
+            In-depth multi-part guides on deep learning fundamentals and running LLMs in production.
+          </p>
           <div className="mb-8 flex flex-wrap gap-2">
-            {projectTags.map((tag) => (
+            {studySeriesTags.map((tag) => (
               <button
                 key={tag}
                 type="button"
-                onClick={() => setActiveTag(tag)}
+                onClick={() => setActiveSeriesTag(tag)}
                 className={`rounded-full px-4 py-2 text-sm transition ${
-                  activeTag === tag
+                  activeSeriesTag === tag
                     ? "bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/30"
                     : "border border-white/10 text-slate-300 hover:border-white/30 hover:text-white"
                 }`}
@@ -232,7 +207,7 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
                 <div className="p-6">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-violet-500/20 px-2.5 py-1 text-xs font-medium text-violet-200">
-                      Series · {blog.part}
+                      {blog.seriesName} · {blog.part}
                     </span>
                     {blog.tags.map((tag) => (
                       <span
@@ -253,7 +228,30 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
               </a>
             </Reveal>
           ))}
+        </div>
+      </ProfileSection>
 
+      <ProfileSection id="blogs" title="Blogs">
+        <Reveal>
+          <div className="mb-8 flex flex-wrap gap-2">
+            {blogProjectTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setActiveBlogTag(tag)}
+                className={`rounded-full px-4 py-2 text-sm transition ${
+                  activeBlogTag === tag
+                    ? "bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/30"
+                    : "border border-white/10 text-slate-300 hover:border-white/30 hover:text-white"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </Reveal>
+
+        <div className="grid gap-6 md:grid-cols-2">
           {filteredProjects.map((project) => (
             <Reveal key={project.slug}>
               <Link
@@ -333,4 +331,9 @@ function tagMatchesFilter(projectTagsList: string[], filter: string) {
   return projectTagsList.some((tag) =>
     tag.toLowerCase().includes(filter.toLowerCase()),
   );
+}
+
+function seriesMatchesFilter(seriesName: string, filter: string) {
+  if (filter === "All") return true;
+  return seriesName === filter;
 }

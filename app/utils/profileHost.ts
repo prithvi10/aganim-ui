@@ -51,7 +51,7 @@ export function profileProjectPath(isSubdomain: boolean, slug: string): string {
 }
 
 export function profileProjectsAnchor(isSubdomain: boolean): string {
-  return profileSectionPath(isSubdomain, "projects");
+  return profileSectionPath(isSubdomain, "blogs");
 }
 
 export function toSubdomainProfileUrl(pathname: string, search = "", hash = ""): string {

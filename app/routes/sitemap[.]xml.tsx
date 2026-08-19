@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { articles } from "../content/blog";
 import { profileData } from "../content/profile";
+import { profileSeriesBlogs } from "../content/profile/series";
 import {
   AGANIM_SITE_URL,
   isProfileSubdomainRequest,
@@ -48,6 +49,12 @@ export function loader({ request }: LoaderFunctionArgs) {
         loc: `/projects/${project.slug}`,
         lastmod: project.date,
         changefreq: "yearly",
+        priority: "0.8",
+      })),
+      ...profileSeriesBlogs.map((blog) => ({
+        loc: blog.href,
+        lastmod: today,
+        changefreq: "monthly",
         priority: "0.8",
       })),
     ];

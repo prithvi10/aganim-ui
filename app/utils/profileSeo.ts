@@ -190,7 +190,7 @@ function buildProfilePageSchema(profile: ProfileData, ctx: ProfileSeoContext) {
       email: profile.email,
       image: absoluteUrl(ctx, profile.avatar),
       url: absoluteUrl(ctx, home),
-      sameAs: [profile.social.github, profile.social.linkedin],
+      sameAs: [profile.social.github, profile.social.linkedin, profile.hashnodeUrl].filter(Boolean),
       alumniOf: profile.education.map((item) => ({
         "@type": "EducationalOrganization",
         name: item.course,
