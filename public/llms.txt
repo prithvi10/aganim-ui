@@ -7,7 +7,7 @@
 - [Home](https://aganim-ai.com/): Landing page with product overview, features, and pricing for Aganim AI
 - [Features](https://aganim-ai.com/features): Detailed feature breakdown including Brand Soul, AI Rewriter, SEO optimizer, Price Scout, Marketing, Content Studio, Image Refinement, and Agentic Missions
 - [Support](https://aganim-ai.com/support): Help center with feature guides, step-by-step tutorials, troubleshooting, and FAQs for Shopify merchants
-- [Profile](https://prithvirajpawar.aganim-ai.com/): Professional profile of Prithviraj Pawar — engineering leader, experience, and AI/ML project portfolio
+- [Profile](https://prithvirajpawar.aganim-ai.com/): Engineering leader specializing in Agentic AI — production systems, experience, study series, and AI/ML writing
 - [Privacy Policy](https://aganim-ai.com/privacy-policy): Data handling practices, Shopify API scopes, GDPR compliance, and fair use policy
 
 ## About

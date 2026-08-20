@@ -48,3 +48,8 @@ Thumbs.db
 *.sln
 *.sw?
 .cursor/
+
+# Private / unpublished deep-learning drafts (not deployed)
+/public/deep-learning/leadership-*.html
+/public/deep-learning/ai-career-roadmap.html
+/public/deep-learning/phase0-deliverables.html

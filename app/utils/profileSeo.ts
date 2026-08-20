@@ -14,17 +14,19 @@ export const PROFILE_INDEX_TITLE =
   "Prithviraj Pawar — Enterprise AI Engineering Leader";
 
 export const PROFILE_INDEX_DESCRIPTION =
-  "Multiple production AI systems shipped. Enterprise AI engineering leader specializing in Agentic AI and MCP — helping companies turn AI from experiments into reliable, governed systems that create real business value.";
+  "Engineering leader specializing in Agentic AI who has shipped multiple AI systems to production — from enterprise platforms to deployed products including Aganim and Medstats. I help companies design, build, and govern AI at scale.";
 
 export const PROFILE_INDEX_KEYWORDS = [
   "Prithviraj Pawar",
-  "enterprise AI",
   "engineering leader",
+  "enterprise AI",
   "Agentic AI",
-  "Model Context Protocol",
-  "MCP",
+  "production AI",
+  "AI engineering leadership",
   "PayPay",
   "Rakuten",
+  "Aganim",
+  "Medstats",
   "artificial intelligence",
   "machine learning",
   "Georgia Tech",
