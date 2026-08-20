@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLMOps · Part 4 — Serving &amp; Inference Infrastructure</title>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],tags:'none'},svg:{fontCache:'global'}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  :root{ color-scheme: light; --bg:#f7f6f3; --panel:#ffffff; --ink:#1c1b1a; --muted:#5f5b55; --line:#e5e1d8; --accent:#b5432a; --accent2:#2a5db5; --code-bg:#1e1d1b; --code-ink:#e8e4dc; --ok:#2f7d4f; --chip:#efe9dd; --purple:#6a3fb5; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;line-height:1.65;font-size:17px}
+  .layout{display:flex;max-width:1220px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;width:290px;padding:24px 16px;border-right:1px solid var(--line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px}
+  nav h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  nav h2:first-child{margin-top:0}
+  nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 8px;border-radius:6px;margin-bottom:1px;line-height:1.35}
+  nav a:hover{background:var(--chip);color:var(--ink)}
+  nav a.here{background:var(--chip);color:var(--ink);font-weight:700}
+  main{flex:1;min-width:0;padding:44px 56px 140px;max-width:840px}
+  header.hero{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:10px}
+  .kicker{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:42px;line-height:1.08;margin:12px 0 10px;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:18px}
+  .meta{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:var(--muted);margin-top:16px;display:flex;gap:18px;flex-wrap:wrap}
+  section{padding-top:40px;margin-top:14px;border-top:1px solid var(--line)}
+  section.module{border-top:3px solid var(--ink)}
+  h2.sec{font-size:14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px;font-weight:700}
+  h3{font-size:30px;margin:2px 0 14px;letter-spacing:-.01em;line-height:1.15}
+  h4{font-size:21px;margin:30px 0 8px}
+  h5{font-size:17px;margin:22px 0 6px;font-family:-apple-system,sans-serif;font-weight:700;color:#333}
+  p{margin:12px 0}
+  .lead{font-size:19px;color:#333}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--chip);padding:1px 5px;border-radius:4px}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.5;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit}
+  .eq{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent2);padding:6px 18px;border-radius:8px;margin:16px 0;overflow-x:auto}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:18px 0}
+  .box.intu{border-left:4px solid var(--accent)}
+  .box.link{border-left:4px solid var(--ok)}
+  .box.math{border-left:4px solid var(--accent2)}
+  .box.real{border-left:4px solid var(--purple)}
+  .box .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .box.link .label{color:var(--ok)} .box.math .label{color:var(--accent2)} .box.real .label{color:var(--purple)}
+  .chip{display:inline-block;font-family:-apple-system,sans-serif;font-size:11px;background:var(--chip);color:var(--muted);padding:3px 9px;border-radius:20px;margin:0 4px 4px 0}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--chip);font-family:-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px}
+  details summary{cursor:pointer;padding:14px 0;font-family:-apple-system,sans-serif;font-weight:600;font-size:15px}
+  details[open]{padding-bottom:12px}
+  .quiz{background:var(--panel);border:1px dashed var(--accent2);border-radius:10px;padding:14px 18px;margin:16px 0;font-family:-apple-system,sans-serif;font-size:14.5px}
+  .quiz .q{font-weight:600}
+  .progress-wrap{position:fixed;top:0;left:0;height:3px;width:100%;background:transparent;z-index:50}
+  #bar{height:100%;width:0;background:var(--accent)}
+  ul.tight li,ol.tight li{margin:6px 0}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .flow{max-width:600px;margin:20px auto;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;align-items:stretch;gap:0}
+  .fb{width:100%;box-sizing:border-box;border:2px solid #333;border-radius:8px;padding:12px 16px;margin:0;text-align:center;background:#fff;font-size:14px;flex:0 0 auto}
+  .fb .t{font-weight:700;margin-bottom:4px}
+  .fb.emb{background:#fdf1ee} .fb.attn{background:#fff7cf} .fb.norm{background:#fff9c4} .fb.ffn{background:#c7f0ee} .fb.out{background:#e7f0ff} .fb.dec{background:#efe4ff}
+  .farrow{text-align:center;color:#b5432a;font-size:20px;line-height:1;margin:6px 0;flex:0 0 auto}
+  .fsub{font-size:12px;color:var(--muted);margin-top:4px;font-style:normal}
+  .worked{background:#fbfaf7;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:8px 20px 16px;margin:20px 0}
+  .worked .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--purple);margin:12px 0 2px}
+  .budget{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:16px 0;overflow-x:auto;white-space:pre;line-height:1.5}
+  @media(max-width:940px){nav{display:none}main{padding:26px 20px 90px}h1{font-size:32px}}
+  section#references{border-top:3px solid var(--ink)}
+  .refgroup{margin:18px 0}
+  .refgroup h4{font-size:15px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em;color:var(--ink);margin:22px 0 8px;text-transform:none}
+  ol.reflist{list-style:none;counter-reset:ref;padding:0;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+  ol.reflist li{counter-increment:ref;position:relative;padding:9px 0 9px 40px;border-bottom:1px solid var(--line);line-height:1.5}
+  ol.reflist li:before{content:counter(ref);position:absolute;left:0;top:9px;width:26px;height:26px;background:var(--chip);color:var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  ol.reflist li .authors{color:var(--muted)}
+  ol.reflist li .rtitle{font-weight:600;color:var(--ink)}
+  ol.reflist a{color:var(--accent2);text-decoration:none}
+  ol.reflist a:hover{text-decoration:underline}
+  .refnote{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:16px;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div class="progress-wrap"><div id="bar"></div></div>
+<div class="layout">
+<nav>
+  <h2>This Post</h2>
+  <a href="#intro">Introduction</a>
+  <a href="#part1">1 · Why a raw model can't serve</a>
+  <a href="#part2">2 · The KV cache &amp; two phases</a>
+  <a href="#part3">3 · PagedAttention &amp; batching</a>
+  <a href="#part4">4 · Multi-GPU parallelism</a>
+  <a href="#part5">5 · Local vs web serving</a>
+  <a href="#part6">6 · The full request path</a>
+  <a href="#references">References &amp; reading</a>
+  <h2>LLMOps Series</h2>
+  <a href="llmops-1-foundations.html">1 · Foundations &amp; Lifecycle</a>
+  <a href="llmops-2-evaluation.html">2 · Evaluation &amp; Testing</a>
+  <a href="llmops-3-open-models.html">3 · Open Models: MoE, Reasoning, Fine-tuning</a>
+  <a href="llmops-4-serving.html" class="here">4 · Serving &amp; Inference Infra</a>
+  <a href="llmops-5-rag-agents.html">5 · RAG &amp; Agentic Systems</a>
+  <a href="llmops-6-monitoring.html">6 · Monitoring, Guardrails &amp; Cost</a>
+  <h2>Deep Learning Series</h2>
+  <a href="foundations-of-deep-learning.html">1 · Foundations of Deep Learning</a>
+  <a href="the-transformer-deep-dive.html">2 · The Transformer, Deep Dive</a>
+  <a href="modern-frontier-llms.html">3 · Modern Frontier LLMs</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="kicker">LLMOps, In Depth · Part 4 of 6</div>
+  <h1>Serving &amp; Inference Infrastructure</h1>
+  <p class="sub">From a model file on disk to a fast, streamed answer — the KV cache, PagedAttention, batching, and the full request path.</p>
+  <div class="meta"><span>By Prithviraj</span><span>Part 4 of 6</span><span>~32 min read</span></div>
+</header>
+
+<section id="intro">
+  <p class="lead">A trained model saved to disk cannot do anything on its own. It is just a big file full of numbers. Turning that file into a service that answers thousands of people at once, in a fraction of a second each, is its own hard engineering problem. This post is about the software that does exactly that job. That software is called an <b>inference engine</b> ("inference" just means running a trained model to get an answer). We will cover the memory trick that makes serving affordable, the scheduling trick that lets one machine handle many users, the way work is split across several chips, and the whole path a request travels from the user to the answer and back.</p>
+  <p>The math inside the model never changes here. Everything in this post is about running that fixed math on real hardware, for real numbers of users, fast enough and cheap enough. If you want a refresher on how the model generates text, see the <a href="the-transformer-deep-dive.html">Transformer deep dive</a>.</p>
+  <div class="box intu"><div class="label">The one goal that drives everything</div>
+  Serving has a single aim: get as many words per second out of each expensive chip as possible, while making sure no single user waits too long. The number of words a chip produces per second is called <b>throughput</b>. Every technique in this post — the KV cache, PagedAttention, continuous batching, splitting across chips — exists to raise throughput without making any one user wait.</div>
+</section>
+
+<section id="part1" class="module">
+  <h2 class="sec">Part 1 · Serving</h2>
+  <h3>Why a raw model can't serve real traffic</h3>
+
+  <p>You can run a model with a few lines of plain PyTorch code. It works fine for one user. It falls apart under ten. Looking at why it fails tells you exactly what a real inference engine is built to fix.</p>
+
+  <p>Here is the naive way. It loads the model and asks it to write a reply, one call at a time:</p>
+  <pre><code>from transformers import AutoModelForCausalLM, AutoTokenizer
+
+model = AutoModelForCausalLM.from_pretrained("some-7b-model").cuda()
+tok   = AutoTokenizer.from_pretrained("some-7b-model")
+
+inputs = tok("Translate to French: good morning", return_tensors="pt").to("cuda")
+output = model.generate(**inputs, max_new_tokens=50)   # handles ONE request
+print(tok.decode(output[0]))</code></pre>
+
+  <p>That <code>generate()</code> call can only work on one request at a time, it leaves the chip idle between steps, and it wastes memory. A real engine fixes each of these. Here is the side-by-side.</p>
+
+  <table>
+    <tr><th></th><th>Plain PyTorch <code>generate()</code></th><th>Inference engine (vLLM/SGLang/TGI)</th></tr>
+    <tr><td>Memory</td><td>Grabs memory as it goes, leaves gaps it can't reuse</td><td>Reuses memory in small fixed blocks, almost no waste</td></tr>
+    <tr><td>Many users</td><td>One request at a time, or a rigid fixed group</td><td>Hundreds of requests mixed together and reshuffled every step</td></tr>
+    <tr><td>Chip use</td><td>Compute sits idle between word steps</td><td>Kept busy by processing many requests together</td></tr>
+    <tr><td>Speed of the math</td><td>Generic, unoptimized operations</td><td>Hand-tuned code written for this exact job</td></tr>
+  </table>
+
+  <div class="box link"><div class="label">What an inference engine is</div>
+  A piece of software whose only job is to run a model's text generation on a graphics chip (GPU) as fast as the hardware physically allows is called an <b>inference engine</b>. It manages the model's memory, packs many users' requests together, and uses specially written low-level code. Compare it to a database: you could read a giant spreadsheet line by line in a loop, but a real database is built to do that job at scale. The inference engine is the "real database" version of running a model.</div>
+</section>
+
+<section id="part2" class="module">
+  <h2 class="sec">Part 2 · Serving</h2>
+  <h3>The KV cache and the two phases of generating text</h3>
+
+  <p>Memory is the central problem in serving, and to see why, you need one idea from how the model works. We will explain it plainly first, then name it.</p>
+
+  <h4>2.1 The model saves its earlier work so it never repeats it</h4>
+  <p>When a model writes text, it produces one word at a time. To pick the next word, it looks back at every word so far. For each earlier word, it has already computed two helper values (called the <b>key</b> and the <b>value</b>). If it recomputed those for every earlier word at every step, the work would grow with the square of the length — hugely wasteful. So instead the model saves each word's key and value the moment it computes them, and reuses them for every later step. That saved store of keys and values is called the <b>KV cache</b> (KV is just "keys and values").</p>
+
+  <h4>2.2 Two phases: reading the prompt, then writing the answer</h4>
+  <p>Generating an answer happens in two stages with very different behavior. First the model reads the whole prompt at once. Then it writes the answer one word at a time.</p>
+  <div class="flow">
+    <div class="fb attn"><div class="t">Phase 1 · reading the prompt</div><div class="fsub">The whole prompt is processed in one shot, filling the KV cache with keys and values for every prompt word. Heavy math, done all at once. This phase is called <b>prefill</b>.</div></div>
+    <div class="farrow">↓ then, one word at a time</div>
+    <div class="fb ffn"><div class="t">Phase 2 · writing the answer</div><div class="fsub">Produce one word, add its key and value to the cache, repeat. Must be done in order, and is limited by how fast data moves through memory. This phase is called <b>decode</b>.</div></div>
+  </div>
+  <p>These two phases hit different limits. Reading the prompt (prefill) does a lot of math all at once, so it is limited by how fast the chip can compute. Writing the answer (decode) has to go word by word — word 100 needs word 99 to exist first — so it is limited by how fast the model's numbers and the growing cache can be moved through memory, not by raw compute. Because the phases behave so differently, we measure them with separate numbers: how long until the first word appears (mostly set by prefill) and how long between each following word (mostly set by decode). We give those numbers names in Part 6.</p>
+
+  <div class="box math"><div class="label">How big the KV cache gets — a worked number</div>
+  <p>The cache size follows this formula:</p>
+  <div class="eq">$$\text{cache bytes} = 2 \times \text{layers} \times \text{heads} \times d_{\text{head}} \times \text{seq len} \times \text{batch} \times \text{bytes per number}$$</div>
+  <p>The 2 is because we store both a key and a value. Let's plug in numbers for a 70-billion-parameter model: 80 layers, 64 heads, each head width \(d_{\text{head}}=128\), a sequence of 4,000 words, a batch of 16 users at once, and 2 bytes per number.</p>
+  <div class="eq">$$2 \times 80 \times 64 \times 128 \times 4000 \times 16 \times 2 \approx 1.7 \times 10^{11}\ \text{bytes} \approx 168\ \text{GB}$$</div>
+  <p>That is <i>more than the model's own weights.</i> This is the key fact of serving: how many users you can serve is often decided not by the model's size but by <b>how much KV cache fits in the chip's memory (VRAM)</b>. The trick in the next section, PagedAttention, exists to squeeze far more of this cache into the same memory.</p></div>
+</section>
+
+<section id="part3" class="module">
+  <h2 class="sec">Part 3 · Serving</h2>
+  <h3>PagedAttention and continuous batching</h3>
+
+  <p>Two ideas, both first shipped in a tool called vLLM, turned model serving from wasteful into efficient. Together they are why a modern engine handles several times more users on the same chip than a naive one. We take them one at a time.</p>
+
+  <h4>3.1 Handing out memory in small blocks instead of one big slab</h4>
+  <p>The naive approach reserves, up front, a single continuous chunk of memory big enough for each request's longest possible answer. But most answers are much shorter than the maximum, so most of that reserved space sits empty and unused. Wasting space you reserved but never filled is called <b>internal fragmentation</b>, and it can waste most of your cache memory.</p>
+  <p>The fix borrows an old operating-system idea: cut the cache into small, fixed-size blocks (called <b>pages</b>) and hand them out only as a request actually needs them, wherever there is free room. A small lookup table remembers where each request's pages live. This approach is called <b>PagedAttention</b>.</p>
+  <div class="flow">
+    <div class="fb norm"><div class="t">Naive: one big reserved slab per request</div><div class="fsub">Reserve room for 2000 words &nbsp;→&nbsp; [used: 90 words ......... empty: 1910 words wasted]</div></div>
+    <div class="farrow">↓ PagedAttention instead</div>
+    <div class="fb ffn"><div class="t">Small blocks, given out on demand</div><div class="fsub">Request A: [blk 3][blk 7][blk 1] &nbsp; Request B: [blk 2][blk 5] &nbsp; free: [blk 4][blk 6]... &nbsp; almost nothing wasted</div></div>
+  </div>
+  <div class="box intu"><div class="label">A bonus: sharing identical pages</div>
+  Because pages are handed out individually, two requests that begin with the exact same text (say, the same system instruction at the top) can point at the very same cached pages instead of each storing their own copy. That saves both memory and repeated work. A related tool called SGLang extends this sharing to any shared beginning of text using a tree structure, and calls its version <b>RadixAttention</b> ("radix tree" is the data structure it uses to find shared prefixes quickly).</div>
+
+  <h4>3.2 Never make a fast request wait for a slow one</h4>
+  <p>A GPU is only efficient when it works on many requests together. Grouping requests together is called <b>batching</b>. The simple version, called <b>static batching</b>, waits until a fixed group of requests is ready, runs the whole group until every request in it is finished, and only then starts a new group. The problem: a request that finishes early is stuck waiting for the slowest one in its group, and the chip sits idle between groups.</p>
+  <p>The better version works at the level of a single word step. After every step it checks the group: any request that just finished is removed, and a waiting request takes its slot on the very next step. The group is constantly changing rather than fixed. This is called <b>continuous batching</b> (sometimes "in-flight batching").</p>
+  <div class="flow">
+    <div class="fb out"><div class="t">Static batching</div><div class="fsub">[ A B C D ] run to the end together → A finished at step 3 but idles until D finishes at step 40 → then start next group</div></div>
+    <div class="farrow">↓ continuous batching</div>
+    <div class="fb dec"><div class="t">Continuous batching</div><div class="fsub">step 3: A done → drop A, add E immediately &nbsp; step 7: C done → drop C, add F &nbsp; the group never stops churning</div></div>
+  </div>
+  <div class="box real"><div class="label">Why this matters to your bill</div>
+  PagedAttention and continuous batching together are why a tool like vLLM can push several times more traffic through the same hardware than a naive setup. In practice that is the difference between needing eight GPUs and needing two for the same number of users — a large, direct saving on your infrastructure cost. When you pick a serving tool, both features are must-haves, not extras.</div>
+</section>
+
+<section id="part4" class="module">
+  <h2 class="sec">Part 4 · Serving</h2>
+  <h3>When one GPU isn't enough: splitting across chips</h3>
+
+  <p>A 70-billion-parameter model stored at 2 bytes per number needs about 140 GB of memory — more than fits on any single chip. And even models that do fit may need to serve more users than one chip can handle. The answer is to spread the work over several chips. There are three ways to split it, and they differ in what gets cut up and how much the chips must talk to each other.</p>
+
+  <table>
+    <tr><th>Way of splitting</th><th>What gets divided</th><th>Plain description</th><th>Main cost</th></tr>
+    <tr><td><b>Tensor parallelism</b><br>(split each layer)</td><td>Each layer's big number-grids are sliced into pieces; every chip does a slice of every layer.</td><td>All chips work on the same layer at the same time, each doing part of it, then combine their partial answers.</td><td>The chips must exchange results at every layer, so they need a very fast connection between them (called NVLink).</td></tr>
+    <tr><td><b>Pipeline parallelism</b><br>(split by layer)</td><td>Whole layers are placed on different chips; the data flows through them in order.</td><td>Chip 0 handles layers 1–16, then passes the result to chip 1 for layers 17–32, and so on, like stations on an assembly line.</td><td>Much less chatter between chips, but stations can sit idle waiting for the previous one (an "idle gap") unless carefully scheduled.</td></tr>
+    <tr><td><b>Expert parallelism</b><br>(split the experts)</td><td>In a mixture-of-experts model (Part 3), the separate expert sub-models are placed on different chips.</td><td>Each word is sent to whichever chip holds the expert it needs, then the answer comes back.</td><td>Extra work to route each word to the right chip, but it spreads out the large memory a mixture-of-experts model needs.</td></tr>
+  </table>
+
+  <div class="box math"><div class="label">Why tensor parallelism needs a very fast link</div>
+  <p>With tensor parallelism, every chip computes part of a layer and then all of them must combine their partial results before moving to the next layer. Combining partial results from all chips is called an <b>all-reduce</b>, and it can happen dozens of times for a single word. If that exchange has to travel over a slow connection, the waiting to exchange data takes longer than the actual math, and you lose all the speed you hoped to gain. Fast connections between chips (NVLink) exist for exactly this reason. Rule of thumb: use tensor parallelism only among chips inside one machine (fast links), use pipeline parallelism to reach across separate machines (slower links, but less talking needed), and a giant mixture-of-experts model often uses all three at once.</p></div>
+
+  <div class="quiz"><span class="q">Check:</span> Why does a mixture-of-experts model use a lot of memory even though each word only uses a small part of it (Part 3), and why does that make expert parallelism a good fit? <i>(All the experts have to be loaded in memory at all times, even though each word only passes through a few of them. Spreading the experts across chips shares out that large memory load, so no single chip has to hold all of them.)</i></div>
+</section>
+
+<section id="part5" class="module">
+  <h2 class="sec">Part 5 · Serving</h2>
+  <h3>Running on your own machine vs running on a cluster</h3>
+
+  <p>Which tool you pick depends on your goal. Are you running one model for yourself on a laptop, caring mainly about speed and privacy? Or are you serving many people from a cluster, caring mainly about total throughput? These are genuinely different problems with different tools.</p>
+
+  <table>
+    <tr><th></th><th>On your own machine (one user)</th><th>On a cluster (many users)</th></tr>
+    <tr><td>Goal</td><td>Fast enough, low memory, works offline and private</td><td>Most words per second, many users at once</td></tr>
+    <tr><td>Hardware</td><td>A regular CPU, an Apple chip, or one consumer GPU</td><td>Many high-end GPUs linked with fast connections</td></tr>
+    <tr><td>Model file format</td><td>Shrunk-down (quantized) files, usually in a format called GGUF</td><td>Full-precision or lightly shrunk formats (FP16, FP8, AWQ, GPTQ)</td></tr>
+    <tr><td>Tools</td><td>llama.cpp, Ollama, LM Studio</td><td>vLLM, SGLang, TGI, TensorRT-LLM</td></tr>
+  </table>
+
+  <h4>5.1 The tools you run on your own machine</h4>
+  <p>Here is what each local tool is and when to reach for it:</p>
+  <ul class="tight">
+    <li><b>llama.cpp</b> — a small, very fast engine written in C/C++ that runs models on a plain CPU, an Apple chip, or a GPU. It reads the shrunk-down GGUF file format directly. It sits underneath most other local tools. Pick it when you want the leanest, most direct option.</li>
+    <li><b>Ollama</b> — a friendly wrapper around llama.cpp that turns everything into one command. Typing <code>ollama run qwen3</code> downloads the model, shrinks it, and starts serving it. Pick it when you want the easiest possible start.</li>
+    <li><b>LM Studio</b> — the same idea as Ollama but with a full click-and-point desktop window instead of a command line. Pick it when you prefer a graphical app over the terminal.</li>
+  </ul>
+  <p>On top of any of these you can add a chat window such as Open WebUI, Jan, or AnythingLLM, which gives you a ChatGPT-style interface and can answer questions about your own documents. Here is the whole local stack, top to bottom:</p>
+  <div class="flow">
+    <div class="fb out"><div class="t">Chat window</div><div class="fsub">Open WebUI / Jan / AnythingLLM — the interface you type into, plus your-documents search</div></div>
+    <div class="farrow">↓ sends your message to</div>
+    <div class="fb ffn"><div class="t">Inference engine</div><div class="fsub">Ollama or LM Studio (both run llama.cpp underneath)</div></div>
+    <div class="farrow">↓ which uses</div>
+    <div class="fb emb"><div class="t">Your hardware's fast-math system</div><div class="fsub">Metal (Apple), CUDA (NVIDIA), or ROCm (AMD)</div></div>
+  </div>
+
+  <h4>5.2 The tools for serving many users, and the pay-as-you-go middle option</h4>
+  <p>For serving a crowd, here is what each big engine is and when to choose it:</p>
+  <ul class="tight">
+    <li><b>vLLM</b> — the widely used open engine that introduced PagedAttention and continuous batching. Pick it as a strong general-purpose default for self-hosting.</li>
+    <li><b>SGLang</b> — an engine focused on reusing shared beginnings of prompts (RadixAttention). Pick it when many of your requests share a long common prefix, such as the same big system instruction.</li>
+    <li><b>TGI (Text Generation Inference)</b> — Hugging Face's serving engine, tightly tied to their model library. TGI stands for Text Generation Inference. Pick it if you already live in the Hugging Face ecosystem.</li>
+    <li><b>TensorRT-LLM</b> — NVIDIA's engine, tuned to squeeze the most out of NVIDIA chips. Pick it when you run on NVIDIA hardware and want the very last bit of speed, and don't mind extra setup.</li>
+  </ul>
+  <p>There is also a middle path between "call someone else's private model over the internet" and "run your own cluster." Some companies run popular open models on their own clusters and let you send requests to them, paying by the amount of text. This is called <b>managed open-weight inference</b> ("open-weight" means the model's files are publicly available). Here is who they are:</p>
+  <ul class="tight">
+    <li><b>Together AI</b> — hosts a broad menu of open models behind a simple pay-per-text interface. Pick it for wide model choice without running servers.</li>
+    <li><b>Fireworks</b> — similar, tuned for speed and production use. Pick it when you want fast managed open models.</li>
+    <li><b>Groq</b> — runs models on its own special chips (called an LPU, a Language Processing Unit) built to spit out words extremely fast. Pick it when very high words-per-second and low delay matter most.</li>
+    <li><b>DeepInfra</b> — hosts open models cheaply per unit of text. Pick it when low price per request is the priority.</li>
+  </ul>
+  <div class="box real"><div class="label">The three-way choice, plainly</div>
+  <b>Someone else's private model over the internet</b> (Claude, GPT, Gemini): highest capability, no servers to run, you pay per unit of text, and your data goes to them. <b>Managed open model</b> (Together, Fireworks, Groq, DeepInfra): you choose the open model, little to run, pay per unit of text, and more control over your data. <b>Your own cluster</b> (self-hosted vLLM): full control and privacy, and the cheapest per unit of text once volume is high, but you have to run and maintain everything. The tipping point: running your own cluster only becomes cheaper once you have a lot of steady traffic, because then the fixed cost of the GPUs beats a bill that grows with every request. Below that level, paying per unit of text is both cheaper and far less work.</div>
+</section>
+
+<section id="part6" class="module">
+  <h2 class="sec">Part 6 · Serving</h2>
+  <h3>The full path of a request, and the time budget</h3>
+
+  <p>Now we put it all together. Here is the journey of one real request through a self-hosted setup, from the user's app to the answer streaming back — followed by the timing that decides whether it feels instant.</p>
+
+  <div class="flow">
+    <div class="fb out"><div class="t">1 · The user's app sends the request</div><div class="fsub">A web request that keeps the connection open so words can stream back as they are produced</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb norm"><div class="t">2 · Front door</div><div class="fsub">Nginx or Cloudflare — handles the secure connection, checks the user is allowed in, and limits abuse</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb attn"><div class="t">3 · Traffic director and waiting line</div><div class="fsub">Sends the request to the least-busy machine; a quick safety check on the input runs here (Part 6)</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb ffn"><div class="t">4 · The inference engine does the work</div><div class="fsub">Scheduler groups requests → PagedAttention manages the KV cache → the work runs split across GPUs</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb emb"><div class="t">5 · Choosing each word</div><div class="fsub">From the model's list of likely next words, pick one using the temperature and top-p settings</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb dec"><div class="t">6 · Words stream back</div><div class="fsub">Each word is sent to the user as it is produced; a safety check on the output runs alongside</div></div>
+  </div>
+
+  <h4>6.1 The time budget, with real numbers</h4>
+  <p>What the user notices most is how long until the very first word shows up. The time from sending the request to seeing the first word is called <b>Time To First Token</b>, or <b>TTFT</b> (a "token" is roughly a word or word-piece). Here is a realistic breakdown for a well-tuned system:</p>
+  <div class="budget">Total time to first word = network trip + max(input safety check, reading the prompt) + producing the first word
+
+  0 ms          ~20 ms                    ~300 ms                  ~350 ms
+  |─────────────|─────────────────────────|────────────────────────|──▶ first word appears
+   network trip   input safety check         model reads the prompt    streams
+   to and back    (15 ms, runs AT THE SAME    (the prefill phase)      to the app
+                  TIME as reading the prompt)</div>
+  <p>The important detail: a well-built input safety check is a tiny, fast classifier (about 15 ms, covered in Part 6) that runs <i>at the same time</i> as the model reading the prompt. Because it finishes before the model has even finished reading, it adds <b>no extra waiting</b>. This is why a safety check does not have to slow things down, a point we back up with numbers in Part 6.</p>
+
+  <div class="box math"><div class="label">The four numbers that define a serving promise</div>
+  A serving promise (an "SLA," service-level agreement, the target you commit to) rests on four numbers. <b>TTFT</b> — time to the first word, i.e. how responsive it feels. <b>ITL</b> — inter-token latency, the gap between each following word, which decides how smoothly the answer streams (also called TPOT, time per output token). <b>Throughput</b> — total words per second across all users at once, i.e. your capacity. <b>Cost per word</b> — how much each unit of text costs you. These pull against each other: bigger batches raise throughput and lower cost per word, but can raise TTFT because each request waits a little longer to be scheduled. Tuning a deployment means choosing where on that trade-off your product needs to sit.</div>
+
+  <div class="box link"><div class="label">Where we go next</div>
+  You can now serve a model quickly and cheaply. But a model on its own, however well served, is frozen at the moment its training ended and knows nothing about <i>your</i> data. <b>Part 5 — RAG &amp; Agentic Systems</b> gives the model live knowledge and the ability to act: fetching relevant facts to answer from (retrieval, using embeddings and search), and letting the model use tools to actually get things done. Those two patterns are what turn a text predictor into a real product.</div>
+</section>
+
+<section id="references">
+  <h2 class="sec">Appendix</h2>
+  <h3>References &amp; further reading</h3>
+  <p>Grouped by type; freely available online. Serving tools evolve fast — verify feature specifics against current docs.</p>
+  <div class="refgroup"><h4>Research papers &amp; primary sources</h4>
+  <ol class="reflist">
+    <li><span class="authors">Kwon et al. (2023). </span><span class="rtitle">Efficient Memory Management for LLM Serving with PagedAttention</span>. The vLLM paper. <a href="https://arxiv.org/abs/2309.06180">https://arxiv.org/abs/2309.06180</a></li>
+    <li><span class="authors">Zheng et al. (2023). </span><span class="rtitle">SGLang: Efficient Execution with RadixAttention</span>. <a href="https://arxiv.org/abs/2312.07104">https://arxiv.org/abs/2312.07104</a></li>
+    <li><span class="authors">Dao et al. (2022). </span><span class="rtitle">FlashAttention: Fast and Memory-Efficient Exact Attention</span>. <a href="https://arxiv.org/abs/2205.14135">https://arxiv.org/abs/2205.14135</a></li>
+    <li><span class="authors">Yu et al. (2022). </span><span class="rtitle">Orca: A Distributed Serving System (continuous batching)</span>. <a href="https://www.usenix.org/conference/osdi22/presentation/yu">https://www.usenix.org/conference/osdi22/presentation/yu</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Tools &amp; documentation</h4>
+  <ol class="reflist">
+    <li><span class="authors">vLLM. </span><span class="rtitle">Documentation</span>. <a href="https://docs.vllm.ai/">https://docs.vllm.ai/</a></li>
+    <li><span class="authors">SGLang. </span><span class="rtitle">Documentation</span>. <a href="https://docs.sglang.ai/">https://docs.sglang.ai/</a></li>
+    <li><span class="authors">Hugging Face. </span><span class="rtitle">Text Generation Inference (TGI)</span>. <a href="https://huggingface.co/docs/text-generation-inference">https://huggingface.co/docs/text-generation-inference</a></li>
+    <li><span class="authors">ggml-org. </span><span class="rtitle">llama.cpp</span>. <a href="https://github.com/ggml-org/llama.cpp">https://github.com/ggml-org/llama.cpp</a></li>
+    <li><span class="authors">Ollama. </span><span class="rtitle">Run large language models locally</span>. <a href="https://ollama.com/">https://ollama.com/</a></li>
+  </ol></div>
+  <p class="refnote">Named engines and providers are illustrative of the state of the field as of early 2026. Latency figures are representative order-of-magnitude examples, not benchmarks for any specific system.</p>
+</section>
+</main>
+</div>
+<script>
+window.addEventListener('scroll',function(){
+  var h=document.documentElement, b=document.body;
+  var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+  document.getElementById('bar').style.width=(sh>0?(st/sh*100):0)+'%';
+});
+</script>
+</body>
+</html>

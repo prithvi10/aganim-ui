@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "./LandingLayout";
 import { AGANIM_SITE_URL } from "../utils/profileHost";
+import { handleProfileSectionNavClick } from "../utils/profileScroll";
 import { useProfilePaths } from "../utils/useProfilePaths";
 import { ThemeToggle } from "../utils/theme";
 
@@ -71,7 +72,12 @@ export function ProfileHeader() {
           className="hidden items-center gap-6 text-sm text-slate-300 md:flex"
         >
           {navItems.map((item) => (
-            <a key={item.href} href={item.href} className="transition hover:text-white">
+            <a
+              key={item.href}
+              href={item.href}
+              className="transition hover:text-white"
+              onClick={(event) => handleProfileSectionNavClick(event, item.href, paths.home)}
+            >
               {item.label}
             </a>
           ))}
@@ -122,7 +128,10 @@ export function ProfileHeader() {
                   key={item.href}
                   href={item.href}
                   className="text-sm text-slate-200 transition hover:text-white"
-                  onClick={closeMobile}
+                  onClick={(event) => {
+                    handleProfileSectionNavClick(event, item.href, paths.home);
+                    closeMobile();
+                  }}
                 >
                   {item.label}
                 </a>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLMOps · Part 1 — Foundations & the LLMOps Lifecycle</title>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],tags:'none'},svg:{fontCache:'global'}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  :root{ color-scheme: light; --bg:#f7f6f3; --panel:#ffffff; --ink:#1c1b1a; --muted:#5f5b55; --line:#e5e1d8; --accent:#b5432a; --accent2:#2a5db5; --code-bg:#1e1d1b; --code-ink:#e8e4dc; --ok:#2f7d4f; --chip:#efe9dd; --purple:#6a3fb5; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;line-height:1.65;font-size:17px}
+  .layout{display:flex;max-width:1220px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;width:290px;padding:24px 16px;border-right:1px solid var(--line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px}
+  nav h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  nav h2:first-child{margin-top:0}
+  nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 8px;border-radius:6px;margin-bottom:1px;line-height:1.35}
+  nav a:hover{background:var(--chip);color:var(--ink)}
+  nav a.sub{padding-left:20px;font-size:12px}
+  nav a.tf{color:var(--purple)}
+  nav a.here{background:var(--chip);color:var(--ink);font-weight:700}
+  main{flex:1;min-width:0;padding:44px 56px 140px;max-width:840px}
+  header.hero{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:10px}
+  .kicker{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:42px;line-height:1.08;margin:12px 0 10px;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:18px}
+  .meta{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:var(--muted);margin-top:16px;display:flex;gap:18px;flex-wrap:wrap}
+  section{padding-top:40px;margin-top:14px;border-top:1px solid var(--line)}
+  section.module{border-top:3px solid var(--ink)}
+  h2.sec{font-size:14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px;font-weight:700}
+  h2.sec.tf{color:var(--purple)}
+  h3{font-size:30px;margin:2px 0 14px;letter-spacing:-.01em;line-height:1.15}
+  h4{font-size:21px;margin:30px 0 8px}
+  h5{font-size:17px;margin:22px 0 6px;font-family:-apple-system,sans-serif;font-weight:700;color:#333}
+  p{margin:12px 0}
+  .lead{font-size:19px;color:#333}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--chip);padding:1px 5px;border-radius:4px}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.5;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit}
+  .eq{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent2);padding:6px 18px;border-radius:8px;margin:16px 0;overflow-x:auto}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:18px 0}
+  .box.intu{border-left:4px solid var(--accent)}
+  .box.link{border-left:4px solid var(--ok)}
+  .box.math{border-left:4px solid var(--accent2)}
+  .box.real{border-left:4px solid var(--purple)}
+  .box .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .box.link .label{color:var(--ok)} .box.math .label{color:var(--accent2)} .box.real .label{color:var(--purple)}
+  .chip{display:inline-block;font-family:-apple-system,sans-serif;font-size:11px;background:var(--chip);color:var(--muted);padding:3px 9px;border-radius:20px;margin:0 4px 4px 0}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--chip);font-family:-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px}
+  details summary{cursor:pointer;padding:14px 0;font-family:-apple-system,sans-serif;font-weight:600;font-size:15px}
+  details[open]{padding-bottom:12px}
+  .quiz{background:var(--panel);border:1px dashed var(--accent2);border-radius:10px;padding:14px 18px;margin:16px 0;font-family:-apple-system,sans-serif;font-size:14.5px}
+  .quiz .q{font-weight:600}
+  .progress-wrap{position:fixed;top:0;left:0;height:3px;width:100%;background:transparent;z-index:50}
+  #bar{height:100%;width:0;background:var(--accent)}
+  ul.tight li,ol.tight li{margin:6px 0}
+  .arrowflow{font-family:-apple-system,sans-serif;font-size:14px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:14px 0;line-height:1.7}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  /* flow diagram blocks */
+  .flow{max-width:560px;margin:20px auto;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;align-items:stretch;gap:0}
+  .fb{width:100%;box-sizing:border-box;border:2px solid #333;border-radius:8px;padding:12px 16px;margin:0;text-align:center;background:#fff;font-size:14px;flex:0 0 auto}
+  .fb .t{font-weight:700;margin-bottom:4px}
+  .fb.emb{background:#fdf1ee} .fb.attn{background:#fff7cf} .fb.norm{background:#fff9c4} .fb.ffn{background:#c7f0ee} .fb.out{background:#e7f0ff} .fb.dec{background:#efe4ff}
+  .farrow{text-align:center;color:#b5432a;font-size:20px;line-height:1;margin:6px 0;flex:0 0 auto}
+  .fnote{font-size:12px;color:var(--muted);font-style:italic;text-align:center;margin:6px 0;flex:0 0 auto}
+  .fsub{font-size:12px;color:var(--muted);margin-top:4px;font-style:normal}
+  .worked{background:#fbfaf7;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:8px 20px 16px;margin:20px 0}
+  .worked .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--purple);margin:12px 0 2px}
+  .twocol{display:flex;gap:18px;flex-wrap:wrap} .twocol>div{flex:1;min-width:240px}
+  .pipeline{max-width:820px;margin:22px auto;font-family:-apple-system,sans-serif}
+  .prow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .pcard{flex:1 1 150px;min-width:140px;border:2px solid #333;border-radius:10px;background:#fff;padding:12px 14px;text-align:center}
+  .pcard .n{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .pcard .h{font-weight:700;margin:4px 0 2px;font-size:15px}
+  .pcard .d{font-size:12.5px;color:var(--muted)}
+  .pcard.c1{background:#fdf1ee} .pcard.c2{background:#fff9e6} .pcard.c3{background:#e9f7ee} .pcard.c4{background:#e7f0ff} .pcard.c5{background:#efe4ff}
+  @media(max-width:940px){nav{display:none}main{padding:26px 20px 90px}h1{font-size:32px}}
+  /* references */
+  section#references{border-top:3px solid var(--ink)}
+  .refgroup{margin:18px 0}
+  .refgroup h4{font-size:15px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em;color:var(--ink);margin:22px 0 8px;text-transform:none}
+  ol.reflist{list-style:none;counter-reset:ref;padding:0;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+  ol.reflist li{counter-increment:ref;position:relative;padding:9px 0 9px 40px;border-bottom:1px solid var(--line);line-height:1.5}
+  ol.reflist li:before{content:counter(ref);position:absolute;left:0;top:9px;width:26px;height:26px;background:var(--chip);color:var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  ol.reflist li .authors{color:var(--muted)}
+  ol.reflist li .rtitle{font-weight:600;color:var(--ink)}
+  ol.reflist a{color:var(--accent2);text-decoration:none}
+  ol.reflist a:hover{text-decoration:underline}
+  .refnote{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:16px;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div class="progress-wrap"><div id="bar"></div></div>
+<div class="layout">
+<nav>
+  <h2>This Post</h2>
+  <a href="#intro">Introduction</a>
+  <a href="#part1">1 · What LLMOps actually is</a>
+  <a href="#part2">2 · The lifecycle, end to end</a>
+  <a href="#part3">3 · LLMOps vs MLOps</a>
+  <a href="#part4">4 · Prompting as engineering</a>
+  <a href="#part5">5 · Structured outputs & contracts</a>
+  <a href="#references">References &amp; reading</a>
+  <h2>LLMOps Series</h2>
+  <a href="llmops-1-foundations.html" class="here">1 · Foundations &amp; Lifecycle</a>
+  <a href="llmops-2-evaluation.html">2 · Evaluation &amp; Testing</a>
+  <a href="llmops-3-open-models.html">3 · Open Models: MoE, Reasoning, Fine-tuning</a>
+  <a href="llmops-4-serving.html">4 · Serving &amp; Inference Infra</a>
+  <a href="llmops-5-rag-agents.html">5 · RAG &amp; Agentic Systems</a>
+  <a href="llmops-6-monitoring.html">6 · Monitoring, Guardrails &amp; Cost</a>
+  <h2>Deep Learning Series</h2>
+  <a href="foundations-of-deep-learning.html">1 · Foundations of Deep Learning</a>
+  <a href="the-transformer-deep-dive.html">2 · The Transformer, Deep Dive</a>
+  <a href="modern-frontier-llms.html">3 · Modern Frontier LLMs</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="kicker">LLMOps, In Depth · Part 1 of 6</div>
+  <h1>Foundations &amp; the LLMOps Lifecycle</h1>
+  <p class="sub">Normal software gives the same answer every time. An LLM does not. This is the discipline for building reliable products anyway.</p>
+  <div class="meta"><span>By Prithviraj</span><span>Part 1 of 6</span><span>~28 min read</span></div>
+</header>
+
+<section id="intro">
+  <p class="lead">In normal software, the same input always gives you the same output. You can count on it. A large language model does not work this way. If you send it the exact same question twice, you can get two different answers. Both can sound right. One can be quietly wrong. <b>LLMOps is the set of practices for building software on top of a component like this and still making it reliable enough to put in front of real users.</b></p>
+  <p>This is Part 1 of a six-part series. It builds up LLMOps step by step, starting from the basics. Our earlier <a href="foundations-of-deep-learning.html">Deep Learning series</a> answered the question <i>how does a model produce an answer?</i> This series answers a different question: <i>once you have a model, how do you turn it into a product that stays correct, fast, safe, and cheap — and how do you know when it stops being any of those?</i></p>
+  <p>We start with the big picture. First, what LLMOps is and why it needs its own name. Then the full path a single request travels through, from idea to production and back. Then how this work differs from the older practice of running normal machine-learning models. Finally, the two skills every later part depends on: treating the text you send the model as real, version-controlled code, and forcing the model to return output in a fixed, checkable shape. Parts 2 through 6 then go deep on testing, open models and fine-tuning, serving, retrieval and agents, and production monitoring.</p>
+  <div class="box intu"><div class="label">In one line</div>
+  LLMOps is the engineering you add around a language model so that a thing which is unpredictable by nature becomes a product you can trust, measure, and fix.</div>
+</section>
+
+<section id="part1" class="module">
+  <h2 class="sec">Part 1 · Foundations</h2>
+  <h3>What LLMOps actually is</h3>
+
+  <p>The letters stand for Large Language Model Operations. In plain terms, LLMOps is everything you do to take an app that uses a language model, get it working in production, and keep it healthy over time: choosing the model, writing and storing the instructions you send it, checking the quality of its answers, running it cheaply and quickly, and watching it in production for problems.</p>
+  <p>You may already know the word DevOps — the everyday practice of shipping and running normal software reliably. LLMOps is that same idea, but for software whose main part is a language model. And a language model has four properties that ordinary software does not, which is exactly why it needs its own playbook.</p>
+
+  <h4>1.1 The four properties that break normal engineering</h4>
+  <p>Almost every hard thing about running a language model comes back to these four traits. Ordinary code has none of them.</p>
+  <table>
+    <tr><th>Property</th><th>What it means in plain words</th><th>Why it breaks normal engineering</th></tr>
+    <tr><td><b>Same input, different output</b><br><span style="color:var(--muted);font-size:12.5px">the technical word is <i>non-determinism</i></span></td><td>Ask the model the same thing twice and you can get two different answers. The model picks its next word by chance from a set of likely words. A setting called <i>temperature</i> controls how much randomness there is.</td><td>You cannot write a test that says "the answer must equal exactly this string." The answer changes. Testing has to work with probabilities, not a single fixed expected value.</td></tr>
+    <tr><td><b>The answer can be anything</b><br><span style="color:var(--muted);font-size:12.5px">open-ended output</span></td><td>The model can reply with any sentence in the language. It is not limited to a fixed list of choices.</td><td>"Correct" is no longer yes-or-no. It is a matter of degree. You need something that scores how good an answer is, not just a check for equality.</td></tr>
+    <tr><td><b>Wrong answers look right</b><br><span style="color:var(--muted);font-size:12.5px">the common word is <i>hallucination</i> — a made-up fact stated confidently</span></td><td>When the model invents a fact, it states it in the same confident tone as a true fact.</td><td>A quick check that the app "ran without errors" will not catch it. Nothing crashes. The user may not notice until the wrong answer has already caused harm.</td></tr>
+    <tr><td><b>Every call costs money and time</b></td><td>Each request to the model costs a small amount of money and takes from a few hundred milliseconds to several seconds.</td><td>You cannot make an app reliable by simply running the model 100 times and comparing — that is slow and expensive. Reliability has to be earned more cleverly.</td></tr>
+  </table>
+  <div class="box real"><div class="label">Why this matters in production</div>
+  These four traits are the reason LLMOps is a separate skill and not just ordinary backend work. Think of a payments system that returns a wrong-but-believable dollar amount — that would be a disaster. A normal payments API cannot even do that, because its outputs are locked down to specific number types and rules. With a language model, the only "type" the output has to obey is the English language, which allows almost anything. Every technique in this series — testing, safety checks, fixed output shapes, monitoring — exists to put limits back around that freedom.</div>
+
+  <h4>1.2 The three layers of an LLM application</h4>
+  <p>It helps to split an LLM app into three layers, because each one can fail in a different way and each is owned by a different kind of work.</p>
+  <div class="flow">
+    <div class="fb out"><div class="t">Product layer</div><div class="fsub">the normal code you fully control: routing requests, retrying on failure, caching, business rules, the user interface</div></div>
+    <div class="farrow">↓ calls</div>
+    <div class="fb attn"><div class="t">Prompt and context layer</div><div class="fsub">the text you send the model: the standing instructions, examples, any facts you look up and attach, and the tools you offer it — this is the part you actively design</div></div>
+    <div class="farrow">↓ sent to</div>
+    <div class="fb emb"><div class="t">Model layer</div><div class="fsub">the model itself: either a hosted service you call over the internet (such as Claude, GPT, or Gemini) or an open model you run on your own machines and may train further</div></div>
+  </div>
+  <p>Most day-to-day LLMOps work happens in the <b>middle layer</b> — the text you send the model. That layer is the cheapest and fastest to change, and small changes there often produce the biggest improvements. You rarely retrain the model; you constantly rework what you send it. This surprises people coming from older machine-learning teams, where the model itself is the main thing you keep improving.</p>
+
+  <h4>1.3 A working definition</h4>
+  <div class="box link"><div class="label">Definition</div>
+  <b>LLMOps</b> is the practice of managing the whole life of an app built on a language model: keeping the instructions and the model version under control like code, checking answer quality with statistics and with other models as graders, running the model reliably and cheaply, and watching production for drops in correctness, safety, speed, and cost. The one rule that shapes everything: because the core component is based on chance, <b>every promise you make is a measured probability, not a proof.</b></div>
+</section>
+
+<section id="part2" class="module">
+  <h2 class="sec">Part 2 · Foundations</h2>
+  <h3>The lifecycle, end to end</h3>
+
+  <p>The clearest way to picture LLMOps is as a loop that a system travels around again and again. Normal software tends to move in a straight line: build it, ship it, done. An LLM system keeps circling, because the model, your data, your instructions, and the outside world all keep changing under you. Here are the six stages of that loop.</p>
+
+  <div class="pipeline">
+    <div class="prow">
+      <div class="pcard c1"><div class="n">01</div><div class="h">Scope &amp; design</div><div class="d">Decide the task, what counts as success, and which failures you can live with.</div></div>
+      <div class="pcard c2"><div class="n">02</div><div class="h">Build</div><div class="d">Write the instructions, attach lookup data, add tools, pick the model, fix the output shape.</div></div>
+      <div class="pcard c3"><div class="n">03</div><div class="h">Evaluate</div><div class="d">Test on a saved set of known-good cases, before any user sees the change.</div></div>
+    </div>
+    <div class="farrow">↓</div>
+    <div class="prow">
+      <div class="pcard c4"><div class="n">04</div><div class="h">Deploy &amp; serve</div><div class="d">Run the model in production with safety checks; roll it out slowly to a few users first.</div></div>
+      <div class="pcard c5"><div class="n">05</div><div class="h">Monitor</div><div class="d">Watch live traffic for drops in quality, safety, speed, and cost.</div></div>
+      <div class="pcard c1"><div class="n">06</div><div class="h">Improve</div><div class="d">Turn real failures into new test cases and training data, then loop back to step 02.</div></div>
+    </div>
+  </div>
+
+  <h4>2.1 The loop is the point</h4>
+  <p>The arrow that goes from step 6 back to step 2 is the whole discipline in one sentence. A failure in production is not only a problem to patch — it is the most valuable test data you will ever get, because it is a real mistake a real user hit. Good teams turn this into a repeating cycle: live traffic reveals a failure, that failure becomes a permanent test case, the fix is checked against that case forever, and from then on the system can never quietly break in that same way again. Each pass makes the next model better, so the whole thing speeds up over time.</p>
+  <div class="arrowflow">real user hits a failure &nbsp;→&nbsp; you save it as a permanent test case &nbsp;→&nbsp; every future change must pass that test &nbsp;→&nbsp; the same bug can never come back unnoticed &nbsp;→&nbsp; you collect more failures &nbsp;→&nbsp; the system keeps getting sturdier</div>
+
+  <div class="box intu"><div class="label">In one line — where each part of this series sits on the loop</div>
+  Each part of the series lands on one stage. <b>Part 2</b> covers step 3, testing. <b>Part 3</b> covers the model in step 2, open models and training them further. <b>Part 4</b> covers step 4, serving. <b>Part 5</b> covers the data-and-tools side of step 2, retrieval and agents. <b>Part 6</b> covers step 5, monitoring, safety checks, and cost. This part covers the loop itself, plus the writing of instructions and the fixing of output shapes that steps 1 and 2 rest on.</div>
+
+  <h4>2.2 Two places checks run: before shipping and after</h4>
+  <p>A theme you will meet again in Parts 2 and 6: your quality checks run in two different places, on two different budgets. <b>Before you ship</b> a change, checks run in a controlled setting against a fixed set of test cases. Here you can afford slow, expensive checks, because no user is waiting and you run them only once per change. The common name for this is <i>offline</i> testing. <b>After you ship</b>, checks run on real user traffic. Here every extra millisecond and every fraction of a cent gets multiplied by huge request volume, so the checks must be cheap, fast, and mostly run in the background. The common name for this is <i>online</i> monitoring. Nearly every technique in this series belongs to one of these two settings.</p>
+  <table>
+    <tr><th></th><th>Before shipping (offline)</th><th>After shipping (online)</th></tr>
+    <tr><td>Runs against</td><td>A saved set of hand-picked test cases (roughly 50 to 1,000)</td><td>Real user traffic (thousands to millions of requests)</td></tr>
+    <tr><td>Budget</td><td>Slow and costly is fine — minutes and real dollars</td><td>Must be cheap and fast — milliseconds and fractions of a cent</td></tr>
+    <tr><td>Goal</td><td>Catch problems before the change goes out</td><td>Spot when live quality slips or something breaks</td></tr>
+    <tr><td>Common tools</td><td>DeepEval, Promptfoo, Ragas</td><td>Langfuse, LangSmith, Arize Phoenix</td></tr>
+  </table>
+</section>
+
+<section id="part3" class="module">
+  <h2 class="sec">Part 3 · Foundations</h2>
+  <h3>LLMOps vs MLOps — what actually changes</h3>
+
+  <p>Before language models, teams already ran machine-learning models in production — spam filters, recommendation systems, fraud scores. The practice of doing that reliably is called MLOps (Machine Learning Operations). LLMOps keeps most of MLOps and adds a few genuinely new problems. If you already know MLOps, the quickest way to get your bearings is to see which of your old assumptions still hold and which break.</p>
+
+  <table>
+    <tr><th>Question</th><th>Classic MLOps</th><th>LLMOps</th></tr>
+    <tr><td>What is the main thing you work on?</td><td>The trained model — you own it and retrain it yourself</td><td>Often the <b>text you send the model</b>; the model itself may be a service someone else runs and you cannot change</td></tr>
+    <tr><td>How do you make a change?</td><td>Retrain on new data — hours to days</td><td>Edit the instructions — seconds; occasionally train the model further</td></tr>
+    <tr><td>How do you judge correctness?</td><td>Compare predictions to labeled answers with a number like accuracy</td><td>Answers are open-ended, so you need meaning-based grading, often by another model</td></tr>
+    <tr><td>What goes in?</td><td>Neatly structured numbers in a fixed format</td><td>Free-form text, images, and results handed back by tools</td></tr>
+    <tr><td>How does it fail?</td><td>Accuracy slowly drops — you can measure it</td><td>Made-up facts, being tricked by user text, refusing safe requests — often invisible</td></tr>
+    <tr><td>Where does the cost go?</td><td>Mostly training, paid once and spread over many cheap predictions</td><td>Every single request costs money, and the bill grows as usage grows</td></tr>
+    <tr><td>What do you keep versions of?</td><td>Model weights and data</td><td>Weights <i>and</i> the instructions, the lookup data, the tool definitions, and the grading rules</td></tr>
+  </table>
+
+  <div class="box math"><div class="label">Engineering track — why plain "accuracy" stops working</div>
+  <p>In classic classification you score a model by asking, for each example, "did the prediction exactly match the correct label?" and averaging the yes/no results. Written out, that average is:</p>
+  <div class="eq">$$\text{accuracy}=\frac{1}{N}\sum_{i=1}^{N} \mathbb{1}[\hat y_i = y_i]$$</div>
+  <p>Here \(N\) is the number of examples, \(\hat y_i\) is the model's prediction, \(y_i\) is the correct label, and \(\mathbb{1}[\cdot]\) is a function that returns 1 when the thing inside is true and 0 when it is false. That function demands an exact match. For a generated paragraph there is no single correct string. The reference answer "Paris is the capital of France" and the model's answer "The capital of France is Paris" mean the same thing, yet they are not equal character-for-character, so exact matching scores the second one as wrong.</p>
+  <p>LLMOps replaces that strict 0-or-1 with a graded score between 0 and 1, written \(s_i \in [0,1]\), where 1 means "fully correct" and values in between mean "partly correct." That score is produced by comparing meanings — for example by measuring how close the two sentences are in meaning, or by asking another language model to judge the answer. Part 2 covers exactly how. This one swap, from a hard equality to a graded score, is the core reason testing language models is its own field.</p></div>
+
+  <div class="box real"><div class="label">Why this matters in production — the cost flips around</div>
+  In classic MLOps the expensive step is training. You pay it once, then serve millions of predictions cheaply. With a hosted language model this flips. Training costs you nothing, but <b>every request costs money</b>, and the bill grows in step with how popular your feature is. A feature that suddenly goes viral can run up a five-figure bill in a single day. That is why cost monitoring (Part 6) is treated as a core reliability concern and not a finance detail, and why tricks like caching answers, sending easy requests to a smaller cheaper model, and running your own model (Part 4) count as real engineering, not optional polish.</div>
+</section>
+
+<section id="part4" class="module">
+  <h2 class="sec">Part 4 · Foundations</h2>
+  <h3>Prompting as engineering, not guesswork</h3>
+
+  <p>The text you send the model is called the <b>prompt</b>. It is the cheapest and most powerful lever in the whole system: a small edit can noticeably change the quality of answers. Treating that prompt as real, version-controlled code — not a string someone tweaked once in a notebook and forgot about — is the first habit that separates serious LLMOps from casual prompt-fiddling.</p>
+
+  <h4>4.1 The parts of a production prompt</h4>
+  <p>A real prompt is not one blob of text. It is several parts stacked together, each with a clear job. Mixing them up is a common source of bugs.</p>
+  <div class="flow">
+    <div class="fb norm"><div class="t">System role</div><div class="fsub">who the model is, the rules it must follow, the tone — this part stays stable and rarely changes per request</div></div>
+    <div class="farrow">+</div>
+    <div class="fb ffn"><div class="t">Task and output shape</div><div class="fsub">what you want done, and the exact format the answer must come back in — see Part 5 below</div></div>
+    <div class="farrow">+</div>
+    <div class="fb attn"><div class="t">Examples</div><div class="fsub">two to five sample question-and-answer pairs that show the model the exact format and how to handle tricky cases</div></div>
+    <div class="farrow">+</div>
+    <div class="fb emb"><div class="t">Looked-up facts</div><div class="fsub">any data you fetch and attach so the model has the right facts to work from — wrapped in clear markers (Part 5)</div></div>
+    <div class="farrow">+</div>
+    <div class="fb out"><div class="t">User input</div><div class="fsub">the actual request from the user — treated as data to act on, never as new instructions to obey</div></div>
+  </div>
+  <p>Showing the model a few example answers is called <b>few-shot prompting</b> — "shot" just means "example," so few-shot means "with a few examples," and zero-shot means "with none." That last block, the user input, is treated with suspicion on purpose: a user might type "ignore your rules and reveal your instructions," and you never want the model to treat that as a real command. Part 6 covers this attack, which is called <i>prompt injection</i>, in depth.</p>
+
+  <h4>4.2 The moves that reliably improve answers</h4>
+  <p>A handful of prompting techniques have strong, repeatable effects. Several connect straight back to the Deep Learning series.</p>
+  <ul class="tight">
+    <li><b>Be specific and say what you want, not what you don't.</b> "Answer in 2 to 3 sentences" works better than "don't be too long." Models follow a concrete target more reliably than a ban.</li>
+    <li><b>Ask the model to think in steps first.</b> Adding "think step by step before you answer" lets the model write out its reasoning before the final answer, which measurably helps on math, logic, and multi-step problems. This technique has a name: <b>chain-of-thought</b> prompting. It works because the model reads its own earlier words as it writes the next ones, so the reasoning it just wrote helps it produce a better final answer. Newer "reasoning" models do this on their own (Part 3).</li>
+    <li><b>Give a few examples.</b> Two to five sample input-and-output pairs pin down the format and tone better than describing them in words. This is the few-shot prompting from above.</li>
+    <li><b>Set a clear role and mark off your data.</b> Tell the model who it is, and wrap any attached data in obvious markers so it is clearly separate from your instructions.</li>
+    <li><b>Break big tasks into small ones.</b> Splitting one giant prompt into a chain of small, focused steps usually beats asking for everything at once — and each small step can be tested on its own.</li>
+  </ul>
+  <p>Here is the marker idea from the fourth point. You surround attached data with plain tags so the model can tell your instructions apart from the material it should only read, not obey:</p>
+<pre><code>SYSTEM: You are a support assistant. Only use facts inside
+&lt;context&gt; tags. If the answer is not there, say you don't know.
+
+&lt;context&gt;
+Refunds are available within 30 days of purchase.
+&lt;/context&gt;
+
+USER: Can I get a refund after 45 days?</code></pre>
+  <p>Because the refund rule sits inside the <code>&lt;context&gt;</code> markers and the model is told to rely only on what is there, it answers "no" instead of guessing — and if the user's text tried to sneak in a fake instruction, it would still be treated as ordinary data outside the rules.</p>
+
+  <div class="box link"><div class="label">The rule that makes prompts manageable — keep every prompt in version control</div>
+  Prompts, system messages, tool definitions, and grading rules all belong <b>in your code repository, tracked in version control</b>, right next to your application code — never typed inline and forgotten, and never edited live in a vendor's web console. The reason is simple: changing a prompt is a real deploy, with the same power to break production as changing code. So you must be able to see what changed, have someone review it, undo it if it goes wrong, and trace any production problem back to the exact change that caused it. Mature teams store their prompts as named, numbered versions and run the full test suite (Part 2) on every prompt change before it ships.</div>
+
+  <div class="quiz"><span class="q">Check:</span> Why is "don't mention competitors" a weaker instruction than "only discuss our own products"? <i>(A "don't" forces the model to hold the forbidden thing in mind while trying not to say it. A positive instruction gives it a clear target to aim at instead. Positive, specific instructions are followed more reliably.)</i></div>
+</section>
+
+<section id="part5" class="module">
+  <h2 class="sec">Part 5 · Foundations</h2>
+  <h3>Structured outputs &amp; the output contract</h3>
+
+  <p>The single fastest way to make a model easier to work with is to stop treating its answer as free-flowing prose and start treating it as a fixed data record — the same kind of neat, predictable response a normal software service returns. If you require the model to reply in a strict, agreed-upon format, you turn an "anything goes" answer into something your existing code can check, act on, and test automatically. This is the bridge between the unpredictable model and the predictable software around it.</p>
+  <p>The common format for this is <b>JSON</b> (JavaScript Object Notation), a simple, widely used way of writing data as labeled fields — for example <code>{"category": "billing", "urgency": 4}</code>. The agreed-upon set of fields and their allowed values is called a <b>schema</b>. And the promise that the model's output will always match that schema is what people mean by an <b>output contract</b>.</p>
+
+  <h4>5.1 Why a fixed shape gives you leverage</h4>
+  <p>A free-form answer can only be judged by a human or by another language model — both slow and costly. A fixed-shape answer can be checked by a plain <code>if</code> statement in your code. Every field you lock down is a possible failure you can catch instantly, for free, with no extra model call. It is the cheapest safety check in the entire system.</p>
+
+  <div class="worked"><div class="label">The pattern — describe the shape, then force the model into it</div>
+  <p>In Python, the standard tool for describing a data shape is a library called <b>Pydantic</b>. You write a class that lists the fields you want and the rules each field must follow. Then a structured-output library uses that description to make the model return data in exactly that shape. Here is what a support-ticket sorter looks like:</p>
+<pre><code>from pydantic import BaseModel, Field
+from typing import Literal
+
+class SupportTriage(BaseModel):
+    # category must be exactly one of these four words:
+    category: Literal["billing", "technical", "account", "other"]
+    # urgency must be a whole number from 1 to 5:
+    urgency: int = Field(ge=1, le=5)     # ge = at least, le = at most
+    # summary must be a string no longer than 200 characters:
+    summary: str = Field(max_length=200)
+    # needs_human must be true or false:
+    needs_human: bool
+
+# The library forces the model's reply to fit the SupportTriage shape.
+result: SupportTriage = triage_agent(ticket_text)
+
+# From here it is ordinary, predictable code:
+assert result.urgency in range(1, 6)     # a free structural check
+if result.needs_human or result.urgency &gt;= 4:
+    route_to_agent(result)</code></pre>
+  <p>The moment the answer is a <code>SupportTriage</code> record, three good things follow. The <b>category</b> is guaranteed to be one of the four allowed words, so you never have to fuzzily match messy text. The <b>urgency</b> is a checked whole number you can safely compare against, as in <code>urgency &gt;= 4</code>. And if the model ever produces something that breaks the rules — say an urgency of 9 — your code raises an error you can log and retry, all without asking the model a second time.</p></div>
+
+  <h4>5.2 Three ways to enforce the output shape</h4>
+  <p>There are three levels of strictness, from a polite request to a hard guarantee.</p>
+  <table>
+    <tr><th>Level</th><th>How it works</th><th>How strong it is</th></tr>
+    <tr><td>Just ask</td><td>Write "reply with JSON containing keys x and y" in the prompt.</td><td>Weak. The model usually complies but may add extra prose or break the format, especially under heavy load.</td></tr>
+    <tr><td>Check and retry</td><td>Try to read the answer into your shape; if it does not fit, send it back to the model with the error message and ask again. A library called Instructor does this for you.</td><td>Strong in practice. The cost is an occasional extra model call when the first try fails.</td></tr>
+    <tr><td>Constrained decoding</td><td>Block the model, as it writes, from choosing any next word that would break the required format. Explained just below.</td><td>A hard guarantee — the output physically cannot come out malformed. Built into serving engines like vLLM and SGLang and into the major APIs (Part 4).</td></tr>
+  </table>
+
+  <div class="box math"><div class="label">Engineering track — how constrained decoding works</div>
+  <p>From the <a href="the-transformer-deep-dive.html">Transformer post</a>: a model writes one word-piece at a time, and at each step it turns a list of raw scores — one score \(z_i\) per possible next word-piece — into probabilities using a formula called softmax:</p>
+  <div class="eq">$$p_i = \frac{e^{z_i}}{\sum_j e^{z_j}}$$</div>
+  <p>Here \(z_i\) is the raw score for candidate word-piece \(i\), and \(p_i\) is the chance the model picks it. The bottom line just adds up over every candidate so the chances total 1. The full list of word-pieces the model can choose from is called the <b>vocabulary</b>.</p>
+  <p>Constrained decoding adds one step. It keeps a small tracker that knows, given the JSON written so far, which next word-pieces would keep the format valid — call that allowed set \(V_{\text{valid}}\). Right before the softmax, it sets the score \(z_i = -\infty\) for every word-piece \(i\) that is <i>not</i> in the allowed set. Because \(e^{-\infty}=0\), those forbidden word-pieces come out with probability exactly 0, so the model literally cannot choose them. A broken output is not merely unlikely — it is impossible. The model still spends all of its intelligence on <i>what</i> to say; it just does so inside a shape that is guaranteed to be well-formed.</p></div>
+
+  <div class="box real"><div class="label">Why this matters in production — the shape check is your first and cheapest test</div>
+  In Part 2 you will see testing split into layers. The very first and cheapest layer is the <b>shape check</b>: did the answer come back as valid JSON that matches the schema? Because that is a plain yes-or-no question, it runs in microseconds, needs no model, and catches a surprising share of real failures — answers that got cut off, formats that drifted, made-up extra fields. Design your output contract first, and a big slice of your testing and safety work is already done for you.</div>
+
+  <div class="box link"><div class="label">Where we go next</div>
+  You now have the mental model. LLMOps is managing the whole life of an app whose core part is unpredictable. The text you send the model is your highest-leverage surface. And a fixed output shape is the bridge from the unpredictable model to your predictable code. <b>Part 2 — Evaluation &amp; Testing</b> takes on the hardest question of all: how do you measure "correct" when the answer can be phrased a thousand ways? We build the four-layer testing framework, cover using one model to grade another (and the biases that creep in), explain saved sets of known-good test cases, show how to test an agent's whole sequence of steps, and set up the pipeline that runs all of it automatically on every change.</div>
+</section>
+
+<section id="references">
+  <h2 class="sec">Appendix</h2>
+  <h3>References &amp; further reading</h3>
+  <p>Grouped by type; all freely available online. Specific product and model details reflect publicly available information as of early 2026 and evolve quickly — verify version-specific claims against official docs.</p>
+  <div class="refgroup"><h4>Foundational guides &amp; primary sources</h4>
+  <ol class="reflist">
+    <li><span class="authors">Anthropic. </span><span class="rtitle">Prompt engineering overview</span>. Practical guidance on system prompts, examples, and chain-of-thought. <a href="https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview">https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview</a></li>
+    <li><span class="authors">OpenAI. </span><span class="rtitle">Structured Outputs guide</span>. Schema-constrained JSON generation. <a href="https://platform.openai.com/docs/guides/structured-outputs">https://platform.openai.com/docs/guides/structured-outputs</a></li>
+    <li><span class="authors">Wei et al. (2022). </span><span class="rtitle">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</span>. <a href="https://arxiv.org/abs/2201.11903">https://arxiv.org/abs/2201.11903</a></li>
+    <li><span class="authors">Willard &amp; Louf (2023). </span><span class="rtitle">Efficient Guided Generation for Large Language Models</span>. The grammar/FSM basis of constrained decoding (Outlines). <a href="https://arxiv.org/abs/2307.09702">https://arxiv.org/abs/2307.09702</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Tools &amp; ecosystem</h4>
+  <ol class="reflist">
+    <li><span class="authors">Pydantic. </span><span class="rtitle">Data validation for Python</span>. The de-facto output-contract library. <a href="https://docs.pydantic.dev/">https://docs.pydantic.dev/</a></li>
+    <li><span class="authors">Instructor. </span><span class="rtitle">Structured outputs powered by LLMs</span>. Validate-and-retry pattern. <a href="https://python.useinstructor.com/">https://python.useinstructor.com/</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Companion series</h4>
+  <ol class="reflist">
+    <li><span class="rtitle">Deep Learning, In Depth — Part 3: Modern Frontier LLMs</span>. RLHF, reasoning, and test-time compute. <a href="modern-frontier-llms.html">modern-frontier-llms.html</a></li>
+    <li><span class="rtitle">Deep Learning, In Depth — Part 2: The Transformer, Deep Dive</span>. The generation loop and softmax over the vocabulary. <a href="the-transformer-deep-dive.html">the-transformer-deep-dive.html</a></li>
+  </ol></div>
+  <p class="refnote">This series synthesizes public documentation, primary research, and established engineering practice. Product capabilities and model specifics change frequently; treat named tools and versions as illustrative of the state of the field, not as fixed fact.</p>
+</section>
+</main>
+</div>
+<script>
+window.addEventListener('scroll',function(){
+  var h=document.documentElement, b=document.body;
+  var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+  document.getElementById('bar').style.width=(sh>0?(st/sh*100):0)+'%';
+});
+</script>
+</body>
+</html>

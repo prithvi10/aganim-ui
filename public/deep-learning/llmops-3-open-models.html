@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLMOps · Part 3 — Open Models: MoE, Reasoning &amp; Fine-tuning</title>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],tags:'none'},svg:{fontCache:'global'}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  :root{ color-scheme: light; --bg:#f7f6f3; --panel:#ffffff; --ink:#1c1b1a; --muted:#5f5b55; --line:#e5e1d8; --accent:#b5432a; --accent2:#2a5db5; --code-bg:#1e1d1b; --code-ink:#e8e4dc; --ok:#2f7d4f; --chip:#efe9dd; --purple:#6a3fb5; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;line-height:1.65;font-size:17px}
+  .layout{display:flex;max-width:1220px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;width:290px;padding:24px 16px;border-right:1px solid var(--line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px}
+  nav h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  nav h2:first-child{margin-top:0}
+  nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 8px;border-radius:6px;margin-bottom:1px;line-height:1.35}
+  nav a:hover{background:var(--chip);color:var(--ink)}
+  nav a.here{background:var(--chip);color:var(--ink);font-weight:700}
+  main{flex:1;min-width:0;padding:44px 56px 140px;max-width:840px}
+  header.hero{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:10px}
+  .kicker{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:42px;line-height:1.08;margin:12px 0 10px;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:18px}
+  .meta{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:var(--muted);margin-top:16px;display:flex;gap:18px;flex-wrap:wrap}
+  section{padding-top:40px;margin-top:14px;border-top:1px solid var(--line)}
+  section.module{border-top:3px solid var(--ink)}
+  h2.sec{font-size:14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px;font-weight:700}
+  h3{font-size:30px;margin:2px 0 14px;letter-spacing:-.01em;line-height:1.15}
+  h4{font-size:21px;margin:30px 0 8px}
+  h5{font-size:17px;margin:22px 0 6px;font-family:-apple-system,sans-serif;font-weight:700;color:#333}
+  p{margin:12px 0}
+  .lead{font-size:19px;color:#333}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--chip);padding:1px 5px;border-radius:4px}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.5;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit}
+  .eq{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent2);padding:6px 18px;border-radius:8px;margin:16px 0;overflow-x:auto}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:18px 0}
+  .box.intu{border-left:4px solid var(--accent)}
+  .box.link{border-left:4px solid var(--ok)}
+  .box.math{border-left:4px solid var(--accent2)}
+  .box.real{border-left:4px solid var(--purple)}
+  .box .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .box.link .label{color:var(--ok)} .box.math .label{color:var(--accent2)} .box.real .label{color:var(--purple)}
+  .chip{display:inline-block;font-family:-apple-system,sans-serif;font-size:11px;background:var(--chip);color:var(--muted);padding:3px 9px;border-radius:20px;margin:0 4px 4px 0}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--chip);font-family:-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px}
+  details summary{cursor:pointer;padding:14px 0;font-family:-apple-system,sans-serif;font-weight:600;font-size:15px}
+  details[open]{padding-bottom:12px}
+  .quiz{background:var(--panel);border:1px dashed var(--accent2);border-radius:10px;padding:14px 18px;margin:16px 0;font-family:-apple-system,sans-serif;font-size:14.5px}
+  .quiz .q{font-weight:600}
+  .progress-wrap{position:fixed;top:0;left:0;height:3px;width:100%;background:transparent;z-index:50}
+  #bar{height:100%;width:0;background:var(--accent)}
+  ul.tight li,ol.tight li{margin:6px 0}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .flow{max-width:560px;margin:20px auto;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;align-items:stretch;gap:0}
+  .fb{width:100%;box-sizing:border-box;border:2px solid #333;border-radius:8px;padding:12px 16px;margin:0;text-align:center;background:#fff;font-size:14px;flex:0 0 auto}
+  .fb .t{font-weight:700;margin-bottom:4px}
+  .fb.emb{background:#fdf1ee} .fb.attn{background:#fff7cf} .fb.norm{background:#fff9c4} .fb.ffn{background:#c7f0ee} .fb.out{background:#e7f0ff} .fb.dec{background:#efe4ff}
+  .farrow{text-align:center;color:#b5432a;font-size:20px;line-height:1;margin:6px 0;flex:0 0 auto}
+  .fsub{font-size:12px;color:var(--muted);margin-top:4px;font-style:normal}
+  .worked{background:#fbfaf7;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:8px 20px 16px;margin:20px 0}
+  .worked .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--purple);margin:12px 0 2px}
+  .moe{max-width:600px;margin:20px auto;font-family:-apple-system,sans-serif;text-align:center}
+  .moe .router{display:inline-block;border:2px solid #333;background:#fff9c4;border-radius:8px;padding:10px 18px;font-weight:700}
+  .experts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+  .exp{border:2px solid #333;border-radius:8px;padding:10px 12px;background:#c7f0ee;font-size:13px;min-width:78px}
+  .exp.off{background:#f0efe9;color:#999;border-color:#ccc}
+  @media(max-width:940px){nav{display:none}main{padding:26px 20px 90px}h1{font-size:32px}}
+  section#references{border-top:3px solid var(--ink)}
+  .refgroup{margin:18px 0}
+  .refgroup h4{font-size:15px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em;color:var(--ink);margin:22px 0 8px;text-transform:none}
+  ol.reflist{list-style:none;counter-reset:ref;padding:0;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+  ol.reflist li{counter-increment:ref;position:relative;padding:9px 0 9px 40px;border-bottom:1px solid var(--line);line-height:1.5}
+  ol.reflist li:before{content:counter(ref);position:absolute;left:0;top:9px;width:26px;height:26px;background:var(--chip);color:var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  ol.reflist li .authors{color:var(--muted)}
+  ol.reflist li .rtitle{font-weight:600;color:var(--ink)}
+  ol.reflist a{color:var(--accent2);text-decoration:none}
+  ol.reflist a:hover{text-decoration:underline}
+  .refnote{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:16px;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div class="progress-wrap"><div id="bar"></div></div>
+<div class="layout">
+<nav>
+  <h2>This Post</h2>
+  <a href="#intro">Introduction</a>
+  <a href="#part1">1 · The open-weight landscape</a>
+  <a href="#part2">2 · Mixture-of-Experts, in full</a>
+  <a href="#part3">3 · Reasoning models</a>
+  <a href="#part4">4 · Quantization &amp; precision</a>
+  <a href="#part5">5 · Fine-tuning: LoRA &amp; QLoRA</a>
+  <a href="#part6">6 · Alignment: DPO &amp; ORPO</a>
+  <a href="#references">References &amp; reading</a>
+  <h2>LLMOps Series</h2>
+  <a href="llmops-1-foundations.html">1 · Foundations &amp; Lifecycle</a>
+  <a href="llmops-2-evaluation.html">2 · Evaluation &amp; Testing</a>
+  <a href="llmops-3-open-models.html" class="here">3 · Open Models: MoE, Reasoning, Fine-tuning</a>
+  <a href="llmops-4-serving.html">4 · Serving &amp; Inference Infra</a>
+  <a href="llmops-5-rag-agents.html">5 · RAG &amp; Agentic Systems</a>
+  <a href="llmops-6-monitoring.html">6 · Monitoring, Guardrails &amp; Cost</a>
+  <h2>Deep Learning Series</h2>
+  <a href="foundations-of-deep-learning.html">1 · Foundations of Deep Learning</a>
+  <a href="the-transformer-deep-dive.html">2 · The Transformer, Deep Dive</a>
+  <a href="modern-frontier-llms.html">3 · Modern Frontier LLMs</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="kicker">LLMOps, In Depth · Part 3 of 6</div>
+  <h1>Open Models: MoE, Reasoning &amp; Fine-tuning</h1>
+  <p class="sub">Opening the box — the architecture inside, how a model is trained to think, the math of shrinking it to fit your hardware, and how to specialize it on your own GPU.</p>
+  <div class="meta"><span>By Prithviraj</span><span>Part 3 of 6</span><span>~38 min read</span></div>
+</header>
+
+<section id="intro">
+  <p class="lead">In the first two posts the model was a service you called over the internet. You sent text in and got text back, and you never saw what was inside. This post is about the other option: models where the company publishes the actual numbers that make up the model — its weights — so you can download them and run them yourself. These are called <b>open-weight models</b>. Once you have the weights, the model stops being something you rent and becomes something you own: you can look inside it, shrink it, retrain part of it, and run it entirely on your own machines.</p>
+  <p>There are four things you must understand to work with these models, and this post covers them one at a time: the design trick that lets a huge model run cheaply (<b>Mixture-of-Experts</b>), the training that makes a model work through a problem step by step (<b>reasoning</b>), the math that shrinks a model so it fits on your hardware (<b>quantization</b>), and the technique that lets you adapt a model to your own task (<b>fine-tuning</b>).</p>
+  <p>The <a href="modern-frontier-llms.html">Deep Learning series' Part 3</a> explained the transformer and how models are trained from human feedback. Here we look at the same machinery from the point of view of the person who has to run it in production — what each choice does to cost, privacy, speed, and how specialized the model can be.</p>
+  <div class="box intu"><div class="label">Why owning the weights changes your decisions</div>
+  Calling a hosted model over an API is easy: no servers to manage. But you pay for every word processed, your data leaves your building, and the only way to change the model's behavior is to reword your prompt. Running open weights flips all three: you pay a fixed price for hardware instead of a per-word fee, your data never leaves your control (so you can meet rules like HIPAA for health data or GDPR for EU privacy), and you are free to retrain the model. The cost of that freedom is that you now have to run the model yourself (Part 4), test it yourself (Part 2), and keep it safe yourself (Part 6). This post is about how to use that freedom well.</div>
+</section>
+
+<section id="part1" class="module">
+  <h2 class="sec">Part 1 · Open Models</h2>
+  <h3>The open-weight landscape</h3>
+
+  <p>"Open" is not one thing — it is a range. At one end, a project releases everything: the weights, the training data, and the training code, under a license that lets anyone use it freely. At the other end, a company releases only the weights, under its own custom license with rules attached. That second, more common case is what people mean by "open weights." When you pick a model to run, four practical questions matter: does the license let me use it in a commercial product, what design does it use (explained below), how much text can it read at once (its <b>context window</b>), and what is it especially good at.</p>
+
+  <p>Two design words appear in the table. A <b>dense</b> model runs every one of its weights on every word — simple and predictable. A <b>Mixture-of-Experts</b> model (MoE for short, explained fully in Part 2) stores many weights but uses only a small slice of them on each word, so it is cheaper to run than its size suggests.</p>
+
+  <table>
+    <tr><th>Family</th><th>Notable form</th><th>Design</th><th>License character</th></tr>
+    <tr><td><b>Llama</b> (Meta)</td><td>3.1 dense (8B/70B/405B); Llama 4 uses MoE (Scout/Maverick) with a very long context window</td><td>Dense + MoE</td><td>Custom community license (caps monthly active users)</td></tr>
+    <tr><td><b>Qwen</b> (Alibaba)</td><td>Qwen3 in both dense and MoE forms (e.g. 235B total / ~22B used per word), can switch thinking on and off</td><td>Dense + MoE</td><td>Mostly Apache-2.0 (very permissive)</td></tr>
+    <tr><td><b>DeepSeek</b></td><td>V3: 671B total / ~37B used per word; R1 adds reasoning on top of the V3 base</td><td>Fine-grained MoE</td><td>MIT (very permissive, for the weights)</td></tr>
+    <tr><td><b>Mistral</b></td><td>Mistral 7B (dense); Mixtral 8×7B and 8×22B (MoE)</td><td>Dense + MoE</td><td>Apache-2.0 (older) / research-only (some newer)</td></tr>
+    <tr><td><b>Gemma</b> (Google)</td><td>Gemma 3 (1B/4B/12B/27B), handles images too, 128K context</td><td>Dense</td><td>Custom Gemma terms</td></tr>
+    <tr><td><b>GLM</b> (Zhipu)</td><td>GLM-4.x, large MoE, aimed at reasoning and tool-using tasks</td><td>MoE</td><td>MIT (for the weights)</td></tr>
+  </table>
+  <div class="box real"><div class="label">Operator's note — the license is a shipping decision, not fine print</div>
+  Apache-2.0 and MIT are very permissive licenses: they let you build and sell products with almost no legal friction, which is why Qwen, DeepSeek, and Mistral-7B/Mixtral are safe defaults for commercial work. Llama's community license adds a rule that kicks in above a certain number of monthly users; Gemma has its own terms. Read the actual license against what you plan to ship — it limits your product just as firmly as any hardware limit. <i>(The model details here reflect public information as of early 2026 and change fast; verify against current model cards.)</i></div>
+
+  <h4>1.1 Why models end up good at different things</h4>
+  <p>One family is best at writing code, another at chatting in many languages, another at using tools on your behalf. These strengths are not accidents. They are decided at three stages, all built on top of the same basic transformer:</p>
+  <ul class="tight">
+    <li><b>What it reads during first training (the pre-training data mix):</b> a coding model is fed trillions of words of source code and technical docs; a generalist is fed a balanced diet of web pages, books, and text in many languages.</li>
+    <li><b>How it handles long inputs:</b> models that can read very long documents use tricks in how they track word positions (named RoPE scaling and YaRN) to avoid the known problem where a model ignores facts stuck in the middle of a long input.</li>
+    <li><b>What it practices after first training (post-training):</b> a tool-using model is trained on recordings of real tool calls — the JSON requests, the API calls, the results — while a chat model is trained on examples of people ranking which reply is better.</li>
+  </ul>
+</section>
+
+<section id="part2" class="module">
+  <h2 class="sec">Part 2 · Open Models</h2>
+  <h3>Mixture-of-Experts, in full</h3>
+
+  <p>Almost every very large open model uses one trick to stay affordable to run. The trick answers a question that sounds impossible: how do you get the knowledge of a 671-billion-weight model while paying to run only about 37 billion weights per word? The trick is called <b>Mixture-of-Experts</b>, or <b>MoE</b> ("mixture of experts" — a set of specialist sub-networks the model chooses between).</p>
+
+  <h4>2.1 What an "expert" really is</h4>
+  <p>Recall the transformer block from the <a href="the-transformer-deep-dive.html">Transformer post</a>: first an attention step that lets each word look at the others, then a feed-forward network — a small stack of math that transforms each word on its own. That feed-forward network is usually written <b>FFN</b> (feed-forward network). In a normal dense model there is one big FFN in each block, and every word passes through all of it. In an MoE model, that single FFN is replaced by many smaller FFNs sitting side by side. Each one of these smaller FFNs is called an <b>expert</b>. So "expert" is not something clever — it is just one FFN out of many.</p>
+  <p>A small extra piece decides which experts each word should use. It is a tiny layer that scores every expert and picks the best few. It is called the <b>router</b>. The attention step is left shared and untouched — it keeps the flow of context between words — and only the FFN part is split into experts.</p>
+
+  <div class="moe">
+    <div class="fsub" style="margin-bottom:6px">a word \(x\) finishes the attention step →</div>
+    <div class="router">Router \(W_g\) — scores all experts, keeps the top \(k\)</div>
+    <div class="experts">
+      <div class="exp">Expert 1<br><b>on</b></div>
+      <div class="exp off">Expert 2</div>
+      <div class="exp off">Expert 3</div>
+      <div class="exp">Expert 4<br><b>on</b></div>
+      <div class="exp off">…</div>
+      <div class="exp off">Expert N</div>
+    </div>
+    <div class="fsub">combine only the experts that are on → pass to the next layer</div>
+  </div>
+
+  <div class="box intu"><div class="label">The plain idea, in one line</div>
+  The model keeps a very large set of experts on hand (that is its <i>total</i> weight count), but for each word it turns on only a couple of them (that is its <i>active</i> weight count). It pays to run only the few it turns on, yet it still holds all the knowledge stored in the full set. That is how DeepSeek-V3 can hold 671 billion weights of knowledge while costing about 37 billion weights of work per word.</div>
+
+  <h4>2.2 The routing math</h4>
+  <p>Here is what actually happens for one word. The word arrives as a list of numbers, written \(x\). The router multiplies it by its weight matrix \(W_g\) to get one score per expert. It keeps the highest \(k\) scores (the "top-k"), turns those scores into fractions that add up to 1 using softmax, and produces the final output as those fractions times the outputs of just the chosen experts:</p>
+  <div class="eq">$$h(x)=x W_g,\qquad G(x)=\text{softmax}\big(\text{TopK}(h(x),k)\big),\qquad y=\sum_{i\in\text{TopK}} G(x)_i \cdot E_i(x)$$</div>
+  <p>Each expert \(E_i\) is just an ordinary FFN, \(E_i(x)=\text{Activation}(xW_{i,1})W_{i,2}\). "Top-k" means keep the k best-scoring experts; the softmax turns their raw scores into weights that sum to 1 so the combination is a proper weighted average. For example, Mixtral has \(N=8\) experts and picks \(k=2\) of them per word: about 47B weights in total, but only about 13B doing work on any given word.</p>
+
+  <div class="worked"><div class="label">Worked example — active vs total, and where the saving comes from</div>
+  <p>Say an MoE layer has \(N=8\) experts. Each expert is an FFN with \(P_e\) weights, and the router picks \(k=2\) of them per word.</p>
+  $$\text{total FFN weights}=8P_e,\qquad \text{weights actually run per word}=2P_e$$
+  <p>The word is only multiplied against \(2P_e\) weights instead of all \(8P_e\) — that is a <b>4× saving in computation</b> (8 divided by 2). Meanwhile the model still <i>stores</i> all \(8P_e\) weights, so it keeps all that specialized knowledge available. If you use more, smaller experts (DeepSeek does exactly this), the ratio of knowledge-stored to work-done climbs even higher. But note one catch: memory (the VRAM on your GPU) is set by the <i>total</i> weight count, because you must load every expert into memory even though you run only a few. So MoE buys cheap computation at the price of expensive memory — a fact that shapes serving in Part 4.</p></div>
+
+  <h4>2.3 The problem MoE creates: keeping the experts balanced</h4>
+  <p>If you just let the router learn freely, it cheats. It discovers a few experts it likes and sends almost every word to them, so the rest of the experts never get used or trained. Those unused experts are called <b>dead experts</b>. The general problem of keeping traffic spread evenly across experts is called <b>load balancing</b>. Two fixes are standard:</p>
+  <ul class="tight">
+    <li><b>A balancing penalty added to training (the auxiliary load-balancing loss, from the Switch Transformer work):</b> an extra term in the training goal that punishes lopsided expert usage across a batch of words, pushing the router to share the load.</li>
+    <li><b>Balancing without a penalty term (the auxiliary-loss-free method, from DeepSeek-V3):</b> instead of a penalty, it nudges a small per-expert offset up or down to even out traffic, so the main training goal is not distorted — a newer, cleaner approach.</li>
+  </ul>
+  <p>DeepSeek adds two more ideas. <b>Fine-grained experts</b> means using many small experts instead of a few big ones, so each can specialize more narrowly. <b>Shared experts</b> means keeping one or two experts always turned on for every word, to hold the common knowledge every word needs, which frees the routed experts to specialize harder.</p>
+
+  <div class="box real"><div class="label">Operator's implication — MoE reshapes your hardware bill</div>
+  Because the active weight count drives speed but the total weight count drives memory, an MoE model runs fast yet is hungry for memory to host. A 671B-total / 37B-active model produces words at roughly 37B speed but still needs enough VRAM to hold all 671B weights (usually after shrinking them, see next). This is why big MoE models are spread across several GPUs (Part 4) and why quantization — coming up next — is often required rather than optional for them.</div>
+</section>
+
+<section id="part3" class="module">
+  <h2 class="sec">Part 3 · Open Models</h2>
+  <h3>Reasoning models — training a model to think first</h3>
+
+  <p>A plain language model just predicts the next word that is most likely to come — a fast, one-shot guess. For hard logic problems that quick guess is often wrong. A <b>reasoning model</b> is trained to write out a long train of thought before it gives its final answer, checking and correcting itself as it goes. It moves effort from training time to answer time — the time when it is actually producing your reply, which people call <b>test time</b>.</p>
+
+  <h4>3.1 Thinking out loud, as a trained habit</h4>
+  <p>The model writes its working-out inside special marker tokens, <code>&lt;think&gt;...&lt;/think&gt;</code>, and then writes the final answer after. Why does writing out its thoughts help? Because of a fact from the <a href="foundations-of-deep-learning.html">foundations</a>: each word the model generates becomes part of the input for the next word. So when it writes "step 1… step 2… wait, that is wrong, let me redo it…" it is literally giving itself more chances to compute and more notes to build on before committing to an answer. This is called <b>chain-of-thought</b> — the model reasoning in a visible chain of steps. More thinking words means more work done at answer time, which means better accuracy on math, code, and logic — up to a point, after which extra thinking stops helping.</p>
+
+  <h4>3.2 How the thinking is trained: rewards for getting it right</h4>
+  <p>DeepSeek-R1 showed you can teach a model to reason mostly by trial and error with rewards, a method called reinforcement learning. Instead of copying human-written reasoning, the model tries to <i>solve</i> problems whose answers can be checked automatically — a math problem with a known result, or code that must pass a test. When it solves one, it gets a reward. Over many tries it discovers, on its own, that checking its steps and going back to fix mistakes gets more rewards.</p>
+  <div class="box math"><div class="label">Engineering track — GRPO in plain terms</div>
+  The specific reinforcement-learning method behind R1 is <b>GRPO</b>, which stands for Group Relative Policy Optimization. An older method called PPO needs a second helper network (a "critic") to judge how good each partial answer is — and that helper is expensive to train. GRPO throws the critic away. For each question it generates a <i>group</i> of \(G\) different answers, scores every one with a simple rule-based reward \(r_i\) (Is the answer correct? Is it formatted properly?), and then judges each answer against the group's own average. The formula for how much better than average answer \(i\) is: \(A_i=\frac{r_i-\text{mean}(r)}{\text{std}(r)}\), where \(\text{mean}(r)\) is the group's average score and \(\text{std}(r)\) is how spread out the scores are. Answers that beat their group's average get reinforced; answers below average get pushed down. No critic network, cheaper training, and the reward is objective — a real checker, not a guessed opinion.</div>
+  <div class="worked"><div class="label">Tiny worked example — how GRPO scores a group</div>
+  <p>Suppose for one math question the model generates \(G=4\) answers and the checker gives them rewards \(r = [1, 0, 1, 0]\) (1 = correct, 0 = wrong).</p>
+  $$\text{mean}(r)=\frac{1+0+1+0}{4}=0.5,\qquad \text{std}(r)=0.5$$
+  <p>The advantage of a correct answer is \(A=\frac{1-0.5}{0.5}=+1.0\); the advantage of a wrong one is \(A=\frac{0-0.5}{0.5}=-1.0\). Training then makes the two correct answers more likely and the two wrong answers less likely. No separate judge network was needed — the group graded itself.</p></div>
+
+  <h4>3.3 Hybrid reasoning — one model with a thinking dial</h4>
+  <p>Early on, a reasoning model was a separate download from the normal model. Newer models (Qwen3, Claude, and others) combine both in one and let you set how much thinking you want. This combined kind is called a <b>hybrid</b> reasoning model, and the setting is a <b>thinking budget</b> — a cap on how many thinking words it may use. Set the budget to zero and it answers instantly like a normal model; raise the budget and it works through the problem first.</p>
+  <div class="flow">
+    <div class="fb out"><div class="t">budget = 0</div><div class="fsub">[input] → [answer] &nbsp;— fast and cheap, just like a normal model</div></div>
+    <div class="farrow">vs</div>
+    <div class="fb dec"><div class="t">budget &gt; 0</div><div class="fsub">[input] → [&lt;think&gt; reason, check, go back and fix &lt;/think&gt;] → [answer]</div></div>
+  </div>
+  <div class="box real"><div class="label">Operator's implication — thinking is a cost and speed dial</div>
+  Thinking words cost money (you are billed for them) and add delay, often making a reply take 3 to 10 times longer. Treat the thinking budget as a per-request setting: turn it up for a hard coding or math task, set it to zero for a simple sorting or fact-pulling task. Sending easy requests to zero-thinking (or to a smaller model) and only hard ones to full thinking is one of the largest cost savings available to you — something we put real numbers on in Part 6.</div>
+</section>
+
+<section id="part4" class="module">
+  <h2 class="sec">Part 4 · Open Models</h2>
+  <h3>Quantization &amp; precision — making a model fit</h3>
+
+  <p>Every weight in a model is stored as a number with a certain number of digits of accuracy. The more digits, the more memory it takes and the slower it is to move around. Storing each weight using fewer bits — trading a little accuracy for a lot of memory savings — is called <b>quantization</b>. It is what lets a model that supposedly "needs" a data-center GPU run on a laptop.</p>
+
+  <h4>4.1 The memory math</h4>
+  <p>The memory a model's weights take is simply the number of weights times how many bytes each weight uses:</p>
+  <div class="eq">$$\text{memory} \approx (\text{number of weights})\times(\text{bytes per weight})$$</div>
+  <p>The precision level tells you the bytes per weight. Some names you will see: <b>FP16</b> and <b>BF16</b> are two 16-bit (2-byte) formats — "full" precision for running a model. <b>INT8</b> stores each weight as an 8-bit (1-byte) whole number. <b>INT4</b> and <b>NF4</b> use just 4 bits (half a byte) each. Here is the same 8-billion (8B) and 70-billion (70B) weight model at each level:</p>
+  <table>
+    <tr><th>Precision</th><th>Bits per weight</th><th>8B model weights</th><th>70B model weights</th></tr>
+    <tr><td>FP16 / BF16</td><td>16</td><td>≈ 16 GB</td><td>≈ 140 GB</td></tr>
+    <tr><td>INT8</td><td>8</td><td>≈ 8 GB</td><td>≈ 70 GB</td></tr>
+    <tr><td>INT4 / NF4</td><td>4</td><td>≈ 4 GB</td><td>≈ 35 GB</td></tr>
+  </table>
+  <p>Check the math: 8 billion weights × 2 bytes = 16 GB at FP16; at 4 bits (half a byte) it is 8 billion × 0.5 = 4 GB. Two things get cheaper at once. First, <b>capacity</b>: the model fits in less VRAM. Second, <b>speed</b>: producing words is limited mostly by how fast weights can be moved from memory into the compute cores, and 4-bit numbers move four times faster than 16-bit ones. So a 4-bit model is about a quarter of the size and noticeably faster, at a small cost to quality.</p>
+
+  <div class="box math"><div class="label">Engineering track — how the shrinking actually works</div>
+  A smooth 16-bit weight \(x\) that lives somewhere between a minimum and maximum value gets snapped to one of a limited set of whole-number bins:
+  $$q=\text{round}\!\left(\frac{x}{S}\right)+Z$$
+  Here \(S\) is a scale (how wide each bin is) and \(Z\) is a zero-point (which bin represents zero). When the weight is needed for computation, this whole number is converted back toward a float. The whole skill is choosing \(S\) and \(Z\) — and deciding which important weights to keep at higher accuracy — so that the rounding barely changes the model's output. That is exactly what the different methods below are competing to do best.</div>
+
+  <h4>4.2 The formats you will actually run into</h4>
+  <p>Each name below is a different way of storing or producing quantized weights. Here is a one-line plain description of each:</p>
+  <table>
+    <tr><th>Format</th><th>What it is</th><th>Where it is used</th></tr>
+    <tr><td><b>GGUF</b></td><td>The quantized file format used by the llama.cpp project (offers levels from Q2 to Q8)</td><td>Running models locally on a CPU, a Mac, or a consumer GPU (via Ollama, LM Studio)</td></tr>
+    <tr><td><b>GPTQ</b></td><td>A method that shrinks an already-trained model to 3–4 bits in one pass, using extra math about how sensitive each weight is</td><td>Serving quantized weights on a GPU</td></tr>
+    <tr><td><b>AWQ</b></td><td>"Activation-aware" — it looks at which weights matter most in practice and keeps those more accurate</td><td>High-quality 4-bit inference on a GPU</td></tr>
+    <tr><td><b>NF4</b> (from the bitsandbytes library)</td><td>A 4-bit format ("NormalFloat") whose bins are placed to fit the bell-curve shape that weights naturally follow</td><td>QLoRA fine-tuning (next section)</td></tr>
+    <tr><td><b>FP8</b></td><td>An 8-bit floating-point format (variants E4M3 and E5M2) that recent GPUs support directly in hardware</td><td>High-throughput serving; DeepSeek-V3 even did its training in FP8</td></tr>
+  </table>
+</section>
+
+<section id="part5" class="module">
+  <h2 class="sec">Part 5 · Open Models</h2>
+  <h3>Fine-tuning: LoRA &amp; QLoRA on your own GPU</h3>
+
+  <p>Adjusting a base model so it fits your domain, your tone, or your specific task is called <b>fine-tuning</b>. The thorough version — updating every weight in the model — is called <b>full fine-tuning</b>, and it needs a cluster of data-center GPUs, so most teams never do it. The technique that made fine-tuning affordable for everyone is <b>LoRA</b>, and a further trick called <b>QLoRA</b> lets you fine-tune a capable model on a single gaming-grade GPU.</p>
+
+  <h4>5.1 LoRA — train a tiny add-on, freeze everything else</h4>
+  <p>Instead of changing a model's giant weight matrix \(W\) directly, <b>LoRA</b> (which stands for Low-Rank Adaptation — "low-rank" is explained in a moment) leaves \(W\) frozen and learns a small correction to add on top. It writes that correction \(\Delta W\) as the product of two thin matrices, \(B\) and \(A\):</p>
+  <div class="eq">$$W' = W + \Delta W = W + \frac{\alpha}{r}\,B A,\qquad B\in\mathbb{R}^{d\times r},\ A\in\mathbb{R}^{r\times k},\ r\ll d,k$$</div>
+  <p>Only \(A\) and \(B\) are trained; the huge \(W\) never moves. The number \(r\) is the <b>rank</b> — how thin the two matrices are — and "low-rank" just means \(r\) is chosen much smaller than the matrix's normal dimensions. Concretely: take a \(4096\times4096\) weight matrix, which has \(4096\times4096\approx16.7\) million weights. With rank \(r=16\) you instead train \(B\) (size \(4096\times16\)) plus \(A\) (size \(16\times4096\)), which is \(2\times16\times4096\approx131{,}000\) numbers — about 0.8% as many — and still recover most of the quality of full fine-tuning. The scalar \(\alpha/r\) out front is just a knob for how strongly the add-on is applied.</p>
+
+  <div class="worked"><div class="label">Why such a small add-on is enough</div>
+  <p>The reason it works: adapting an already-trained model to a narrow task does not require rewriting what it knows, only nudging it in a particular direction. That nudge turns out to live in a small number of dimensions, so a thin, low-rank \(\Delta W\) is enough to capture it. You leave the base model's broad general ability completely untouched (frozen) and attach a small, swappable, task-specific add-on — often called an <b>adapter</b>. You can even keep several adapters for several tasks and load whichever one you need at the moment.</p></div>
+
+  <h4>5.2 QLoRA — LoRA on top of a 4-bit base</h4>
+  <p><b>QLoRA</b> (Quantized LoRA) goes one step further. It loads the frozen base model in 4-bit NF4 (the 4-bit format from the last section), then trains the small LoRA adapters on top of that in full 16-bit precision. The big part — the base weights — is quartered in memory, while the small trainable part stays at high accuracy. This is what brings fine-tuning a 7B-to-14B model down to a single high-end consumer GPU such as an RTX 4090.</p>
+
+  <h4>5.3 The four steps, in code</h4>
+  <div class="worked"><div class="label">QLoRA fine-tuning on one GPU (Hugging Face stack)</div>
+<pre><code># 1 · Load the base model in 4-bit NF4
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+import torch
+bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                         bnb_4bit_compute_dtype=torch.bfloat16)
+model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-7B-Instruct",
+                         quantization_config=bnb, device_map="auto")
+
+# 2 · Attach the LoRA adapters (only these get trained)
+from peft import LoraConfig, get_peft_model
+model = get_peft_model(model, LoraConfig(
+    r=16, lora_alpha=32, target_modules=["q_proj","v_proj"],
+    task_type="CAUSAL_LM"))
+
+# 3 · Train on your data (each example wrapped in the model's chat template!)
+from trl import SFTTrainer
+SFTTrainer(model=model, train_dataset=ds,
+           dataset_text_field="text", max_seq_length=2048).train()
+
+# 4 · Save just the tiny adapter (tens of MB, not tens of GB)
+model.save_pretrained("./my_adapter")</code></pre>
+  </div>
+
+  <div class="box link"><div class="label">The golden rules of fine-tuning</div>
+  <b>1. Quality beats quantity.</b> 1,000 carefully checked domain examples beat 100,000 sloppy ones — the same lesson as the golden datasets in Part 2. <b>2. Keep the format consistent.</b> Wrap every training example in the exact chat template the base model expects (formats such as ChatML or the Llama format) — the wrong wrapper quietly ruins results. <b>3. Guard against the model forgetting its old skills.</b> When you train hard on one task, a model can lose its general ability — this is called catastrophic forgetting. Mix 5–10% of general instruction data back in, or a medical-tuned model may forget how to hold a normal conversation. <b>4. Fine-tune last.</b> Try better prompting and retrieval (Part 5) first; fine-tune only when you need a behavior or format that giving context alone cannot reliably produce.</div>
+
+  <div class="box real"><div class="label">Operator's implication — fine-tune for behavior, not for facts</div>
+  A common and costly mistake is fine-tuning to stuff facts into the model ("teach it our whole product catalog"). Facts change, and they belong in a retrieval system (Part 5), where you can edit them without retraining anything. Fine-tune instead for <i>behavior</i> that is hard to get with a prompt: a fixed output format, a house writing style, a domain's way of reasoning, or better tool use. Then test the fine-tuned model against the golden set from Part 2 — fine-tuning without a way to measure the result is flying blind.</div>
+</section>
+
+<section id="part6" class="module">
+  <h2 class="sec">Part 6 · Open Models</h2>
+  <h3>Alignment: DPO &amp; ORPO after SFT</h3>
+
+  <p>Training a model by showing it good answers to copy is called <b>supervised fine-tuning</b>, or <b>SFT</b>. It teaches the model to imitate. There is a further step called <b>preference tuning</b>: instead of one right answer, you show the model two answers and tell it which one is better. This captures subtle wishes like "be helpful but keep it short" that are far easier to demonstrate by comparison than to spell out in a rule.</p>
+
+  <h4>6.1 From RLHF to DPO</h4>
+  <p>The classic way to do this, from the <a href="modern-frontier-llms.html">frontier post</a>, is <b>RLHF</b> — Reinforcement Learning from Human Feedback. It first trains a separate model to score answers (a reward model), then uses reinforcement learning (the PPO method) to push the main model toward high-scoring answers. It works, but it is a fragile pipeline with several moving parts. <b>DPO</b> (Direct Preference Optimization) does the same job in one shot: given pairs of answers — a chosen one \(y_w\) and a rejected one \(y_l\) — it adjusts the model directly using a single, simple loss, with no separate reward model and no reinforcement-learning loop.</p>
+  <div class="eq">$$\mathcal{L}_{\text{DPO}}=-\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w\mid x)}{\pi_{\text{ref}}(y_w\mid x)}-\beta\log\frac{\pi_\theta(y_l\mid x)}{\pi_{\text{ref}}(y_l\mid x)}\right)$$</div>
+  <p>In plain words: raise the model's probability of producing the chosen answer and lower its probability of producing the rejected one — but measure both against a frozen copy of the original model (written \(\pi_{\text{ref}}\), the reference) so the model does not drift too far from where it started. Here \(\pi_\theta\) is the model being trained, \(\beta\) controls how firmly it pulls, and \(\sigma\) is the logistic function that turns the score gap into a value between 0 and 1. <b>ORPO</b> (Odds-Ratio Preference Optimization) goes further still: it folds the preference step into ordinary SFT so it is one stage, with no reference copy needed at all.</p>
+
+  <div class="box intu"><div class="label">The usual modern recipe</div>
+  Base model → <b>SFT</b> (teach the task and the format using high-quality examples) → <b>DPO or ORPO</b> (refine using preferences about which answer is better). For tasks that need heavy reasoning, a reinforcement-learning stage with checkable rewards (GRPO, from Part 3) may come after. Each stage is smaller and cheaper than the one before, and each should have to pass the evaluation harness from Part 2 before you keep it.</div>
+
+  <h4>6.2 The tooling</h4>
+  <p>You almost never write these methods from scratch. Hugging Face <b>PEFT</b> is the library that provides LoRA and QLoRA adapters. Hugging Face <b>TRL</b> provides ready-made trainers for SFT, DPO, and GRPO. <b>Unsloth</b> is a library that makes training 2–5× faster while using less VRAM. <b>Axolotl</b> and <b>LlamaFactory</b> wrap the whole process so you drive it from a config file instead of code. The tooling is mature enough that the code is no longer the hard part — the hard parts are the <i>data</i> and the <i>evaluation</i>.</p>
+
+  <div class="box link"><div class="label">Where we go next</div>
+  You now understand the model as a thing you hold: how it is built (MoE), how it is trained to reason, how its numbers are shrunk to fit, and how to adapt it to your task. But a fine-tuned model sitting in a folder does nothing on its own — it has to <i>serve</i> real requests, quickly, to many people at once, without blowing your GPU budget. <b>Part 4 — Serving &amp; Inference Infrastructure</b> covers the engines that run models, the memory trick called PagedAttention and the KV cache, how requests are batched together as they arrive, how a model is split across GPUs, and the full path of a single request from an HTTP call to a streamed reply.</div>
+</section>
+
+<section id="references">
+  <h2 class="sec">Appendix</h2>
+  <h3>References &amp; further reading</h3>
+  <p>Grouped by type; freely available online. Model specifics reflect public information as of early 2026 and change quickly — verify against official model cards.</p>
+  <div class="refgroup"><h4>Architecture &amp; reasoning</h4>
+  <ol class="reflist">
+    <li><span class="authors">Jiang et al. (2024). </span><span class="rtitle">Mixtral of Experts</span>. Sparse MoE, 8 experts top-2. <a href="https://arxiv.org/abs/2401.04088">https://arxiv.org/abs/2401.04088</a></li>
+    <li><span class="authors">Dai et al. (2024). </span><span class="rtitle">DeepSeekMoE: Fine-grained &amp; shared experts</span>. <a href="https://arxiv.org/abs/2401.06066">https://arxiv.org/abs/2401.06066</a></li>
+    <li><span class="authors">DeepSeek-AI (2024). </span><span class="rtitle">DeepSeek-V3 Technical Report</span>. 671B/37B MoE, aux-loss-free balancing, FP8. <a href="https://arxiv.org/abs/2412.19437">https://arxiv.org/abs/2412.19437</a></li>
+    <li><span class="authors">DeepSeek-AI (2025). </span><span class="rtitle">DeepSeek-R1</span>. RL-trained reasoning. <a href="https://arxiv.org/abs/2501.12948">https://arxiv.org/abs/2501.12948</a></li>
+    <li><span class="authors">Shao et al. (2024). </span><span class="rtitle">DeepSeekMath (GRPO)</span>. <a href="https://arxiv.org/abs/2402.03300">https://arxiv.org/abs/2402.03300</a></li>
+    <li><span class="authors">Fedus, Zoph &amp; Shazeer (2021). </span><span class="rtitle">Switch Transformers</span>. Load-balancing loss. <a href="https://arxiv.org/abs/2101.03961">https://arxiv.org/abs/2101.03961</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Quantization &amp; fine-tuning</h4>
+  <ol class="reflist">
+    <li><span class="authors">Hu et al. (2021). </span><span class="rtitle">LoRA: Low-Rank Adaptation of Large Language Models</span>. <a href="https://arxiv.org/abs/2106.09685">https://arxiv.org/abs/2106.09685</a></li>
+    <li><span class="authors">Dettmers et al. (2023). </span><span class="rtitle">QLoRA: Efficient Finetuning of Quantized LLMs</span>. NF4, double quant. <a href="https://arxiv.org/abs/2305.14314">https://arxiv.org/abs/2305.14314</a></li>
+    <li><span class="authors">Frantar et al. (2022). </span><span class="rtitle">GPTQ</span>. <a href="https://arxiv.org/abs/2210.17323">https://arxiv.org/abs/2210.17323</a></li>
+    <li><span class="authors">Lin et al. (2023). </span><span class="rtitle">AWQ: Activation-aware Weight Quantization</span>. <a href="https://arxiv.org/abs/2306.00978">https://arxiv.org/abs/2306.00978</a></li>
+    <li><span class="authors">Rafailov et al. (2023). </span><span class="rtitle">Direct Preference Optimization (DPO)</span>. <a href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a></li>
+    <li><span class="authors">Hong et al. (2024). </span><span class="rtitle">ORPO: Monolithic Preference Optimization</span>. <a href="https://arxiv.org/abs/2403.07691">https://arxiv.org/abs/2403.07691</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Tools</h4>
+  <ol class="reflist">
+    <li><span class="authors">Hugging Face. </span><span class="rtitle">PEFT &amp; TRL</span>. <a href="https://huggingface.co/docs/peft">https://huggingface.co/docs/peft</a></li>
+    <li><span class="authors">Unsloth. </span><span class="rtitle">Faster QLoRA fine-tuning</span>. <a href="https://github.com/unslothai/unsloth">https://github.com/unslothai/unsloth</a></li>
+  </ol></div>
+  <p class="refnote">Model families, licenses, and specs are described at the level of well-established public understanding as of early 2026; proprietary training details are not disclosed and speculative items are flagged in-text.</p>
+</section>
+</main>
+</div>
+<script>
+window.addEventListener('scroll',function(){
+  var h=document.documentElement, b=document.body;
+  var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+  document.getElementById('bar').style.width=(sh>0?(st/sh*100):0)+'%';
+});
+</script>
+</body>
+</html>

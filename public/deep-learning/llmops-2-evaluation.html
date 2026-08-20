@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLMOps · Part 2 — Evaluation &amp; Testing</title>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],tags:'none'},svg:{fontCache:'global'}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  :root{ color-scheme: light; --bg:#f7f6f3; --panel:#ffffff; --ink:#1c1b1a; --muted:#5f5b55; --line:#e5e1d8; --accent:#b5432a; --accent2:#2a5db5; --code-bg:#1e1d1b; --code-ink:#e8e4dc; --ok:#2f7d4f; --chip:#efe9dd; --purple:#6a3fb5; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;line-height:1.65;font-size:17px}
+  .layout{display:flex;max-width:1220px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;width:290px;padding:24px 16px;border-right:1px solid var(--line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px}
+  nav h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  nav h2:first-child{margin-top:0}
+  nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 8px;border-radius:6px;margin-bottom:1px;line-height:1.35}
+  nav a:hover{background:var(--chip);color:var(--ink)}
+  nav a.here{background:var(--chip);color:var(--ink);font-weight:700}
+  main{flex:1;min-width:0;padding:44px 56px 140px;max-width:840px}
+  header.hero{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:10px}
+  .kicker{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:42px;line-height:1.08;margin:12px 0 10px;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:18px}
+  .meta{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:var(--muted);margin-top:16px;display:flex;gap:18px;flex-wrap:wrap}
+  section{padding-top:40px;margin-top:14px;border-top:1px solid var(--line)}
+  section.module{border-top:3px solid var(--ink)}
+  h2.sec{font-size:14px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px;font-weight:700}
+  h3{font-size:30px;margin:2px 0 14px;letter-spacing:-.01em;line-height:1.15}
+  h4{font-size:21px;margin:30px 0 8px}
+  h5{font-size:17px;margin:22px 0 6px;font-family:-apple-system,sans-serif;font-weight:700;color:#333}
+  p{margin:12px 0}
+  .lead{font-size:19px;color:#333}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--chip);padding:1px 5px;border-radius:4px}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.5;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit}
+  .eq{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent2);padding:6px 18px;border-radius:8px;margin:16px 0;overflow-x:auto}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin:18px 0}
+  .box.intu{border-left:4px solid var(--accent)}
+  .box.link{border-left:4px solid var(--ok)}
+  .box.math{border-left:4px solid var(--accent2)}
+  .box.real{border-left:4px solid var(--purple)}
+  .box .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .box.link .label{color:var(--ok)} .box.math .label{color:var(--accent2)} .box.real .label{color:var(--purple)}
+  .chip{display:inline-block;font-family:-apple-system,sans-serif;font-size:11px;background:var(--chip);color:var(--muted);padding:3px 9px;border-radius:20px;margin:0 4px 4px 0}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--chip);font-family:-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px}
+  details summary{cursor:pointer;padding:14px 0;font-family:-apple-system,sans-serif;font-weight:600;font-size:15px}
+  details[open]{padding-bottom:12px}
+  .quiz{background:var(--panel);border:1px dashed var(--accent2);border-radius:10px;padding:14px 18px;margin:16px 0;font-family:-apple-system,sans-serif;font-size:14.5px}
+  .quiz .q{font-weight:600}
+  .progress-wrap{position:fixed;top:0;left:0;height:3px;width:100%;background:transparent;z-index:50}
+  #bar{height:100%;width:0;background:var(--accent)}
+  ul.tight li,ol.tight li{margin:6px 0}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .flow{max-width:560px;margin:20px auto;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;align-items:stretch;gap:0}
+  .fb{width:100%;box-sizing:border-box;border:2px solid #333;border-radius:8px;padding:12px 16px;margin:0;text-align:center;background:#fff;font-size:14px;flex:0 0 auto}
+  .fb .t{font-weight:700;margin-bottom:4px}
+  .fb.emb{background:#fdf1ee} .fb.attn{background:#fff7cf} .fb.norm{background:#fff9c4} .fb.ffn{background:#c7f0ee} .fb.out{background:#e7f0ff} .fb.dec{background:#efe4ff}
+  .farrow{text-align:center;color:#b5432a;font-size:20px;line-height:1;margin:6px 0;flex:0 0 auto}
+  .fsub{font-size:12px;color:var(--muted);margin-top:4px;font-style:normal}
+  .worked{background:#fbfaf7;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:8px 20px 16px;margin:20px 0}
+  .worked .label{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--purple);margin:12px 0 2px}
+  .pyramid{max-width:600px;margin:22px auto;font-family:-apple-system,sans-serif}
+  .prow{display:flex;gap:10px;align-items:stretch;margin:8px 0}
+  .ptier{flex:1;border:2px solid #333;border-radius:10px;padding:12px 16px}
+  .ptier .h{font-weight:700;margin-bottom:2px}
+  .ptier .d{font-size:13px;color:var(--muted)}
+  .ptier.t1{background:#e9f7ee} .ptier.t2{background:#fff9e6} .ptier.t3{background:#fdf1ee}
+  .ptier .tag{float:right;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  @media(max-width:940px){nav{display:none}main{padding:26px 20px 90px}h1{font-size:32px}}
+  section#references{border-top:3px solid var(--ink)}
+  .refgroup{margin:18px 0}
+  .refgroup h4{font-size:15px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em;color:var(--ink);margin:22px 0 8px;text-transform:none}
+  ol.reflist{list-style:none;counter-reset:ref;padding:0;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+  ol.reflist li{counter-increment:ref;position:relative;padding:9px 0 9px 40px;border-bottom:1px solid var(--line);line-height:1.5}
+  ol.reflist li:before{content:counter(ref);position:absolute;left:0;top:9px;width:26px;height:26px;background:var(--chip);color:var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  ol.reflist li .authors{color:var(--muted)}
+  ol.reflist li .rtitle{font-weight:600;color:var(--ink)}
+  ol.reflist a{color:var(--accent2);text-decoration:none}
+  ol.reflist a:hover{text-decoration:underline}
+  .refnote{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:16px;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div class="progress-wrap"><div id="bar"></div></div>
+<div class="layout">
+<nav>
+  <h2>This Post</h2>
+  <a href="#intro">Introduction</a>
+  <a href="#part1">1 · The four-layer framework</a>
+  <a href="#part2">2 · Reference &amp; semantic metrics</a>
+  <a href="#part3">3 · LLM-as-a-judge</a>
+  <a href="#part4">4 · Golden datasets</a>
+  <a href="#part5">5 · Testing agents &amp; tools</a>
+  <a href="#part6">6 · CI/CD for prompts</a>
+  <a href="#references">References &amp; reading</a>
+  <h2>LLMOps Series</h2>
+  <a href="llmops-1-foundations.html">1 · Foundations &amp; Lifecycle</a>
+  <a href="llmops-2-evaluation.html" class="here">2 · Evaluation &amp; Testing</a>
+  <a href="llmops-3-open-models.html">3 · Open Models: MoE, Reasoning, Fine-tuning</a>
+  <a href="llmops-4-serving.html">4 · Serving &amp; Inference Infra</a>
+  <a href="llmops-5-rag-agents.html">5 · RAG &amp; Agentic Systems</a>
+  <a href="llmops-6-monitoring.html">6 · Monitoring, Guardrails &amp; Cost</a>
+  <h2>Deep Learning Series</h2>
+  <a href="foundations-of-deep-learning.html">1 · Foundations of Deep Learning</a>
+  <a href="the-transformer-deep-dive.html">2 · The Transformer, Deep Dive</a>
+  <a href="modern-frontier-llms.html">3 · Modern Frontier LLMs</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="kicker">LLMOps, In Depth · Part 2 of 6</div>
+  <h1>Evaluation &amp; Testing</h1>
+  <p class="sub">How to measure whether an answer is "good" when there is no single correct wording — the four-layer framework, LLM judges, and automated checks for prompts.</p>
+  <div class="meta"><span>By Prithviraj</span><span>Part 2 of 6</span><span>~34 min read</span></div>
+</header>
+
+<section id="intro">
+  <p class="lead">If you cannot measure how good your model's answers are, you cannot improve them, and you cannot safely ship them. That measuring step is called <b>evaluation</b>. This post builds up a full set of checks, starting from a one-line pattern match that runs in a fraction of a second and ending with one language model grading another language model against a checklist. Then we connect all of it to an automatic pipeline that stops a bad prompt before any user sees it.</p>
+  <p>In <a href="llmops-1-foundations.html">Part 1</a> we saw the core problem. Checking whether the output is exactly equal to a stored answer stops working the moment the output is free-form text. "Paris is the capital of France" and "The capital of France is Paris" are both correct, yet they are not the same string, so an equality check would mark one of them wrong. The solution is to run several kinds of checks, layered from cheap-and-shallow to expensive-and-deep.</p>
+  <div class="box intu"><div class="label">The core idea</div>
+  A traditional software test asks a yes/no question: <b>is the output equal to the expected answer?</b> An LLM evaluation asks a different, richer question: <b>how good is the output, and good in what specific ways?</b> The answer is not one true/false value but several graded scores, for example one score for accuracy, one for tone, one for whether it stuck to the source. Everything below is a way to compute those scores cheaply, reliably, and in a way that cannot be easily fooled.</div>
+</section>
+
+<section id="part1" class="module">
+  <h2 class="sec">Part 1 · Evaluation</h2>
+  <h3>The four-layer evaluation framework</h3>
+
+  <p>A good way to organize checks is in four layers, ordered from cheapest and shallowest to most expensive and deepest. The rule is simple: run a layer only if the layers before it passed. If the output is not even valid, there is no point paying a language model to grade it. This "stop as soon as something fails" ordering keeps most checks free.</p>
+
+  <div class="flow">
+    <div class="fb ffn"><div class="t">Layer 1 · Structural checks</div><div class="fsub">Is the shape right? Valid JSON, correct length, allowed values. Runs in microseconds, no model needed.</div></div>
+    <div class="farrow">↓ if valid</div>
+    <div class="fb attn"><div class="t">Layer 2 · Semantic checks</div><div class="fsub">Does it mean the same as a known-good answer? Word overlap, embedding similarity. Cheap, needs a reference answer.</div></div>
+    <div class="farrow">↓ if it matches</div>
+    <div class="fb emb"><div class="t">Layer 3 · Model-based checks</div><div class="fsub">Is it accurate and well-reasoned? A language model grades against a checklist. Slow and costs money.</div></div>
+    <div class="farrow">↓ always, in parallel</div>
+    <div class="fb out"><div class="t">Layer 4 · Guardrail checks</div><div class="fsub">Is it safe, fast, affordable? Private data, toxicity, attacks, latency, cost. Covered in Part 6.</div></div>
+  </div>
+
+  <table>
+    <tr><th>Layer</th><th>Question it answers</th><th>Cost</th><th>Needs a known-good answer?</th></tr>
+    <tr><td>1 · Structural</td><td>Is it well-formed and within the rules?</td><td>Microseconds, free</td><td>No</td></tr>
+    <tr><td>2 · Semantic</td><td>Does it mean the same as the target?</td><td>Milliseconds, cheap</td><td>Yes</td></tr>
+    <tr><td>3 · Model-based</td><td>Is it accurate, faithful, well-reasoned?</td><td>Seconds, costs money</td><td>Optional (a checklist)</td></tr>
+    <tr><td>4 · Guardrail</td><td>Is it safe, fast, affordable?</td><td>Varies</td><td>No</td></tr>
+  </table>
+
+  <p>Before we go through the layers, one distinction that decides <i>when</i> each check runs. Some checks run before you ship, on a fixed set of test examples, in your build pipeline. This is called <b>offline evaluation</b>. Other checks run on live user traffic after you ship, watching real requests as they happen. This is called <b>online evaluation</b>. Layers 1 to 3 are usually run offline on test examples; Layer 4 and lighter versions of the others also run online. Part 6 covers online monitoring in detail.</p>
+
+  <div class="box real"><div class="label">In practice — most failures are caught at Layer 1</div>
+  It is tempting to jump straight to having a language model grade everything, but that is the slowest and most expensive tool you have. If you designed your output to follow a fixed format (covered in Part 1), then Layer 1 by itself catches cut-off answers, broken JSON, out-of-range numbers, and missing fields. Those are a large share of real-world breakages, and they cost nothing to catch. Save your expensive model-grading budget for the answers that already passed the cheap layers.</div>
+</section>
+
+<section id="part2" class="module">
+  <h2 class="sec">Part 2 · Evaluation</h2>
+  <h3>Reference &amp; semantic matching metrics</h3>
+
+  <p>Layer 2 is used when you already have a correct answer to compare against, called the <b>reference</b> or <b>gold answer</b>. The goal is to check whether the generated text <i>means</i> the same thing as the reference, not whether the exact characters match. There are three families of methods, in rising order of sophistication.</p>
+
+  <h4>2.1 Counting shared words: BLEU and ROUGE</h4>
+  <p>The oldest methods just count how many short runs of words the output and the reference have in common. A run of <i>n</i> consecutive words is called an <b>n-gram</b>: "the cat" is a 2-gram, "the big cat" is a 3-gram.</p>
+  <p>The recall-focused metric, which asks "how much of the reference did the output cover?", is called <b>ROUGE</b> (Recall-Oriented Understudy for Gisting Evaluation). The precision-focused metric, which asks "how much of the output was actually justified by the reference?", is called <b>BLEU</b> (Bilingual Evaluation Understudy). Here is a tiny worked example.</p>
+
+  <div class="worked"><div class="label">Worked example — counting shared 1-grams</div>
+  <p>Reference: <code>the cat sat on the mat</code> (6 words)<br>
+  Output: <code>the cat sat on a rug</code> (6 words)</p>
+  <p>Shared words: <code>the</code>, <code>cat</code>, <code>sat</code>, <code>on</code> = 4 matches.</p>
+  $$\text{precision}=\frac{4\ \text{matched}}{6\ \text{output words}}=0.67 \qquad \text{recall}=\frac{4\ \text{matched}}{6\ \text{reference words}}=0.67$$
+  <p>ROUGE would report the recall side (0.67), BLEU the precision side (0.67). These are fast and need no model, but they only see shared words. A perfect paraphrase that reuses none of the same words, like "a rug is where the animal rested", would score close to zero even though the meaning is fine. So these metrics work for summarization and translation, where wording is expected to stay close, and work poorly for open-ended questions.</p></div>
+
+  <h4>2.2 Comparing meaning with embeddings</h4>
+  <p>A better approach turns each piece of text into a list of numbers that captures its meaning. That list of numbers is called an <b>embedding</b>, and the model that produces it is an <b>embedding model</b>. Two texts that mean similar things get embeddings that point in a similar direction. We measure how similar two directions are with the <b>cosine similarity</b>: the cosine of the angle between the two lists of numbers. It runs from 1 (same direction, same meaning) down toward 0 (unrelated).</p>
+  <div class="eq">$$\text{cosine similarity}=\cos\theta=\frac{\mathbf v_g\cdot\mathbf v_r}{\lVert\mathbf v_g\rVert\,\lVert\mathbf v_r\rVert}$$</div>
+  <p>Here \(\mathbf v_g\) is the generated answer's embedding and \(\mathbf v_r\) is the reference's. The top is the <b>dot product</b> (multiply matching numbers, add them up). The bottom divides by each list's length so only direction matters, not size.</p>
+
+  <div class="worked"><div class="label">Worked example — paraphrase scores high, wrong answer scores low</div>
+  <p>Real embeddings have 1,000 or more numbers; we use 3 here so the arithmetic is visible. The math is identical. Reference embedding \(\mathbf v_r=[0.9,0.3,0.1]\).</p>
+  $$\begin{aligned}
+  \text{Output A (a paraphrase) } [0.8,0.4,0.1]:\ &\cos=\tfrac{(0.9)(0.8)+(0.3)(0.4)+(0.1)(0.1)}{\sqrt{0.91}\,\sqrt{0.81}}=\tfrac{0.85}{0.858}\approx \mathbf{0.99}\\[4pt]
+  \text{Output B (off-topic) } [0.1,0.2,0.95]:\ &\cos=\tfrac{(0.9)(0.1)+(0.3)(0.2)+(0.1)(0.95)}{\sqrt{0.91}\,\sqrt{0.9525}}=\tfrac{0.245}{0.931}\approx \mathbf{0.26}
+  \end{aligned}$$
+  <p>The paraphrase scores 0.99 even though it shares few exact words, and the off-topic answer scores 0.26. This is exactly what word-counting could not do. In practice you pick a cutoff, for example "accept if cosine is above 0.82", tuned on your own data.</p></div>
+
+<pre><code># minimal embedding-similarity check
+from sentence_transformers import SentenceTransformer, util
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+gen  = "The capital of France is Paris."
+ref  = "Paris is the capital of France."
+
+v_g, v_r = model.encode([gen, ref])
+score = util.cos_sim(v_g, v_r).item()   # ~0.94
+assert score &gt; 0.82   # passes: same meaning, different word order</code></pre>
+
+  <h4>2.3 BERTScore — matching word by word, in context</h4>
+  <p>The previous method squeezes a whole sentence into one embedding, which can blur details. A refinement embeds <i>every word in its context</i>, then matches each output word to the reference word it is most similar to, and averages those similarities. This method is called <b>BERTScore</b> (it uses a model called BERT, Bidirectional Encoder Representations from Transformers). Because it compares word by word in context, it lines up with human judgment better than BLEU or ROUGE on many tasks.</p>
+
+  <div class="worked"><div class="label">Worked example — how BERTScore matches words</div>
+  <p>Output <code>a fast dog</code> vs reference <code>a quick dog</code>. Match each output word to its closest reference word and read off the cosine similarity:</p>
+  <table>
+    <tr><th>Output word</th><th>Best reference match</th><th>Cosine</th></tr>
+    <tr><td>a</td><td>a</td><td>1.00</td></tr>
+    <tr><td>fast</td><td>quick</td><td>0.87</td></tr>
+    <tr><td>dog</td><td>dog</td><td>1.00</td></tr>
+  </table>
+  $$\text{precision}=\frac{1.00+0.87+1.00}{3}=0.96$$
+  <p>"fast" never appears in the reference, so plain word-counting scores it zero; BERTScore sees that "fast" and "quick" are close in meaning and gives 0.87. Recall is computed the same way but matching each reference word to its closest output word, and F1 combines the two.</p></div>
+
+  <div class="box math"><div class="label">Engineering track — what meaning-based checks cannot catch</div>
+  Embedding similarity measures whether two texts are <i>about the same thing</i>, not whether they are <i>true</i>. Consider "The drug is indicated for hypertension" and "The drug is <b>not</b> indicated for hypertension". They share almost every word and point in nearly the same direction, so cosine similarity is high, yet they say opposite things. A single flipped word like "not", a wrong number, or a subtle reversal of a fact all pass Layer 2 unnoticed. That blind spot is the whole reason Layer 3 exists, and it is why a safety-critical domain like the medical example in Part 5 cannot stop at meaning-based similarity.</div>
+</section>
+
+<section id="part3" class="module">
+  <h2 class="sec">Part 3 · Evaluation</h2>
+  <h3>LLM-as-a-judge — power and pitfalls</h3>
+
+  <p>The deepest and most flexible check is to hand the output to another language model and ask it to grade the answer against a set of instructions. This is called <b>LLM-as-a-judge</b> (LLM stands for Large Language Model). It can rate things no formula can, such as accuracy, tone, helpfulness, or whether the answer stuck to a source. It is also the easiest to trust too much, because these judges have consistent, predictable biases that you have to actively cancel out.</p>
+
+  <h4>3.1 The two ways to ask a judge</h4>
+  <ul class="tight">
+    <li><b>Give one answer a score:</b> "Rate this answer from 1 to 5 for factual accuracy." Simple, but the scores tend to drift over time and bunch up in the middle. This is called <b>absolute scoring</b>.</li>
+    <li><b>Compare two answers:</b> "Here are answers A and B. Which is better?" More reliable, because deciding which of two things is better is a steadier judgment than putting a number on one thing alone. This is called <b>pairwise comparison</b>, and it is the basis of the A/B regression testing in Part 6.</li>
+  </ul>
+
+  <p>Here is a concrete judge prompt for the pairwise case.</p>
+<pre><code>SYSTEM: You are a strict grader. You will see a QUESTION, a
+REFERENCE answer, and two candidate answers A and B. Decide
+which candidate better matches the reference on factual accuracy.
+Ignore length and writing style. Do not reward extra detail that
+is not in the reference. Reply with exactly one token: A, B, or TIE.
+
+QUESTION: What is the capital of France?
+REFERENCE: Paris.
+A: The capital of France is Paris.
+B: France is a country in Western Europe with many large cities.
+
+ASSISTANT: A</code></pre>
+
+  <h4>3.2 G-Eval — a more reliable recipe</h4>
+  <p>A widely used improvement on plain judging is called <b>G-Eval</b>. It adds two ideas. First, before grading, it asks the judge to write out its own step-by-step checklist from the criteria, so the grading is more consistent. Second, instead of taking the single score the model happened to output, it looks at how sure the model was about each possible score and takes a weighted average. The model's confidence in each score is called its <b>probability</b> for that score, and turning raw model outputs into probabilities that add up to 1 is done with the <b>softmax</b> function.</p>
+  <div class="eq">$$\text{score}=\sum_{i=1}^{5} i\cdot p(i),\qquad p(i)=\frac{e^{z_i}}{\sum_{j=1}^{5} e^{z_j}}$$</div>
+  <div class="worked"><div class="label">Worked example — why the weighted score is finer</div>
+  <p>Suppose the judge is 70% sure the answer is a 4 and 30% sure it is a 5, and sure of nothing else. A plain judge would just say "4". G-Eval computes:</p>
+  $$\text{score}=(1)(0)+(2)(0)+(3)(0)+(4)(0.70)+(5)(0.30)=2.8+1.5=\mathbf{4.3}$$
+  <p>The 4.3 records that the judge leaned slightly toward 5, information the flat "4" would have thrown away. Over a whole test set, these finer scores make small quality changes visible.</p></div>
+
+  <h4>3.3 The three biases you must correct</h4>
+  <p>A "bias" here means a consistent way the judge is unfair that has nothing to do with actual answer quality. There are three you should assume are present.</p>
+  <table>
+    <tr><th>Bias</th><th>What you see</th><th>How to correct it</th></tr>
+    <tr><td><b>Position bias</b></td><td>The judge tends to prefer whichever answer it was shown first.</td><td>Run the comparison both ways (A then B, then B then A) and average. Or only count a win if the answer wins in both orders.</td></tr>
+    <tr><td><b>Verbosity bias</b></td><td>Longer answers get higher scores even when they are not better.</td><td>Tell the judge in the prompt to ignore length, and dock points for padding in the checklist.</td></tr>
+    <tr><td><b>Self-preference bias</b></td><td>A judge tends to favor answers written by its own model family.</td><td>Use a different model as the judge than the one being tested, and average several different judges.</td></tr>
+  </table>
+
+  <div class="box link"><div class="label">Best practice — how to make a judge trustworthy</div>
+  Give the judge a <b>reference answer</b> and a <b>concrete checklist</b>. Not "rate the quality" but "give 1 point each for: cites the source, makes no claim the source does not support, directly answers the question." Prefer comparing two answers over scoring one. Shuffle the order of the answers. Use a strong model as the judge. And most important: <b>test the judge itself</b>. Take a set of examples that humans have already graded, run the judge on them, and check how often the judge agrees with the humans. Only trust the judge to gate your deploys once you have measured that agreement. A judge is a model too, so it needs its own evaluation.</div>
+
+  <h4>3.4 RAG-specific model-based metrics</h4>
+  <p>Many systems answer a question by first fetching relevant documents and then writing an answer using them. This is called <b>RAG</b> (Retrieval-Augmented Generation), and Part 5 covers it fully. The fetched documents are called the <b>retrieved context</b>. Three model-based checks are the standard way to grade a RAG system; together they are often called the "RAG triad" and are implemented by tools named Ragas and TruLens. Each works by having a language model break the text into small factual statements, called <b>claims</b>, and checking each one.</p>
+  <div class="eq">$$\text{Faithfulness}=\frac{\text{number of claims in the answer that the retrieved context supports}}{\text{total number of claims in the answer}}$$</div>
+  <div class="worked"><div class="label">Worked example — computing faithfulness</div>
+  <p>Answer: "Aspirin reduces fever and cures diabetes." Break into claims:</p>
+  <ul class="tight">
+    <li>Claim 1: "Aspirin reduces fever." — supported by the retrieved context. ✓</li>
+    <li>Claim 2: "Aspirin cures diabetes." — not in the context (made up). ✗</li>
+  </ul>
+  $$\text{Faithfulness}=\frac{1\ \text{supported}}{2\ \text{total}}=0.5$$
+  <p>A score of 0.5 flags that half the answer was invented, so it should not ship.</p></div>
+  <ul class="tight">
+    <li><b>Faithfulness (also called groundedness):</b> the fraction of the answer's claims that the retrieved documents actually support. This is the main signal for catching made-up content, called <b>hallucination</b>.</li>
+    <li><b>Answer relevancy:</b> does the answer actually address the question? Ragas estimates this by asking a model to invent questions the answer would fit, then measuring the cosine similarity between those invented questions and the real one.</li>
+    <li><b>Context precision and recall:</b> did the retrieval step fetch the right documents? Precision asks whether the fetched documents were relevant and well-ranked; recall asks whether it fetched all the relevant ones. These separate a retrieval problem from a writing problem.</li>
+  </ul>
+</section>
+
+<section id="part4" class="module">
+  <h2 class="sec">Part 4 · Evaluation</h2>
+  <h3>Golden datasets — the asset that compounds</h3>
+
+  <p>None of the metrics above mean anything without a set of examples to run them on. That curated set of test cases — each one an input paired with its expected output and the way it should be graded — is called a <b>golden dataset</b>. It is the most valuable and longest-lived asset in an LLMOps project. Models change, prompts change, vendors change; the golden dataset is the fixed ruler you measure all of them against.</p>
+
+  <h4>4.1 What goes into it</h4>
+  <ul class="tight">
+    <li><b>Common requests (happy paths):</b> the everyday, typical inputs. Usually the smallest and least interesting part.</li>
+    <li><b>Edge cases:</b> very long inputs, empty inputs, vague requests, other languages, and inputs written to trip the system up.</li>
+    <li><b>Regression cases:</b> every past production failure, frozen forever as a permanent test. A "regression" is when a change re-breaks something that used to work; this is the feedback loop from Part 1 made concrete.</li>
+    <li><b>A grading rule per case:</b> exact match, a keyword that must appear, a cosine-similarity cutoff, or a judge checklist. The grading method is stored alongside each example.</li>
+  </ul>
+
+  <div class="box intu"><div class="label">Intuition — 100 great cases beat 10,000 sloppy ones</div>
+  The same rule that governs training data (Part 3) governs test data: quality matters more than quantity. A tight set of 100 to 300 carefully labeled, varied, and deliberately tricky cases gives a sharper, faster, and cheaper signal than tens of thousands of scraped examples with fuzzy expected answers. Start with 50 hand-written cases and grow the set from real failures, not from bulk-generated filler.</div>
+
+  <div class="box real"><div class="label">In practice — the golden dataset lives in version control</div>
+  Store it in your code repository right next to the prompts (Part 1). When you change a prompt, the change in eval scores is your evidence to either merge or block the change. When a new model version comes out, re-running the golden dataset is your migration test. When a customer reports a bug, the reproduction becomes case number 247 in the set, and no future change can silently break it again.</div>
+</section>
+
+<section id="part5" class="module">
+  <h2 class="sec">Part 5 · Evaluation</h2>
+  <h3>Testing the LLM layers of an agentic app</h3>
+
+  <p>Evaluating a plain model asks "is the text good?" But many real applications do more than write text. An <b>agent</b> is a system that uses a model to decide which actions to take, calling tools, querying APIs or <a href="llmops-5-rag-agents.html">MCP servers</a> (MCP means Model Context Protocol, a standard way to expose tools to a model), and carrying out multi-step plans. Testing an agent asks more questions: did it pick the right tool, pass valid inputs to it, take a sensible sequence of steps, and follow the rules of its domain?</p>
+
+  <p>The standard way to organize these tests is a <b>testing pyramid</b>: many fast cheap tests at the bottom, fewer slow expensive tests at the top.</p>
+
+  <div class="pyramid">
+    <div class="prow"><div class="ptier t3"><span class="tag">Tier 3 · few, slow</span><div class="h">Whole-task domain evaluation</div><div class="d">Did it accomplish the task and follow domain rules? Graded by an LLM judge plus rule checks, on the golden dataset.</div></div></div>
+    <div class="prow"><div class="ptier t2"><span class="tag">Tier 2 · some</span><div class="h">Path (trajectory) and tool-choice tests</div><div class="d">Did it call the right tool, in the right order, with valid inputs, without looping forever? Fake tool responses so the test is deterministic.</div></div></div>
+    <div class="prow"><div class="ptier t1"><span class="tag">Tier 1 · many, fast</span><div class="h">Unit tests on shape and inputs</div><div class="d">Plain assertions on the structured output and the tool-call inputs. No model call.</div></div></div>
+  </div>
+
+  <h4>5.1 Tier 1 — plain unit tests</h4>
+  <p>Because the output follows a fixed format (from Part 1), the tool inputs and the final output are typed, so an ordinary assertion checks them with no model call at all.</p>
+<pre><code>def test_listing_structure_and_constraints():
+    out = run_listing_agent("Men's running shoe, blue, lightweight, size 10")
+    assert len(out.title) &lt;= 80          # marketplace hard limit
+    assert len(out.bullet_points) &gt;= 3    # minimum feature bullets
+    assert out.category in ALLOWED_TAXONOMY</code></pre>
+
+  <h4>5.2 Tier 2 — path and tool tests</h4>
+  <p>The sequence of steps an agent takes is called its <b>trajectory</b>. An agent can reach a right-looking answer by a wrong path. To test this cheaply and repeatably, you replace the real tools with stand-ins that return fixed responses, called <b>mocks</b>, then check the exact list of calls the agent made.</p>
+<pre><code>def test_mcp_tool_trajectory():
+    tracer = AgentTracer()
+    run_listing_agent("Men's running shoe", tracer=tracer)
+    # Correct grounding: look up the taxonomy BEFORE writing copy
+    assert "mcp_get_category_taxonomy" in tracer.tool_calls
+    assert tracer.index("mcp_get_category_taxonomy") &lt; tracer.index("generate_copy")
+    assert tracer.tool_call_count &lt; 5      # no runaway tool loop</code></pre>
+  <p>This catches two failures that an output-only test would miss: the agent skipping a required lookup step and then guessing the category, and the agent getting stuck in a loop that burns time and money.</p>
+
+  <h4>5.3 Tier 3 — domain evaluation, with two worked case studies</h4>
+
+  <h5>Case A · E-commerce product-listing agent</h5>
+  <p>The top-tier test checks that the agent did not invent product features that were not in the supplier's text (a hallucination).</p>
+<pre><code>def test_no_hallucinated_attributes():
+    score = evaluate_hallucination(
+        input="Lightweight mesh canvas shoe",
+        output=generated_listing,
+        context="Mesh canvas is not waterproof.")
+    assert score &lt; 0.1   # agent must not claim 'waterproof'</code></pre>
+
+  <h5>Case B · Medical literature-synthesis agent</h5>
+  <p>Here the stakes make Layers 1 and 2 not enough on their own; the ways it can fail are specific to the domain and unsafe.</p>
+  <table>
+    <tr><th>Failure mode</th><th>Why it is dangerous</th><th>How to test it</th></tr>
+    <tr><td>Fake citations</td><td>Invents believable-looking paper IDs that do not exist.</td><td><b>Direct verification:</b> read out each citation, call the PubMed API, and assert the paper exists and matches the claim.</td></tr>
+    <tr><td>Flipped negation</td><td>Turns "not indicated" into "indicated" — invisible to cosine similarity.</td><td><b>Contradiction check:</b> a classifier is asked "Does output X contradict established fact Y?" This is called natural language inference, or NLI.</td></tr>
+    <tr><td>Wrong terminology</td><td>Uses casual words instead of the official medical terms.</td><td><b>Dictionary check:</b> verify key terms against a controlled vocabulary such as MeSH.</td></tr>
+  </table>
+  <div class="box real"><div class="label">In practice — use the cheapest layer that catches the failure</div>
+  Notice that the medical tests are not all model-grading calls. A fake citation is caught by a plain API lookup (Layer 1 style). Wrong terminology is caught by a dictionary. Only the flipped-negation case actually needs a model. Good agent testing means matching each way the system can fail to the shallowest, cheapest check that reliably catches it, and saving expensive model-grading for the failures nothing cheaper can find.</div>
+</section>
+
+<section id="part6" class="module">
+  <h2 class="sec">Part 6 · Evaluation</h2>
+  <h3>CI/CD for prompts &amp; agents</h3>
+
+  <p>All of the above only helps if it runs automatically on every change. Running your tests automatically whenever code changes is called <b>CI/CD</b> (Continuous Integration and Continuous Delivery). The pattern is the same as ordinary software CI/CD, with two extra twists for language models: you must control cost, and you compare the new version's scores against the current production version rather than just checking pass/fail.</p>
+
+  <div class="flow">
+    <div class="fb out"><div class="t">Someone proposes a prompt or agent change (a pull request)</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb ffn"><div class="t">1 · Fast structural tests</div><div class="fsub">Check the shape of the output. Runs on every case in seconds, no model.</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb attn"><div class="t">2 · Mock-tool path tests</div><div class="fsub">Tool choice and order, with a small cheap model checking the inputs.</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb emb"><div class="t">3 · Golden dataset run + judge</div><div class="fsub">Meaning checks plus LLM-as-a-judge on the 50 to 300 saved cases.</div></div>
+    <div class="farrow">↓</div>
+    <div class="fb dec"><div class="t">4 · Compare scores against the live version</div><div class="fsub">New prompt vs current production, on the exact same cases.</div></div>
+    <div class="farrow">↓ scores high enough and nothing regressed?</div>
+    <div class="fb norm"><div class="t">✓ Merge &nbsp;|&nbsp; ✗ Block the change and attach a report</div></div>
+  </div>
+
+  <div class="box link"><div class="label">Controlling cost — use small models for the cheap checks</div>
+  Running a top-tier judge model on every case of every proposed change is slow and expensive. The usual approach: use small, fast, cheap models for the structural and path checks that run on every commit, and save the full top-tier judge for release-candidate builds or a random sample of cases. This is the same cheap-versus-deep tradeoff from Part 1, now applied to your pipeline budget.</div>
+
+  <h4>6.1 The tool landscape</h4>
+  <p>Here is a minimal example of one of these frameworks, DeepEval, which lets you write evals in the same style as ordinary unit tests.</p>
+<pre><code>from deepeval import assert_test
+from deepeval.test_case import LLMTestCase
+from deepeval.metrics import GEval
+
+correctness = GEval(
+    name="Correctness",
+    criteria="Is the answer factually correct vs the reference?",
+    threshold=0.7,   # fail the test below this score
+)
+
+def test_capital_question():
+    case = LLMTestCase(
+        input="What is the capital of France?",
+        actual_output="The capital of France is Paris.",
+        expected_output="Paris.")
+    assert_test(case, [correctness])   # runs the judge, asserts score >= 0.7</code></pre>
+  <table>
+    <tr><th>Tool</th><th>Best for</th><th>Notes</th></tr>
+    <tr><td><b>Promptfoo</b></td><td>Testing many prompts and models from a config file; attack testing</td><td>Declarative YAML; easy to run in CI.</td></tr>
+    <tr><td><b>DeepEval</b></td><td>Unit-test-style evals, G-Eval, RAG and agent metrics</td><td>Feels like writing unit tests; wide set of metrics.</td></tr>
+    <tr><td><b>Ragas</b></td><td>RAG faithfulness, relevancy, and context metrics</td><td>The reference implementation for RAG evaluation.</td></tr>
+    <tr><td><b>OpenAI Evals</b></td><td>A registry of reusable evals and model-graded templates</td><td>Open-source framework plus a shared registry.</td></tr>
+    <tr><td><b>Braintrust / LangSmith</b></td><td>Hosted evaluation, dataset management, and logging</td><td>Connect offline evals to live monitoring (Part 6).</td></tr>
+  </table>
+
+  <div class="box link"><div class="label">Where we go next</div>
+  You can now measure quality and block regressions before they ship. But so far the model has been a closed box you simply call. <b>Part 3 — Open Models: MoE, Reasoning &amp; Fine-tuning</b> opens the box: what a Mixture-of-Experts model is and how it routes work, how reasoning models are trained, why we shrink models through quantization, and how to fine-tune a model on your own hardware to specialize it — then evaluate the result with exactly the machinery you just built here.</div>
+</section>
+
+<section id="references">
+  <h2 class="sec">Appendix</h2>
+  <h3>References &amp; further reading</h3>
+  <p>Grouped by type; freely available online. Tool capabilities and metric names evolve — verify specifics against current official docs.</p>
+  <div class="refgroup"><h4>Research papers &amp; primary sources</h4>
+  <ol class="reflist">
+    <li><span class="authors">Liu et al. (2023). </span><span class="rtitle">G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment</span>. <a href="https://arxiv.org/abs/2303.16634">https://arxiv.org/abs/2303.16634</a></li>
+    <li><span class="authors">Zheng et al. (2023). </span><span class="rtitle">Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena</span>. Position/verbosity/self-preference biases. <a href="https://arxiv.org/abs/2306.05685">https://arxiv.org/abs/2306.05685</a></li>
+    <li><span class="authors">Zhang et al. (2019). </span><span class="rtitle">BERTScore: Evaluating Text Generation with BERT</span>. <a href="https://arxiv.org/abs/1904.09675">https://arxiv.org/abs/1904.09675</a></li>
+    <li><span class="authors">Es et al. (2023). </span><span class="rtitle">RAGAS: Automated Evaluation of Retrieval Augmented Generation</span>. <a href="https://arxiv.org/abs/2309.15217">https://arxiv.org/abs/2309.15217</a></li>
+    <li><span class="authors">Papineni et al. (2002). </span><span class="rtitle">BLEU: a Method for Automatic Evaluation of Machine Translation</span>. <a href="https://aclanthology.org/P02-1040/">https://aclanthology.org/P02-1040/</a></li>
+  </ol></div>
+  <div class="refgroup"><h4>Tools &amp; documentation</h4>
+  <ol class="reflist">
+    <li><span class="authors">Confident AI. </span><span class="rtitle">DeepEval documentation</span>. <a href="https://docs.confident-ai.com/">https://docs.confident-ai.com/</a></li>
+    <li><span class="authors">Exploding Gradients. </span><span class="rtitle">Ragas documentation</span>. <a href="https://docs.ragas.io/">https://docs.ragas.io/</a></li>
+    <li><span class="authors">Promptfoo. </span><span class="rtitle">Test your prompts, models, and RAGs</span>. <a href="https://www.promptfoo.dev/">https://www.promptfoo.dev/</a></li>
+    <li><span class="authors">TruLens. </span><span class="rtitle">The RAG Triad</span>. <a href="https://www.trulens.org/">https://www.trulens.org/</a></li>
+  </ol></div>
+  <p class="refnote">Named tools are illustrative of the state of the field as of early 2026, not endorsements or fixed facts. The four-layer framework and testing pyramid are conceptual syntheses of common industry practice.</p>
+</section>
+</main>
+</div>
+<script>
+window.addEventListener('scroll',function(){
+  var h=document.documentElement, b=document.body;
+  var st=h.scrollTop||b.scrollTop, sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+  document.getElementById('bar').style.width=(sh>0?(st/sh*100):0)+'%';
+});
+</script>
+</body>
+</html>

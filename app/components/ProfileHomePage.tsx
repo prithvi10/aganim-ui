@@ -23,6 +23,7 @@ import {
   buildProfileIndexSchemas,
 } from "../utils/profileSeo";
 import type { ProfileSeoContext } from "../utils/profileHost";
+import { scrollToProfileSectionFromHash } from "../utils/profileScroll";
 import { useProfilePaths } from "../utils/useProfilePaths";
 
 export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext }) {
@@ -38,6 +39,10 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
       root.style.scrollBehavior = previous;
     };
   }, []);
+
+  useEffect(() => {
+    scrollToProfileSectionFromHash(paths.home);
+  }, [paths.home]);
 
   const filteredProjects = useMemo(
     () =>
@@ -195,14 +200,17 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
           {filteredSeries.map((series) => (
             <Reveal key={series.name}>
               <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-                <div className="aspect-[16/10] overflow-hidden">
+                <a
+                  href={series.parts[0]?.href}
+                  className="block aspect-[16/10] overflow-hidden transition hover:opacity-95"
+                >
                   <img
                     src={series.featuredImage}
                     alt={series.name}
                     className="h-full w-full object-cover"
                     loading="lazy"
                   />
-                </div>
+                </a>
                 <div className="p-6">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-violet-500/20 px-2.5 py-1 text-xs font-medium text-violet-200">
@@ -217,7 +225,14 @@ export function ProfileHomePage({ seoContext }: { seoContext?: ProfileSeoContext
                       </span>
                     ))}
                   </div>
-                  <h3 className="text-lg font-semibold text-white">{series.name}</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    <a
+                      href={series.parts[0]?.href}
+                      className="transition hover:text-sky-200"
+                    >
+                      {series.name}
+                    </a>
+                  </h3>
                   <p className="mt-3 text-sm leading-relaxed text-slate-400">
                     {series.summary}
                   </p>
